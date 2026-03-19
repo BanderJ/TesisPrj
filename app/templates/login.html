@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/login.css">
+    <title>CoffeeRen - Login</title>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+    <!-- Main Container -->
+    <div class="w-full max-w-md px-4">
+        <!-- Glass Card -->
+        <div class="glassmorphism rounded-3xl p-8 md:p-10 shadow-2xl">
+            <!-- Header Section -->
+            <div class="flex flex-col items-center mb-8">
+                <!-- CoffeeRen Logo -->
+                <div class="logo-placeholder mb-4">
+                    ☕
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold mb-2 text-center" style="color: var(--primary);">
+                    CoffeeRen
+                </h1>
+                <p class="text-sm text-center">
+                    Sistema IA de Clasificación de Café
+                </p>
+            </div>
+
+            <!-- Universidad Shield -->
+            <div class="flex justify-center mb-8">
+                <div class="shield-placeholder" title="Universidad Católica Santo Toribio de Mogrovejo">
+                    🛡️
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <hr class="divider" />
+
+            <!-- Login Form -->
+            <form id="loginForm" class="space-y-6">
+                <!-- Username Input -->
+                <div class="form-group">
+                    <label for="username" class="input-label">
+                        Usuario
+                    </label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Ingrese su usuario"
+                        class="input-field w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-offset-0"
+                        required
+                        aria-required="true"
+                    />
+                </div>
+
+                <!-- Password Input -->
+                <div class="form-group">
+                    <label for="password" class="input-label">
+                        Contraseña
+                    </label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Ingrese su contraseña"
+                        class="input-field w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-offset-0"
+                        required
+                        aria-required="true"
+                    />
+                </div>
+
+                <!-- Remember Me -->
+                <div class="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        id="rememberMe"
+                        name="rememberMe"
+                        class="checkbox-custom w-4 h-4 rounded"
+                    />
+                    <label for="rememberMe" class="text-sm cursor-pointer select-none">
+                        Recuérdame
+                    </label>
+                </div>
+
+                <!-- Primary Button -->
+                <button
+                    type="submit"
+                    class="btn-primary w-full py-3 rounded-lg mt-8"
+                >
+                    Iniciar Sesión
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <hr class="divider" />
+
+            <!-- Footer Links -->
+            <div class="flex flex-col items-center gap-3 text-sm">
+                <a href="#" class="link-text">
+                    ¿Olvidó su contraseña?
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer Info -->
+        <div class="mt-8 footer-text">
+            <p>© 2026 CoffeeRen | Universidad Católica Santo Toribio de Mogrovejo</p>
+            <p class="mt-2">Sistema Inteligente de Clasificación de Café</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Form Submission
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            // TODO: Implementar autenticación con backend
+            console.log('Login attempt:', { username, password, rememberMe });
+            
+            // Placeholder: Store credentials if remember me is checked
+            if (rememberMe) {
+                localStorage.setItem('username', username);
+            } else {
+                localStorage.removeItem('username');
+            }
+            
+            alert(`Bienvenido, ${username}!`);
+        });
+
+        // Restore username if remember me was checked
+        window.addEventListener('load', () => {
+            const savedUsername = localStorage.getItem('username');
+            if (savedUsername) {
+                document.getElementById('username').value = savedUsername;
+                document.getElementById('rememberMe').checked = true;
+            }
+        });
+    </script>
+</body>
+</html>

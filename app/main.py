@@ -1,10 +1,15 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi import WebSocket
 from app.routes.auth_login import app as auth_login
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
+
+# Esto permite que el navegador encuentre el archivo generado automáticamente
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 ### ROUTES ###
 
@@ -13,7 +18,10 @@ app.include_router(auth_login, prefix="/auth", tags=["auth"])
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    """
+    Ruta raíz que redirige a la página de login
+    """
+    return RedirectResponse(url="/auth/login")
 
 ### Managment of CORS (Cross-Origin Resource Sharing) to allow requests from any origin
 app.add_middleware(
