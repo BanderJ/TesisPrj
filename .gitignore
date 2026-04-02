@@ -7,3 +7,6 @@ __pycache__/
 
 #Exclude .exe
 *.exe
+
+#Exclude config.py which may contain sensitive information
+config.py

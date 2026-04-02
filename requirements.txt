@@ -1,3 +1,5 @@
 fastapi
-jinja2 aiofiles
+jinja2
+aiofiles
 uvicorn
+psycopg2
