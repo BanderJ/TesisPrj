@@ -1,0 +1,273 @@
+* {
+    color-scheme: light;
+}
+
+body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Header Glassmorphism */
+.header-glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    box-shadow: var(--shadow-sm);
+    height: 70px;
+    display: flex;
+    align-items: center;
+}
+
+.dark .header-glass {
+    background: rgba(35, 30, 26, 0.8);
+}
+
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 40px;
+    gap: 40px;
+}
+
+.header-left {
+    flex-shrink: 0;
+    min-width: fit-content;
+}
+
+.brand-link {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.3s ease;
+}
+
+.brand-link:hover {
+    opacity: 0.8;
+}
+
+.header-center {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex: 1;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+/* Main content offset for fixed header */
+main {
+    margin-top: 90px;
+    padding: 32px 16px;
+    min-height: calc(100vh - 90px - 250px);
+}
+
+/* Navigation Link Styles */
+.nav-link {
+    color: var(--foreground);
+    text-decoration: none;
+    padding: 8px 0;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+.nav-link:hover {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.nav-link.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+/* Avatar Styles */
+.avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: var(--secondary);
+    color: var(--secondary-foreground);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid var(--primary);
+    font-size: 14px;
+}
+
+.avatar:hover {
+    box-shadow: var(--shadow-md);
+    transform: scale(1.05);
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+    position: absolute;
+    top: 60px;
+    right: 0;
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    min-width: 220px;
+    z-index: 50;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+.dropdown-menu.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    padding: 12px 16px;
+    color: var(--foreground);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-size: 14px;
+}
+
+.dropdown-item:hover {
+    background-color: var(--muted);
+    color: var(--destructive);
+}
+
+/* Dark Mode Toggle */
+.dark-mode-btn {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+}
+
+.dark-mode-btn:hover {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+    transform: scale(1.1);
+}
+
+/* Footer */
+.footer-glass {
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    margin-top: 64px;
+    padding: 32px 16px;
+    text-align: center;
+}
+
+.footer-text {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    margin: 8px 0;
+}
+
+.university-logo {
+    width: 40px;
+    height: 40px;
+    margin: 16px auto;
+    background: var(--secondary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--secondary-foreground);
+    font-size: 20px;
+}
+
+/* Container */
+.container-main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+/* Card Component */
+.card {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    main {
+        margin-top: 70px;
+        padding: 16px 8px;
+    }
+
+    .header-glass {
+        padding: 12px 16px;
+    }
+
+    .nav-menu {
+        display: none;
+    }
+
+    .footer-glass {
+        padding: 24px 16px;
+    }
+}
+
+/* Dark Mode Support */
+.dark {
+    --background: oklch(0.1902 0.0189 62.5001);
+    --foreground: oklch(0.9702 0 0);
+    --card: oklch(0.2389 0.0203 63.2513);
+    --border: oklch(0.3068 0.0337 54.7785);
+    --primary: oklch(0.7204 0.1095 131.3265);
+}
+
+body.dark {
+    background-color: var(--background);
+    color: var(--foreground);
+}

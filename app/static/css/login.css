@@ -75,10 +75,9 @@ body {
 .input-label {
     display: block;
     margin-bottom: 8px;
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--foreground);
-    text-transform: uppercase;
     letter-spacing: 0.3px;
 }
 

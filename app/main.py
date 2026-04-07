@@ -1,27 +1,68 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status, Depends
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 from fastapi import WebSocket
-from app.routes.auth_login import app as auth_login
+from app.routes.auth_login import auth as auth_router
+from app.utilities.jwt_utils import verificar_token
 from fastapi.staticfiles import StaticFiles
+import os
 
 app = FastAPI()
 
 # Esto permite que el navegador encuentre el archivo generado automáticamente
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-### ROUTES ###
+# Configurar Jinja2Templates
+templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+templates = Jinja2Templates(directory=templates_dir)
 
-### Include the auth_login router to handle authentication-related routes
-app.include_router(auth_login, prefix="/auth", tags=["auth"])
+# ==================== SISTEMA DE AUTENTICACIÓN (Dependencias) ====================
+
+class RequerirLoginException(Exception):
+    """Excepción para manejar redirecciones a login desde dependencias"""
+    pass
+
+@app.exception_handler(RequerirLoginException)
+async def auth_exception_handler(request: Request, exc: RequerirLoginException):
+    return RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
+
+def obtener_usuario_actual(request: Request):
+    """
+    Dependencia que sustituye al @jwt_token_requerido de Flask.
+    Si el usuario no está logueado, interrumpe y redirige al login automáticamente.
+    """
+    token = request.cookies.get("access_token")
+    if not token or not token.startswith("Bearer "):
+        raise RequerirLoginException()
+    
+    token = token.split(" ")[1]
+    user = verificar_token(token)
+    
+    if not user:
+        raise RequerirLoginException()
+    
+    return user
+
+# ==================== RUTAS ====================
+
+### Include the auth router to handle authentication-related routes
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 @app.get("/")
-async def root():
+async def root(request: Request, user: dict = Depends(obtener_usuario_actual)):
     """
-    Ruta raíz que redirige a la página de login
+    Ruta raíz que lleva al inicio del sistema
     """
-    return RedirectResponse(url="/auth/login")
+    return templates.TemplateResponse("inicio.html", {"request": request, "user": user})
+
+@app.get("/inicio")
+async def inicio(request: Request, user: dict = Depends(obtener_usuario_actual)):
+    """
+    Página de inicio del sistema
+    """
+    return templates.TemplateResponse("inicio.html", {"request": request, "user": user})
 
 ### Managment of CORS (Cross-Origin Resource Sharing) to allow requests from any origin
 app.add_middleware(

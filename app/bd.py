@@ -1,7 +1,7 @@
 import os
 import psycopg2
 import psycopg2.extras
-from config import Config
+from app.config import Config
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -15,9 +15,10 @@ class Connection:
                 password=Config.PASSWORD,
                 host=Config.HOST,
                 port=Config.PORT,
-                database=Config.DATABASE,
-                autocommit=False  # IMPORTANTE: False por defecto para transacciones seguras
+                database=Config.DATABASE
             )
+            # En psycopg2, autocommit es una propiedad del objeto conexión, no un parámetro de conexión
+            self.conn.autocommit = False 
             self.cursor = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             print("Conexión a PostgreSQL exitosa")
         except Exception as e:
