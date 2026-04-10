@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/css/tailwind.css">
     <link rel="stylesheet" href="/static/css/layout.css">
-    <title>CoffeeRen - Sistema de Clasificación IA</title>
+
+    {% block style %}
+    {% endblock %}
+
+    <title>CoffeeRen</title>
 </head>
 <body>
     <!-- Fixed Header with Glassmorphism -->
@@ -22,7 +26,7 @@
             <!-- CENTER: Navigation Menu -->
             <nav class="header-center">
                 <a href="/" class="nav-link active">Inicio</a>
-                <a href="#" class="nav-link">Registro de Muestra</a>
+                <a href="/registro" class="nav-link">Registro de Muestra</a>
                 <a href="#" class="nav-link">Historial</a>
             </nav>
 
@@ -31,24 +35,22 @@
                 
                 <!-- Dark Mode Toggle -->
                 <button class="dark-mode-btn" id="darkModeToggle" title="Alternar modo oscuro">
-                    <svg id="sunIcon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707zm5.414-1.414a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1z" clip-rule="evenodd"/>
-                    </svg>
-                    <svg id="moonIcon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
-                    </svg>
+                    <img id="sunIcon" class="w-5 h-5 hidden" src="/static/icon/sun.svg" alt="Modo claro">
+                    <img id="moonIcon" class="w-5 h-5" src="/static/icon/moon.svg" alt="Modo oscuro">
                 </button>
 
                     <!-- User Avatar with Dropdown -->
-                    <div class="relative">
+                    <div class="relative user-menu-wrapper">
                         <button class="avatar" id="avatarBtn" title="Perfil de usuario">
-                            {% if user %}{{ user.nombre[:2] | upper }}{% else %}AB{% endif %}
+                            {% if user %}{{ user.nombre[:1] | upper }}{% endif %}
                         </button>
                         <div class="dropdown-menu" id="dropdownMenu">
-                            <div class="p-3 border-b" style="border-color: var(--border);">
-                                <p class="font-semibold text-sm">{% if user %}{{ user.nombre }}{% else %}Anderson Baca{% endif %}</p>
-                                <p class="text-xs" style="color: var(--muted-foreground);">
-                                    {% if user %}{{ user.usuario }}{% else %}anderson.baca@usat.edu.pe{% endif %}
+                            <div class="dropdown-user-info">
+                                <p class="dropdown-user-name">
+                                    {% if user %}{{ user.nombre }}{% endif %}
+                                </p>
+                                <p class="dropdown-user-handle">
+                                    {% if user %}{{ user.usuario }}{% endif %}
                                 </p>
                             </div>
                             <a href="/auth/logout" class="dropdown-item" style="text-decoration: none;">
@@ -143,7 +145,7 @@
 
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('.relative')) {
+            if (!e.target.closest('.user-menu-wrapper')) {
                 dropdownMenu.classList.remove('active');
             }
         });

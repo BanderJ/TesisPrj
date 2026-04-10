@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import WebSocket
 from app.routes.auth_login import auth as auth_router
+from app.routes.tipo_documento import tipo_documento_router
 from app.utilities.jwt_utils import verificar_token
 from fastapi.staticfiles import StaticFiles
 import os
@@ -49,6 +50,7 @@ def obtener_usuario_actual(request: Request):
 
 ### Include the auth router to handle authentication-related routes
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(tipo_documento_router, prefix="/tipo-documento", tags=["tipo-documento"])
 
 @app.get("/")
 async def root(request: Request, user: dict = Depends(obtener_usuario_actual)):
@@ -63,6 +65,13 @@ async def inicio(request: Request, user: dict = Depends(obtener_usuario_actual))
     Página de inicio del sistema
     """
     return templates.TemplateResponse("inicio.html", {"request": request, "user": user})
+
+@app.get("/registro")
+async def registro(request: Request, user: dict = Depends(obtener_usuario_actual)):
+    """
+    Página de registro de muestras
+    """
+    return templates.TemplateResponse("registro.html", {"request": request, "user": user})
 
 ### Managment of CORS (Cross-Origin Resource Sharing) to allow requests from any origin
 app.add_middleware(
