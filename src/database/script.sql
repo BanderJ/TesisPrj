@@ -20,7 +20,7 @@ DROP TABLE IF EXISTS TIPO_PERSONAL CASCADE;
 DROP TABLE IF EXISTS VALOR_CAFE CASCADE;
 
 CREATE TABLE CAFICULTOR (caficultor_id uuid DEFAULT uuidv7(), TIPO_CAFICULTORid int2 NOT NULL, fecha_registro timestamp NOT NULL, PRIMARY KEY (caficultor_id));
-CREATE TABLE DETALLE_EVALUACION (id uuid DEFAULT uuidv7(), cantidad int4 UNIQUE, evaluacion_id uuid NOT NULL, tipo_defecto_id int2 NOT NULL, PRIMARY KEY (id));
+CREATE TABLE DETALLE_EVALUACION (id uuid DEFAULT uuidv7(), cantidad int4 NOT NULL, evaluacion_id uuid NOT NULL, tipo_defecto_id int2 NOT NULL, PRIMARY KEY (id));
 CREATE TABLE EVALUACION (id uuid DEFAULT uuidv7(), codigo int4, personal_id uuid NOT NULL, caficultor_id uuid NOT NULL, valor_cafe_id uuid NOT NULL, fecha timestamp NOT NULL, peso_muestra float4 NOT NULL, peso_cascara float4 NOT NULL, peso_malo float4, peso_bueno float4, puntuacion float4, pago float4, grado_defecto char(1), PRIMARY KEY (id));
 CREATE TABLE PERSONA (id uuid DEFAULT uuidv7(), nombre varchar(50) NOT NULL, ape_paterno varchar(30) NOT NULL, ape_materno varchar(30) NOT NULL, sexo char(1) NOT NULL, fecha_nacimiento date NOT NULL, tipo_documento_id int2 NOT NULL, num_documento varchar(12) NOT NULL, telefono char(9), estado char(1) NOT NULL, PRIMARY KEY (id));
 CREATE TABLE PERSONAL (personal_id uuid DEFAULT uuidv7(), tipo_personal_id int2 NOT NULL, usuario varchar(30) NOT NULL UNIQUE, clave varchar(255) NOT NULL, estado char(1) NOT NULL, fecha_registro timestamp NOT NULL, PRIMARY KEY (personal_id));

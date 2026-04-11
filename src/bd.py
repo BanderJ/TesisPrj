@@ -1,7 +1,6 @@
-import os
 import psycopg2
 import psycopg2.extras
-from app.config import Config
+from src.config import Config
 from datetime import date, datetime
 from decimal import Decimal
 

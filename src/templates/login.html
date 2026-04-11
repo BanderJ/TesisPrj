@@ -19,10 +19,10 @@
                     ☕
                 </div>
                 <h1 class="text-3xl md:text-4xl font-bold mb-2 text-center" style="color: var(--primary);">
-                    CoffeeRen
+                    Iniciar sesión
                 </h1>
-                <p class="text-sm text-center">
-                    Sistema IA de Clasificación de Café
+                <p class="text-descr text-center">
+                    Ingrese sus credenciales para acceder al sistema
                 </p>
             </div>
 
@@ -58,6 +58,7 @@
                         class="input-field w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-offset-0"
                         required
                         aria-required="true"
+                        maxlength="30"
                     />
                 </div>
 
@@ -66,15 +67,33 @@
                     <label for="clave" class="input-label">
                         Contraseña
                     </label>
-                    <input
-                        type="password"
-                        id="clave"
-                        name="clave"
-                        placeholder="Ingrese su contraseña"
-                        class="input-field w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-offset-0"
-                        required
-                        aria-required="true"
-                    />
+                    <div class="password-field-wrapper">
+                        <input
+                            type="password"
+                            id="clave"
+                            name="clave"
+                            placeholder="Ingrese su contraseña"
+                            class="password-input-field"
+                            required
+                            aria-required="true"
+                            maxlength="20"
+                        />
+                        <button
+                            type="button"
+                            id="toggleClaveBtn"
+                            class="password-toggle-btn"
+                            aria-label="Mostrar contraseña"
+                            aria-controls="clave"
+                            aria-pressed="false"
+                        >
+                            <img
+                                id="toggleClaveIcon"
+                                src="/static/icon/visibility_off.svg"
+                                alt="Mostrar contraseña"
+                                class="password-toggle-icon"
+                            />
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Primary Button -->
@@ -103,5 +122,34 @@
             <p class="mt-2">Sistema inteligente de clasificación de café verde mediante visión artificial</p>
         </div>
     </div>
+
+    <script>
+        (() => {
+            const passwordInput = document.getElementById('clave');
+            const toggleButton = document.getElementById('toggleClaveBtn');
+            const toggleIcon = document.getElementById('toggleClaveIcon');
+
+            if (!passwordInput || !toggleButton || !toggleIcon) {
+                return;
+            }
+
+            toggleButton.addEventListener('click', () => {
+                const isHidden = passwordInput.type === 'password';
+                passwordInput.type = isHidden ? 'text' : 'password';
+
+                if (isHidden) {
+                    toggleButton.setAttribute('aria-label', 'Ocultar contraseña');
+                    toggleButton.setAttribute('aria-pressed', 'true');
+                    toggleIcon.src = '/static/icon/visibility_on.svg';
+                    toggleIcon.alt = 'Ocultar contraseña';
+                } else {
+                    toggleButton.setAttribute('aria-label', 'Mostrar contraseña');
+                    toggleButton.setAttribute('aria-pressed', 'false');
+                    toggleIcon.src = '/static/icon/visibility_off.svg';
+                    toggleIcon.alt = 'Mostrar contraseña';
+                }
+            });
+        })();
+    </script>
 </body>
 </html>

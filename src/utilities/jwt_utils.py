@@ -1,6 +1,6 @@
 import jwt
 from datetime import datetime, timedelta
-from app.config import Config
+from src.config import Config
 
 def generar_token(payload, days=7):
     payload['exp'] = datetime.utcnow() + timedelta(days=days)

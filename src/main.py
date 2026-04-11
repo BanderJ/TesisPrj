@@ -4,16 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import WebSocket
-from app.routes.auth_login import auth as auth_router
-from app.routes.tipo_documento import tipo_documento_router
-from app.utilities.jwt_utils import verificar_token
+from src.routes.auth_login import auth as auth_router
+from src.routes.tipo_documento import tipo_documento_router
+from src.utilities.jwt_utils import verificar_token
 from fastapi.staticfiles import StaticFiles
 import os
 
 app = FastAPI()
 
 # Esto permite que el navegador encuentre el archivo generado automáticamente
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory="src/static"), name="static")
+app.mount("/resources", StaticFiles(directory="src/resources"), name="resources")
 
 # Configurar Jinja2Templates
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")

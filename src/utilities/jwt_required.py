@@ -1,6 +1,6 @@
 from functools import wraps
 from fastapi import request, jsonify
-from utilities.jwt_utils import verificar_token
+from src.utilities.jwt_utils import verificar_token
 
 def jwt_token_requerido(f):
     @wraps(f)
