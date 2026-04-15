@@ -1,8 +1,8 @@
-fastapi
-jinja2
-aiofiles
-uvicorn
-psycopg2
-argon2-cffi
-PyJWT
-python-multipart
+fastapi          # Framework web para crear APIs y rutas HTTP
+jinja2           # Motor de plantillas HTML para renderizado del frontend
+aiofiles         # Lectura y escritura asincrona de archivos
+uvicorn          # Servidor ASGI para ejecutar la app FastAPI
+psycopg2         # Driver de PostgreSQL para Python
+argon2-cffi      # Hash seguro de contrasenas con algoritmo Argon2
+PyJWT            # Generacion y validacion de tokens JWT
+python-multipart # Soporte para formularios y subida de archivos multipart/form-data

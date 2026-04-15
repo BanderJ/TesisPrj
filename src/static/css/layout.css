@@ -4,9 +4,29 @@
 
 body {
     background-color: var(--background);
+    background-image: linear-gradient(rgba(248, 247, 242, 0.88), rgba(248, 247, 242, 0.88)), url('/resources/fondo_temp.jpg');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
     color: var(--foreground);
     font-family: var(--font-sans);
+    font-size: 20px;
+    line-height: 1.5;
     transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Utilidades tipograficas globales para excepciones puntuales */
+.text-18 {
+    font-size: 18px !important;
+}
+
+.text-20 {
+    font-size: 20px !important;
+}
+
+.text-24 {
+    font-size: 24px !important;
 }
 
 /* Header Glassmorphism */
@@ -26,7 +46,7 @@ body {
 }
 
 .dark .header-glass {
-    background: var(--muted-foreground);
+    background: var(--muted);
 }
 
 .header-container {
@@ -94,7 +114,7 @@ main {
     border-bottom: 3px solid transparent;
     transition: all 0.3s ease;
     font-weight: 500;
-    font-size: 18px;
+    font-size: 22px;
     white-space: nowrap;
 }
 
@@ -246,6 +266,17 @@ main {
     text-align: center;
 }
 
+.footer-icon-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.footer-icon {
+    width: 64px;
+    height: 64px;
+}
+
 .footer-text {
     color: var(--muted-foreground);
     font-size: 16px;
@@ -328,5 +359,6 @@ main {
 
 body.dark {
     background-color: var(--background);
+    background-image: linear-gradient(rgba(31, 27, 22, 0.86), rgba(31, 27, 22, 0.86)), url('/resources/fondo_temp.jpg');
     color: var(--foreground);
 }

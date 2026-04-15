@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import WebSocket
 from src.routes.auth_login import auth as auth_router
+from src.routes.cafiultor import caficultor_router
 from src.routes.tipo_documento import tipo_documento_router
 from src.utilities.jwt_utils import verificar_token
 from fastapi.staticfiles import StaticFiles
@@ -51,15 +52,10 @@ def obtener_usuario_actual(request: Request):
 
 ### Include the auth router to handle authentication-related routes
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
 app.include_router(tipo_documento_router, prefix="/tipo-documento", tags=["tipo-documento"])
 
 @app.get("/")
-async def root(request: Request, user: dict = Depends(obtener_usuario_actual)):
-    """
-    Ruta raíz que lleva al inicio del sistema
-    """
-    return templates.TemplateResponse("inicio.html", {"request": request, "user": user})
-
 @app.get("/inicio")
 async def inicio(request: Request, user: dict = Depends(obtener_usuario_actual)):
     """
@@ -74,31 +70,7 @@ async def registro(request: Request, user: dict = Depends(obtener_usuario_actual
     """
     return templates.TemplateResponse("registro.html", {"request": request, "user": user})
 
-### Managment of CORS (Cross-Origin Resource Sharing) to allow requests from any origin
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
-    allow_credentials=True  # Allow cookies and credentials
-)
 
-# All requests from any origin will be allowed to access the API
-@app.middleware("http")
-async def cors_middleware(request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    return response
-
-### Example of a POST endpoint that accepts an item and returns it
-class Item(BaseModel):
-    name: str
-    description: str = None
-    price: float
-
-@app.post("/items")
-async def create_item(item: Item):
-    return {"item": item, "name": item.name, "description": item.description, "price": item.price}
 
 ### startup to send a message to the console when the application starts
 @app.on_event("startup")
@@ -109,20 +81,3 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     print("Application is shutting down...")
-
-### WebSocket endpoint for real-time communication, allowing clients to connect and receive messages
-online_clients = []
-@app.websocket("/ws/data")
-async def websocket_data(websocket: WebSocket):
-    await websocket.accept()
-    online_clients.append(websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            print(f"Data recibida: {data}")
-            # Broadcast the received data to all connected clients
-            for client in online_clients:
-                if client != websocket:
-                    await client.send_text(f"Data recibida: {data}")
-    except Exception as e:
-        print(f"Error en WebSocket: {e}")

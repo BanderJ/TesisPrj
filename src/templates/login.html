@@ -9,43 +9,33 @@
 </head>
 <body class="min-h-screen flex items-center justify-center">
     <!-- Main Container -->
-    <div class="w-full max-w-md px-4">
+    <div class="login-container w-full px-4">
         <!-- Glass Card -->
         <div class="glassmorphism rounded-3xl p-8 md:p-10 shadow-2xl">
             <!-- Header Section -->
             <div class="flex flex-col items-center mb-8">
-                <!-- CoffeeRen Logo -->
                 <div class="logo-placeholder mb-4">
-                    ☕
+                    <img id="iconCoffee" class="w-16 h-16" alt="Icono de CoffeeRen" src="/static/icon/coffee_icon.svg">
                 </div>
                 <h1 class="text-3xl md:text-4xl font-bold mb-2 text-center" style="color: var(--primary);">
                     Iniciar sesión
                 </h1>
-                <p class="text-descr text-center">
+                <p class="text-descr info-text text-center">
                     Ingrese sus credenciales para acceder al sistema
                 </p>
             </div>
 
-            <!-- Universidad Shield -->
-            <div class="flex justify-center mb-8">
-                <div class="shield-placeholder" title="Universidad Católica Santo Toribio de Mogrovejo">
-                    🛡️
-                </div>
-            </div>
-
             <!-- Error Alert -->
             {% if error %}
-            <div style="background-color: var(--destructive); color: var(--destructive-foreground); padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;">
+            <div class="login-alert info-text">
                 {{ error }}
             </div>
             {% endif %}
 
-            <!-- Divider -->
             <hr class="divider" />
 
             <!-- Login Form -->
             <form method="post" action="/auth/login" class="space-y-6">
-                <!-- Username Input -->
                 <div class="form-group">
                     <label for="usuario" class="input-label">
                         Usuario
@@ -62,7 +52,6 @@
                     />
                 </div>
 
-                <!-- Password Input -->
                 <div class="form-group">
                     <label for="clave" class="input-label">
                         Contraseña
@@ -96,7 +85,6 @@
                     </div>
                 </div>
 
-                <!-- Primary Button -->
                 <button
                     type="submit"
                     class="btn-primary w-full py-3 rounded-lg mt-8"
@@ -105,21 +93,13 @@
                 </button>
             </form>
 
-            <!-- Divider -->
             <hr class="divider" />
 
-            <!-- Footer Links -->
-            <div class="flex flex-col items-center gap-3 text-sm">
+            <div class="flex flex-col items-center gap-3 info-text">
                 <a href="#" class="link-text">
                     ¿Olvidó su contraseña?
                 </a>
             </div>
-        </div>
-
-        <!-- Footer Info -->
-        <div class="mt-8 footer-text">
-            <p>© 2026 CoffeeRen | <a href="https://github.com/BanderJ">by Anderson Baca</a></p>
-            <p class="mt-2">Sistema inteligente de clasificación de café verde mediante visión artificial</p>
         </div>
     </div>
 

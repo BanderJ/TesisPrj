@@ -1,132 +1,77 @@
 {% extends "layout.html" %}
 
+{% block style %}
+    <link rel="stylesheet" href="/static/css/inicio.css">
+{% endblock %}
+
 {% block content %}
-    <!-- Welcome Section -->
-    <div class="welcome-section">
-        <h1 class="welcome-title">
-            Bienvenido a CoffeeRen
-        </h1>
-        <p class="welcome-subtitle">
-            Sistema Inteligente de Clasificación de Café - Análisis mediante Visión Artificial
+    <section class="hero-section reveal-up">
+        <p class="hero-overline info-text">Panel principal</p>
+        <h1 class="hero-title">Bienvenido al sistema CoffeeRen</h1>
+        <p class="hero-description">
+            Plataforma para clasificar muestras de cafe con apoyo de vision artificial. Registra productores,
+            organiza muestras y sigue el comportamiento del precio del cafe para tomar decisiones con contexto.
         </p>
-    </div>
+    </section>
 
-    <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <!-- Quick Stats Card 1 -->
-        <div class="card">
-            <div style="color: var(--primary); font-size: 28px; margin-bottom: 12px;">📊</div>
-            <h3 class="text-lg font-bold mb-2">Muestras Registradas</h3>
-            <p style="font-size: 24px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">0</p>
-            <p style="color: var(--muted-foreground); font-size: 12px;">
-                Muestras de café registradas en el sistema
-            </p>
+    <section class="market-section reveal-up" aria-labelledby="precio-cafe-title">
+        <div class="market-header">
+            <h2 id="precio-cafe-title" class="section-title">Precio actual del cafe</h2>
+            <p class="section-subtitle info-text">Simulacion de variacion diaria hasta hoy</p>
         </div>
 
-        <!-- Quick Stats Card 2 -->
-        <div class="card">
-            <div style="color: var(--accent); font-size: 28px; margin-bottom: 12px;">✅</div>
-            <h3 class="text-lg font-bold mb-2">Análisis Completados</h3>
-            <p style="font-size: 24px; font-weight: 700; color: var(--accent); margin-bottom: 8px;">0</p>
-            <p style="color: var(--muted-foreground); font-size: 12px;">
-                Clasificaciones realizadas de muestras
-            </p>
+        <div class="market-grid">
+            <article class="market-price-card">
+                <p class="price-label info-text">Quintal de café verde (S/ por 50kg)</p>
+                <p class="price-value" id="coffeePriceValue">S/ 1200.00</p>
+                <p class="price-change" id="coffeePriceChange">3.0% más respecto ayer</p>
+                <p class="price-date info-text">Actualizado al 14/4/2026 <span id="coffeePriceDate"></span></p>
+            </article>
+
+            <article class="market-chart-card" aria-label="Grafico historico del precio del cafe">
+                <div class="chart-bars" id="coffeeChartBars"></div>
+                <div class="chart-axis" id="coffeeChartAxis"></div>
+            </article>
         </div>
+    </section>
 
-        <!-- Quick Stats Card 3 -->
-        <div class="card">
-            <div style="color: var(--secondary); font-size: 28px; margin-bottom: 12px;">⚡</div>
-            <h3 class="text-lg font-bold mb-2">Precisión del Sistema</h3>
-            <p style="font-size: 24px; font-weight: 700; color: var(--secondary); margin-bottom: 8px;">-</p>
-            <p style="color: var(--muted-foreground); font-size: 12px;">
-                Tasa de precisión en clasificaciones
-            </p>
-        </div>
-    </div>
+    <section class="actions-section reveal-up" aria-labelledby="acciones-title">
+        <h2 id="acciones-title" class="section-title">Secciones importantes</h2>
+        <p class="section-subtitle info-text">Gestion de usuarios y flujo operativo de muestras</p>
 
-    <!-- Cooperativa Line Coffee Card -->
-    <div style="margin-bottom: 48px;">
-        <h2 class="text-2xl font-bold mb-6" style="color: var(--foreground);">
-            Partners Colaboradores
-        </h2>
-
-        <div class="card">
-            <div class="flex flex-col md:flex-row items-center gap-8">
-                <!-- Logo/Icon -->
-                <div style="flex-shrink: 0; text-align: center;">
-                    <div style="width: 120px; height: 120px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-lg);">
-                        <span style="font-size: 60px;">☕</span>
-                    </div>
+        <div class="actions-grid">
+            <article class="action-card">
+                <div class="action-badge">01</div>
+                <h3 class="action-title">Gestion de personas</h3>
+                <p class="action-text">Registra productores y socios para consolidar la base de trabajo territorial.</p>
+                <div class="action-row two-buttons">
+                    <button type="button" class="action-btn secondary" disabled>Registrar caficultor</button>
+                    <button type="button" class="action-btn secondary" disabled>Registrar socio</button>
                 </div>
+            </article>
 
-                <!-- Content -->
-                <div style="flex: 1;">
-                    <h3 class="text-2xl font-bold mb-2" style="color: var(--primary);">
-                        Cooperativa Line Coffee Marañón
-                    </h3>
-                    <p style="color: var(--muted-foreground); margin-bottom: 12px; line-height: 1.6;">
-                        Asociación de productores de café de alta calidad ubicada en la región de Marañón, Amazonas. 
-                        Comprometida con prácticas sostenibles y producción de café orgánico de excelencia.
-                    </p>
-                    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                        <div>
-                            <p style="font-weight: 600; color: var(--foreground);">Ubicación</p>
-                            <p style="color: var(--muted-foreground); font-size: 14px;">Marañón, Amazonas - Perú</p>
-                        </div>
-                        <div>
-                            <p style="font-weight: 600; color: var(--foreground);">Especialidad</p>
-                            <p style="color: var(--muted-foreground); font-size: 14px;">Café Orgánico Premium</p>
-                        </div>
-                        <div>
-                            <p style="font-weight: 600; color: var(--foreground);">Certificaciones</p>
-                            <p style="color: var(--muted-foreground); font-size: 14px;">Fairtrade, Orgánico, UTZ</p>
-                        </div>
-                    </div>
+            <article class="action-card">
+                <div class="action-badge">02</div>
+                <h3 class="action-title">Muestreo y clasificacion</h3>
+                <p class="action-text">Inicia el flujo principal para cargar datos y ejecutar la clasificacion de granos.</p>
+                <div class="action-row">
+                    <a href="/registro" class="action-btn primary">Realizar muestra</a>
                 </div>
-            </div>
-        </div>
-    </div>
+            </article>
 
-    <!-- Quick Actions -->
-    <div style="margin-bottom: 48px;">
-        <h2 class="text-2xl font-bold mb-6" style="color: var(--foreground);">
-            Acciones Rápidas
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a href="/registro" style="text-decoration: none;">
-                <div class="card" style="cursor: pointer; transition: all 0.3s ease;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="font-size: 24px;">📸</span>
-                        <div>
-                            <p class="font-bold">Registrar Nueva Muestra</p>
-                            <p style="color: var(--muted-foreground); font-size: 12px;">Captura y analiza una muestra de café</p>
-                        </div>
-                    </div>
+            <article class="action-card">
+                <div class="action-badge">03</div>
+                <h3 class="action-title">Busqueda de muestras</h3>
+                <p class="action-text">Consulta resultados historicos y filtra muestras por productor, fecha o estado.</p>
+                <div class="action-row">
+                    <button type="button" class="action-btn secondary" disabled>Buscar muestras</button>
                 </div>
-            </a>
-            <a href="/historial" style="text-decoration: none;">
-                <div class="card" style="cursor: pointer; transition: all 0.3s ease;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="font-size: 24px;">📈</span>
-                        <div>
-                            <p class="font-bold">Ver Historial</p>
-                            <p style="color: var(--muted-foreground); font-size: 12px;">Visualiza análisis anteriores</p>
-                        </div>
-                    </div>
-                </a>
-            </div>
+            </article>
         </div>
-    </div>
+    </section>
 
-    <!-- System Info -->
-    <div class="card mb-12">
-        <h3 class="text-lg font-bold mb-4">Acerca del Sistema</h3>
-        <p style="color: var(--muted-foreground); line-height: 1.6; margin-bottom: 12px;">
-            <strong>CoffeeRen</strong> es un sistema inteligente desarrollado por la Universidad Católica Santo Toribio de Mogrovejo 
-            para la clasificación automática de café verde mediante técnicas de visión artificial e inteligencia artificial.
-        </p>
-        <p style="color: var(--muted-foreground); font-size: 12px;">
-            Versión 1.0 | Año 2026
-        </p>
-    </div>
+    <script>
+        // Logica para el grafico de precios del cafe, falta llenar bd
+
+    </script>
 {% endblock %}

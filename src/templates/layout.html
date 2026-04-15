@@ -19,15 +19,15 @@
             <!-- LEFT: Brand -->
             <div class="header-left">
                 <a href="/" class="brand-link">
-                    ☕ CoffeeRen
+                    CoffeeRen
                 </a>
             </div>
 
             <!-- CENTER: Navigation Menu -->
             <nav class="header-center">
                 <a href="/" class="nav-link active">Inicio</a>
-                <a href="/registro" class="nav-link">Registro de Muestra</a>
-                <a href="#" class="nav-link">Historial</a>
+                <a href="/registro" class="nav-link">Registro de muestra</a>
+                <a href="#" class="nav-link">Registrar caficultor</a>
             </nav>
 
             <!-- RIGHT: Dark Mode & User Avatar -->
@@ -72,35 +72,15 @@
     <main>
         <div class="container-main">
             {% block content %}
-            <!-- Default content for home page -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="card">
-                    <h3 class="text-lg font-bold mb-2">Bienvenido</h3>
-                    <p style="color: var(--muted-foreground);">
-                        Sistema Inteligente de Clasificación de Café
-                    </p>
-                </div>
-                <div class="card">
-                    <h3 class="text-lg font-bold mb-2">Registros</h3>
-                    <p style="color: var(--muted-foreground);">
-                        Administra tus muestras de café
-                    </p>
-                </div>
-                <div class="card">
-                    <h3 class="text-lg font-bold mb-2">Historial</h3>
-                    <p style="color: var(--muted-foreground);">
-                        Visualiza análisis anteriores
-                    </p>
-                </div>
-            </div>
+            
             {% endblock %}
         </div>
     </main>
 
     <!-- Footer -->
     <footer class="footer-glass">
-        <div class="university-logo">
-            🛡️
+        <div class="footer-icon-wrapper">
+            <img id="iconCoffee" class="footer-icon" alt="Icono de CoffeeRen" src="/static/icon/coffee-bean_icon.png">
         </div>
         <div class="footer-text">
             © 2026 CoffeeRen

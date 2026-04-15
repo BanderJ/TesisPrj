@@ -8,13 +8,13 @@
 <section class="registro-page" aria-label="Registro de muestra de cafe">
 	<div class="registro-header">
 		<h1>Registro de muestra</h1>
-		<p>Completa los datos para iniciar la clasificacion en tiempo real.</p>
+		<p class="info-text">Completa los datos para iniciar la clasificacion en tiempo real.</p>
 	</div>
 
 	<form id="registroForm" class="registro-form" novalidate>
 		<div class="registro-grid">
 			<article class="card registro-card" aria-labelledby="lote-title">
-				<h2 id="lote-title">Datos del productor</h2>
+				<h2 id="lote-title">Datos del caficultor</h2>
 
 				<div class="field-group">
 					<label for="tipoDocumento">Tipo documento</label>
@@ -24,19 +24,30 @@
 				</div>
 
 				<div class="field-group">
-					<label for="dniProductor">DNI del productor</label>
-					<input id="dniProductor" name="dniProductor" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="12" required placeholder="Ejemplo: 72348190">
-					<!-- <p class="helper-text helper-error">Solo caracteres numericos</p> -->
+					<label for="dniCaficultor">DNI del caficultor</label>
+					<input id="dniCaficultor" name="dniCaficultor" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="12" required placeholder="Ejemplo: 72348190">
+					<p id="caficultorLookupMessage" class="helper-text info-text" aria-live="polite"></p>
 				</div>
+
+				<div class="field-group">
+					<label for="nombreCaficultor">Nombre del caficultor</label>
+					<input id="nombreCaficultor" name="nombreCaficultor" type="text" required placeholder="Ejemplo: Juan Perez" readonly>
+				</div>
+
+				<div class="field-group">
+					<label for="tipoCaficultor">Tipo de caficultor</label>
+					<input id="tipoCaficultor" name="tipoCaficultor" type="text" required placeholder="Ejemplo: Socio" readonly>
+				</div>
+				
+			</article>
+
+			<article class="card registro-card" aria-labelledby="peso-title">
+				<h2 id="peso-title">Pesos de granos</h2>
 
 				<div class="field-group">
 					<label for="tamiz">Numero de tamiz (mm)</label>
 					<input id="tamiz" name="tamiz" type="number" min="0" step="0.1" required placeholder="Ejemplo: 6.5">
 				</div>
-			</article>
-
-			<article class="card registro-card" aria-labelledby="peso-title">
-				<h2 id="peso-title">Pesos de granos</h2>
 
 				<div class="field-group">
 					<label for="pesoTotal">Peso total de muestra (g)</label>
@@ -66,8 +77,8 @@
 	<section id="monitorSection" class="monitor-section" aria-hidden="true">
 		<div class="monitor-header">
 			<h2>Monitoreo en tiempo real</h2>
-			<p>No cierre esta ventana mientras se realiza este proceso</p>
-			<p>Este proceso no se puede pausar, solo cancelar</p>
+			<p class="info-text">No cierre esta ventana mientras se realiza este proceso</p>
+			<p class="info-text">Este proceso no se puede pausar, solo cancelar</p>
 		</div>
 
 		<div class="live-container">
@@ -78,12 +89,12 @@
 
 			<div class="video-placeholder" aria-label="Contenedor de video en vivo">
 				<div class="video-overlay">
-					<p>Aqui se mostrara la camara con granos de cafe en la banda transportadora.</p>
+					<p class="info-text">Aqui se mostrara la camara con granos de cafe en la banda transportadora.</p>
 				</div>
 			</div>
 		</div>
 
-		<p id="processStatus" class="process-status">Clasificacion en curso...</p>
+		<p id="processStatus" class="process-status info-text">Clasificacion en curso...</p>
 
 		<div class="monitor-actions">
 			<button type="button" id="cancelMonitoringBtn" class="btn btn-cancel">Cancelar</button>
@@ -98,7 +109,10 @@
 		const form = document.getElementById('registroForm');
 		const sampleIdInput = document.getElementById('sampleId');
 		const tipoDocumentoSelect = document.getElementById('tipoDocumento');
-		const dniInput = document.getElementById('dniProductor');
+		const dniInput = document.getElementById('dniCaficultor');
+		const nombreCaficultorInput = document.getElementById('nombreCaficultor');
+		const tipoCaficultorInput = document.getElementById('tipoCaficultor');
+		const caficultorLookupMessage = document.getElementById('caficultorLookupMessage');
 		const startBtn = document.getElementById('startMonitoringBtn');
 		const clearBtn = document.getElementById('clearFormBtn');
 		const monitorSection = document.getElementById('monitorSection');
@@ -107,6 +121,62 @@
 		const processStatus = document.getElementById('processStatus');
 
 		let resultTimer = null;
+		let consultaTimer = null;
+		let caficultorValido = false;
+		let ultimoDocumentoConsultado = '';
+
+		function limpiarDatosCaficultor() {
+			nombreCaficultorInput.value = '';
+			tipoCaficultorInput.value = '';
+			caficultorValido = false;
+		}
+
+		function setLookupMessage(message, type = 'neutral') {
+			caficultorLookupMessage.textContent = message;
+			caficultorLookupMessage.classList.remove('helper-success', 'helper-error');
+			if (type === 'success') {
+				caficultorLookupMessage.classList.add('helper-success');
+			}
+			if (type === 'error') {
+				caficultorLookupMessage.classList.add('helper-error');
+			}
+		}
+
+		async function consultarCaficultor(documento) {
+			if (ultimoDocumentoConsultado === documento && caficultorValido) {
+				return;
+			}
+
+			try {
+				setLookupMessage('Buscando datos del caficultor...');
+				const response = await fetch(`/caficultor/consultar/${documento}`);
+
+				if (!response.ok) {
+					const errorData = await response.json();
+					throw new Error(errorData.detail || 'No se pudo consultar el caficultor');
+				}
+
+				const payload = await response.json();
+				ultimoDocumentoConsultado = documento;
+
+				if (!payload.encontrado || !payload.data) {
+					limpiarDatosCaficultor();
+					setLookupMessage(payload.mensaje, 'error');
+					dniInput.setCustomValidity(payload.mensaje);
+					return;
+				}
+
+				nombreCaficultorInput.value = payload.data.nombre_completo;
+				tipoCaficultorInput.value = payload.data.tipo_caficultor;
+				caficultorValido = true;
+				dniInput.setCustomValidity('');
+				setLookupMessage(payload.mensaje, 'success');
+			} catch (error) {
+				limpiarDatosCaficultor();
+				setLookupMessage(error.message, 'error');
+				dniInput.setCustomValidity('No se pudo validar el caficultor');
+			}
+		}
 
 		async function cargarTiposDocumento() {
 			try {
@@ -179,6 +249,10 @@
 			if (sampleIdInput) {
 				sampleIdInput.value = makeSampleId();
 			}
+			limpiarDatosCaficultor();
+			setLookupMessage('');
+			dniInput.setCustomValidity('');
+			ultimoDocumentoConsultado = '';
 			hideMonitor();
 			resetProcess();
 		}
@@ -199,6 +273,13 @@
 				return false;
 			}
 
+			if (!caficultorValido) {
+				dniInput.setCustomValidity('Debe consultar y validar un caficultor registrado para continuar');
+				dniInput.reportValidity();
+				dniInput.setCustomValidity('');
+				return false;
+			}
+
 			return true;
 		}
 
@@ -210,6 +291,27 @@
 
 		dniInput.addEventListener('input', () => {
 			dniInput.value = dniInput.value.replace(/\D/g, '');
+			dniInput.setCustomValidity('');
+
+			const documento = dniInput.value.trim();
+			if (consultaTimer) {
+				clearTimeout(consultaTimer);
+				consultaTimer = null;
+			}
+
+			if (![8, 12].includes(documento.length)) {
+				limpiarDatosCaficultor();
+				if (documento.length > 0) {
+					setLookupMessage('La consulta se realiza cuando el documento tenga 8 o 12 digitos.');
+				} else {
+					setLookupMessage('');
+				}
+				return;
+			}
+
+			consultaTimer = setTimeout(() => {
+				consultarCaficultor(documento);
+			}, 300);
 		});
 
 		startBtn.addEventListener('click', () => {
