@@ -1,77 +1,193 @@
-{% extends "layout.html" %}
+{% extends "main.html" %}
 
 {% block style %}
-    <link rel="stylesheet" href="/static/css/inicio.css">
+    <link rel="stylesheet" href="/static/css/inicio.css?v=20260421b">
 {% endblock %}
 
 {% block content %}
-    <section class="hero-section reveal-up">
-        <p class="hero-overline info-text">Panel principal</p>
-        <h1 class="hero-title">Bienvenido al sistema CoffeeRen</h1>
-        <p class="hero-description">
-            Plataforma para clasificar muestras de cafe con apoyo de vision artificial. Registra productores,
-            organiza muestras y sigue el comportamiento del precio del cafe para tomar decisiones con contexto.
-        </p>
-    </section>
-
-    <section class="market-section reveal-up" aria-labelledby="precio-cafe-title">
-        <div class="market-header">
-            <h2 id="precio-cafe-title" class="section-title">Precio actual del cafe</h2>
-            <p class="section-subtitle info-text">Simulacion de variacion diaria hasta hoy</p>
+    <section class="control-hero reveal-up" aria-label="Centro de control CoffeeRen">
+        <div class="hero-copy">
+            <p class="hero-kicker info-text">Centro de control academico</p>
+            <h1 class="hero-title">Clasificacion inteligente de cafe verde</h1>
+            <p class="hero-description">
+                Visualiza el estado de laboratorio, monitorea lotes en proceso y coordina el flujo de clasificacion
+                por vision artificial con una interfaz orientada a precision y trazabilidad.
+            </p>
         </div>
 
-        <div class="market-grid">
-            <article class="market-price-card">
-                <p class="price-label info-text">Quintal de café verde (S/ por 50kg)</p>
-                <p class="price-value" id="coffeePriceValue">S/ 1200.00</p>
-                <p class="price-change" id="coffeePriceChange">3.0% más respecto ayer</p>
-                <p class="price-date info-text">Actualizado al 14/4/2026 <span id="coffeePriceDate"></span></p>
+        <div class="hero-strip">
+            <article class="hero-strip-item">
+                <p class="info-text">Lotes procesados</p>
+                <strong id="kpiLotes">0</strong>
             </article>
-
-            <article class="market-chart-card" aria-label="Grafico historico del precio del cafe">
-                <div class="chart-bars" id="coffeeChartBars"></div>
-                <div class="chart-axis" id="coffeeChartAxis"></div>
+            <article class="hero-strip-item">
+                <p class="info-text">Rendimiento promedio</p>
+                <strong id="kpiRendimiento">0%</strong>
+            </article>
+            <article class="hero-strip-item">
+                <p class="info-text">Defectos detectados</p>
+                <strong id="kpiDefectos">0</strong>
             </article>
         </div>
     </section>
 
-    <section class="actions-section reveal-up" aria-labelledby="acciones-title">
-        <h2 id="acciones-title" class="section-title">Secciones importantes</h2>
-        <p class="section-subtitle info-text">Gestion de usuarios y flujo operativo de muestras</p>
+    <section class="dashboard-board reveal-up" aria-labelledby="board-title">
+        <div class="board-header">
+            <h2 id="board-title" class="section-title">Panel de rendimiento</h2>
+            <p class="section-subtitle info-text">Metricas operativas y curva de precio referencial</p>
+        </div>
 
-        <div class="actions-grid">
-            <article class="action-card">
-                <div class="action-badge">01</div>
-                <h3 class="action-title">Gestion de personas</h3>
-                <p class="action-text">Registra productores y socios para consolidar la base de trabajo territorial.</p>
-                <div class="action-row two-buttons">
-                    <button type="button" class="action-btn secondary" disabled>Registrar caficultor</button>
-                    <button type="button" class="action-btn secondary" disabled>Registrar socio</button>
-                </div>
+        <div class="board-grid">
+            <article class="price-card">
+                <p class="price-label info-text">Precio referencial del quintal (S/)</p>
+                <p class="price-value" id="coffeePriceValue">S/ 0.00</p>
+                <p class="price-change" id="coffeePriceChange">0.0% respecto al dia anterior</p>
+                <p class="price-date info-text">Actualizado al <span id="coffeePriceDate"></span></p>
             </article>
 
-            <article class="action-card">
-                <div class="action-badge">02</div>
-                <h3 class="action-title">Muestreo y clasificacion</h3>
-                <p class="action-text">Inicia el flujo principal para cargar datos y ejecutar la clasificacion de granos.</p>
-                <div class="action-row">
-                    <a href="/registro" class="action-btn primary">Realizar muestra</a>
-                </div>
+            <article class="curve-card" aria-label="Tendencia de precio en fechas anteriores">
+                <div class="curve-bars" id="coffeeChartBars"></div>
+                <div class="curve-axis" id="coffeeChartAxis"></div>
             </article>
 
-            <article class="action-card">
-                <div class="action-badge">03</div>
-                <h3 class="action-title">Busqueda de muestras</h3>
-                <p class="action-text">Consulta resultados historicos y filtra muestras por productor, fecha o estado.</p>
-                <div class="action-row">
-                    <button type="button" class="action-btn secondary" disabled>Buscar muestras</button>
-                </div>
+            <article class="board-metric-card">
+                <h3>Lotes en validacion</h3>
+                <p id="kpiValidacion">0</p>
+                <small class="info-text">Muestras listas para iniciar monitoreo</small>
+            </article>
+
+            <article class="board-metric-card">
+                <h3>Precision estimada IA</h3>
+                <p id="kpiPrecision">0%</p>
+                <small class="info-text">Basado en lotes finalizados esta semana</small>
+            </article>
+        </div>
+    </section>
+
+    <section class="workflow-section reveal-up" aria-labelledby="acciones-title">
+        <h2 id="acciones-title" class="section-title">Flujo operativo</h2>
+        <p class="section-subtitle info-text">Accesos directos a los modulos criticos del sistema</p>
+
+        <div class="workflow-grid">
+            <article class="workflow-card">
+                <div class="workflow-badge">01</div>
+                <h3>Registrar caficultor</h3>
+                <p>Registro de productor para trazabilidad territorial y analisis por procedencia.</p>
+                <a href="/nuevo-caficultor" class="workflow-btn primary">Regsitrar</a>
+            </article>
+
+            <article class="workflow-card">
+                <div class="workflow-badge">02</div>
+                <h3>Registrar socio</h3>
+                <p>Gestion de socios y consolidacion de actores vinculados a cada lote.</p>
+                <a href="/nuevo-caficultor" class="workflow-btn primary">Convertir a socio</a>
+            </article>
+
+            <article class="workflow-card">
+                <div class="workflow-badge">03</div>
+                <h3>Realizar muestra</h3>
+                <p>Captura tecnica de pesos y datos de productor para iniciar clasificacion.</p>
+                <a href="/registro" class="workflow-btn primary">Ir a registro</a>
+            </article>
+
+            <article class="workflow-card">
+                <div class="workflow-badge">04</div>
+                <h3>Buscar muestras</h3>
+                <p>Consulta historica por documento, fecha, rendimiento y estado de lote.</p>
+                <button type="button" class="workflow-btn muted" disabled>Disponible pronto</button>
             </article>
         </div>
     </section>
 
     <script>
-        // Logica para el grafico de precios del cafe, falta llenar bd
+        (function renderDashboard() {
+            const priceValueEl = document.getElementById('coffeePriceValue');
+            const priceChangeEl = document.getElementById('coffeePriceChange');
+            const priceDateEl = document.getElementById('coffeePriceDate');
+            const barsEl = document.getElementById('coffeeChartBars');
+            const axisEl = document.getElementById('coffeeChartAxis');
 
+            const kpiLotes = document.getElementById('kpiLotes');
+            const kpiRendimiento = document.getElementById('kpiRendimiento');
+            const kpiDefectos = document.getElementById('kpiDefectos');
+            const kpiValidacion = document.getElementById('kpiValidacion');
+            const kpiPrecision = document.getElementById('kpiPrecision');
+
+            if (!priceValueEl || !priceChangeEl || !priceDateEl || !barsEl || !axisEl) {
+                return;
+            }
+
+            const now = new Date();
+            const days = 12;
+            const series = [];
+
+            for (let i = days - 1; i >= 0; i -= 1) {
+                const date = new Date(now);
+                date.setDate(now.getDate() - i);
+                const trend = (days - i) * 0.06;
+                const wave = Math.sin((days - i) / 2.1) * 0.28;
+                const value = Number((108.4 + trend + wave).toFixed(2));
+                series.push({ date, value });
+            }
+
+            const values = series.map(item => item.value);
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const range = Math.max(max - min, 0.2);
+
+            barsEl.innerHTML = '';
+            axisEl.innerHTML = '';
+
+            series.forEach((point, index) => {
+                const bar = document.createElement('div');
+                const ratio = (point.value - min) / range;
+                const height = 36 + (ratio * 118);
+                bar.className = 'curve-bar';
+                bar.style.height = `${height}px`;
+                bar.title = `${point.date.toLocaleDateString('es-PE')} - S/ ${point.value.toFixed(2)}`;
+
+                if (index === series.length - 1) {
+                    bar.classList.add('is-current');
+                }
+                barsEl.appendChild(bar);
+
+                const label = document.createElement('span');
+                const shouldShow = index === 0 || index === Math.floor(series.length / 2) || index === series.length - 1;
+                label.className = shouldShow ? 'axis-point visible' : 'axis-point';
+                label.textContent = shouldShow
+                    ? point.date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })
+                    : '.';
+                axisEl.appendChild(label);
+            });
+
+            const last = series[series.length - 1];
+            const prev = series[series.length - 2] || last;
+            const change = ((last.value - prev.value) / prev.value) * 100;
+
+            priceValueEl.textContent = `S/ ${last.value.toFixed(2)}`;
+            priceChangeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(1)}% respecto al dia anterior`;
+            priceChangeEl.classList.toggle('negative', change < 0);
+            priceDateEl.textContent = last.date.toLocaleDateString('es-PE', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
+
+            if (kpiLotes) {
+                kpiLotes.textContent = '146';
+            }
+            if (kpiRendimiento) {
+                kpiRendimiento.textContent = '91.8%';
+            }
+            if (kpiDefectos) {
+                kpiDefectos.textContent = '23';
+            }
+            if (kpiValidacion) {
+                kpiValidacion.textContent = '12';
+            }
+            if (kpiPrecision) {
+                kpiPrecision.textContent = '95.4%';
+            }
+        })();
     </script>
 {% endblock %}

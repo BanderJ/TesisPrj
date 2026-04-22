@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+{% extends "main.html" %}
 
 {% block style %}
 	<link rel="stylesheet" href="/static/css/registro.css">
@@ -6,9 +6,10 @@
 
 {% block content %}
 <section class="registro-page" aria-label="Registro de muestra de cafe">
-	<div class="registro-header">
+	<div class="registro-header card">
+		<p class="kicker info-text">Captura de muestra</p>
 		<h1>Registro de muestra</h1>
-		<p class="info-text">Completa los datos para iniciar la clasificacion en tiempo real.</p>
+		<p class="info-text">Completa la ficha tecnica para iniciar clasificacion. El monitoreo se abrira en una vista dedicada.</p>
 	</div>
 
 	<form id="registroForm" class="registro-form" novalidate>
@@ -24,8 +25,9 @@
 				</div>
 
 				<div class="field-group">
-					<label for="dniCaficultor">DNI del caficultor</label>
-					<input id="dniCaficultor" name="dniCaficultor" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="12" required placeholder="Ejemplo: 72348190">
+					<label for="numDocumento">Número de documento</label>
+					<input id="numDocumento" name="numDocumento" type="text" maxlength="12" required placeholder="Ingrese documento">
+					<!-- <p id="docHint" class="helper-text info-text">Selecciona primero el tipo de documento.</p> -->
 					<p id="caficultorLookupMessage" class="helper-text info-text" aria-live="polite"></p>
 				</div>
 
@@ -38,7 +40,6 @@
 					<label for="tipoCaficultor">Tipo de caficultor</label>
 					<input id="tipoCaficultor" name="tipoCaficultor" type="text" required placeholder="Ejemplo: Socio" readonly>
 				</div>
-				
 			</article>
 
 			<article class="card registro-card" aria-labelledby="peso-title">
@@ -68,88 +69,129 @@
 
 		<div class="action-row">
 			<button type="button" id="clearFormBtn" class="btn btn-outline">Limpiar formulario</button>
-			<button type="button" id="startMonitoringBtn" class="btn btn-primary">Iniciar clasificacion</button>
+			<button type="button" id="startMonitoringBtn" class="btn btn-primary">Iniciar clasificacion y monitoreo</button>
 		</div>
 	</form>
-
-	<hr class="section-divider">
-
-	<section id="monitorSection" class="monitor-section" aria-hidden="true">
-		<div class="monitor-header">
-			<h2>Monitoreo en tiempo real</h2>
-			<p class="info-text">No cierre esta ventana mientras se realiza este proceso</p>
-			<p class="info-text">Este proceso no se puede pausar, solo cancelar</p>
-		</div>
-
-		<div class="live-container">
-			<div class="live-indicator" role="status" aria-live="polite">
-				<span class="blink-dot" aria-hidden="true"></span>
-				En vivo
-			</div>
-
-			<div class="video-placeholder" aria-label="Contenedor de video en vivo">
-				<div class="video-overlay">
-					<p class="info-text">Aqui se mostrara la camara con granos de cafe en la banda transportadora.</p>
-				</div>
-			</div>
-		</div>
-
-		<p id="processStatus" class="process-status info-text">Clasificacion en curso...</p>
-
-		<div class="monitor-actions">
-			<button type="button" id="cancelMonitoringBtn" class="btn btn-cancel">Cancelar</button>
-			<button type="button" id="resultBtn" class="btn btn-primary" disabled>Ver resultado</button>
-		</div>
-	</section>
 </section>
-
 
 <script>
 	(() => {
 		const form = document.getElementById('registroForm');
-		const sampleIdInput = document.getElementById('sampleId');
 		const tipoDocumentoSelect = document.getElementById('tipoDocumento');
-		const dniInput = document.getElementById('dniCaficultor');
+		const numDocumentoInput = document.getElementById('numDocumento');
 		const nombreCaficultorInput = document.getElementById('nombreCaficultor');
 		const tipoCaficultorInput = document.getElementById('tipoCaficultor');
+		const docHint = document.getElementById('docHint');
 		const caficultorLookupMessage = document.getElementById('caficultorLookupMessage');
 		const startBtn = document.getElementById('startMonitoringBtn');
 		const clearBtn = document.getElementById('clearFormBtn');
-		const monitorSection = document.getElementById('monitorSection');
-		const cancelBtn = document.getElementById('cancelMonitoringBtn');
-		const resultBtn = document.getElementById('resultBtn');
-		const processStatus = document.getElementById('processStatus');
 
-		let resultTimer = null;
+		const tiposDocumento = new Map();
 		let consultaTimer = null;
 		let caficultorValido = false;
-		let ultimoDocumentoConsultado = '';
+		let ultimaClaveBusqueda = '';
+
+		function normalizarTexto(valor) {
+			return valor
+				.normalize('NFD')
+				.replace(/[̀-ͯ]/g, '')
+				.toLowerCase()
+				.trim();
+		}
+
+		function obtenerReglaDocumento(tipoDocumentoSeleccionadoId) {
+			const id = Number(tipoDocumentoSeleccionadoId || 0);
+			const nombreTipo = normalizarTexto(tiposDocumento.get(id) || '');
+
+			if (nombreTipo === 'dni') {
+				return {
+					maxLength: 8,
+					soloNumeros: true,
+					hint: 'DNI: exactamente 8 digitos numericos.',
+					placeholder: 'Ingrese 8 digitos de DNI',
+					validationMessage: 'Para DNI se requieren 8 digitos numericos.',
+					regex: /^\d{8}$/,
+					longitudesAutoBusqueda: [8],
+				};
+			}
+
+			if (nombreTipo === 'pasaporte' || nombreTipo === 'carnet de extranjeria') {
+				return {
+					maxLength: 12,
+					soloNumeros: false,
+					hint: 'Pasaporte/Carnet: exactamente 12 caracteres alfanumericos.',
+					placeholder: 'Ingrese 12 caracteres',
+					validationMessage: 'Para Pasaporte/Carnet se requieren 12 caracteres alfanumericos.',
+					regex: /^[A-Za-z0-9]{12}$/,
+					longitudesAutoBusqueda: [12],
+				};
+			}
+
+			return {
+				maxLength: 12,
+				soloNumeros: false,
+				hint: 'Documento entre 8 y 12 caracteres alfanumericos.',
+				placeholder: 'Ingrese documento (8 a 12 caracteres)',
+				validationMessage: 'Documento invalido. Use de 8 a 12 caracteres alfanumericos.',
+				regex: /^[A-Za-z0-9]{8,12}$/,
+				longitudesAutoBusqueda: [8, 12],
+			};
+		}
+
+		function limpiarDocumentoSegunRegla(valor, regla) {
+			const texto = String(valor || '').trim();
+			if (regla.soloNumeros) {
+				return texto.replace(/\D/g, '').slice(0, regla.maxLength);
+			}
+			return texto.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, regla.maxLength);
+		}
+
+		function validarDocumentoPorTipoId(tipoId, documento) {
+			const id = Number(tipoId || 0);
+			if (!id) return { ok: false, mensaje: 'Selecciona primero el tipo de documento.' };
+			const regla = obtenerReglaDocumento(id);
+			if (!regla.regex.test(documento)) return { ok: false, mensaje: regla.validationMessage };
+			return { ok: true, mensaje: '' };
+		}
+
+		function aplicarReglaDocumento() {
+			const regla = obtenerReglaDocumento(tipoDocumentoSelect.value);
+			numDocumentoInput.maxLength = regla.maxLength;
+			numDocumentoInput.placeholder = regla.placeholder;
+			numDocumentoInput.inputMode = regla.soloNumeros ? 'numeric' : 'text';
+			docHint.textContent = regla.hint;
+			numDocumentoInput.value = limpiarDocumentoSegunRegla(numDocumentoInput.value, regla);
+		}
 
 		function limpiarDatosCaficultor() {
 			nombreCaficultorInput.value = '';
 			tipoCaficultorInput.value = '';
 			caficultorValido = false;
+			numDocumentoInput.setCustomValidity('');
 		}
 
 		function setLookupMessage(message, type = 'neutral') {
-			caficultorLookupMessage.textContent = message;
+			caficultorLookupMessage.innerHTML = message;
 			caficultorLookupMessage.classList.remove('helper-success', 'helper-error');
-			if (type === 'success') {
-				caficultorLookupMessage.classList.add('helper-success');
-			}
-			if (type === 'error') {
-				caficultorLookupMessage.classList.add('helper-error');
-			}
+			if (type === 'success') caficultorLookupMessage.classList.add('helper-success');
+			if (type === 'error') caficultorLookupMessage.classList.add('helper-error');
 		}
 
 		async function consultarCaficultor(documento) {
-			if (ultimoDocumentoConsultado === documento && caficultorValido) {
+			const validacion = validarDocumentoPorTipoId(tipoDocumentoSelect.value, documento);
+			if (!validacion.ok) {
+				limpiarDatosCaficultor();
+				setLookupMessage(validacion.mensaje, 'error');
 				return;
 			}
 
+			const clave = `${tipoDocumentoSelect.value}:${documento}`;
+			if (clave === ultimaClaveBusqueda && caficultorValido) return;
+			ultimaClaveBusqueda = clave;
+
 			try {
 				setLookupMessage('Buscando datos del caficultor...');
-				const response = await fetch(`/caficultor/consultar/${documento}`);
+				const response = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
 
 				if (!response.ok) {
 					const errorData = await response.json();
@@ -157,33 +199,50 @@
 				}
 
 				const payload = await response.json();
-				ultimoDocumentoConsultado = documento;
 
 				if (!payload.encontrado || !payload.data) {
 					limpiarDatosCaficultor();
-					setLookupMessage(payload.mensaje, 'error');
-					dniInput.setCustomValidity(payload.mensaje);
+					setLookupMessage((payload.mensaje || 'Caficultor no encontrado.') + ' <a href="/nuevo-caficultor" style="text-decoration:underline;">Registrar caficultor</a>', 'error');
 					return;
 				}
 
 				nombreCaficultorInput.value = payload.data.nombre_completo;
 				tipoCaficultorInput.value = payload.data.tipo_caficultor;
 				caficultorValido = true;
-				dniInput.setCustomValidity('');
-				setLookupMessage(payload.mensaje, 'success');
+				numDocumentoInput.setCustomValidity('');
+				setLookupMessage(payload.mensaje || 'Caficultor encontrado.', 'success');
 			} catch (error) {
 				limpiarDatosCaficultor();
-				setLookupMessage(error.message, 'error');
-				dniInput.setCustomValidity('No se pudo validar el caficultor');
+				setLookupMessage(error.message || 'Error al consultar el caficultor.', 'error');
 			}
+		}
+
+		function intentarBusquedaAutomatica() {
+			const tipoId = Number(tipoDocumentoSelect.value || 0);
+			const regla = obtenerReglaDocumento(tipoId);
+			const documento = limpiarDocumentoSegunRegla(numDocumentoInput.value, regla);
+			numDocumentoInput.value = documento;
+
+			if (!tipoId) {
+				limpiarDatosCaficultor();
+				setLookupMessage(documento.length > 0 ? 'Selecciona primero el tipo de documento.' : '', documento.length > 0 ? 'error' : 'neutral');
+				return;
+			}
+
+			if (!regla.longitudesAutoBusqueda.includes(documento.length)) {
+				limpiarDatosCaficultor();
+				setLookupMessage(documento.length > 0 ? regla.hint : '');
+				return;
+			}
+
+			if (consultaTimer) clearTimeout(consultaTimer);
+			consultaTimer = setTimeout(() => consultarCaficultor(documento), 300);
 		}
 
 		async function cargarTiposDocumento() {
 			try {
 				const response = await fetch('/tipo-documento/listar');
-				if (!response.ok) {
-					throw new Error('No se pudo obtener tipos de documento');
-				}
+				if (!response.ok) throw new Error('No se pudo obtener tipos de documento');
 
 				const tipos = await response.json();
 				const placeholder = tipoDocumentoSelect.querySelector('option[value=""]');
@@ -192,69 +251,48 @@
 
 				const fragment = document.createDocumentFragment();
 				for (const tipo of tipos) {
+					const id = Number(tipo.id);
+					tiposDocumento.set(id, String(tipo.nombre));
 					const option = document.createElement('option');
-					option.value = String(tipo.id);
+					option.value = String(id);
 					option.textContent = tipo.nombre;
 					fragment.appendChild(option);
 				}
-
 				tipoDocumentoSelect.appendChild(fragment);
+
+				const entryDni = [...tiposDocumento.entries()].find(
+					([, nombre]) => normalizarTexto(nombre) === 'dni'
+				);
+				if (entryDni) tipoDocumentoSelect.value = String(entryDni[0]);
+
+				aplicarReglaDocumento();
 			} catch (error) {
 				console.error(error);
 			}
 		}
 
-		function makeSampleId() {
-			const now = new Date();
-			const y = String(now.getFullYear());
-			const m = String(now.getMonth() + 1).padStart(2, '0');
-			const d = String(now.getDate()).padStart(2, '0');
-			const random = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
-			return `CR-${y}${m}${d}-${random}`;
-		}
-
-		function showMonitor() {
-			monitorSection.classList.add('is-visible');
-			monitorSection.setAttribute('aria-hidden', 'false');
-		}
-
-		function hideMonitor() {
-			monitorSection.classList.remove('is-visible');
-			monitorSection.setAttribute('aria-hidden', 'true');
-		}
-
-		function resetProcess() {
-			if (resultTimer) {
-				clearTimeout(resultTimer);
-				resultTimer = null;
-			}
-			resultBtn.disabled = true;
-			processStatus.textContent = 'Clasificacion en curso...';
-		}
-
-		function startProcess() {
-			resetProcess();
-			showMonitor();
-
-			resultTimer = setTimeout(() => {
-				resultBtn.disabled = false;
-				processStatus.textContent = 'Proceso finalizado. Ya puedes ver el resultado.';
-			}, 8000);
-
-			monitorSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		function guardarMuestraPendiente() {
+			const payload = {
+				tipoDocumentoId: tipoDocumentoSelect.value,
+				tipoDocumentoNombre: tipoDocumentoSelect.options[tipoDocumentoSelect.selectedIndex]?.text || '',
+				numDocumento: numDocumentoInput.value.trim(),
+				nombreCaficultor: nombreCaficultorInput.value.trim(),
+				tipoCaficultor: tipoCaficultorInput.value.trim(),
+				tamiz: document.getElementById('tamiz').value,
+				pesoTotal: document.getElementById('pesoTotal').value,
+				pesoTrillados: document.getElementById('pesoTrillados').value,
+				pesoTamizados: document.getElementById('pesoTamizados').value,
+				fechaRegistro: new Date().toISOString()
+			};
+			sessionStorage.setItem('coffeeren.pendingSample', JSON.stringify(payload));
 		}
 
 		function clearAll() {
 			form.reset();
-			if (sampleIdInput) {
-				sampleIdInput.value = makeSampleId();
-			}
 			limpiarDatosCaficultor();
 			setLookupMessage('');
-			dniInput.setCustomValidity('');
-			ultimoDocumentoConsultado = '';
-			hideMonitor();
-			resetProcess();
+			ultimaClaveBusqueda = '';
+			aplicarReglaDocumento();
 		}
 
 		function validateForm() {
@@ -265,68 +303,40 @@
 					return false;
 				}
 			}
-
-			if (!/^\d+$/.test(dniInput.value.trim())) {
-				dniInput.setCustomValidity('Solo numeros');
-				dniInput.reportValidity();
-				dniInput.setCustomValidity('');
-				return false;
-			}
-
 			if (!caficultorValido) {
-				dniInput.setCustomValidity('Debe consultar y validar un caficultor registrado para continuar');
-				dniInput.reportValidity();
-				dniInput.setCustomValidity('');
+				numDocumentoInput.setCustomValidity('Debe consultar y validar un caficultor registrado para continuar');
+				numDocumentoInput.reportValidity();
+				numDocumentoInput.setCustomValidity('');
 				return false;
 			}
-
 			return true;
 		}
 
-		if (sampleIdInput) {
-			sampleIdInput.value = makeSampleId();
-		}
+		tipoDocumentoSelect.addEventListener('change', () => {
+			aplicarReglaDocumento();
+			ultimaClaveBusqueda = '';
+			limpiarDatosCaficultor();
+			setLookupMessage('');
+			if (numDocumentoInput.value) intentarBusquedaAutomatica();
+		});
 
-		cargarTiposDocumento();
-
-		dniInput.addEventListener('input', () => {
-			dniInput.value = dniInput.value.replace(/\D/g, '');
-			dniInput.setCustomValidity('');
-
-			const documento = dniInput.value.trim();
-			if (consultaTimer) {
-				clearTimeout(consultaTimer);
-				consultaTimer = null;
-			}
-
-			if (![8, 12].includes(documento.length)) {
-				limpiarDatosCaficultor();
-				if (documento.length > 0) {
-					setLookupMessage('La consulta se realiza cuando el documento tenga 8 o 12 digitos.');
-				} else {
-					setLookupMessage('');
-				}
-				return;
-			}
-
-			consultaTimer = setTimeout(() => {
-				consultarCaficultor(documento);
-			}, 300);
+		numDocumentoInput.addEventListener('input', () => {
+			numDocumentoInput.setCustomValidity('');
+			ultimaClaveBusqueda = '';
+			limpiarDatosCaficultor();
+			intentarBusquedaAutomatica();
 		});
 
 		startBtn.addEventListener('click', () => {
 			if (validateForm()) {
-				startProcess();
+				guardarMuestraPendiente();
+				window.location.href = '/monitoreo';
 			}
 		});
 
 		clearBtn.addEventListener('click', clearAll);
 
-		cancelBtn.addEventListener('click', () => {
-			hideMonitor();
-			resetProcess();
-			processStatus.textContent = 'Proceso cancelado por el usuario.';
-		});
+		cargarTiposDocumento();
 	})();
 </script>
 {% endblock %}

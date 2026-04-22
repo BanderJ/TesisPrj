@@ -1,10 +1,6 @@
-from typing import Optional
+from pydantic import BaseModel, Field
 
-from pydantic import BaseModel
-
-
-class ObtenerDatosRequest(BaseModel):
-    num_documento: str
+from src.schemas.persona import PersonaRegistroRequest
 
 
 class CaficultorData(BaseModel):
@@ -17,5 +13,22 @@ class CaficultorData(BaseModel):
 class ObtenerDatosResponse(BaseModel):
     encontrado: bool
     mensaje: str
-    data: Optional[CaficultorData] = None
+    data: CaficultorData | None = None
 
+
+class RegistrarCaficultorRequest(PersonaRegistroRequest):
+    tipo_caficultor_id: int = Field(..., ge=1)
+
+
+class RegistrarCaficultorResponse(BaseModel):
+    registrado: bool
+    mensaje: str
+    persona_id: str
+    caficultor_id: str
+    tipo_caficultor_id: int
+
+
+class ConvertirSocioResponse(BaseModel):
+    actualizado: bool
+    mensaje: str
+    num_documento: str

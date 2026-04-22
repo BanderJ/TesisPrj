@@ -1,175 +1,249 @@
 body {
-    background-color: var(--background);
-    color: var(--foreground);
-    font-family: var(--font-sans);
-    font-size: 20px;
-    line-height: 1.5;
     margin: 0;
     min-height: 100vh;
-    min-height: 100svh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    background-image: url("/resources/fondo_temp.jpg");
+    display: grid;
+    place-items: center;
+    padding: 20px 0;
+    background-color: var(--background);
+    background-image: linear-gradient(color-mix(in oklab, var(--background) 60%, transparent 90%), color-mix(in oklab, var(--background) 70%, transparent 90%)), url('/resources/fondo_temp.jpg');
     background-size: cover;
     background-position: center;
-    background-repeat: no-repeat;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    position: relative;
 }
 
-.login-container {
-    width: min(100%, 520px);
+body.dark {
+    background-color: var(--background);
+    background-image: linear-gradient(color-mix(in oklab, var(--background) 84%, black 16%), color-mix(in oklab, var(--background) 90%, black 10%)), url('/resources/fondo_temp.jpg');
 }
 
 body::before {
     content: "";
     position: fixed;
     inset: 0;
-    background: rgba(47, 45, 45, 0.5);
-    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 20% 20%, color-mix(in oklab, var(--primary) 12%, transparent 88%) 0%, transparent 44%),
+        radial-gradient(circle at 82% 84%, color-mix(in oklab, var(--secondary) 16%, transparent 84%) 0%, transparent 46%);
 }
 
-body > * {
+body.dark::before {
+    background:
+        radial-gradient(circle at 20% 20%, color-mix(in oklab, var(--primary) 18%, transparent 82%) 0%, transparent 44%),
+        radial-gradient(circle at 82% 84%, color-mix(in oklab, var(--secondary) 24%, transparent 76%) 0%, transparent 46%);
+}
+
+.login-container {
+    width: min(94vw, 1160px);
+    padding: clamp(14px, 2vw, 28px);
     position: relative;
     z-index: 1;
 }
 
 .glassmorphism {
-    background: color-mix(in oklab, var(--card) 92%, transparent);
-    border: 1px solid var(--border);
+    background: color-mix(in oklab, var(--card) 86%, transparent 14%);
+    border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
+    backdrop-filter: blur(16px);
     box-shadow: var(--shadow-xl);
+    border-radius: 22px;
 }
 
-.info-text {
-    font-size: 18px !important;
-    line-height: 1.5;
+.login-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: clamp(18px, 2vw, 30px);
+    padding: clamp(22px, 2.8vw, 36px);
 }
 
-.input-field {
-    background-color: var(--input);
-    border: 1px solid var(--border);
-    color: var(--foreground);
-    transition: all 0.3s ease;
-    font-size: inherit;
+.login-context {
+    border-radius: 18px;
+    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
+    background: linear-gradient(140deg, color-mix(in oklab, var(--card) 96%, transparent 4%), color-mix(in oklab, var(--secondary) 8%, var(--card) 92%));
+    padding: clamp(18px, 2vw, 28px);
 }
 
-.input-field:focus {
-    border-color: var(--primary);
-    box-shadow: var(--shadow-md);
-    outline: none;
+.login-kicker {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 11px;
 }
 
-.input-field::placeholder {
+.login-title {
+    margin: 8px 0 10px;
+    font-family: var(--font-serif);
+    font-size: clamp(1.3rem, 1.7vw, 1.6rem);
+    line-height: 1.06;
+}
+
+.text-descr {
+    margin: 0;
     color: var(--muted-foreground);
 }
 
-.btn-primary {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    font-size: inherit;
-    transition: all 0.3s ease;
+.info-text {
+    font-size: 16px !important;
+    line-height: 1.55;
 }
 
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-xl);
+.login-feature-list {
+    margin-top: 20px;
+    display: grid;
+    gap: 12px;
 }
 
-.btn-primary:active {
-    transform: translateY(0);
+.login-feature-item {
+    border-radius: 14px;
+    border: 1px solid color-mix(in oklab, var(--border) 86%, transparent 14%);
+    background: color-mix(in oklab, var(--card) 95%, transparent 5%);
+    padding: 12px 14px;
+}
+
+.login-feature-item strong {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 14px;
+    line-height: 1.3;
+    margin-bottom: 3px;
+}
+
+.login-feature-item p {
+    margin: 0;
+    color: var(--muted-foreground);
+}
+
+.login-panel {
+    border-radius: 18px;
+    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
+    background: color-mix(in oklab, var(--card) 98%, transparent 2%);
+    padding: clamp(18px, 2vw, 28px);
 }
 
 .logo-placeholder {
-    width: 80px;
-    height: 80px;
-    background: transparent;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary-foreground);
-    font-weight: bold;
-    font-size: 32px;
-    box-shadow: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    background: color-mix(in oklab, var(--primary) 24%, transparent 76%);
+    box-shadow: 0 6px 16px color-mix(in oklab, var(--primary) 26%, transparent 74%);
+    margin-bottom: 12px;
 }
 
-.shield-placeholder {
-    width: 70px;
-    height: 70px;
-    background: color-mix(in oklab, var(--card) 92%, transparent);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--secondary-foreground);
-    font-size: 32px;
-    box-shadow: var(--shadow-md);
+.login-logo {
+    width: 30px;
+    height: 30px;
 }
 
-.text-descr{
-    font-size: 18px;
+.panel-title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: clamp(1.2rem, 1.4vw, 1.4rem);
+    line-height: 1.06;
+    color: var(--primary);
+}
+
+.panel-subtitle {
+    margin: 8px 0 0;
+    color: var(--muted-foreground);
+}
+
+.divider {
+    border-color: color-mix(in oklab, var(--border) 80%, transparent 20%);
+    margin: 18px 0;
+}
+
+.login-alert {
+    border-radius: 10px;
+    border: 1px solid color-mix(in oklab, var(--destructive) 40%, transparent 60%);
+    background-color: color-mix(in oklab, var(--destructive) 24%, transparent 76%);
+    color: var(--destructive);
+    padding: 12px 14px;
+    margin-top: 12px;
+}
+
+.login-form {
+    display: grid;
+    gap: 14px;
+}
+
+.form-group {
+    margin: 0;
 }
 
 .input-label {
     display: block;
     margin-bottom: 8px;
+    color: var(--foreground);
     font-size: inherit;
     font-weight: 600;
-    color: var(--foreground);
-    letter-spacing: 0.3px;
 }
 
-.form-group {
-    margin-bottom: 20px;
-}
-
+.input-field,
 .password-field-wrapper {
     width: 100%;
-    display: flex;
-    align-items: center;
-    background-color: var(--input);
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    font-size: inherit;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.password-field-wrapper:focus-within {
-    border-color: var(--primary);
-    box-shadow: var(--shadow-md);
-}
-
-.password-input-field {
-    width: 100%;
-    min-width: 0;
-    flex: 1;
-    border: none;
-    outline: none;
-    background: transparent;
+    background-color: color-mix(in oklab, var(--input) 94%, transparent 6%);
+    border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
+    border-radius: 12px;
     color: var(--foreground);
     font-size: inherit;
-    padding: 0.75rem 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
+.input-field {
+    min-height: 40px;
+    padding: 0 12px;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%);
+}
+
+.input-field::placeholder,
 .password-input-field::placeholder {
     color: var(--muted-foreground);
 }
 
+.password-field-wrapper {
+    display: flex;
+    align-items: center;
+    padding-right: 6px;
+}
+
+.password-field-wrapper:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%);
+}
+
+.password-input-field {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: var(--foreground);
+    font-size: inherit;
+    min-height: 40px;
+    padding: 0 12px;
+    outline: none;
+}
+
 .password-toggle-btn {
-    width: 2.15rem;
-    height: 2.15rem;
-    margin-right: 0.35rem;
+    width: 42px;
+    height: 42px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border: none;
+    border-radius: 999px;
     background: transparent;
     cursor: pointer;
-    border-radius: 999px;
-    flex-shrink: 0;
 }
 
 .password-toggle-btn:focus-visible {
@@ -178,57 +252,77 @@ body > * {
 }
 
 .password-toggle-icon {
-    width: 1.15rem;
-    height: 1.15rem;
-    opacity: 0.8;
+    width: 20px;
+    height: 20px;
+    opacity: 0.86;
 }
 
 .password-toggle-btn:hover .password-toggle-icon {
     opacity: 1;
 }
 
+.btn-primary {
+    width: 100%;
+    min-height: 40px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--primary-foreground);
+    background: linear-gradient(125deg, color-mix(in oklab, var(--primary) 90%, white 10%), color-mix(in oklab, var(--secondary) 52%, var(--primary) 48%));
+    box-shadow: 0 12px 24px color-mix(in oklab, var(--primary) 34%, transparent 66%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px color-mix(in oklab, var(--primary) 40%, transparent 60%);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.panel-links {
+    text-align: center;
+}
+
 .link-text {
     color: var(--primary);
     text-decoration: none;
-    transition: color 0.3s ease;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .link-text:hover {
     text-decoration: underline;
 }
 
-.divider {
-    border-color: var(--border);
-    margin: 1.5rem 0;
-}
+@media (max-width: 980px) {
+    .login-stage {
+        grid-template-columns: 1fr;
+    }
 
-.footer-text {
-    color: var(--muted-foreground);
-    font-size: 18px;
-    text-align: center;
-}
-
-.login-alert {
-    background-color: var(--destructive);
-    color: var(--destructive-foreground);
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-    font-size: 18px;
-}
-
-.checkbox-custom {
-    accent-color: var(--primary);
-    cursor: pointer;
+    .login-title {
+        font-size: clamp(1.1rem, 5vw, 1.4rem);
+    }
 }
 
 @media (max-width: 640px) {
-    .login-container {
-        width: 100%;
+    body {
+        font-size: 16px;
     }
 
-    .glassmorphism {
-        border-radius: 20px;
+    .login-container {
+        padding: 10px;
+    }
+
+    .login-stage {
+        padding: 14px;
+        gap: 12px;
+    }
+
+    .info-text {
+        font-size: 15px !important;
     }
 }

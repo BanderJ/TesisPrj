@@ -3,108 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/css/tailwind.css">
-    <link rel="stylesheet" href="/static/css/login.css">
+    <link rel="stylesheet" href="/static/css/tailwind.css?v=20260418a">
+    <link rel="stylesheet" href="/static/css/login.css?v=20260421c">
     <title>CoffeeRen - Login</title>
 </head>
-<body class="min-h-screen flex items-center justify-center">
-    <!-- Main Container -->
-    <div class="login-container w-full px-4">
-        <!-- Glass Card -->
-        <div class="glassmorphism rounded-3xl p-8 md:p-10 shadow-2xl">
-            <!-- Header Section -->
-            <div class="flex flex-col items-center mb-8">
-                <div class="logo-placeholder mb-4">
-                    <img id="iconCoffee" class="w-16 h-16" alt="Icono de CoffeeRen" src="/static/icon/coffee_icon.svg">
-                </div>
-                <h1 class="text-3xl md:text-4xl font-bold mb-2 text-center" style="color: var(--primary);">
-                    Iniciar sesión
-                </h1>
-                <p class="text-descr info-text text-center">
-                    Ingrese sus credenciales para acceder al sistema
+<body>
+    <div class="login-container">
+        <div class="glassmorphism login-stage">
+            <aside class="login-context">
+                <p class="login-kicker info-text">Sistema de clasificación</p>
+                <h1 class="login-title">CoffeeRen</h1>
+                <p class="text-descr info-text">
+                    Plataforma para clasificacion automatica de granos de cafe verde mediante vision artificial
                 </p>
-            </div>
 
-            <!-- Error Alert -->
-            {% if error %}
-            <div class="login-alert info-text">
-                {{ error }}
-            </div>
-            {% endif %}
-
-            <hr class="divider" />
-
-            <!-- Login Form -->
-            <form method="post" action="/auth/login" class="space-y-6">
-                <div class="form-group">
-                    <label for="usuario" class="input-label">
-                        Usuario
-                    </label>
-                    <input
-                        type="text"
-                        id="usuario"
-                        name="usuario"
-                        placeholder="Ingrese su usuario"
-                        class="input-field w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-offset-0"
-                        required
-                        aria-required="true"
-                        maxlength="30"
-                    />
-                </div>
-
-                <div class="form-group">
-                    <label for="clave" class="input-label">
-                        Contraseña
-                    </label>
-                    <div class="password-field-wrapper">
-                        <input
-                            type="password"
-                            id="clave"
-                            name="clave"
-                            placeholder="Ingrese su contraseña"
-                            class="password-input-field"
-                            required
-                            aria-required="true"
-                            maxlength="20"
-                        />
-                        <button
-                            type="button"
-                            id="toggleClaveBtn"
-                            class="password-toggle-btn"
-                            aria-label="Mostrar contraseña"
-                            aria-controls="clave"
-                            aria-pressed="false"
-                        >
-                            <img
-                                id="toggleClaveIcon"
-                                src="/static/icon/visibility_off.svg"
-                                alt="Mostrar contraseña"
-                                class="password-toggle-icon"
-                            />
-                        </button>
+                <div class="login-feature-list">
+                    <div class="login-feature-item">
+                        <strong>Precision asistida</strong>
+                        <p class="info-text">Analisis de defectos y calidad por lote.</p>
+                    </div>
+                    <div class="login-feature-item">
+                        <strong>Monitoreo en vivo</strong>
+                        <p class="info-text">Seguimiento de clasificacion en tiempo real.</p>
+                    </div>
+                    <div class="login-feature-item">
+                        <strong>Trazabilidad</strong>
+                        <p class="info-text">Registro de muestras y resultados para investigacion.</p>
                     </div>
                 </div>
+            </aside>
 
-                <button
-                    type="submit"
-                    class="btn-primary w-full py-3 rounded-lg mt-8"
-                >
-                    Iniciar Sesión
-                </button>
-            </form>
+            <section class="login-panel">
+                <div class="logo-placeholder">
+                    <img id="iconCoffee" class="login-logo" alt="Icono de CoffeeRen" src="/static/icon/coffee_icon.svg">
+                </div>
+                <h2 class="panel-title">
+                    Iniciar sesión
+                </h2>
+                <p class="text-descr info-text panel-subtitle">
+                    Ingrese sus credenciales para acceder al sistema
+                </p>
+            
 
-            <hr class="divider" />
+                {% if error %}
+                <div class="login-alert info-text">
+                    {{ error }}
+                </div>
+                {% endif %}
 
-            <div class="flex flex-col items-center gap-3 info-text">
-                <a href="#" class="link-text">
-                    ¿Olvidó su contraseña?
-                </a>
-            </div>
+                <hr class="divider" />
+
+                <form method="post" action="/auth/login" class="login-form">
+                    <div class="form-group">
+                        <label for="usuario" class="input-label">Usuario</label>
+                        <input
+                            type="text"
+                            id="usuario"
+                            name="usuario"
+                            placeholder="Ingrese su usuario"
+                            class="input-field"
+                            required
+                            aria-required="true"
+                            maxlength="30"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clave" class="input-label">Contraseña</label>
+                        <div class="password-field-wrapper">
+                            <input
+                                type="password"
+                                id="clave"
+                                name="clave"
+                                placeholder="Ingrese su contraseña"
+                                class="password-input-field"
+                                required
+                                aria-required="true"
+                                maxlength="20"
+                            />
+                            <button
+                                type="button"
+                                id="toggleClaveBtn"
+                                class="password-toggle-btn"
+                                aria-label="Mostrar contraseña"
+                                aria-controls="clave"
+                                aria-pressed="false"
+                            >
+                                <img
+                                    id="toggleClaveIcon"
+                                    src="/static/icon/visibility_off.svg"
+                                    alt="Mostrar contraseña"
+                                    class="password-toggle-icon"
+                                />
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        Iniciar Sesión
+                    </button>
+                </form>
+
+                <hr class="divider" />
+
+                <div class="panel-links info-text">
+                    <a href="#" class="link-text">¿Olvidó su contraseña?</a>
+                </div>
+            </section>
         </div>
     </div>
 
     <script>
         (() => {
+            const savedMode = localStorage.getItem('theme') || 'light';
+            document.body.classList.toggle('dark', savedMode === 'dark');
+
             const passwordInput = document.getElementById('clave');
             const toggleButton = document.getElementById('toggleClaveBtn');
             const toggleIcon = document.getElementById('toggleClaveIcon');
