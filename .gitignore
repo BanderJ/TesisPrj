@@ -10,9 +10,3 @@ __pycache__/
 
 #Exclude config.py which may contain sensitive information
 config.py
-
-#Exlcude agents directory which may contain sensitive information
-.github/agents/
-.claude/agents/
-
-*.md
