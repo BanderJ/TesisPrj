@@ -1,8 +1,6 @@
 import psycopg2
 import psycopg2.extras
 from src.config import Config
-from datetime import date, datetime
-from decimal import Decimal
 
 class Connection:
 
@@ -19,7 +17,7 @@ class Connection:
             # En psycopg2, autocommit es una propiedad del objeto conexión, no un parámetro de conexión
             self.conn.autocommit = False 
             self.cursor = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            print("Conexión a PostgreSQL exitosa")
+            print("Conexión a PostgreSQL establecida")
         except Exception as e:
             print(f"Error al conectar a PostgreSQL: {e}")
             raise
@@ -40,7 +38,7 @@ class Connection:
         """
         try:
             self.cursor.execute(query, params or ())
-            # Para INSERT, retorna lastrowid si se usa RETURNING id
+            # Retorna cursor para inspeccionar rowcount o leer RETURNING via fetch.
             return self.cursor
         except Exception as e:
             print(f"Error en ejecutar: {e}")
@@ -70,18 +68,10 @@ class Connection:
             print(f"Error en obtener_uno: {e}")
             raise
 
-    def begin(self):
-        """
-        Inicia una transacción explícita.
-        En PostgreSQL con autocommit=False no es obligatorio, pero ayuda a claridad.
-        """
-        self.conn.autocommit = False
-
     def commit(self):
         """Confirma todos los cambios de la transacción actual"""
         try:
             self.conn.commit()
-            print("Conexión a PostgreSQL exitosa")
         except Exception as e:
             print(f"Error en commit: {e}")
             self.rollback()
@@ -91,7 +81,6 @@ class Connection:
         """Revierte todos los cambios de la transacción actual"""
         try:
             self.conn.rollback()
-            print("Conexión a PostgreSQL exitosa")
         except Exception as e:
             print(f"Error en rollback: {e}")
 
@@ -102,12 +91,10 @@ class Connection:
                 self.cursor.close()
             if self.conn:
                 self.conn.close()
-            print("Conexión a PostgreSQL exitosa")
         except Exception as e:
             print(f"Error al cerrar conexión: {e}")
 
 
-# Función auxiliar para obtener una conexión rápidamente
 def obtener_conexion():
     """Retorna una nueva instancia de Connection"""
     return Connection()

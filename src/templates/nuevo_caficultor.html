@@ -1,0 +1,788 @@
+{% extends "main.html" %}
+
+{% block style %}
+    <link rel="stylesheet" href="/static/css/nuevo_caficultor.css">
+{% endblock %}
+
+{% block content %}
+<section class="socio-page grid gap-3" aria-label="Flujo de registro y conversion de caficultores">
+    <header class="card socio-hero">
+        <p class="socio-kicker info-text">Modulo de afiliacion</p>
+        <h1>Registro y conversion de caficultores</h1>
+        <p class="info-text">
+            Gestiona en una sola pantalla el registro de nuevos caficultores y su conversion a socio activo.
+        </p>
+    </header>
+
+    <section class="decision-grid" aria-label="Seleccion de flujo">
+        <article class="decision-card" id="cardNuevo">
+            <p class="flow-tag info-text">Flujo A</p>
+            <img class="decision-media" src="/resources/nuevo_caficultor2.jpg" alt="Nuevo caficultor en proceso de registro" loading="lazy">
+            <h2>Nuevo Registro</h2>
+            <p class="info-text">Registrar caficultor por primera vez.</p>
+            <button type="button" id="btnSelectNuevo" class="flow-btn">Seleccionar</button>
+        </article>
+
+        <article class="decision-card" id="cardConversion">
+            <p class="flow-tag info-text">Flujo B</p>
+            <img class="decision-media" src="/resources/conversion_socio2.jpg" alt="Caficultor en conversion a socio" loading="lazy">
+            <h2>Conversion a Socio</h2>
+            <p class="info-text">Convertir caficultor externo existente en socio activo.</p>
+            <button type="button" id="btnSelectConversion" class="flow-btn">Seleccionar</button>
+        </article>
+    </section>
+
+    <section id="panelNuevo" class="flow-panel" aria-hidden="true">
+        <div class="panel-head">
+            <h3>Registrar nuevo caficultor</h3>
+            <p class="info-text">Completa los datos del productor y selecciona su tipo de caficultor.</p>
+        </div>
+
+        <form id="formNuevoCaficultor" class="flow-grid" novalidate>
+            <div class="card flow-card">
+                <div class="form-row form-row--2">
+                    <div class="field-group">
+                        <label for="tipoDocumentoId">Tipo de documento</label>
+                        <select id="tipoDocumentoId" name="tipoDocumentoId" required>
+                            <option value="" disabled selected>Seleccione tipo</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="numDocumento">Numero de documento</label>
+                        <input id="numDocumento" name="numDocumento" type="text" maxlength="12" required placeholder="Ingrese documento">
+                        <p id="docHint" class="helper-text info-text">Selecciona primero el tipo de documento.</p>
+                    </div>
+                </div>
+
+                <div class="form-row form-row--3">
+                    <div class="field-group">
+                        <label for="nombre">Nombre</label>
+                        <input id="nombre" name="nombre" type="text" required maxlength="50" placeholder="Ej: Luis">
+                    </div>
+                    <div class="field-group">
+                        <label for="apePaterno">Apellido paterno</label>
+                        <input id="apePaterno" name="apePaterno" type="text" required maxlength="30" placeholder="Ej: Garcia">
+                    </div>
+                    <div class="field-group">
+                        <label for="apeMaterno">Apellido materno</label>
+                        <input id="apeMaterno" name="apeMaterno" type="text" required maxlength="30" placeholder="Ej: Ilimo">
+                    </div>
+                </div>
+
+                <div class="form-row form-row--3">
+                    <div class="field-group">
+                        <label for="sexo">Sexo</label>
+                        <select id="sexo" name="sexo" required>
+                            <option value="" disabled selected>Seleccione</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="fechaNacimiento">Fecha de nacimiento</label>
+                        <input id="fechaNacimiento" name="fechaNacimiento" type="date" required>
+                    </div>
+                    <div class="field-group">
+                        <label for="telefono">Telefono</label>
+                        <input id="telefono" name="telefono" type="text" maxlength="9" inputmode="numeric" placeholder="Ej: 987654321">
+                    </div>
+                </div>
+
+                <div class="form-row form-row--2 form-row--align-end">
+                    <div class="field-group">
+                        <label for="tipoCaficultorId">Tipo de caficultor</label>
+                        <select id="tipoCaficultorId" name="tipoCaficultorId" required>
+                            <option value="" disabled selected>Seleccione tipo</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="btnLimpiarNuevo" class="action-btn is-secondary">Limpiar</button>
+                        <button type="submit" id="btnGuardarNuevo" class="action-btn is-primary">Registrar caficultor</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div id="registroBanner" class="alert-banner is-hidden" role="status" aria-live="polite">
+            <p id="registroBannerText" class="info-text"></p>
+            <button type="button" id="btnAccionConversion" class="banner-btn is-hidden">
+                Desea convertirlo a Socio ahora mismo?
+            </button>
+        </div>
+    </section>
+
+    <section id="panelConversion" class="flow-panel" aria-hidden="true">
+        <div class="panel-head">
+            <h3>Conversion de caficultor a socio</h3>
+            <p class="info-text">Busca automaticamente por tipo y documento cuando se complete la longitud valida.</p>
+        </div>
+
+        <div class="card flow-card">
+            <div class="form-row form-row--2">
+                <div class="field-group">
+                    <label for="tipoDocumentoConversionId">Tipo de documento</label>
+                    <select id="tipoDocumentoConversionId" name="tipoDocumentoConversionId" required>
+                        <option value="" disabled selected>Seleccione tipo</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label for="buscarDocumento">Numero de documento</label>
+                    <input id="buscarDocumento" name="buscarDocumento" type="text" maxlength="12" placeholder="Ingrese documento">
+                    <p id="conversionDocHint" class="helper-text info-text">Selecciona primero el tipo de documento.</p>
+                </div>
+            </div>
+
+            <div id="conversionBanner" class="alert-banner is-hidden" role="status" aria-live="polite">
+                <p id="conversionBannerText" class="info-text"></p>
+            </div>
+
+            <div id="conversionResumen" class="conversion-resumen is-hidden">
+                <div class="form-row form-row--2">
+                    <p class="info-text"><strong>Nombre:</strong> <span id="resNombre">-</span></p>
+                    <p class="info-text"><strong>Tipo actual:</strong> <span id="resTipo">-</span></p>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" id="btnConvertirSocio" class="action-btn is-primary" disabled>Convertir a Socio</button>
+            </div>
+        </div>
+    </section>
+</section>
+
+<script>
+    (() => {
+        const TIPO_SOCIO_NOMBRE = 'socio';
+        const TIPO_EXTERNO_NOMBRE = 'externo';
+
+        const cardNuevo = document.getElementById('cardNuevo');
+        const cardConversion = document.getElementById('cardConversion');
+        const btnSelectNuevo = document.getElementById('btnSelectNuevo');
+        const btnSelectConversion = document.getElementById('btnSelectConversion');
+        const panelNuevo = document.getElementById('panelNuevo');
+        const panelConversion = document.getElementById('panelConversion');
+
+        const formNuevo = document.getElementById('formNuevoCaficultor');
+        const tipoDocumentoId = document.getElementById('tipoDocumentoId');
+        const numDocumento = document.getElementById('numDocumento');
+        const nombre = document.getElementById('nombre');
+        const apePaterno = document.getElementById('apePaterno');
+        const apeMaterno = document.getElementById('apeMaterno');
+        const sexo = document.getElementById('sexo');
+        const fechaNacimiento = document.getElementById('fechaNacimiento');
+        const telefono = document.getElementById('telefono');
+        const tipoCaficultorId = document.getElementById('tipoCaficultorId');
+        const docHint = document.getElementById('docHint');
+        const btnLimpiarNuevo = document.getElementById('btnLimpiarNuevo');
+        const btnGuardarNuevo = document.getElementById('btnGuardarNuevo');
+
+        const registroBanner = document.getElementById('registroBanner');
+        const registroBannerText = document.getElementById('registroBannerText');
+        const btnAccionConversion = document.getElementById('btnAccionConversion');
+
+        const tipoDocumentoConversionId = document.getElementById('tipoDocumentoConversionId');
+        const buscarDocumento = document.getElementById('buscarDocumento');
+        const conversionDocHint = document.getElementById('conversionDocHint');
+        const btnConvertirSocio = document.getElementById('btnConvertirSocio');
+        const conversionBanner = document.getElementById('conversionBanner');
+        const conversionBannerText = document.getElementById('conversionBannerText');
+        const conversionResumen = document.getElementById('conversionResumen');
+        const resNombre = document.getElementById('resNombre');
+        const resTipo = document.getElementById('resTipo');
+
+        const tiposDocumento = new Map();
+        const tiposCaficultor = new Map();
+
+        let modoActivo = null;
+        let debounceDoc = null;
+        let debounceDocConversion = null;
+        let documentoExiste = false;
+        let documentoExisteComoExterno = false;
+        let conversionEncontrado = false;
+        let ultimaClaveBusquedaConversion = '';
+        let caficultorValido = false;
+        let ultimoNumDocumentoConsultado = '';
+
+        function limpiarDatosCaficultor() {
+            nombre.value = '';
+            apePaterno.value = '';
+            apeMaterno.value = '';
+            sexo.value = '';
+            fechaNacimiento.value = '';
+            telefono.value = '';
+            tipoCaficultorId.value = '';
+            caficultorValido = false;
+        }
+
+        async function consultarCaficultor(documento) {
+            if(ultimoNumDocumentoConsultado === documento && caficultorValido) {
+                return;
+            }
+            
+            try {
+                setLookupMessage('Consultando datos del caficultor...');
+                const response = await fetch(`/caficultor/consultar/${documento}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'No se pudo consultar el caficultor');
+                }
+
+                const payload = await response.json();
+                ultimoNumDocumentoConsultado = documento;
+
+                if (!payload.encontrado || !payload.data) {
+                    limpiarDatosCaficultor();
+                    setLookupMessage(payload.mensaje, 'error');
+                    numDocumento.setCustomValidity(payload.mensaje);
+                    return;
+                }
+
+            } catch (error) {
+                setLookupMessage('Error al consultar el caficultor.');
+            }
+        }
+
+        function normalizarTexto(valor) {
+            return valor
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .trim();
+        }
+
+        function obtenerReglaDocumento(tipoDocumentoSeleccionadoId) {
+            const id = Number(tipoDocumentoSeleccionadoId || 0);
+            const nombreTipo = normalizarTexto(tiposDocumento.get(id) || '');
+
+            if (nombreTipo === 'dni') {
+                return {
+                    maxLength: 8,
+                    soloNumeros: true,
+                    hint: 'DNI: exactamente 8 digitos numericos.',
+                    placeholder: 'Ingrese 8 digitos de DNI',
+                    validationMessage: 'Para DNI se requieren 8 digitos numericos.',
+                    regex: /^\d{8}$/,
+                    longitudesAutoBusqueda: [8],
+                    autoSearchMessage: 'Complete los 8 digitos del DNI para iniciar la busqueda.',
+                };
+            }
+
+            if (nombreTipo === 'pasaporte' || nombreTipo === 'carnet de extranjeria') {
+                return {
+                    maxLength: 12,
+                    soloNumeros: false,
+                    hint: 'Pasaporte/Carnet: exactamente 12 caracteres alfanumericos.',
+                    placeholder: 'Ingrese 12 caracteres',
+                    validationMessage: 'Para Pasaporte/Carnet se requieren 12 caracteres alfanumericos.',
+                    regex: /^[A-Za-z0-9]{12}$/,
+                    longitudesAutoBusqueda: [12],
+                    autoSearchMessage: 'Complete los 12 caracteres para iniciar la busqueda.',
+                };
+            }
+
+            return {
+                maxLength: 12,
+                soloNumeros: false,
+                hint: 'Documento entre 8 y 12 caracteres alfanumericos.',
+                placeholder: 'Ingrese documento (8 a 12 caracteres)',
+                validationMessage: 'Documento invalido. Use de 8 a 12 caracteres alfanumericos.',
+                regex: /^[A-Za-z0-9]{8,12}$/,
+                longitudesAutoBusqueda: [8, 12],
+                autoSearchMessage: 'Complete 8 o 12 caracteres para iniciar la busqueda.',
+            };
+        }
+
+        function limpiarDocumentoSegunRegla(valor, regla) {
+            const texto = String(valor || '').trim();
+            if (regla.soloNumeros) {
+                return texto.replace(/\D/g, '').slice(0, regla.maxLength);
+            }
+
+            return texto.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, regla.maxLength);
+        }
+
+        function validarDocumentoPorTipoId(tipoDocumentoSeleccionadoId, documento) {
+            const id = Number(tipoDocumentoSeleccionadoId || 0);
+            if (!id) {
+                return { ok: false, mensaje: 'Selecciona primero el tipo de documento.' };
+            }
+
+            const regla = obtenerReglaDocumento(id);
+            if (!regla.regex.test(documento)) {
+                return { ok: false, mensaje: regla.validationMessage };
+            }
+
+            return { ok: true, mensaje: '' };
+        }
+
+        function setModo(modo) {
+            modoActivo = modo;
+
+            cardNuevo.classList.toggle('is-selected', modo === 'nuevo');
+            cardConversion.classList.toggle('is-selected', modo === 'conversion');
+
+            panelNuevo.classList.toggle('is-active', modo === 'nuevo');
+            panelConversion.classList.toggle('is-active', modo === 'conversion');
+
+            panelNuevo.setAttribute('aria-hidden', modo !== 'nuevo');
+            panelConversion.setAttribute('aria-hidden', modo !== 'conversion');
+
+            if (modo === 'nuevo') {
+                panelNuevo.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+            } else if (modo === 'conversion') {
+                panelConversion.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+            }
+        }
+
+        function setRegistroBanner(mensaje, tipo = 'neutral', mostrarAccion = false) {
+            registroBanner.classList.remove('is-hidden', 'is-accent', 'is-destructive', 'is-success');
+            registroBanner.classList.add(`is-${tipo}`);
+            registroBannerText.textContent = mensaje;
+            btnAccionConversion.classList.toggle('is-hidden', !mostrarAccion);
+        }
+
+        function clearRegistroBanner() {
+            registroBanner.classList.add('is-hidden');
+            registroBannerText.textContent = '';
+            btnAccionConversion.classList.add('is-hidden');
+        }
+
+        function setConversionBanner(mensaje, tipo = 'neutral') {
+            conversionBanner.classList.remove('is-hidden', 'is-accent', 'is-destructive', 'is-success');
+            conversionBanner.classList.add(`is-${tipo}`);
+            conversionBannerText.textContent = mensaje;
+        }
+
+        function clearConversionBanner() {
+            conversionBanner.classList.add('is-hidden');
+            conversionBannerText.textContent = '';
+        }
+
+        function setConversionResumenVisible(visible) {
+            conversionResumen.classList.toggle('is-hidden', !visible);
+        }
+
+        function limpiarEstadoRegistro() {
+            documentoExiste = false;
+            documentoExisteComoExterno = false;
+            btnGuardarNuevo.disabled = false;
+            clearRegistroBanner();
+        }
+
+        function limpiarEstadoConversion() {
+            conversionEncontrado = false;
+            btnConvertirSocio.disabled = true;
+            resNombre.textContent = '-';
+            resTipo.textContent = '-';
+            setConversionResumenVisible(false);
+            clearConversionBanner();
+        }
+
+        function aplicarReglaDocumento() {
+            const regla = obtenerReglaDocumento(tipoDocumentoId.value);
+            numDocumento.maxLength = regla.maxLength;
+            numDocumento.placeholder = regla.placeholder;
+            numDocumento.inputMode = regla.soloNumeros ? 'numeric' : 'text';
+            docHint.textContent = regla.hint;
+            numDocumento.value = limpiarDocumentoSegunRegla(numDocumento.value, regla);
+        }
+
+        function aplicarReglaDocumentoConversion() {
+            const regla = obtenerReglaDocumento(tipoDocumentoConversionId.value);
+            buscarDocumento.maxLength = regla.maxLength;
+            buscarDocumento.placeholder = regla.placeholder;
+            buscarDocumento.inputMode = regla.soloNumeros ? 'numeric' : 'text';
+            conversionDocHint.textContent = regla.hint;
+            buscarDocumento.value = limpiarDocumentoSegunRegla(buscarDocumento.value, regla);
+        }
+
+        async function cargarTiposDocumento() {
+            const response = await fetch('/tipo-documento/listar');
+            if (!response.ok) {
+                throw new Error('No se pudieron cargar tipos de documento');
+            }
+
+            const data = await response.json();
+            for (const item of data) {
+                const id = Number(item.id);
+                tiposDocumento.set(id, String(item.nombre));
+
+                const optionRegistro = document.createElement('option');
+                optionRegistro.value = String(item.id);
+                optionRegistro.textContent = String(item.nombre);
+                tipoDocumentoId.appendChild(optionRegistro);
+
+                const optionConversion = document.createElement('option');
+                optionConversion.value = String(item.id);
+                optionConversion.textContent = String(item.nombre);
+                tipoDocumentoConversionId.appendChild(optionConversion);
+            }
+
+            const entryDni = [...tiposDocumento.entries()].find(
+                ([, nombreTipo]) => normalizarTexto(nombreTipo) === 'dni',
+            );
+            if (entryDni) {
+                const dniId = String(entryDni[0]);
+                tipoDocumentoId.value = dniId;
+                tipoDocumentoConversionId.value = dniId;
+            }
+        }
+
+        async function cargarTiposCaficultor() {
+            const response = await fetch('/tipo-caficultor/listar');
+            if (!response.ok) {
+                throw new Error('No se pudieron cargar tipos de caficultor');
+            }
+
+            const data = await response.json();
+            let externoId = null;
+
+            for (const item of data) {
+                const id = Number(item.id);
+                const nombreTipo = String(item.nombre);
+                tiposCaficultor.set(id, nombreTipo);
+
+                const option = document.createElement('option');
+                option.value = String(id);
+                option.textContent = nombreTipo;
+                tipoCaficultorId.appendChild(option);
+
+                if (normalizarTexto(nombreTipo) === TIPO_EXTERNO_NOMBRE) {
+                    externoId = id;
+                }
+            }
+
+            if (externoId) {
+                tipoCaficultorId.value = String(externoId);
+            }
+        }
+
+        async function consultarDocumentoParaRegistro(documento) {
+            const validacion = validarDocumentoPorTipoId(tipoDocumentoId.value, documento);
+            if (!validacion.ok) {
+                limpiarEstadoRegistro();
+                setRegistroBanner(validacion.mensaje, 'destructive');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'No se pudo validar el documento');
+                }
+
+                const payload = await response.json();
+                if (!payload.encontrado || !payload.data) {
+                    limpiarEstadoRegistro();
+                    return;
+                }
+
+                const tipoActual = normalizarTexto(payload.data.tipo_caficultor || '');
+                documentoExiste = true;
+                btnGuardarNuevo.disabled = true;
+
+                if (tipoActual === TIPO_EXTERNO_NOMBRE) {
+                    documentoExisteComoExterno = true;
+                    setRegistroBanner(
+                        'Este caficultor ya esta registrado como Externo.',
+                        'accent',
+                        true,
+                    );
+                    return;
+                }
+
+                if (tipoActual === TIPO_SOCIO_NOMBRE) {
+                    setRegistroBanner(
+                        'Esta persona ya cuenta con un estado de Socio Activo.',
+                        'destructive',
+                    );
+                    return;
+                }
+
+                setRegistroBanner('Esta persona ya cuenta con registro de caficultor.', 'accent');
+            } catch (error) {
+                limpiarEstadoRegistro();
+                setRegistroBanner(error.message || 'No se pudo validar el documento.', 'destructive');
+            }
+        }
+
+        async function buscarParaConversion(documentoForzado = null) {
+            const tipoDocumentoSeleccionadoId = Number(tipoDocumentoConversionId.value || 0);
+            const regla = obtenerReglaDocumento(tipoDocumentoSeleccionadoId);
+            const documento = limpiarDocumentoSegunRegla(documentoForzado ?? buscarDocumento.value, regla);
+            buscarDocumento.value = documento;
+
+            const validacion = validarDocumentoPorTipoId(tipoDocumentoSeleccionadoId, documento);
+            if (!validacion.ok) {
+                limpiarEstadoConversion();
+                setConversionBanner(validacion.mensaje, 'destructive');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'No se pudo consultar el caficultor');
+                }
+
+                const payload = await response.json();
+                if (!payload.encontrado || !payload.data) {
+                    limpiarEstadoConversion();
+                    setConversionBanner(
+                        'No existe un caficultor con ese documento. Se recomienda realizar primero el registro.',
+                        'accent',
+                    );
+                    return;
+                }
+
+                const tipoActual = normalizarTexto(payload.data.tipo_caficultor || '');
+                conversionEncontrado = true;
+                setConversionResumenVisible(true);
+                resNombre.textContent = payload.data.nombre_completo || '-';
+                resTipo.textContent = payload.data.tipo_caficultor || '-';
+
+                if (tipoActual === TIPO_SOCIO_NOMBRE) {
+                    btnConvertirSocio.disabled = true;
+                    setConversionBanner('Esta persona ya cuenta con un estado de Socio Activo.', 'destructive');
+                    return;
+                }
+
+                btnConvertirSocio.disabled = false;
+                setConversionBanner('Caficultor externo encontrado. Puede convertirlo a socio.', 'success');
+            } catch (error) {
+                limpiarEstadoConversion();
+                setConversionBanner(error.message || 'No se pudo buscar el caficultor.', 'destructive');
+            }
+        }
+
+        function intentarBusquedaAutomaticaConversion() {
+            if (modoActivo !== 'conversion') {
+                return;
+            }
+
+            const tipoDocumentoSeleccionadoId = Number(tipoDocumentoConversionId.value || 0);
+            const regla = obtenerReglaDocumento(tipoDocumentoSeleccionadoId);
+            const documento = limpiarDocumentoSegunRegla(buscarDocumento.value, regla);
+            buscarDocumento.value = documento;
+
+            if (!tipoDocumentoSeleccionadoId) {
+                limpiarEstadoConversion();
+                if (documento.length > 0) {
+                    setConversionBanner('Selecciona primero el tipo de documento.', 'accent');
+                }
+                return;
+            }
+
+            if (!regla.longitudesAutoBusqueda.includes(documento.length)) {
+                limpiarEstadoConversion();
+                if (documento.length > 0) {
+                    setConversionBanner(regla.autoSearchMessage, 'accent');
+                }
+                return;
+            }
+
+            const claveBusqueda = `${tipoDocumentoSeleccionadoId}:${documento}`;
+            if (claveBusqueda === ultimaClaveBusquedaConversion) {
+                return;
+            }
+            ultimaClaveBusquedaConversion = claveBusqueda;
+
+            if (debounceDocConversion) {
+                clearTimeout(debounceDocConversion);
+            }
+
+            debounceDocConversion = setTimeout(() => {
+                buscarParaConversion(documento);
+            }, 280);
+        }
+
+        async function convertirASocio() {
+            const regla = obtenerReglaDocumento(tipoDocumentoConversionId.value);
+            const documento = limpiarDocumentoSegunRegla(buscarDocumento.value, regla);
+            buscarDocumento.value = documento;
+
+            if (!conversionEncontrado) {
+                setConversionBanner('Primero debe buscar y validar un caficultor externo.', 'destructive');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/caficultor/convertir-socio/${encodeURIComponent(documento)}`, {
+                    method: 'PATCH',
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'No se pudo convertir el caficultor a socio');
+                }
+
+                const payload = await response.json();
+                setConversionBanner(payload.mensaje || 'Conversion realizada correctamente.', 'success');
+                resTipo.textContent = 'Socio';
+                btnConvertirSocio.disabled = true;
+            } catch (error) {
+                setConversionBanner(error.message || 'No se pudo convertir el caficultor a socio.', 'destructive');
+            }
+        }
+
+        function limpiarFormularioNuevo() {
+            formNuevo.reset();
+            aplicarReglaDocumento();
+            limpiarEstadoRegistro();
+        }
+
+        async function registrarNuevoCaficultor(event) {
+            event.preventDefault();
+
+            const regla = obtenerReglaDocumento(tipoDocumentoId.value);
+            const documento = limpiarDocumentoSegunRegla(numDocumento.value, regla);
+            numDocumento.value = documento;
+            const validacion = validarDocumentoPorTipoId(tipoDocumentoId.value, documento);
+
+            if (!validacion.ok) {
+                setRegistroBanner(validacion.mensaje, 'destructive');
+                return;
+            }
+
+            if (documentoExiste) {
+                setRegistroBanner(
+                    documentoExisteComoExterno
+                        ? 'Este documento ya se encuentra registrado como Externo.'
+                        : 'Este documento ya cuenta con un registro de caficultor.',
+                    'accent',
+                    documentoExisteComoExterno,
+                );
+                return;
+            }
+
+            if (!formNuevo.reportValidity()) {
+                return;
+            }
+
+            const payload = {
+                nombre: nombre.value.trim(),
+                ape_paterno: apePaterno.value.trim(),
+                ape_materno: apeMaterno.value.trim(),
+                sexo: sexo.value,
+                fecha_nacimiento: fechaNacimiento.value,
+                tipo_documento_id: Number(tipoDocumentoId.value),
+                num_documento: documento,
+                telefono: telefono.value.trim(),
+                tipo_caficultor_id: Number(tipoCaficultorId.value),
+            };
+
+            try {
+                btnGuardarNuevo.disabled = true;
+                const response = await fetch('/caficultor/registrar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'No se pudo registrar el caficultor');
+                }
+
+                const data = await response.json();
+                setRegistroBanner(data.mensaje || 'Caficultor registrado correctamente.', 'success');
+                formNuevo.reset();
+                aplicarReglaDocumento();
+                documentoExiste = false;
+                documentoExisteComoExterno = false;
+            } catch (error) {
+                setRegistroBanner(error.message || 'No se pudo completar el registro.', 'destructive');
+            } finally {
+                btnGuardarNuevo.disabled = false;
+            }
+        }
+
+        btnSelectNuevo.addEventListener('click', () => setModo('nuevo'));
+        btnSelectConversion.addEventListener('click', () => setModo('conversion'));
+
+        tipoDocumentoId.addEventListener('change', () => {
+            aplicarReglaDocumento();
+            limpiarEstadoRegistro();
+        });
+
+        numDocumento.addEventListener('input', () => {
+            const regla = obtenerReglaDocumento(tipoDocumentoId.value);
+            numDocumento.value = limpiarDocumentoSegunRegla(numDocumento.value, regla);
+            limpiarEstadoRegistro();
+
+            if (debounceDoc) {
+                clearTimeout(debounceDoc);
+            }
+
+            if (modoActivo !== 'nuevo') {
+                return;
+            }
+
+            if (!numDocumento.value) {
+                return;
+            }
+
+            if (!regla.longitudesAutoBusqueda.includes(numDocumento.value.length)) {
+                return;
+            }
+
+            debounceDoc = setTimeout(() => {
+                consultarDocumentoParaRegistro(numDocumento.value.trim());
+            }, 320);
+        });
+
+        telefono.addEventListener('input', () => {
+            telefono.value = telefono.value.replace(/\D/g, '').slice(0, 9);
+        });
+
+        btnAccionConversion.addEventListener('click', () => {
+            if (tipoDocumentoId.value) {
+                tipoDocumentoConversionId.value = tipoDocumentoId.value;
+            }
+
+            aplicarReglaDocumentoConversion();
+
+            const regla = obtenerReglaDocumento(tipoDocumentoConversionId.value);
+            const documento = limpiarDocumentoSegunRegla(numDocumento.value, regla);
+            setModo('conversion');
+            buscarDocumento.value = documento;
+            ultimaClaveBusquedaConversion = '';
+            intentarBusquedaAutomaticaConversion();
+        });
+
+        btnConvertirSocio.addEventListener('click', convertirASocio);
+        btnLimpiarNuevo.addEventListener('click', limpiarFormularioNuevo);
+        formNuevo.addEventListener('submit', registrarNuevoCaficultor);
+
+        tipoDocumentoConversionId.addEventListener('change', () => {
+            aplicarReglaDocumentoConversion();
+            ultimaClaveBusquedaConversion = '';
+            limpiarEstadoConversion();
+            if (buscarDocumento.value) {
+                intentarBusquedaAutomaticaConversion();
+            }
+        });
+
+        buscarDocumento.addEventListener('input', () => {
+            const regla = obtenerReglaDocumento(tipoDocumentoConversionId.value);
+            buscarDocumento.value = limpiarDocumentoSegunRegla(buscarDocumento.value, regla);
+            ultimaClaveBusquedaConversion = '';
+            intentarBusquedaAutomaticaConversion();
+        });
+
+        Promise.all([cargarTiposDocumento(), cargarTiposCaficultor()])
+            .then(() => {
+                aplicarReglaDocumento();
+                aplicarReglaDocumentoConversion();
+                setModo(null);
+            })
+            .catch((error) => {
+                setModo(null);
+                setRegistroBanner(error.message || 'No se pudieron cargar catalogos.', 'destructive');
+            });
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,366 @@
+.monitor-page {
+    display: grid;
+    gap: 12px;
+    font-family: var(--font-sans);
+    color: var(--foreground);
+}
+
+.info-text {
+    font-size: 16px !important;
+    line-height: 1.5;
+}
+
+.kicker {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 11px;
+}
+
+.monitor-hero {
+    border-radius: 16px;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
+    background: linear-gradient(135deg, color-mix(in oklab, var(--card) 90%, transparent 10%), color-mix(in oklab, var(--secondary) 12%, var(--card) 88%));
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 1.35fr 1fr;
+}
+
+.monitor-hero h1 {
+    margin: 6px 0 8px;
+    font-family: var(--font-serif);
+    font-size: clamp(1.15rem, 1.4vw, 1.45rem);
+    line-height: 1.1;
+}
+
+.monitor-hero p {
+    margin: 0;
+    color: var(--muted-foreground);
+}
+
+.hero-meta {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.hero-meta article {
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
+    background: color-mix(in oklab, var(--card) 86%, transparent 14%);
+    padding: 12px;
+}
+
+.hero-meta span {
+    display: block;
+    color: var(--muted-foreground);
+}
+
+.hero-meta strong {
+    display: block;
+    margin-top: 4px;
+    font-family: var(--font-serif);
+    font-size: clamp(1rem, 1.1vw, 1.1rem);
+    line-height: 1.2;
+}
+
+.monitor-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+}
+
+.feed-card,
+.analytics-card {
+    border-radius: 16px;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
+    background: color-mix(in oklab, var(--card) 90%, transparent 10%);
+}
+
+.feed-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--destructive) 42%, transparent 58%);
+    background: color-mix(in oklab, var(--destructive) 14%, transparent 86%);
+    color: var(--destructive);
+    padding: 6px 12px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.blink-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--destructive);
+    animation: liveBlink 1s linear infinite;
+}
+
+.feed-frame {
+    min-height: 340px;
+    border-radius: 14px;
+    border: 2px solid color-mix(in oklab, var(--primary) 58%, var(--border) 42%);
+    background:
+        linear-gradient(color-mix(in oklab, var(--background) 34%, transparent 66%), color-mix(in oklab, var(--background) 42%, transparent 58%)),
+        url('/resources/fondo_temp.jpg');
+    background-position: center;
+    background-size: cover;
+    position: relative;
+    overflow: hidden;
+}
+
+.feed-grid-overlay {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(to right, color-mix(in oklab, var(--primary) 14%, transparent 86%) 1px, transparent 1px),
+        linear-gradient(to bottom, color-mix(in oklab, var(--primary) 14%, transparent 86%) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+
+.detection-tag {
+    position: absolute;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 14px;
+    font-weight: 700;
+    border: 1px solid;
+    backdrop-filter: blur(3px);
+}
+
+.defecto-negro {
+    top: 24%;
+    left: 18%;
+    color: color-mix(in oklab, var(--destructive) 88%, white 12%);
+    border-color: color-mix(in oklab, var(--destructive) 60%, transparent 40%);
+    background: color-mix(in oklab, var(--destructive) 24%, transparent 76%);
+}
+
+.brocado {
+    top: 58%;
+    left: 64%;
+    color: color-mix(in oklab, var(--secondary) 70%, white 30%);
+    border-color: color-mix(in oklab, var(--secondary) 56%, transparent 44%);
+    background: color-mix(in oklab, var(--secondary) 24%, transparent 76%);
+}
+
+.sano {
+    top: 42%;
+    left: 38%;
+    color: color-mix(in oklab, var(--primary) 84%, white 16%);
+    border-color: color-mix(in oklab, var(--primary) 56%, transparent 44%);
+    background: color-mix(in oklab, var(--primary) 22%, transparent 78%);
+}
+
+.feed-stats {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.feed-stats article {
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
+    background: color-mix(in oklab, var(--card) 84%, transparent 16%);
+    padding: 10px 12px;
+}
+
+.feed-stats span {
+    display: block;
+    color: var(--muted-foreground);
+}
+
+.feed-stats strong {
+    display: block;
+    margin-top: 4px;
+    font-family: var(--font-serif);
+    font-size: clamp(1.1rem, 1.3vw, 1.3rem);
+    line-height: 1;
+}
+
+.analytics-card h2 {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: clamp(0.95rem, 1.1vw, 1.1rem);
+    line-height: 1.2;
+}
+
+.analytics-card p {
+    margin: 8px 0 0;
+    color: var(--muted-foreground);
+}
+
+.defect-list {
+    margin-top: 14px;
+    display: grid;
+    gap: 12px;
+}
+
+.defect-item {
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
+    background: color-mix(in oklab, var(--card) 84%, transparent 16%);
+    padding: 10px 12px;
+}
+
+.defect-item header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+}
+
+.defect-item span {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.defect-item strong {
+    font-size: 14px;
+    color: var(--foreground);
+}
+
+.defect-track {
+    height: 10px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--muted) 72%, transparent 28%);
+    overflow: hidden;
+}
+
+.defect-fill {
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    transition: width 0.35s ease;
+}
+
+.defect-fill.negro {
+    background: linear-gradient(90deg, color-mix(in oklab, var(--destructive) 90%, white 10%), color-mix(in oklab, var(--destructive) 65%, black 35%));
+}
+
+.defect-fill.brocado {
+    background: linear-gradient(90deg, color-mix(in oklab, var(--secondary) 74%, white 26%), color-mix(in oklab, var(--secondary) 56%, black 44%));
+}
+
+.defect-fill.fermentado {
+    background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 85%, white 15%), color-mix(in oklab, var(--primary) 62%, black 38%));
+}
+
+.event-log {
+    margin-top: 10px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
+    background: color-mix(in oklab, var(--card) 84%, transparent 16%);
+    padding: 12px;
+    min-height: 130px;
+    max-height: 170px;
+    overflow: auto;
+    display: grid;
+    gap: 8px;
+}
+
+.log-item {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 14px;
+    border-bottom: 1px dashed color-mix(in oklab, var(--border) 72%, transparent 28%);
+    padding-bottom: 7px;
+}
+
+.monitor-actions {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.monitor-btn {
+    min-height: 36px;
+    border-radius: 9px;
+    padding: 0 14px;
+    border: 1px solid;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: box-shadow 0.18s ease;
+}
+
+.monitor-btn.secondary {
+    border-color: color-mix(in oklab, var(--border) 84%, transparent 16%);
+    color: var(--foreground);
+    background: color-mix(in oklab, var(--card) 90%, transparent 10%);
+}
+
+.monitor-btn.primary {
+    border-color: transparent;
+    color: var(--primary-foreground);
+    background: linear-gradient(125deg, color-mix(in oklab, var(--primary) 88%, white 12%), color-mix(in oklab, var(--secondary) 56%, var(--primary) 44%));
+    box-shadow: 0 10px 24px color-mix(in oklab, var(--primary) 34%, transparent 66%);
+}
+
+.monitor-btn:hover {
+    box-shadow: var(--shadow-sm);
+}
+
+@keyframes liveBlink {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.28;
+    }
+}
+
+@media (max-width: 1180px) {
+    .monitor-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-meta {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .monitor-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .monitor-page {
+        font-size: 16px;
+    }
+
+    .info-text {
+        font-size: 15px !important;
+    }
+
+    .hero-meta,
+    .feed-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .monitor-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

@@ -1,12 +1,8 @@
-from src.bd import Connection
-from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError
+from src.database.bd import Connection
+from typing import Any
 
 class Personal:
-    def __init__(self):
-        self.ph = PasswordHasher(memory_cost=65536, time_cost=3, parallelism=4)
-
-    def login(self, usuario, clave):
+    def buscar_activo_por_usuario(self, usuario: str) -> dict[str, Any] | None:
         db = Connection()
         
         try:
@@ -18,18 +14,8 @@ class Personal:
                 INNER JOIN tipo_personal tp ON p.tipo_personal_id = tp.id
                 WHERE p.usuario = %s AND p.estado = 'A'
             """
-            
-            resultado = db.obtener_uno(sql, (usuario,))
-            
-            if resultado:
-                try:
-                    self.ph.verify(resultado['clave'], clave)
-                    # Eliminamos la clave del dict por seguridad antes de devolverlo
-                    del resultado['clave']
-                    return resultado
-                except VerifyMismatchError:
-                    return None
-            return None
+
+            return db.obtener_uno(sql, (usuario,))
         finally:
             db.close()
 

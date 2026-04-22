@@ -1,0 +1,262 @@
+{% extends "main.html" %}
+
+{% block style %}
+	<link rel="stylesheet" href="/static/css/monitoreo.css">
+{% endblock %}
+
+{% block content %}
+<section class="monitor-page" aria-label="Monitoreo en tiempo real">
+	<header class="card monitor-hero">
+		<div>
+			<p class="kicker info-text">Clasificacion en curso</p>
+			<h1>Monitoreo en tiempo real</h1>
+			<p class="info-text">Supervisa deteccion de granos y defectos mientras el lote avanza en la banda.</p>
+		</div>
+
+		<div class="hero-meta">
+			<article>
+				<span class="info-text">Documento</span>
+				<strong id="sampleDni">-</strong>
+			</article>
+			<article>
+				<span class="info-text">Caficultor</span>
+				<strong id="sampleName">-</strong>
+			</article>
+			<article>
+				<span class="info-text">Tamiz</span>
+				<strong id="sampleTamiz">-</strong>
+			</article>
+		</div>
+	</header>
+
+	<div class="monitor-grid">
+		<article class="card feed-card">
+			<div class="feed-header">
+				<div class="live-indicator" role="status" aria-live="polite">
+					<span class="blink-dot" aria-hidden="true"></span>
+					En vivo
+				</div>
+				<p class="info-text" id="sessionTimer">00:00</p>
+			</div>
+
+			<div class="feed-frame" aria-label="Feed de clasificación de granos">
+				<div class="feed-grid-overlay"></div>
+				<span class="detection-tag defecto-negro">Defecto negro</span>
+				<span class="detection-tag brocado">Brocado</span>
+				<span class="detection-tag sano">Grano sano</span>
+			</div>
+
+			<div class="feed-stats">
+				<article>
+					<span class="info-text">Granos evaluados</span>
+					<strong id="totalGrains">0</strong>
+				</article>
+				<article>
+					<span class="info-text">Defectos encontrados</span>
+					<strong id="totalDefects">0</strong>
+				</article>
+				<article>
+					<span class="info-text">Rendimiento IA</span>
+					<strong id="iaPerformance">0%</strong>
+				</article>
+			</div>
+		</article>
+
+		<article class="card analytics-card">
+			<h2>Mapa de defectos detectados</h2>
+			<p class="info-text">Indicadores dinamicos por tipo de defecto para control de calidad.</p>
+
+			<div class="defect-list">
+				<div class="defect-item">
+					<header>
+						<span>Defecto negro</span>
+						<strong id="defectNegroValue">0</strong>
+					</header>
+					<div class="defect-track">
+						<div id="defectNegroBar" class="defect-fill negro"></div>
+					</div>
+				</div>
+
+				<div class="defect-item">
+					<header>
+						<span>Brocado</span>
+						<strong id="defectBrocadoValue">0</strong>
+					</header>
+					<div class="defect-track">
+						<div id="defectBrocadoBar" class="defect-fill brocado"></div>
+					</div>
+				</div>
+
+				<div class="defect-item">
+					<header>
+						<span>Fermentado</span>
+						<strong id="defectFermentadoValue">0</strong>
+					</header>
+					<div class="defect-track">
+						<div id="defectFermentadoBar" class="defect-fill fermentado"></div>
+					</div>
+				</div>
+			</div>
+
+			<div class="event-log" id="eventLog" aria-live="polite">
+				<p class="log-item">Esperando lectura inicial del lote...</p>
+			</div>
+		</article>
+	</div>
+
+	<div class="monitor-actions">
+		<a href="/registro" class="monitor-btn secondary">Volver a registro</a>
+		<button id="toggleStreamBtn" type="button" class="monitor-btn secondary">Pausar simulacion</button>
+		<button id="finishBtn" type="button" class="monitor-btn primary">Finalizar monitoreo</button>
+	</div>
+</section>
+
+<script>
+	(() => {
+		const storedSample = sessionStorage.getItem('coffeeren.pendingSample');
+		const sample = storedSample ? JSON.parse(storedSample) : null;
+
+		const sampleDni = document.getElementById('sampleDni');
+		const sampleName = document.getElementById('sampleName');
+		const sampleTamiz = document.getElementById('sampleTamiz');
+		const timerEl = document.getElementById('sessionTimer');
+
+		const totalGrainsEl = document.getElementById('totalGrains');
+		const totalDefectsEl = document.getElementById('totalDefects');
+		const iaPerformanceEl = document.getElementById('iaPerformance');
+
+		const negroValueEl = document.getElementById('defectNegroValue');
+		const brocadoValueEl = document.getElementById('defectBrocadoValue');
+		const fermentadoValueEl = document.getElementById('defectFermentadoValue');
+
+		const negroBarEl = document.getElementById('defectNegroBar');
+		const brocadoBarEl = document.getElementById('defectBrocadoBar');
+		const fermentadoBarEl = document.getElementById('defectFermentadoBar');
+
+		const eventLog = document.getElementById('eventLog');
+		const toggleBtn = document.getElementById('toggleStreamBtn');
+		const finishBtn = document.getElementById('finishBtn');
+
+		if (sampleDni && sampleName && sampleTamiz) {
+			sampleDni.textContent = sample?.dni || 'No disponible';
+			sampleName.textContent = sample?.nombreCaficultor || 'No disponible';
+			sampleTamiz.textContent = sample?.tamiz ? `${sample.tamiz} mm` : 'No disponible';
+		}
+
+		let running = true;
+		let elapsedSeconds = 0;
+		let totalGrains = 0;
+		let defectNegro = 0;
+		let defectBrocado = 0;
+		let defectFermentado = 0;
+
+		const defectMessages = {
+			negro: 'Defecto negro detectado en canal 2',
+			brocado: 'Brocado detectado en canal 1',
+			fermentado: 'Posible fermentado detectado en canal 3',
+			sano: 'Flujo normal de granos sanos'
+		};
+
+		function formatTimer(value) {
+			const min = String(Math.floor(value / 60)).padStart(2, '0');
+			const sec = String(value % 60).padStart(2, '0');
+			return `${min}:${sec}`;
+		}
+
+		function updateUI() {
+			const totalDefects = defectNegro + defectBrocado + defectFermentado;
+			const healthy = Math.max(totalGrains - totalDefects, 0);
+			const performance = totalGrains > 0 ? (healthy / totalGrains) * 100 : 0;
+
+			totalGrainsEl.textContent = String(totalGrains);
+			totalDefectsEl.textContent = String(totalDefects);
+			iaPerformanceEl.textContent = `${performance.toFixed(1)}%`;
+
+			negroValueEl.textContent = String(defectNegro);
+			brocadoValueEl.textContent = String(defectBrocado);
+			fermentadoValueEl.textContent = String(defectFermentado);
+
+			const safeTotal = Math.max(totalDefects, 1);
+			negroBarEl.style.width = `${Math.min((defectNegro / safeTotal) * 100, 100)}%`;
+			brocadoBarEl.style.width = `${Math.min((defectBrocado / safeTotal) * 100, 100)}%`;
+			fermentadoBarEl.style.width = `${Math.min((defectFermentado / safeTotal) * 100, 100)}%`;
+		}
+
+		function appendLog(message) {
+			if (!eventLog) {
+				return;
+			}
+
+			const item = document.createElement('p');
+			item.className = 'log-item';
+			item.textContent = `${formatTimer(elapsedSeconds)} - ${message}`;
+			eventLog.prepend(item);
+
+			const rows = eventLog.querySelectorAll('.log-item');
+			if (rows.length > 10) {
+				rows[rows.length - 1].remove();
+			}
+		}
+
+		function tickSimulation() {
+			if (!running) {
+				return;
+			}
+
+			const analyzed = 20 + Math.floor(Math.random() * 22);
+			totalGrains += analyzed;
+
+			const eventDice = Math.random();
+			if (eventDice < 0.27) {
+				defectNegro += 1 + Math.floor(Math.random() * 2);
+				appendLog(defectMessages.negro);
+			} else if (eventDice < 0.52) {
+				defectBrocado += 1;
+				appendLog(defectMessages.brocado);
+			} else if (eventDice < 0.68) {
+				defectFermentado += 1;
+				appendLog(defectMessages.fermentado);
+			} else {
+				appendLog(defectMessages.sano);
+			}
+
+			updateUI();
+		}
+
+		const timerInterval = setInterval(() => {
+			if (!running) {
+				return;
+			}
+
+			elapsedSeconds += 1;
+			if (timerEl) {
+				timerEl.textContent = formatTimer(elapsedSeconds);
+			}
+		}, 1000);
+
+		const simInterval = setInterval(tickSimulation, 1600);
+
+		if (toggleBtn) {
+			toggleBtn.addEventListener('click', () => {
+				running = !running;
+				toggleBtn.textContent = running ? 'Pausar simulacion' : 'Reanudar simulacion';
+				appendLog(running ? 'Simulacion reanudada' : 'Simulacion pausada por operador');
+			});
+		}
+
+		if (finishBtn) {
+			finishBtn.addEventListener('click', () => {
+				running = false;
+				clearInterval(timerInterval);
+				clearInterval(simInterval);
+				appendLog('Monitoreo finalizado. Regresando al panel principal...');
+				setTimeout(() => {
+					window.location.href = '/inicio';
+				}, 1200);
+			});
+		}
+
+		updateUI();
+	})();
+</script>
+{% endblock %}

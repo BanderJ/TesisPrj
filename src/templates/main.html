@@ -19,19 +19,28 @@
             <!-- LEFT: Brand -->
             <div class="header-left">
                 <a href="/" class="brand-link">
-                    CoffeeRen
+                    <img class="brand-mark" src="/static/icon/coffee_icon.svg" alt="CoffeeRen">
+                    <span class="brand-copy">
+                        <span class="brand-name">CoffeeRen</span>
+                        <span class="brand-tag">Sistema de clasificación</span>
+                    </span>
                 </a>
             </div>
 
             <!-- CENTER: Navigation Menu -->
             <nav class="header-center">
-                <a href="/" class="nav-link active">Inicio</a>
+                <a href="/inicio" class="nav-link active">Inicio</a>
                 <a href="/registro" class="nav-link">Registro de muestra</a>
-                <a href="#" class="nav-link">Registrar caficultor</a>
+                <a href="/monitoreo" class="nav-link">Monitoreo en vivo</a>
+                <a href="/nuevo-caficultor" class="nav-link">Registrar caficultor</a>
             </nav>
 
             <!-- RIGHT: Dark Mode & User Avatar -->
             <div class="header-right">
+                <!-- <div class="header-user-meta">
+                    <p class="header-user-name">{% if user %}{{ user.nombre }}{% endif %}</p>
+                    <p class="header-user-handle">{% if user %}{{ user.usuario }}{% endif %}</p>
+                </div> -->
                 
                 <!-- Dark Mode Toggle -->
                 <button class="dark-mode-btn" id="darkModeToggle" title="Alternar modo oscuro">
@@ -131,7 +140,7 @@
         });
 
         // Navigation active state
-        const currentPath = window.location.pathname;
+        const currentPath = window.location.pathname === '/' ? '/inicio' : window.location.pathname;
         document.querySelectorAll('.nav-link').forEach(link => {
             link.classList.remove('active');
             if (link.getAttribute('href') === currentPath) {
