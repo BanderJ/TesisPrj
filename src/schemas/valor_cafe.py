@@ -31,3 +31,14 @@ class ValorCafeCambiosDiariosResponse(BaseModel):
     hasta: date
     total: int
     data: list[CambioDiario]
+
+
+class ResumenRangoItem(BaseModel):
+    rango: str
+    precio: float
+    registrado_en: datetime
+
+
+class ValorCafeResumenRangosResponse(BaseModel):
+    fecha_consultada: date
+    data: list[ResumenRangoItem]

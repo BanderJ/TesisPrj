@@ -1,7 +1,7 @@
 {% extends "main.html" %}
 
 {% block style %}
-    <link rel="stylesheet" href="/static/css/inicio.css?v=20260421b">
+    <link rel="stylesheet" href="/static/css/inicio.css?v=20260422">
 {% endblock %}
 
 {% block content %}
@@ -18,48 +18,78 @@
         <div class="hero-strip">
             <article class="hero-strip-item">
                 <p class="info-text">Lotes procesados</p>
-                <strong id="kpiLotes">0</strong>
+                <strong id="kpiLotes">—</strong>
             </article>
             <article class="hero-strip-item">
                 <p class="info-text">Rendimiento promedio</p>
-                <strong id="kpiRendimiento">0%</strong>
+                <strong id="kpiRendimiento">—</strong>
             </article>
             <article class="hero-strip-item">
                 <p class="info-text">Defectos detectados</p>
-                <strong id="kpiDefectos">0</strong>
+                <strong id="kpiDefectos">—</strong>
             </article>
         </div>
     </section>
 
     <section class="dashboard-board reveal-up" aria-labelledby="board-title">
         <div class="board-header">
-            <h2 id="board-title" class="section-title">Panel de rendimiento</h2>
-            <p class="section-subtitle info-text">Metricas operativas y curva de precio referencial</p>
+            <div class="board-header-copy">
+                <h2 id="board-title" class="section-title">Precio referencial del café</h2>
+                <p class="section-subtitle info-text">Historial por rango de calidad · soles por quintal</p>
+            </div>
+            <div class="period-tabs" id="periodTabs" role="group" aria-label="Periodo del grafico">
+                <button class="period-tab is-active" data-period="dia">Hoy</button>
+                <button class="period-tab" data-period="mes">Este mes</button>
+                <button class="period-tab" data-period="año">Este año</button>
+            </div>
         </div>
 
         <div class="board-grid">
-            <article class="price-card">
-                <p class="price-label info-text">Precio referencial del quintal (S/)</p>
-                <p class="price-value" id="coffeePriceValue">S/ 0.00</p>
-                <p class="price-change" id="coffeePriceChange">0.0% respecto al dia anterior</p>
-                <p class="price-date info-text">Actualizado al <span id="coffeePriceDate"></span></p>
+            <article class="price-card" aria-label="Precio referencial hoy">
+                <p class="price-label info-text">Precio máximo (S/ / quintal)</p>
+                <p class="price-value" id="coffeePriceValue">—</p>
+                <p class="price-change" id="coffeePriceChange">—</p>
+                <p class="price-date info-text" id="coffeePriceDate">—</p>
+                <hr class="rango-divider">
+                <p class="price-label info-text" style="margin-top:10px">Rangos registrados hoy</p>
+                <ul class="rango-list" id="rangoList" aria-label="Precios por rango">
+                    <li class="rango-item"><span class="rango-dot" style="background:var(--muted-foreground)"></span><span class="rango-name" style="color:var(--muted-foreground)">Cargando…</span></li>
+                </ul>
             </article>
 
-            <article class="curve-card" aria-label="Tendencia de precio en fechas anteriores">
-                <div class="curve-bars" id="coffeeChartBars"></div>
-                <div class="curve-axis" id="coffeeChartAxis"></div>
+            <article class="curve-card" aria-label="Grafico de precios">
+                <div class="chart-top">
+                    <div class="rango-legend" id="rangoLegend">
+                        <button class="legend-chip is-active" data-rango="">Todos los rangos</button>
+                    </div>
+                </div>
+                <div class="chart-svg-wrapper">
+                    <svg id="priceChartSvg" class="price-chart-svg" viewBox="0 0 800 210" xmlns="http://www.w3.org/2000/svg"></svg>
+                </div>
+                <p class="chart-empty" id="chartEmpty" hidden>Sin registros para este período</p>
             </article>
+        </div>
 
+        <div class="board-metrics">
             <article class="board-metric-card">
                 <h3>Lotes en validacion</h3>
-                <p id="kpiValidacion">0</p>
-                <small class="info-text">Muestras listas para iniciar monitoreo</small>
+                <p id="kpiValidacion">—</p>
+                <small class="info-text">Muestras listas para monitoreo</small>
             </article>
-
             <article class="board-metric-card">
                 <h3>Precision estimada IA</h3>
-                <p id="kpiPrecision">0%</p>
-                <small class="info-text">Basado en lotes finalizados esta semana</small>
+                <p id="kpiPrecision">—</p>
+                <small class="info-text">Basado en lotes finalizados</small>
+            </article>
+            <article class="board-metric-card">
+                <h3>Rangos registrados hoy</h3>
+                <p id="kpiRangos">—</p>
+                <small class="info-text">Categorias de cafe activas</small>
+            </article>
+            <article class="board-metric-card">
+                <h3>Precio minimo hoy</h3>
+                <p id="kpiPrecioMin">—</p>
+                <small class="info-text">Rango de menor valor del dia</small>
             </article>
         </div>
     </section>
@@ -73,7 +103,7 @@
                 <div class="workflow-badge">01</div>
                 <h3>Registrar caficultor</h3>
                 <p>Registro de productor para trazabilidad territorial y analisis por procedencia.</p>
-                <a href="/nuevo-caficultor" class="workflow-btn primary">Regsitrar</a>
+                <a href="/nuevo-caficultor" class="workflow-btn primary">Registrar</a>
             </article>
 
             <article class="workflow-card">
@@ -100,94 +130,340 @@
     </section>
 
     <script>
-        (function renderDashboard() {
-            const priceValueEl = document.getElementById('coffeePriceValue');
-            const priceChangeEl = document.getElementById('coffeePriceChange');
-            const priceDateEl = document.getElementById('coffeePriceDate');
-            const barsEl = document.getElementById('coffeeChartBars');
-            const axisEl = document.getElementById('coffeeChartAxis');
+    (() => {
+        const RANGO_COLORS = ['#22c55e', '#f59e0b', '#818cf8', '#f472b6', '#2dd4bf'];
 
-            const kpiLotes = document.getElementById('kpiLotes');
-            const kpiRendimiento = document.getElementById('kpiRendimiento');
-            const kpiDefectos = document.getElementById('kpiDefectos');
-            const kpiValidacion = document.getElementById('kpiValidacion');
-            const kpiPrecision = document.getElementById('kpiPrecision');
+        const priceValueEl   = document.getElementById('coffeePriceValue');
+        const priceChangeEl  = document.getElementById('coffeePriceChange');
+        const priceDateEl    = document.getElementById('coffeePriceDate');
+        const rangoListEl    = document.getElementById('rangoList');
+        const rangoLegendEl  = document.getElementById('rangoLegend');
+        const chartSvgEl     = document.getElementById('priceChartSvg');
+        const chartEmptyEl   = document.getElementById('chartEmpty');
+        const periodTabsEl   = document.getElementById('periodTabs');
+        const kpiRangosEl    = document.getElementById('kpiRangos');
+        const kpiPrecioMinEl = document.getElementById('kpiPrecioMin');
 
-            if (!priceValueEl || !priceChangeEl || !priceDateEl || !barsEl || !axisEl) {
+        let activePeriod    = 'dia';
+        let activeRango     = '';
+        const rangoColorMap = {};
+
+        /* ── Date helpers ── */
+        function hoy()          { return new Date().toISOString().slice(0, 10); }
+        function ayer()         { const d = new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }
+        function primerDiaMes() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; }
+        function primerDiaAnio(){ return `${new Date().getFullYear()}-01-01`; }
+        function fmtDia(iso)    { return new Date(iso+'T00:00:00').toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'}); }
+
+        function agruparPorHora(items) {
+            const byHour = {};
+            for (const item of items) {
+                const h = new Date(item.fecha).getHours();
+                if (!byHour[h] || item.precio > byHour[h].precio)
+                    byHour[h] = { etiqueta: `${String(h).padStart(2,'0')}:00`, precio: item.precio };
+            }
+            return Object.entries(byHour)
+                .sort(([a],[b]) => Number(a)-Number(b))
+                .map(([,v]) => v);
+        }
+
+        /* ── SVG chart constants ── */
+        const VB_W=800, VB_H=210, ML=10, MR=60, MT=14, MB=30;
+        const CW=VB_W-ML-MR, CH=VB_H-MT-MB;
+
+        function niceAxisY(minP, maxP) {
+            const range = maxP - minP || 1;
+            const rough = range / 4;
+            const mag   = Math.pow(10, Math.floor(Math.log10(rough)));
+            const step  = [1,2,2.5,5,10].map(f=>f*mag).find(n=>n>=rough) || rough;
+            const lo    = Math.floor(minP/step)*step;
+            const hi    = Math.ceil(maxP/step)*step;
+            const labels = [];
+            for (let v=lo; v<=hi+step*0.01; v+=step)
+                labels.push(Math.round(v*100)/100);
+            return { lo, hi, labels };
+        }
+
+        function bezierD(pts, close, btmY) {
+            if (!pts.length) return '';
+            if (pts.length === 1) {
+                const {x,y} = pts[0];
+                return close ? `M${x-1} ${y} L${x+1} ${y} L${x+1} ${btmY} L${x-1} ${btmY}Z`
+                             : `M${x-1} ${y} L${x+1} ${y}`;
+            }
+            let d = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+            for (let i=1; i<pts.length; i++) {
+                const p0=pts[i-1], p1=pts[i];
+                const cpx = ((p0.x+p1.x)/2).toFixed(1);
+                d += ` C${cpx} ${p0.y.toFixed(1)},${cpx} ${p1.y.toFixed(1)},${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+            }
+            if (close) {
+                const l=pts[pts.length-1], f=pts[0];
+                d += ` L${l.x.toFixed(1)} ${btmY} L${f.x.toFixed(1)} ${btmY}Z`;
+            }
+            return d;
+        }
+
+        function xAxisLabels(puntos, period) {
+            const n = puntos.length;
+            if (n === 0) return [];
+            if (n <= 8)  return puntos.map((p,i) => ({i, text: p.etiqueta}));
+            if (period === 'año') {
+                const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                const out = []; let lastM = -1;
+                puntos.forEach((p,i) => {
+                    const parts = p.etiqueta.split('/');
+                    const m = parts.length===2 ? Number(parts[1])-1 : -1;
+                    if (m !== lastM && m >= 0) { out.push({i, text: MESES[m]||p.etiqueta}); lastM = m; }
+                });
+                return out;
+            }
+            const maxL = 6, step = Math.max(1, Math.floor((n-1)/(maxL-1)));
+            const out = [];
+            for (let i=0; i<n; i+=step) { if (out.length < maxL) out.push({i, text: puntos[i].etiqueta}); }
+            if (out[out.length-1]?.i !== n-1) out.push({i: n-1, text: puntos[n-1].etiqueta});
+            return out;
+        }
+
+        function renderSvgChart(puntos, colorIdx, period) {
+            if (!puntos.length) {
+                chartSvgEl.innerHTML = '';
+                chartEmptyEl.hidden  = false;
                 return;
             }
+            chartEmptyEl.hidden = true;
 
-            const now = new Date();
-            const days = 12;
-            const series = [];
+            const color  = RANGO_COLORS[colorIdx % RANGO_COLORS.length];
+            const gradId = `cg${colorIdx}`;
+            const clipId = `cc${colorIdx}`;
+            const btmY   = MT + CH;
 
-            for (let i = days - 1; i >= 0; i -= 1) {
-                const date = new Date(now);
-                date.setDate(now.getDate() - i);
-                const trend = (days - i) * 0.06;
-                const wave = Math.sin((days - i) / 2.1) * 0.28;
-                const value = Number((108.4 + trend + wave).toFixed(2));
-                series.push({ date, value });
+            const precios = puntos.map(p => p.precio);
+            const rawMin  = Math.min(...precios);
+            const rawMax  = Math.max(...precios);
+            const { lo, hi, labels } = niceAxisY(rawMin, rawMax);
+
+            function xOf(i) { return ML + (puntos.length > 1 ? (i/(puntos.length-1))*CW : CW/2); }
+            function yOf(p) { return MT + CH - ((p-lo)/(hi-lo))*CH; }
+
+            const coords = puntos.map((p,i) => ({ x: xOf(i), y: yOf(p.precio) }));
+            const areaD  = bezierD(coords, true,  btmY);
+            const lineD  = bezierD(coords, false, btmY);
+
+            /* Y grid + labels */
+            let gridHtml = '';
+            for (const v of labels) {
+                const y = yOf(v);
+                if (y < MT-2 || y > btmY+2) continue;
+                const lbl = v >= 1000 ? `${(v/1000).toFixed(1)}k` : v.toFixed(0);
+                gridHtml += `<line class="chart-grid" x1="${ML}" y1="${y.toFixed(1)}" x2="${(ML+CW).toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+                gridHtml += `<text class="chart-ylabel" x="${(ML+CW+8).toFixed(1)}" y="${y.toFixed(1)}">${lbl}</text>`;
             }
 
-            const values = series.map(item => item.value);
-            const min = Math.min(...values);
-            const max = Math.max(...values);
-            const range = Math.max(max - min, 0.2);
+            /* X labels */
+            let xHtml = '';
+            for (const {i, text} of xAxisLabels(puntos, period))
+                xHtml += `<text class="chart-xlabel" x="${xOf(i).toFixed(1)}" y="${(btmY+18).toFixed(1)}">${text}</text>`;
 
-            barsEl.innerHTML = '';
-            axisEl.innerHTML = '';
+            /* Hit areas */
+            const hitW = CW / puntos.length;
+            let hitHtml = '';
+            for (let i=0; i<puntos.length; i++)
+                hitHtml += `<rect class="chart-hit" data-i="${i}" x="${(xOf(i)-hitW/2).toFixed(1)}" y="${MT}" width="${hitW.toFixed(1)}" height="${CH}" fill="transparent"/>`;
 
-            series.forEach((point, index) => {
-                const bar = document.createElement('div');
-                const ratio = (point.value - min) / range;
-                const height = 36 + (ratio * 118);
-                bar.className = 'curve-bar';
-                bar.style.height = `${height}px`;
-                bar.title = `${point.date.toLocaleDateString('es-PE')} - S/ ${point.value.toFixed(2)}`;
+            const last = coords[coords.length-1];
 
-                if (index === series.length - 1) {
-                    bar.classList.add('is-current');
+            chartSvgEl.innerHTML = `
+<defs>
+  <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${color}" stop-opacity="0.38"/>
+    <stop offset="88%" stop-color="${color}" stop-opacity="0.02"/>
+  </linearGradient>
+  <clipPath id="${clipId}">
+    <rect x="${ML}" y="${MT-2}" width="${CW}" height="${CH+4}"/>
+  </clipPath>
+</defs>
+${gridHtml}
+<g clip-path="url(#${clipId})">
+  <path d="${areaD}" fill="url(#${gradId})"/>
+  <path d="${lineD}" stroke="${color}" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="5" fill="${color}" stroke="var(--card)" stroke-width="2.5"/>
+</g>
+${xHtml}
+<line id="hLine" x1="0" y1="${MT}" x2="0" y2="${btmY}" class="chart-hover-line" visibility="hidden" pointer-events="none"/>
+<circle id="hDot" cx="0" cy="0" r="5" fill="${color}" stroke="var(--card)" stroke-width="2.5" visibility="hidden" pointer-events="none"/>
+<g id="hTip" visibility="hidden" pointer-events="none">
+  <rect id="hBg" x="0" y="0" width="130" height="50" rx="9" class="chart-tooltip-bg"/>
+  <text id="hPrice" x="12" y="22" class="chart-tooltip-price"></text>
+  <text id="hLabel" x="12" y="38" class="chart-tooltip-label"></text>
+</g>
+${hitHtml}`;
+
+            /* Hover interactions */
+            const hLine  = chartSvgEl.querySelector('#hLine');
+            const hDot   = chartSvgEl.querySelector('#hDot');
+            const hTip   = chartSvgEl.querySelector('#hTip');
+            const hBg    = chartSvgEl.querySelector('#hBg');
+            const hPrice = chartSvgEl.querySelector('#hPrice');
+            const hLabel = chartSvgEl.querySelector('#hLabel');
+
+            chartSvgEl.querySelectorAll('.chart-hit').forEach(r => {
+                r.addEventListener('mouseenter', () => {
+                    const i  = Number(r.dataset.i);
+                    const cx = xOf(i), cy = coords[i].y;
+                    const tw = 134, th = 52;
+                    let tx = cx + 12;
+                    if (tx + tw > VB_W - 4) tx = cx - tw - 12;
+                    let ty = Math.max(MT, cy - th - 8);
+
+                    hLine.setAttribute('x1', cx); hLine.setAttribute('x2', cx);
+                    hLine.setAttribute('visibility', 'visible');
+                    hDot.setAttribute('cx', cx); hDot.setAttribute('cy', cy);
+                    hDot.setAttribute('visibility', 'visible');
+                    hBg.setAttribute('x', tx); hBg.setAttribute('y', ty);
+                    hBg.setAttribute('width', tw); hBg.setAttribute('height', th);
+                    hPrice.setAttribute('x', tx+10); hPrice.setAttribute('y', ty+22);
+                    hLabel.setAttribute('x', tx+10); hLabel.setAttribute('y', ty+38);
+                    hPrice.textContent = `S/ ${puntos[i].precio.toFixed(2)}`;
+                    hLabel.textContent = puntos[i].etiqueta;
+                    hTip.setAttribute('visibility', 'visible');
+                });
+                r.addEventListener('mouseleave', () => {
+                    hLine.setAttribute('visibility', 'hidden');
+                    hDot.setAttribute('visibility',  'hidden');
+                    hTip.setAttribute('visibility',  'hidden');
+                });
+            });
+        }
+
+        /* ── Price card / resumen rangos ── */
+        async function cargarResumenRangos() {
+            try {
+                const res = await fetch('/valor-cafe/resumen-rangos');
+                if (!res.ok) throw new Error();
+                const payload = await res.json();
+
+                payload.data.forEach((item, i) => {
+                    rangoColorMap[item.rango] = i % RANGO_COLORS.length;
+                });
+
+                if (payload.data.length) {
+                    const top = payload.data[0];
+                    priceValueEl.textContent = `S/ ${top.precio.toFixed(2)}`;
+                    const dt = new Date(top.registrado_en);
+                    priceDateEl.textContent = `Actualizado al ${dt.toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'})}`;
+                } else {
+                    priceValueEl.textContent = '—';
+                    priceDateEl.textContent  = 'Sin datos hoy';
                 }
-                barsEl.appendChild(bar);
 
-                const label = document.createElement('span');
-                const shouldShow = index === 0 || index === Math.floor(series.length / 2) || index === series.length - 1;
-                label.className = shouldShow ? 'axis-point visible' : 'axis-point';
-                label.textContent = shouldShow
-                    ? point.date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })
-                    : '.';
-                axisEl.appendChild(label);
-            });
+                try {
+                    const resAyer = await fetch(`/valor-cafe/maximo-dia?fecha=${ayer()}`);
+                    if (resAyer.ok) {
+                        const pa = await resAyer.json();
+                        if (pa.data && payload.data.length) {
+                            const pct = ((payload.data[0].precio - pa.data.precio) / pa.data.precio) * 100;
+                            priceChangeEl.textContent = `${pct>=0?'+':''}${pct.toFixed(1)}% respecto al dia anterior`;
+                            priceChangeEl.classList.toggle('negative', pct < 0);
+                        } else {
+                            priceChangeEl.textContent = 'Sin comparativo de ayer';
+                        }
+                    }
+                } catch { priceChangeEl.textContent = '—'; }
 
-            const last = series[series.length - 1];
-            const prev = series[series.length - 2] || last;
-            const change = ((last.value - prev.value) / prev.value) * 100;
+                rangoListEl.innerHTML = '';
+                if (!payload.data.length) {
+                    rangoListEl.innerHTML = '<li class="rango-item"><span class="rango-name" style="color:var(--muted-foreground)">Sin datos hoy</span></li>';
+                } else {
+                    payload.data.forEach((item, i) => {
+                        const li = document.createElement('li');
+                        li.className = 'rango-item';
+                        li.innerHTML = `
+                            <span class="rango-dot" style="background:${RANGO_COLORS[i%RANGO_COLORS.length]}"></span>
+                            <span class="rango-name">${item.rango}</span>
+                            <span class="rango-precio">S/ ${item.precio.toFixed(2)}</span>`;
+                        rangoListEl.appendChild(li);
+                    });
+                }
 
-            priceValueEl.textContent = `S/ ${last.value.toFixed(2)}`;
-            priceChangeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(1)}% respecto al dia anterior`;
-            priceChangeEl.classList.toggle('negative', change < 0);
-            priceDateEl.textContent = last.date.toLocaleDateString('es-PE', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric'
-            });
+                rangoLegendEl.querySelectorAll('[data-rango]:not([data-rango=""])').forEach(c => c.remove());
+                payload.data.forEach((item, i) => {
+                    const btn = document.createElement('button');
+                    btn.className     = 'legend-chip';
+                    btn.dataset.rango = item.rango;
+                    btn.innerHTML     = `<span class="legend-dot" style="background:${RANGO_COLORS[i%RANGO_COLORS.length]}"></span>${item.rango}`;
+                    rangoLegendEl.appendChild(btn);
+                });
 
-            if (kpiLotes) {
-                kpiLotes.textContent = '146';
+                if (kpiRangosEl)    kpiRangosEl.textContent    = payload.data.length || '—';
+                if (kpiPrecioMinEl) kpiPrecioMinEl.textContent = payload.data.length
+                    ? `S/ ${payload.data[payload.data.length-1].precio.toFixed(2)}` : '—';
+
+            } catch {
+                priceValueEl.textContent = '—';
+                rangoListEl.innerHTML = '<li class="rango-item"><span class="rango-name" style="color:var(--muted-foreground)">Error al cargar</span></li>';
             }
-            if (kpiRendimiento) {
-                kpiRendimiento.textContent = '91.8%';
+        }
+
+        /* ── Chart loading ── */
+        async function cargarGrafico() {
+            chartSvgEl.innerHTML = '';
+            chartEmptyEl.hidden  = true;
+
+            const rp       = activeRango ? `&rango=${encodeURIComponent(activeRango)}` : '';
+            const colorIdx = activeRango ? (rangoColorMap[activeRango] ?? 0) : 0;
+
+            try {
+                let puntos = [];
+
+                if (activePeriod === 'dia') {
+                    const res = await fetch(`/valor-cafe/historial?fecha=${hoy()}${rp}`);
+                    if (!res.ok) throw new Error();
+                    const data = await res.json();
+                    puntos = agruparPorHora(data.data);
+
+                } else if (activePeriod === 'mes') {
+                    const res = await fetch(`/valor-cafe/cambios-diarios?desde=${primerDiaMes()}&hasta=${hoy()}${rp}`);
+                    if (!res.ok) throw new Error();
+                    const data = await res.json();
+                    puntos = data.data.map(d => ({ etiqueta: fmtDia(d.fecha), precio: d.precio_maximo }));
+
+                } else {
+                    const res = await fetch(`/valor-cafe/cambios-diarios?desde=${primerDiaAnio()}&hasta=${hoy()}${rp}`);
+                    if (!res.ok) throw new Error();
+                    const data = await res.json();
+                    puntos = data.data.map(d => ({ etiqueta: fmtDia(d.fecha), precio: d.precio_maximo }));
+                }
+
+                renderSvgChart(puntos, colorIdx, activePeriod);
+
+            } catch {
+                chartEmptyEl.hidden      = false;
+                chartEmptyEl.textContent = 'Error al cargar los datos del grafico';
             }
-            if (kpiDefectos) {
-                kpiDefectos.textContent = '23';
-            }
-            if (kpiValidacion) {
-                kpiValidacion.textContent = '12';
-            }
-            if (kpiPrecision) {
-                kpiPrecision.textContent = '95.4%';
-            }
-        })();
+        }
+
+        /* ── Events ── */
+        periodTabsEl.addEventListener('click', e => {
+            const btn = e.target.closest('[data-period]');
+            if (!btn) return;
+            periodTabsEl.querySelectorAll('.period-tab').forEach(b => b.classList.remove('is-active'));
+            btn.classList.add('is-active');
+            activePeriod = btn.dataset.period;
+            cargarGrafico();
+        });
+
+        rangoLegendEl.addEventListener('click', e => {
+            const chip = e.target.closest('[data-rango]');
+            if (!chip) return;
+            rangoLegendEl.querySelectorAll('.legend-chip').forEach(c => c.classList.remove('is-active'));
+            chip.classList.add('is-active');
+            activeRango = chip.dataset.rango;
+            cargarGrafico();
+        });
+
+        /* ── Init ── */
+        cargarResumenRangos().then(() => cargarGrafico());
+    })();
     </script>
 {% endblock %}

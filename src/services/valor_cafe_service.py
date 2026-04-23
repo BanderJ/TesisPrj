@@ -4,10 +4,12 @@ from typing import Any
 from src.models.valor_cafe import ValorCafe
 from src.schemas.valor_cafe import (
     CambioDiario,
+    ResumenRangoItem,
     ValorCafeCambiosDiariosResponse,
     ValorCafeHistorialResponse,
     ValorCafeItem,
     ValorCafeMaximoResponse,
+    ValorCafeResumenRangosResponse,
 )
 
 
@@ -24,9 +26,9 @@ class ValorCafeService:
     def __init__(self) -> None:
         self.model = ValorCafe()
 
-    def obtener_historial_dia(self, fecha: date | None) -> ValorCafeHistorialResponse:
+    def obtener_historial_dia(self, fecha: date | None, rango: str | None = None) -> ValorCafeHistorialResponse:
         fecha_efectiva = fecha or date.today()
-        filas = self.model.obtener_historial_dia(fecha_efectiva)
+        filas = self.model.obtener_historial_dia(fecha_efectiva, rango)
         items = [_row_to_item(f) for f in filas]
         return ValorCafeHistorialResponse(
             fecha_consultada=fecha_efectiva,
@@ -46,6 +48,7 @@ class ValorCafeService:
         self,
         desde: date | None,
         hasta: date | None,
+        rango: str | None = None,
     ) -> ValorCafeCambiosDiariosResponse:
         hasta_efectivo = hasta or date.today()
         desde_efectivo = desde or (hasta_efectivo - timedelta(days=29))
@@ -53,7 +56,7 @@ class ValorCafeService:
         if desde_efectivo > hasta_efectivo:
             raise ValueError("'desde' no puede ser posterior a 'hasta'")
 
-        filas = self.model.obtener_cambios_diarios(desde_efectivo, hasta_efectivo)
+        filas = self.model.obtener_cambios_diarios(desde_efectivo, hasta_efectivo, rango)
         cambios = [
             CambioDiario(fecha=f["fecha"], precio_maximo=float(f["precio_maximo"]))
             for f in filas
@@ -63,4 +66,20 @@ class ValorCafeService:
             hasta=hasta_efectivo,
             total=len(cambios),
             data=cambios,
+        )
+
+    def obtener_resumen_rangos(self, fecha: date | None = None) -> ValorCafeResumenRangosResponse:
+        fecha_efectiva = fecha or date.today()
+        filas = self.model.obtener_resumen_rangos(fecha_efectiva)
+        items = [
+            ResumenRangoItem(
+                rango=f["rango"],
+                precio=float(f["precio"]),
+                registrado_en=f["registrado_en"],
+            )
+            for f in filas
+        ]
+        return ValorCafeResumenRangosResponse(
+            fecha_consultada=fecha_efectiva,
+            data=items,
         )

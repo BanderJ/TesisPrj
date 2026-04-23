@@ -5,7 +5,6 @@
     line-height: 1.5;
 }
 
-
 .control-hero,
 .dashboard-board,
 .workflow-section {
@@ -16,6 +15,8 @@
     margin-bottom: 12px;
     padding: clamp(14px, 1.4vw, 22px);
 }
+
+/* ===================== HERO ===================== */
 
 .control-hero {
     display: grid;
@@ -81,19 +82,56 @@
     line-height: 1;
 }
 
+/* ===================== DASHBOARD BOARD ===================== */
+
 .board-header {
-    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
 }
 
+.board-header-copy {
+    min-width: 0;
+}
+
+/* Period tabs */
+.period-tabs {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.period-tab {
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.period-tab.is-active {
+    background: color-mix(in oklab, var(--primary) 16%, transparent 84%);
+    color: var(--primary);
+    border-color: color-mix(in oklab, var(--primary) 42%, transparent 58%);
+}
+
+/* Board grid: price card + chart card */
 .board-grid {
     display: grid;
     gap: 12px;
-    grid-template-columns: minmax(210px, 1.05fr) minmax(260px, 1.25fr) minmax(180px, 0.85fr) minmax(180px, 0.85fr);
+    grid-template-columns: minmax(180px, 0.85fr) minmax(0, 2.2fr);
 }
 
-.price-card,
-.curve-card,
-.board-metric-card {
+/* Price card */
+.price-card {
     border-radius: 14px;
     border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
     background: color-mix(in oklab, var(--card) 97%, transparent 3%);
@@ -120,6 +158,7 @@
     margin: 0;
     color: var(--primary);
     font-weight: 700;
+    font-size: 13px;
 }
 
 .price-change.negative {
@@ -127,52 +166,193 @@
 }
 
 .price-date {
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     color: var(--muted-foreground);
+    font-size: 12px !important;
 }
 
+.rango-divider {
+    border: none;
+    border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+    margin: 12px 0 0;
+}
+
+/* Rango list */
+.rango-list {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 7px;
+}
+
+.rango-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.rango-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.rango-name {
+    flex: 1;
+    color: var(--foreground);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rango-precio {
+    font-weight: 700;
+    font-family: var(--font-serif);
+    color: var(--foreground);
+    white-space: nowrap;
+}
+
+/* Chart card */
 .curve-card {
+    border-radius: 14px;
+    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
+    background: color-mix(in oklab, var(--card) 97%, transparent 3%);
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    gap: 10px;
 }
 
-.curve-bars {
-    height: 156px;
-    display: grid;
-    align-items: end;
-    gap: 8px;
-    grid-template-columns: repeat(12, minmax(8px, 1fr));
+.chart-top {
+    flex-shrink: 0;
 }
 
-.curve-bar {
+/* Rango legend chips */
+.rango-legend {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.legend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
     border-radius: 999px;
-    background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 80%, white 20%), color-mix(in oklab, var(--secondary) 78%, black 22%));
-    opacity: 0.82;
-    animation: barRise 0.45s ease both;
-    transform-origin: bottom;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.curve-bar.is-current {
-    opacity: 1;
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 48%, transparent 52%);
+.legend-chip.is-active {
+    background: color-mix(in oklab, var(--primary) 14%, transparent 86%);
+    color: var(--foreground);
+    border-color: color-mix(in oklab, var(--primary) 38%, transparent 62%);
 }
 
-.curve-axis {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(12, minmax(8px, 1fr));
-    margin-top: 8px;
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }
 
-.axis-point {
-    color: transparent;
+/* Chart SVG wrapper */
+.chart-svg-wrapper {
+    flex: 1;
+    min-height: 170px;
+}
+
+.price-chart-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.chart-grid {
+    stroke: color-mix(in oklab, var(--border) 55%, transparent 45%);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+}
+
+.chart-ylabel {
+    fill: var(--muted-foreground);
+    font-size: 11px;
+    font-family: var(--font-sans, system-ui, sans-serif);
+    dominant-baseline: middle;
+    text-anchor: start;
+}
+
+.chart-xlabel {
+    fill: var(--muted-foreground);
+    font-size: 11px;
+    font-family: var(--font-sans, system-ui, sans-serif);
+    dominant-baseline: auto;
+    text-anchor: middle;
+}
+
+.chart-hover-line {
+    stroke: color-mix(in oklab, var(--foreground) 28%, transparent 72%);
+    stroke-width: 1;
+    stroke-dasharray: 4 3;
+}
+
+.chart-hit {
+    cursor: crosshair;
+}
+
+.chart-tooltip-bg {
+    fill: var(--card);
+    stroke: color-mix(in oklab, var(--border) 85%, transparent 15%);
+    stroke-width: 1;
+    filter: drop-shadow(0 3px 10px rgba(0,0,0,0.13));
+}
+
+.chart-tooltip-price {
+    fill: var(--foreground);
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-serif, Georgia, serif);
+}
+
+.chart-tooltip-label {
+    fill: var(--muted-foreground);
+    font-size: 11px;
+    font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+/* Empty / error state */
+.chart-empty {
+    margin: 0;
+    color: var(--muted-foreground);
     font-size: 14px;
     text-align: center;
+    padding: 16px 0;
 }
 
-.axis-point.visible {
-    color: var(--muted-foreground);
+/* Metrics row */
+.board-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.board-metric-card {
+    border-radius: 14px;
+    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
+    background: color-mix(in oklab, var(--card) 97%, transparent 3%);
+    padding: 16px;
 }
 
 .board-metric-card h3 {
@@ -193,6 +373,8 @@
 .board-metric-card small {
     color: var(--muted-foreground);
 }
+
+/* ===================== WORKFLOW ===================== */
 
 .workflow-grid {
     margin-top: 10px;
@@ -250,7 +432,6 @@
     font-weight: 600;
     padding: 0 14px;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .workflow-btn.primary {
@@ -260,14 +441,12 @@
     box-shadow: 0 8px 20px color-mix(in oklab, var(--primary) 36%, transparent 64%);
 }
 
-.workflow-btn.primary:hover {
-    transform: translateY(-1px);
-}
-
 .workflow-btn.muted {
     background: color-mix(in oklab, var(--muted) 70%, transparent 30%);
     color: var(--muted-foreground);
 }
+
+/* ===================== ANIMATIONS ===================== */
 
 .reveal-up {
     opacity: 0;
@@ -275,30 +454,15 @@
     animation: revealUp 0.55s ease forwards;
 }
 
-.dashboard-board.reveal-up {
-    animation-delay: 0.08s;
-}
-
-.workflow-section.reveal-up {
-    animation-delay: 0.16s;
-}
+.dashboard-board.reveal-up { animation-delay: 0.08s; }
+.workflow-section.reveal-up { animation-delay: 0.16s; }
 
 @keyframes revealUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes barRise {
-    from {
-        transform: scaleY(0.15);
-        opacity: 0.2;
-    }
-    to {
-        transform: scaleY(1);
-    }
-}
+
+/* ===================== RESPONSIVE ===================== */
 
 @media (max-width: 1120px) {
     .control-hero {
@@ -306,9 +470,10 @@
     }
 
     .board-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr;
     }
 
+    .board-metrics,
     .hero-strip,
     .workflow-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -317,13 +482,9 @@
 
 @media (max-width: 820px) {
     .hero-strip,
-    .workflow-grid {
+    .workflow-grid,
+    .board-metrics {
         grid-template-columns: 1fr;
-    }
-
-    .curve-bars,
-    .curve-axis {
-        gap: 8px;
     }
 
     .workflow-card h3 {
@@ -332,5 +493,17 @@
 
     .hero-title {
         font-size: clamp(1rem, 5vw, 1.3rem);
+    }
+
+    .period-tabs {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .period-tab {
+        flex: 1;
+        justify-content: center;
+        display: flex;
+        align-items: center;
     }
 }
