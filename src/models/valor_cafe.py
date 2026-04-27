@@ -62,3 +62,44 @@ class ValorCafe:
             return db.obtener(sql, (fecha,))
         finally:
             db.close()
+
+    def crear(self, rango: str, precio: float) -> dict[str, Any]:
+        """Inserta un nuevo registro de valor_cafe. Retorna el registro creado."""
+        db = Connection()
+        try:
+            sql = """
+                INSERT INTO valor_cafe (rango, precio, fecha)
+                VALUES (%s, %s, NOW())
+                RETURNING id::text, rango, precio, fecha
+            """
+            fila = db.obtener_uno(sql, (rango, precio))
+            db.commit()
+            return fila
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    def crear_bloque(self, precios: list[tuple[str, float]]) -> list[dict[str, Any]]:
+        """Inserta multiples registros de valor_cafe en una sola operacion."""
+        db = Connection()
+        try:
+            placeholders = ", ".join(["(%s, %s, NOW())"] * len(precios))
+            params: list[Any] = []
+            for rango, precio in precios:
+                params.extend([rango, precio])
+
+            sql = f"""
+                INSERT INTO valor_cafe (rango, precio, fecha)
+                VALUES {placeholders}
+                RETURNING id::text, rango, precio, fecha
+            """
+            filas = db.obtener(sql, params)
+            db.commit()
+            return filas
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()

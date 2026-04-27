@@ -1,0 +1,280 @@
+/* Estilos para la página de Valor de Café */
+
+.valor-cafe-page {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.valor-cafe-hero {
+    background: linear-gradient(135deg, color-mix(in oklab, var(--primary) 24%, transparent 76%) 0%, color-mix(in oklab, var(--accent) 20%, transparent 80%) 100%);
+    padding: 2rem;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.valor-cafe-hero h1 {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--foreground);
+    margin: 1rem 0 0.5rem 0;
+}
+
+.valor-cafe-kicker {
+    color: var(--muted-foreground);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.valor-cafe-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.valor-cafe-card {
+    padding: 2rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background-color: var(--card);
+}
+
+.card-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.card-header h2,
+.card-header h3 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--foreground);
+    margin-bottom: 0.5rem;
+}
+
+.info-text {
+    color: var(--muted-foreground);
+    font-size: 0.95rem;
+}
+
+.valor-cafe-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-row {
+    display: grid;
+    gap: 1rem;
+}
+
+.form-row--2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.field-group label {
+    font-weight: 600;
+    color: var(--foreground);
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.field-group input,
+.field-group select {
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+    font-size: 1rem;
+    background-color: var(--input);
+    color: var(--foreground);
+    transition: all 0.3s ease;
+    font-family: var(--font-sans);
+}
+
+.field-group input:focus,
+.field-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%);
+}
+
+.field-group input::placeholder {
+    color: var(--muted-foreground);
+}
+
+.helper-text {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    margin-top: 0.25rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.vc-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.4rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: var(--font-sans);
+}
+
+.vc-btn-primary {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.vc-btn-primary:hover {
+    background-color: color-mix(in oklab, var(--primary) 88%, black 12%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in oklab, var(--primary) 30%, transparent 70%);
+}
+
+.vc-btn-secondary {
+    background-color: var(--border);
+    color: var(--foreground);
+}
+
+.vc-btn-secondary:hover {
+    background-color: var(--muted-foreground);
+    color: var(--card);
+}
+
+.vc-btn-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    stroke-width: 2;
+}
+
+.bloque-separador {
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.bloque-head {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.bloque-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.alert-error {
+    background-color: color-mix(in oklab, var(--destructive) 24%, transparent 76%);
+    color: var(--destructive);
+    border: 1px solid color-mix(in oklab, var(--destructive) 30%, transparent 70%);
+}
+
+.alert-success {
+    background-color: color-mix(in oklab, var(--accent) 24%, transparent 76%);
+    color: var(--accent);
+    border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent 70%);
+}
+
+.alert-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+}
+
+.hidden {
+    display: none;
+}
+
+.valor-cafe-info {
+    padding: 2rem;
+    border-radius: 0.4rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background-color: color-mix(in oklab, var(--card) 95%, var(--primary) 5%);
+    border: 1px solid var(--border);
+}
+
+.rangos-info {
+    padding-top: 1rem;
+}
+
+.rangos-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 1rem;
+}
+
+.rangos-list li {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    font-size: 0.95rem;
+}
+
+.rangos-list li:last-child {
+    border-bottom: none;
+}
+
+.rangos-list strong {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .valor-cafe-content {
+        grid-template-columns: 1fr;
+    }
+
+    .form-row--2 {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .vc-btn {
+        width: 100%;
+    }
+
+    .bloque-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .valor-cafe-hero h1 {
+        font-size: 1.5rem;
+    }
+
+    .card-header h2,
+    .card-header h3 {
+        font-size: 1.25rem;
+    }
+}

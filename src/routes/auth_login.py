@@ -25,7 +25,11 @@ async def login_get(request: Request):
     if auth_service.sesion_activa(token):
         return RedirectResponse(url="/", status_code=303)
 
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={"request": request},
+    )
 
 @auth.post("/login")
 async def login_post(request: Request, usuario: str = Form(...), clave: str = Form(...)):
@@ -47,7 +51,11 @@ async def login_post(request: Request, usuario: str = Form(...), clave: str = Fo
         return response
     
     # Si las credenciales son incorrectas
-    return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciales incorrectas, intenta nuevamente."})
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={"request": request, "error": "Credenciales incorrectas, intenta nuevamente."},
+    )
 
 @auth.get("/logout")
 async def logout(request: Request):

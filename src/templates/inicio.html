@@ -46,7 +46,7 @@
 
         <div class="board-grid">
             <article class="price-card" aria-label="Precio referencial hoy">
-                <p class="price-label info-text">Precio máximo (S/ / quintal)</p>
+                <p class="price-label info-text">Precio máximo (Por quintal (56 kg))</p>
                 <p class="price-value" id="coffeePriceValue">—</p>
                 <p class="price-change" id="coffeePriceChange">—</p>
                 <p class="price-date info-text" id="coffeePriceDate">—</p>
@@ -149,11 +149,23 @@
         const rangoColorMap = {};
 
         /* ── Date helpers ── */
-        function hoy()          { return new Date().toISOString().slice(0, 10); }
-        function ayer()         { const d = new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }
+        function fechaLocal(offsetDias = 0) {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDias);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function hoy()          { return fechaLocal(0); }
+        function ayer()         { return fechaLocal(-1); }
         function primerDiaMes() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; }
         function primerDiaAnio(){ return `${new Date().getFullYear()}-01-01`; }
-        function fmtDia(iso)    { return new Date(iso+'T00:00:00').toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'}); }
+        function fmtDia(iso)    {
+            const [year, month, day] = iso.split('-').map(Number);
+            return new Date(year, month - 1, day).toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'});
+        }
 
         function agruparPorHora(items) {
             const byHour = {};

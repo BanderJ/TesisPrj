@@ -32,15 +32,25 @@ def obtener_usuario_actual(request: Request) -> dict[str, Any]:
     return payload
 
 
-def jwt_token_requerido(authorization: str | None = Header(default=None)) -> dict[str, Any]:
-    """Dependencia FastAPI para rutas API que usan Authorization: Bearer <token>."""
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Cabecera Authorization requerida")
+def jwt_token_requerido(
+    request: Request,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Dependencia FastAPI para rutas API protegidas.
 
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Formato de Authorization invalido")
+    Acepta token por cabecera Authorization o por cookie access_token.
+    """
+    token_source = authorization
+    if not token_source:
+        token_source = request.cookies.get("access_token")
 
-    token = authorization.split(" ", 1)[1].strip()
+    if not token_source:
+        raise HTTPException(status_code=401, detail="Token requerido")
+
+    if not token_source.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Formato de token invalido")
+
+    token = token_source.split(" ", 1)[1].strip()
     if not token:
         raise HTTPException(status_code=401, detail="Token requerido")
 

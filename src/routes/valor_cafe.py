@@ -1,18 +1,33 @@
 from datetime import date
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 
 from src.schemas.valor_cafe import (
     ValorCafeCambiosDiariosResponse,
+    ValorCafeCrearBloqueRequest,
+    ValorCafeCrearBloqueResponse,
     ValorCafeHistorialResponse,
+    ValorCafeCrearRequest,
+    ValorCafeCrearResponse,
     ValorCafeMaximoResponse,
     ValorCafeResumenRangosResponse,
 )
 from src.services.valor_cafe_service import ValorCafeService
+from src.utilities.jwt_required import jwt_token_requerido
 
 
 valor_cafe_router = APIRouter()
 valor_cafe_service = ValorCafeService()
+ROLES_PERMITIDOS = {2, 3}
+
+
+def validar_permiso_creacion(token_payload: dict) -> None:
+    tipo_personal_id = token_payload.get("tipo_personal_id")
+    if tipo_personal_id not in ROLES_PERMITIDOS:
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permiso. Solo Gerente o Administrador pueden crear precios.",
+        )
 
 
 @valor_cafe_router.get("/historial", response_model=ValorCafeHistorialResponse)
@@ -58,3 +73,38 @@ async def resumen_rangos(
         return valor_cafe_service.obtener_resumen_rangos(fecha)
     except Exception as exc:
         raise HTTPException(status_code=500, detail="No se pudo obtener el resumen por rangos") from exc
+
+
+@valor_cafe_router.post("/crear", response_model=ValorCafeCrearResponse)
+async def crear_valor_cafe(
+    data: ValorCafeCrearRequest,
+    token_payload: dict = Depends(jwt_token_requerido),
+) -> ValorCafeCrearResponse:
+    """
+    Crea un nuevo registro de valor de café.
+    Solo Gerente (tipo_personal_id=2) y Administrador (tipo_personal_id=3) pueden acceder.
+    """
+    validar_permiso_creacion(token_payload)
+    
+    try:
+        return valor_cafe_service.crear_precio(data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Error al crear el registro") from exc
+
+
+@valor_cafe_router.post("/crear-bloque", response_model=ValorCafeCrearBloqueResponse)
+async def crear_valor_cafe_bloque(
+    data: ValorCafeCrearBloqueRequest,
+    token_payload: dict = Depends(jwt_token_requerido),
+) -> ValorCafeCrearBloqueResponse:
+    """Crea registros en bloque para multiples rangos de café."""
+    validar_permiso_creacion(token_payload)
+
+    try:
+        return valor_cafe_service.crear_precios_bloque(data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Error al crear registros en bloque") from exc

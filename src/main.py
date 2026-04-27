@@ -58,23 +58,49 @@ app.include_router(valor_cafe_router, prefix="/valor-cafe", tags=["valor-cafe"])
 @app.get("/inicio")
 async def inicio(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
     """Página de inicio del sistema."""
-    return templates.TemplateResponse("inicio.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+        request=request,
+        name="inicio.html",
+        context={"request": request, "user": user},
+    )
 
 
 @app.get("/registro")
 async def registro(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
     """Página de registro de muestras."""
-    return templates.TemplateResponse("registro.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+        request=request,
+        name="registro.html",
+        context={"request": request, "user": user},
+    )
 
 
 @app.get("/monitoreo")
 async def monitoreo(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
     """Página de monitoreo en tiempo real de clasificación."""
-    return templates.TemplateResponse("monitoreo.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+        request=request,
+        name="monitoreo.html",
+        context={"request": request, "user": user},
+    )
 
 
 @app.get("/nuevo-caficultor")
 @app.get("/registro-socios")
 async def nuevo_caficultor(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
     """Pantalla de registro y conversion de caficultores."""
-    return templates.TemplateResponse("nuevo_caficultor.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+        request=request,
+        name="nuevo_caficultor.html",
+        context={"request": request, "user": user},
+    )
+
+
+@app.get("/valor-cafe")
+async def valor_cafe(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
+    """Pantalla de registro de precios de café. Solo accesible para Gerente y Administrador."""
+    return templates.TemplateResponse(
+        request=request,
+        name="valor_cafe.html",
+        context={"request": request, "user": user},
+    )

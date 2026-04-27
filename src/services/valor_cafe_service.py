@@ -5,7 +5,11 @@ from src.models.valor_cafe import ValorCafe
 from src.schemas.valor_cafe import (
     CambioDiario,
     ResumenRangoItem,
+    ValorCafeCrearBloqueRequest,
+    ValorCafeCrearBloqueResponse,
     ValorCafeCambiosDiariosResponse,
+    ValorCafeCrearRequest,
+    ValorCafeCrearResponse,
     ValorCafeHistorialResponse,
     ValorCafeItem,
     ValorCafeMaximoResponse,
@@ -83,3 +87,40 @@ class ValorCafeService:
             fecha_consultada=fecha_efectiva,
             data=items,
         )
+
+    def crear_precio(self, data: ValorCafeCrearRequest) -> ValorCafeCrearResponse:
+        """Crea un nuevo registro de precio de café. Valida rango y precio."""
+        # Validación
+        errores = data.validar()
+        if errores:
+            raise ValueError(f"Validación fallida: {errores}")
+        
+        # Persistencia
+        fila = self.model.crear(data.rango, data.precio)
+        
+        # Respuesta
+        return ValorCafeCrearResponse(
+            id=str(fila["id"]),
+            rango=fila["rango"],
+            precio=float(fila["precio"]),
+            fecha=fila["fecha"],
+        )
+
+    def crear_precios_bloque(self, data: ValorCafeCrearBloqueRequest) -> ValorCafeCrearBloqueResponse:
+        """Crea multiples registros de precio de café en una sola solicitud."""
+        errores = data.validar()
+        if errores:
+            raise ValueError(f"Validación fallida: {errores}")
+
+        filas = self.model.crear_bloque([(item.rango, item.precio) for item in data.precios])
+        items = [
+            ValorCafeCrearResponse(
+                id=str(fila["id"]),
+                rango=fila["rango"],
+                precio=float(fila["precio"]),
+                fecha=fila["fecha"],
+            )
+            for fila in filas
+        ]
+
+        return ValorCafeCrearBloqueResponse(total=len(items), data=items)

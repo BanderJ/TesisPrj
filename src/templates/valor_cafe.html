@@ -1,0 +1,271 @@
+{% extends "main.html" %}
+
+{% block style %}
+    <link rel="stylesheet" href="/static/css/valor_cafe.css">
+{% endblock %}
+
+{% block content %}
+<section class="valor-cafe-page grid gap-3" aria-label="Gestion de valores de cafe">
+    <header class="card valor-cafe-hero">
+        <p class="valor-cafe-kicker info-text">Módulo de administración</p>
+        <h1>Registro de Precios de Café</h1>
+        <p class="info-text">
+            Registra y gestiona los precios del café según el rango de calidad. Los datos se almacenan automáticamente con la fecha y hora actual.
+        </p>
+    </header>
+
+    <section class="valor-cafe-content" aria-label="Formulario de registro">
+        <article class="card valor-cafe-card">
+            <div class="card-header">
+                <h2>Nuevo Registro de Precio</h2>
+                <p class="info-text">Completa los campos para registrar un nuevo valor de café.</p>
+            </div>
+
+            <form id="formValorCafe" class="valor-cafe-form" novalidate>
+                <div class="form-row form-row--2">
+                    <div class="field-group">
+                        <label for="rango">Rango de Puntuación *</label>
+                        <select id="rango" name="rango" required>
+                            <option value="" disabled selected>Seleccione rango</option>
+                            <option value="60-65">60-65</option>
+                            <option value="66-70">66-70</option>
+                            <option value="71-75">71-75</option>
+                            <option value="76-80">76-80</option>
+                            <option value="81-85">81-85</option>
+                            <option value="86-90">86-90</option>
+                        </select>
+                        <p class="helper-text info-text">Selecciona el rango de puntuación del café.</p>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="precio">Precio (S/.) *</label>
+                        <input 
+                            id="precio" 
+                            name="precio" 
+                            type="number" 
+                            step="0.01" 
+                            min="0.01" 
+                            required 
+                            placeholder="Ej: 750.50"
+                        >
+                        <p class="helper-text info-text">Ingresa el precio en soles.</p>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="btnRegistrar" class="vc-btn vc-btn-primary">
+                        <svg class="vc-btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Registrar Precio
+                    </button>
+                    <button type="reset" id="btnLimpiar" class="vc-btn vc-btn-secondary">
+                        <svg class="vc-btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Limpiar
+                    </button>
+                </div>
+            </form>
+
+            <div class="bloque-separador"></div>
+
+            <div class="card-header bloque-head">
+                <h3>Registro en Bloque</h3>
+                <p class="info-text">Registra varios rangos en una sola operación (más rápido para el usuario).</p>
+            </div>
+
+            <form id="formValorCafeBloque" class="valor-cafe-form" novalidate>
+                <div class="bloque-grid">
+                    <div class="field-group">
+                        <label for="precio_60_65">60-65</label>
+                        <input id="precio_60_65" type="number" step="0.01" min="0.01" placeholder="Precio rango 60-65" required>
+                    </div>
+                    <div class="field-group">
+                        <label for="precio_66_70">66-70</label>
+                        <input id="precio_66_70" type="number" step="0.01" min="0.01" placeholder="Precio rango 66-70" required>
+                    </div>
+                    <div class="field-group">
+                        <label for="precio_71_75">71-75</label>
+                        <input id="precio_71_75" type="number" step="0.01" min="0.01" placeholder="Precio rango 71-75" required>
+                    </div>
+                    <div class="field-group">
+                        <label for="precio_76_80">76-80</label>
+                        <input id="precio_76_80" type="number" step="0.01" min="0.01" placeholder="Precio rango 76-80" required>
+                    </div>
+                    <div class="field-group">
+                        <label for="precio_81_85">81-85</label>
+                        <input id="precio_81_85" type="number" step="0.01" min="0.01" placeholder="Precio rango 81-85" required>
+                    </div>
+                    <div class="field-group">
+                        <label for="precio_86_90">86-90</label>
+                        <input id="precio_86_90" type="number" step="0.01" min="0.01" placeholder="Precio rango 86-90" required>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="btnRegistrarBloque" class="vc-btn vc-btn-primary">
+                        <svg class="vc-btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Registrar Bloque Completo
+                    </button>
+                    <button type="reset" id="btnLimpiarBloque" class="vc-btn vc-btn-secondary">
+                        <svg class="vc-btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Limpiar Bloque
+                    </button>
+                </div>
+
+                <p class="helper-text info-text">Este formulario registra los 6 rangos en una sola solicitud.</p>
+
+                <div id="alertaError" class="alert alert-error hidden" role="alert">
+                    <svg class="alert-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    <span id="alertaErrorMsg"></span>
+                </div>
+
+                <div id="alertaExito" class="alert alert-success hidden" role="alert">
+                    <svg class="alert-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span id="alertaExitoMsg"></span>
+                </div>
+            </form>
+        </article>
+
+        <article class="card valor-cafe-info">
+            <div class="card-header">
+                <h3>Información de Rangos</h3>
+            </div>
+            <div class="rangos-info">
+                <p class="info-text">Rangos de puntuación disponibles:</p>
+                <ul class="rangos-list">
+                    <li><strong>60-65:</strong> Café estándar</li>
+                    <li><strong>66-70:</strong> Café de buena calidad</li>
+                    <li><strong>71-75:</strong> Café de muy buena calidad</li>
+                    <li><strong>76-80:</strong> Café premium</li>
+                    <li><strong>81-85:</strong> Café de excelencia</li>
+                    <li><strong>86-90:</strong> Café gourmet</li>
+                </ul>
+            </div>
+        </article>
+    </section>
+</section>
+
+<script>
+    const formValorCafe = document.getElementById('formValorCafe');
+    const formValorCafeBloque = document.getElementById('formValorCafeBloque');
+    const alertaError = document.getElementById('alertaError');
+    const alertaExito = document.getElementById('alertaExito');
+    const alertaErrorMsg = document.getElementById('alertaErrorMsg');
+    const alertaExitoMsg = document.getElementById('alertaExitoMsg');
+
+    function mostrarAlerta(elemento, mensaje) {
+        elemento.classList.remove('hidden');
+        elemento.querySelector('span').textContent = mensaje;
+        setTimeout(() => {
+            elemento.classList.add('hidden');
+        }, 5000);
+    }
+
+    function ocultarAlertas() {
+        alertaError.classList.add('hidden');
+        alertaExito.classList.add('hidden');
+    }
+
+    function obtenerMensajeError(errorData, status) {
+        if (status === 401) {
+            return 'Sesion expirada o no autorizada. Vuelve a iniciar sesion.';
+        }
+        if (status === 403) {
+            return 'No tienes permisos para registrar precios.';
+        }
+        return errorData.detail || 'Error al registrar el precio.';
+    }
+
+    formValorCafe.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        ocultarAlertas();
+
+        const rango = document.getElementById('rango').value;
+        const precio = parseFloat(document.getElementById('precio').value);
+
+        if (!rango || !precio || precio <= 0) {
+            mostrarAlerta(alertaError, 'Por favor completa todos los campos correctamente.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/valor-cafe/crear', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    rango: rango,
+                    precio: precio
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                const mensaje = obtenerMensajeError(errorData, response.status);
+                mostrarAlerta(alertaError, mensaje);
+                return;
+            }
+
+            const data = await response.json();
+            mostrarAlerta(alertaExito, `Precio registrado exitosamente: ${data.rango} - S/.${data.precio.toFixed(2)}`);
+            formValorCafe.reset();
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarAlerta(alertaError, 'Error de conexión al registrar el precio.');
+        }
+    });
+
+    formValorCafeBloque.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        ocultarAlertas();
+
+        const rangos = ['60-65', '66-70', '71-75', '76-80', '81-85', '86-90'];
+        const precios = [];
+
+        for (const rango of rangos) {
+            const id = `precio_${rango.replace('-', '_')}`;
+            const valor = parseFloat(document.getElementById(id).value);
+            if (!valor || valor <= 0) {
+                mostrarAlerta(alertaError, `Completa correctamente el precio para el rango ${rango}.`);
+                return;
+            }
+            precios.push({ rango, precio: valor });
+        }
+
+        try {
+            const response = await fetch('/valor-cafe/crear-bloque', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ precios }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                const mensaje = obtenerMensajeError(errorData, response.status);
+                mostrarAlerta(alertaError, mensaje);
+                return;
+            }
+
+            const data = await response.json();
+            mostrarAlerta(alertaExito, `Registro en bloque exitoso: ${data.total} precios guardados.`);
+            formValorCafeBloque.reset();
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarAlerta(alertaError, 'Error de conexión al registrar el bloque.');
+        }
+    });
+</script>
+{% endblock %}
