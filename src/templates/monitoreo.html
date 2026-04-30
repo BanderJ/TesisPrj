@@ -158,43 +158,27 @@
 		};
 
 		function formatTimer(value) {
-			const min = String(Math.floor(value / 60)).padStart(2, '0');
-			const sec = String(value % 60).padStart(2, '0');
-			return `${min}:${sec}`;
+			return `${value} seg`;
 		}
 
 		function updateUI() {
-			const totalDefects = defectNegro + defectBrocado + defectFermentado;
-			const healthy = Math.max(totalGrains - totalDefects, 0);
-			const performance = totalGrains > 0 ? (healthy / totalGrains) * 100 : 0;
+			totalGrainsEl.textContent = totalGrains;
+			totalDefectsEl.textContent = defectNegro + defectBrocado + defectFermentado;
+			iaPerformanceEl.textContent = "98%"; // Simulado por ahora
 
-			totalGrainsEl.textContent = String(totalGrains);
-			totalDefectsEl.textContent = String(totalDefects);
-			iaPerformanceEl.textContent = `${performance.toFixed(1)}%`;
+			negroValueEl.textContent = defectNegro;
+			brocadoValueEl.textContent = defectBrocado;
+			fermentadoValueEl.textContent = defectFermentado;
 
-			negroValueEl.textContent = String(defectNegro);
-			brocadoValueEl.textContent = String(defectBrocado);
-			fermentadoValueEl.textContent = String(defectFermentado);
-
-			const safeTotal = Math.max(totalDefects, 1);
-			negroBarEl.style.width = `${Math.min((defectNegro / safeTotal) * 100, 100)}%`;
-			brocadoBarEl.style.width = `${Math.min((defectBrocado / safeTotal) * 100, 100)}%`;
-			fermentadoBarEl.style.width = `${Math.min((defectFermentado / safeTotal) * 100, 100)}%`;
+			// Actualizacion
+			negroBarEl.style.width = (defectNegro * 2) + '%';
+			brocadoBarEl.style.width = (defectBrocado * 2) + '%';
+			fermentadoBarEl.style.width = (defectFermentado * 2) + '%';
 		}
 
 		function appendLog(message) {
-			if (!eventLog) {
-				return;
-			}
-
-			const item = document.createElement('p');
-			item.className = 'log-item';
-			item.textContent = `${formatTimer(elapsedSeconds)} - ${message}`;
-			eventLog.prepend(item);
-
-			const rows = eventLog.querySelectorAll('.log-item');
-			if (rows.length > 10) {
-				rows[rows.length - 1].remove();
+			if (eventLog) {
+				eventLog.innerHTML = `<p class="log-item">${elapsedSeconds}s - ${message}</p>`;
 			}
 		}
 
@@ -203,22 +187,16 @@
 				return;
 			}
 
-			const analyzed = 20 + Math.floor(Math.random() * 22);
-			totalGrains += analyzed;
+			// Simulación números aleatorios
+			totalGrains += Math.floor(Math.random() * 50) + 10;
+			defectNegro += Math.floor(Math.random() * 5);
+			defectBrocado += Math.floor(Math.random() * 4);
+			defectFermentado += Math.floor(Math.random() * 3);
 
-			const eventDice = Math.random();
-			if (eventDice < 0.27) {
-				defectNegro += 1 + Math.floor(Math.random() * 2);
-				appendLog(defectMessages.negro);
-			} else if (eventDice < 0.52) {
-				defectBrocado += 1;
-				appendLog(defectMessages.brocado);
-			} else if (eventDice < 0.68) {
-				defectFermentado += 1;
-				appendLog(defectMessages.fermentado);
-			} else {
-				appendLog(defectMessages.sano);
-			}
+			// Mostrar un mensaje aleatorio en el log
+			const messages = Object.values(defectMessages);
+			const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+			appendLog(randomMsg);
 
 			updateUI();
 		}
