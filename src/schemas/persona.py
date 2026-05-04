@@ -21,3 +21,8 @@ class PersonaRegistroRequest(BaseModel):
 		pattern=r"^\d{9}$|^$",
 		description="Telefono de 9 digitos. Puede enviarse vacio.",
 	)
+	ubigeo: str | None = Field(
+		default=None,
+		pattern=r"^\d{6}$|^$",
+		description="Codigo INEI de 6 digitos del distrito. Opcional.",
+	)

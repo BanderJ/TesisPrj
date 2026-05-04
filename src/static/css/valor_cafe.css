@@ -247,6 +247,188 @@
     font-weight: 700;
 }
 
+/* Filas dinámicas del bloque */
+.bloque-filas {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.bloque-fila {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 0.75rem;
+    align-items: start;
+    padding: 0.75rem 1rem;
+    background-color: color-mix(in oklab, var(--card) 94%, var(--primary) 6%);
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+    transition: border-color 0.2s;
+}
+
+.bloque-fila:focus-within {
+    border-color: var(--primary);
+}
+
+.bloque-fila .field-group {
+    margin: 0;
+}
+
+.bloque-fila .field-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.btn-remove-fila {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-top: 1.6rem;
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.btn-remove-fila:hover {
+    border-color: var(--destructive);
+    background-color: color-mix(in oklab, var(--destructive) 12%, transparent 88%);
+    color: var(--destructive);
+}
+
+.btn-remove-fila svg {
+    width: 1rem;
+    height: 1rem;
+    stroke-width: 2.5;
+}
+
+.btn-add-fila {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border: 2px dashed var(--border);
+    border-radius: 0.4rem;
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    width: 100%;
+    transition: all 0.2s;
+}
+
+.btn-add-fila:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background-color: color-mix(in oklab, var(--primary) 8%, transparent 92%);
+}
+
+.btn-add-fila svg {
+    width: 1rem;
+    height: 1rem;
+    stroke-width: 2.5;
+}
+
+.bloque-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.fila-counter {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    background-color: color-mix(in oklab, var(--primary) 15%, transparent 85%);
+    color: var(--primary);
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.campo-error-msg {
+    font-size: 0.8rem;
+    color: var(--destructive);
+    margin-top: 0.25rem;
+    min-height: 1.1rem;
+}
+
+.input-invalido {
+    border-color: var(--destructive) !important;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 18%, transparent 82%) !important;
+}
+
+.formato-guia {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background-color: color-mix(in oklab, var(--primary) 8%, transparent 92%);
+    border-radius: 0.4rem;
+    border-left: 3px solid var(--primary);
+    margin-top: 0.5rem;
+}
+
+.formato-guia-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--foreground);
+}
+
+.formato-guia-item code {
+    padding: 0.1rem 0.4rem;
+    background-color: var(--border);
+    border-radius: 0.25rem;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.formato-guia-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-ok {
+    background-color: color-mix(in oklab, var(--accent) 20%, transparent 80%);
+    color: var(--accent);
+}
+
+.badge-no {
+    background-color: color-mix(in oklab, var(--destructive) 20%, transparent 80%);
+    color: var(--destructive);
+}
+
+.info-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    margin-bottom: 0.5rem;
+}
+
 /* Responsivo */
 @media (max-width: 768px) {
     .valor-cafe-content {
@@ -265,8 +447,9 @@
         width: 100%;
     }
 
-    .bloque-grid {
-        grid-template-columns: 1fr;
+    .bloque-fila {
+        grid-template-columns: 1fr 1fr auto;
+        gap: 0.5rem;
     }
 
     .valor-cafe-hero h1 {

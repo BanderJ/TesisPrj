@@ -3,15 +3,18 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
 from fastapi import Depends, FastAPI, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from src.routes.auth_login import auth as auth_router
 from src.routes.caficultor import caficultor_router
+from src.routes.dni import dni_router
+from src.routes.persona import persona_router
 from src.routes.tipo_caficultor import tipo_caficultor_router
 from src.routes.tipo_documento import tipo_documento_router
 from src.routes.tipo_personal import tipo_personal_router
+from src.routes.ubigeo import ubigeo_router
 from src.routes.valor_cafe import valor_cafe_router
 from src.utilities.jwt_required import RequerirLoginException, obtener_usuario_actual
 
@@ -39,6 +42,10 @@ templates = Jinja2Templates(directory=templates_dir)
 
 # ==================== MANEJO DE EXCEPCIONES ====================
 
+@app.get('/favicon.ico', include_in_schema=False)
+async def favicon():
+    return FileResponse('src/static/icon/coffee-bean_icon.png')
+
 @app.exception_handler(RequerirLoginException)
 async def auth_exception_handler(request: Request, exc: RequerirLoginException) -> RedirectResponse:
     return RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
@@ -48,9 +55,12 @@ async def auth_exception_handler(request: Request, exc: RequerirLoginException) 
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
+app.include_router(dni_router, prefix="/dni", tags=["dni"])
+app.include_router(persona_router, prefix="/persona", tags=["persona"])
 app.include_router(tipo_caficultor_router, prefix="/tipo-caficultor", tags=["tipo-caficultor"])
 app.include_router(tipo_documento_router, prefix="/tipo-documento", tags=["tipo-documento"])
 app.include_router(tipo_personal_router, prefix="/tipo-personal", tags=["tipo-personal"])
+app.include_router(ubigeo_router, prefix="/ubigeo", tags=["ubigeo"])
 app.include_router(valor_cafe_router, prefix="/valor-cafe", tags=["valor-cafe"])
 
 

@@ -88,16 +88,33 @@
                     </div>
                 </div>
 
-                <div class="form-row form-row--3 form-row--align-end">
+                <div class="form-row form-row--3">
+                    <div class="field-group">
+                        <label for="departamento">Departamento</label>
+                        <select id="departamento" name="departamento">
+                            <option value="" disabled selected>Cargando...</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="provincia">Provincia</label>
+                        <select id="provincia" name="provincia" disabled>
+                            <option value="" disabled selected>Seleccione departamento</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="distrito">Distrito</label>
+                        <select id="distrito" name="distrito" disabled>
+                            <option value="" disabled selected>Seleccione provincia</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row form-row--2 form-row--align-end">
                     <div class="field-group">
                         <label for="tipoCaficultorId">Tipo de caficultor</label>
                         <select id="tipoCaficultorId" name="tipoCaficultorId" required>
                             <option value="" disabled selected>Seleccione tipo</option>
                         </select>
-                    </div>
-                    <div class="field-group">
-                        <label for="lugarProcedencia">Lugar de procedencia</label>
-                        <input id="lugarProcedencia" name="lugarProcedencia" type="text" maxlength="100" placeholder="Ej: La Unión, Amazonas">
                     </div>
                     <div class="form-actions">
                         <button type="button" id="btnLimpiarNuevo" class="action-btn is-secondary">Limpiar</button>
@@ -176,6 +193,9 @@
         const fechaNacimiento = document.getElementById('fechaNacimiento');
         const telefono = document.getElementById('telefono');
         const tipoCaficultorId = document.getElementById('tipoCaficultorId');
+        const departamento = document.getElementById('departamento');
+        const provincia = document.getElementById('provincia');
+        const distrito = document.getElementById('distrito');
         const docHint = document.getElementById('docHint');
         const btnLimpiarNuevo = document.getElementById('btnLimpiarNuevo');
         const btnGuardarNuevo = document.getElementById('btnGuardarNuevo');
@@ -199,6 +219,7 @@
 
         let modoActivo = null;
         let debounceDoc = null;
+        let timerBannerReniec = null;
         let debounceDocConversion = null;
         let documentoExiste = false;
         let documentoExisteComoExterno = false;
@@ -347,6 +368,10 @@
         }
 
         function clearRegistroBanner() {
+            if (timerBannerReniec) {
+                clearTimeout(timerBannerReniec);
+                timerBannerReniec = null;
+            }
             registroBanner.classList.add('is-hidden');
             registroBannerText.textContent = '';
             btnAccionConversion.classList.add('is-hidden');
@@ -433,6 +458,155 @@
             }
         }
 
+        function resetSelect(select, placeholder) {
+            select.innerHTML = '';
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.disabled = true;
+            opt.selected = true;
+            opt.textContent = placeholder;
+            select.appendChild(opt);
+        }
+
+        async function cargarDepartamentos() {
+            resetSelect(departamento, 'Cargando...');
+            try {
+                const response = await fetch('/ubigeo/departamentos');
+                if (!response.ok) {
+                    throw new Error('No se pudieron cargar departamentos');
+                }
+                const data = await response.json();
+                resetSelect(departamento, 'Seleccione departamento');
+                for (const item of data) {
+                    const opt = document.createElement('option');
+                    opt.value = item.codigo;
+                    opt.textContent = item.nombre;
+                    departamento.appendChild(opt);
+                }
+            } catch (error) {
+                resetSelect(departamento, 'Error al cargar');
+                throw error;
+            }
+        }
+
+        async function cargarProvincias(departamentoCodigo) {
+            resetSelect(provincia, 'Cargando...');
+            resetSelect(distrito, 'Seleccione provincia');
+            provincia.disabled = true;
+            distrito.disabled = true;
+
+            if (!departamentoCodigo) {
+                resetSelect(provincia, 'Seleccione departamento');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/ubigeo/provincias?departamento=${encodeURIComponent(departamentoCodigo)}`);
+                if (!response.ok) {
+                    throw new Error('No se pudieron cargar provincias');
+                }
+                const data = await response.json();
+                resetSelect(provincia, 'Seleccione provincia');
+                for (const item of data) {
+                    const opt = document.createElement('option');
+                    opt.value = item.codigo;
+                    opt.textContent = item.nombre;
+                    provincia.appendChild(opt);
+                }
+                provincia.disabled = data.length === 0;
+            } catch (error) {
+                resetSelect(provincia, 'Error al cargar');
+                CoffeeModal.error(error.message || 'No se pudieron cargar provincias.');
+            }
+        }
+
+        async function cargarDistritos(provinciaCodigo) {
+            resetSelect(distrito, 'Cargando...');
+            distrito.disabled = true;
+
+            if (!provinciaCodigo) {
+                resetSelect(distrito, 'Seleccione provincia');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/ubigeo/distritos?provincia=${encodeURIComponent(provinciaCodigo)}`);
+                if (!response.ok) {
+                    throw new Error('No se pudieron cargar distritos');
+                }
+                const data = await response.json();
+                resetSelect(distrito, 'Seleccione distrito');
+                for (const item of data) {
+                    const opt = document.createElement('option');
+                    opt.value = item.codigo;
+                    opt.textContent = item.nombre;
+                    distrito.appendChild(opt);
+                }
+                distrito.disabled = data.length === 0;
+            } catch (error) {
+                resetSelect(distrito, 'Error al cargar');
+                CoffeeModal.error(error.message || 'No se pudieron cargar distritos.');
+            }
+        }
+
+        function esTipoDni() {
+            const id = Number(tipoDocumentoId.value || 0);
+            return normalizarTexto(tiposDocumento.get(id) || '') === 'dni';
+        }
+
+        async function autollenarDesdeDni(data) {
+            if (data.nombres)          nombre.value          = data.nombres;
+            if (data.apellido_paterno) apePaterno.value      = data.apellido_paterno;
+            if (data.apellido_materno) apeMaterno.value      = data.apellido_materno;
+            if (data.sexo)             sexo.value            = data.sexo;
+            if (data.fecha_nacimiento) fechaNacimiento.value = data.fecha_nacimiento;
+            if (data.telefono)         telefono.value        = data.telefono;
+
+            if (data.ubigeo && /^\d{6}$/.test(data.ubigeo)) {
+                const deptoCode = data.ubigeo.substring(0, 2);
+                const provCode  = data.ubigeo.substring(0, 4);
+                const distCode  = data.ubigeo;
+
+                departamento.value = deptoCode;
+                await cargarProvincias(deptoCode);
+                provincia.value = provCode;
+                await cargarDistritos(provCode);
+                distrito.value = distCode;
+            }
+        }
+
+        async function consultarYAutollenar(documento) {
+            setRegistroBanner('Buscando datos...', 'neutral');
+            try {
+                // 1. Buscar primero en la base de datos local
+                const respBD = await fetch(`/persona/consultar/${encodeURIComponent(documento)}`);
+                if (respBD.ok) {
+                    const dataBD = await respBD.json();
+                    if (dataBD.encontrado) {
+                        await autollenarDesdeDni(dataBD);
+                        setRegistroBanner('Datos completados desde la base de datos. Verifica y completa los campos faltantes.', 'success');
+                        timerBannerReniec = setTimeout(() => { clearRegistroBanner(); timerBannerReniec = null; }, 5000);
+                        return;
+                    }
+                }
+
+                // 2. Si no esta en BD y es DNI, consultar la API externa
+                if (!esTipoDni()) {
+                    clearRegistroBanner();
+                    return;
+                }
+                const respAPI = await fetch(`/dni/consultar/${encodeURIComponent(documento)}`);
+                if (!respAPI.ok) { clearRegistroBanner(); return; }
+                const dataAPI = await respAPI.json();
+                if (!dataAPI.encontrado) { clearRegistroBanner(); return; }
+                await autollenarDesdeDni(dataAPI);
+                setRegistroBanner('Datos completados automaticamente desde RENIEC. Verifica y completa los campos faltantes.', 'success');
+                timerBannerReniec = setTimeout(() => { clearRegistroBanner(); timerBannerReniec = null; }, 5000);
+            } catch (_) {
+                clearRegistroBanner();
+            }
+        }
+
         async function cargarTiposCaficultor() {
             const response = await fetch('/tipo-caficultor/listar');
             if (!response.ok) {
@@ -480,6 +654,7 @@
                 const payload = await response.json();
                 if (!payload.encontrado || !payload.data) {
                     limpiarEstadoRegistro();
+                        await consultarYAutollenar(documento);
                     return;
                 }
 
@@ -609,7 +784,7 @@
             buscarDocumento.value = documento;
 
             if (!conversionEncontrado) {
-                setConversionBanner('Primero debe buscar y validar un caficultor externo.', 'destructive');
+                CoffeeModal.warning('Primero debe buscar y validar un caficultor externo.');
                 return;
             }
 
@@ -624,18 +799,37 @@
                 }
 
                 const payload = await response.json();
-                setConversionBanner(payload.mensaje || 'Conversion realizada correctamente.', 'success');
+                CoffeeModal.success(payload.mensaje || 'Conversión realizada correctamente.', 'Socio registrado');
                 resTipo.textContent = 'Socio';
                 btnConvertirSocio.disabled = true;
             } catch (error) {
-                setConversionBanner(error.message || 'No se pudo convertir el caficultor a socio.', 'destructive');
+                CoffeeModal.error(error.message || 'No se pudo convertir el caficultor a socio.');
             }
+        }
+
+        function limpiarUbigeo() {
+            departamento.value = '';
+            resetSelect(provincia, 'Seleccione departamento');
+            resetSelect(distrito, 'Seleccione provincia');
+            provincia.disabled = true;
+            distrito.disabled = true;
+        }
+
+        function limpiarCamposAutollenados() {
+            nombre.value = '';
+            apePaterno.value = '';
+            apeMaterno.value = '';
+            sexo.value = '';
+            fechaNacimiento.value = '';
+            limpiarUbigeo();
+            clearRegistroBanner();
         }
 
         function limpiarFormularioNuevo() {
             formNuevo.reset();
             aplicarReglaDocumento();
             limpiarEstadoRegistro();
+            limpiarCamposAutollenados();
         }
 
         async function registrarNuevoCaficultor(event) {
@@ -666,6 +860,10 @@
                 return;
             }
 
+            const ubigeoSeleccionado = distrito.value && /^\d{6}$/.test(distrito.value)
+                ? distrito.value
+                : null;
+
             const payload = {
                 nombre: nombre.value.trim(),
                 ape_paterno: apePaterno.value.trim(),
@@ -675,6 +873,7 @@
                 tipo_documento_id: Number(tipoDocumentoId.value),
                 num_documento: documento,
                 telefono: telefono.value.trim(),
+                ubigeo: ubigeoSeleccionado,
                 tipo_caficultor_id: Number(tipoCaficultorId.value),
             };
 
@@ -692,17 +891,26 @@
                 }
 
                 const data = await response.json();
-                setRegistroBanner(data.mensaje || 'Caficultor registrado correctamente.', 'success');
+                CoffeeModal.success(data.mensaje || 'Caficultor registrado correctamente.', 'Registro exitoso');
                 formNuevo.reset();
                 aplicarReglaDocumento();
+                limpiarCamposAutollenados();
                 documentoExiste = false;
                 documentoExisteComoExterno = false;
             } catch (error) {
-                setRegistroBanner(error.message || 'No se pudo completar el registro.', 'destructive');
+                CoffeeModal.error(error.message || 'No se pudo completar el registro.');
             } finally {
                 btnGuardarNuevo.disabled = false;
             }
         }
+
+        departamento.addEventListener('change', () => {
+            cargarProvincias(departamento.value);
+        });
+
+        provincia.addEventListener('change', () => {
+            cargarDistritos(provincia.value);
+        });
 
         btnSelectNuevo.addEventListener('click', () => setModo('nuevo'));
         btnSelectConversion.addEventListener('click', () => setModo('conversion'));
@@ -719,6 +927,10 @@
 
             if (debounceDoc) {
                 clearTimeout(debounceDoc);
+            }
+
+            if (!regla.longitudesAutoBusqueda.includes(numDocumento.value.length)) {
+                limpiarCamposAutollenados();
             }
 
             if (modoActivo !== 'nuevo') {
@@ -777,7 +989,7 @@
             intentarBusquedaAutomaticaConversion();
         });
 
-        Promise.all([cargarTiposDocumento(), cargarTiposCaficultor()])
+        Promise.all([cargarTiposDocumento(), cargarTiposCaficultor(), cargarDepartamentos()])
             .then(() => {
                 aplicarReglaDocumento();
                 aplicarReglaDocumentoConversion();
@@ -785,7 +997,7 @@
             })
             .catch((error) => {
                 setModo(null);
-                setRegistroBanner(error.message || 'No se pudieron cargar catalogos.', 'destructive');
+                CoffeeModal.error(error.message || 'No se pudieron cargar los catálogos.');
             });
     })();
 </script>

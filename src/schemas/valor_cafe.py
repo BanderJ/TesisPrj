@@ -1,6 +1,22 @@
+import re
 from datetime import date, datetime
 
 from pydantic import BaseModel, Field
+
+_RANGO_RE = re.compile(r'^\d+(-\d+)?$')
+
+
+def _error_rango(rango: str) -> str | None:
+    r = rango.strip()
+    if not r:
+        return "El rango no puede estar vacío"
+    if not _RANGO_RE.match(r):
+        return "Formato inválido. Use número (ej: 70) o rango X-Y (ej: 60-65)"
+    if '-' in r:
+        inicio, fin = map(int, r.split('-', 1))
+        if inicio >= fin:
+            return "En el rango X-Y, X debe ser menor a Y"
+    return None
 
 
 class ValorCafeItem(BaseModel):
@@ -45,24 +61,18 @@ class ValorCafeResumenRangosResponse(BaseModel):
 
 
 class ValorCafeCrearRequest(BaseModel):
-    """Schema para crear un nuevo registro de valor de café."""
-    rango: str = Field(..., description="Rango de puntuación: 60-65, 66-70, 71-75, 76-80, 81-85, 86-90")
+    rango: str = Field(..., description="Número simple (ej: 70) o rango X-Y (ej: 60-65)")
     precio: float = Field(..., gt=0, description="Precio debe ser mayor a 0")
 
-    @property
-    def rangos_validos(self) -> list[str]:
-        return ['60-65', '66-70', '71-75', '76-80', '81-85', '86-90']
-
     def validar(self) -> dict[str, str]:
-        """Retorna dict con errores, o {} si válido."""
         errores = {}
-        if self.rango not in self.rangos_validos:
-            errores["rango"] = f"Rango inválido. Válidos: {', '.join(self.rangos_validos)}"
+        error = _error_rango(self.rango)
+        if error:
+            errores["rango"] = error
         return errores
 
 
 class ValorCafeCrearResponse(BaseModel):
-    """Respuesta al crear un valor de café."""
     id: str
     rango: str
     precio: float
@@ -81,9 +91,10 @@ class ValorCafeCrearBloqueRequest(BaseModel):
             if errores_item:
                 errores[f"item_{idx + 1}"] = str(errores_item)
 
-            if item.rango in rangos_vistos:
-                errores[f"item_{idx + 1}"] = f"Rango duplicado en bloque: {item.rango}"
-            rangos_vistos.add(item.rango)
+            rango_norm = item.rango.strip()
+            if rango_norm in rangos_vistos:
+                errores[f"item_{idx + 1}"] = f"Rango duplicado en bloque: {rango_norm}"
+            rangos_vistos.add(rango_norm)
 
         return errores
 

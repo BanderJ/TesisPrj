@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from src.database.bd import Connection; db=Connection\\(\\); print\\(db.obtener_uno\\('SELECT COUNT\\(*\\) AS c FROM ubigeo'\\)\\); db.close\\(\\)\")",
+      "Bash(python -c \"from src.main import app; print\\('OK', [r.path for r in app.routes if '/ubigeo' in r.path]\\)\")",
+      "Bash(python -c ' *)"
+    ]
+  }
+}

@@ -99,6 +99,19 @@ class CaficultorService:
         telefono_limpio = telefono.strip()
         return telefono_limpio if telefono_limpio else None
 
+    def _normalizar_ubigeo(self, ubigeo: str | None) -> str | None:
+        """Valida ubigeo (6 digitos) y devuelve None si esta vacio."""
+        if ubigeo is None:
+            return None
+
+        codigo = ubigeo.strip()
+        if not codigo:
+            return None
+
+        if not (codigo.isdigit() and len(codigo) == 6):
+            raise ValueError("El ubigeo debe ser un codigo de 6 digitos")
+        return codigo
+
     def _obtener_estado_caficultor(self, num_documento: str, db: Connection) -> dict[str, Any] | None:
         """Obtiene estado/tipo del caficultor por documento para conversion a socio."""
         return self.caficultor_model.obtener_estado_y_tipo_por_num_documento(num_documento, db=db)
@@ -124,6 +137,7 @@ class CaficultorService:
         self._validar_documento_por_tipo(payload.tipo_documento_id, payload.num_documento)
         self._validar_tipo_caficultor(payload.tipo_caficultor_id)
         telefono = self._normalizar_telefono(payload.telefono)
+        ubigeo = self._normalizar_ubigeo(payload.ubigeo)
 
         db = Connection()
         try:
@@ -140,6 +154,8 @@ class CaficultorService:
             )
             if persona_existente:
                 persona_id = str(persona_existente["id"])
+                if ubigeo:
+                    self.persona_model.actualizar_ubigeo(persona_id, ubigeo, db=db)
             else:
                 persona_id = self.persona_model.registrar(
                     nombre=payload.nombre,
@@ -150,6 +166,7 @@ class CaficultorService:
                     tipo_documento_id=payload.tipo_documento_id,
                     num_documento=payload.num_documento,
                     telefono=telefono,
+                    ubigeo=ubigeo,
                     db=db,
                 )
 
