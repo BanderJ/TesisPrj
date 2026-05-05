@@ -59,7 +59,6 @@ INSERT INTO TIPO_GRANO (nombre, peso_qq) VALUES ('Pergamino', 55.20), ('Pilado',
 INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado) VALUES ('Anderson', 'Baca', 'Chuquimanco', 'M', '1990-08-20', 1, '70994265', '926607008', 'A');
 INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado) VALUES ('Juan', 'Perez', 'Gomez', 'M', '1980-05-15', 1, '12345678', '987654321', 'A');
 
-
 --- INSERTS PRUEBA PARA CAFICULTORES
 INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado) VALUES ('Luis', 'Garcia', 'Ilimo', 'M', '1990-08-13', 1, '99988877', '987456456', 'A');
 INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado) VALUES ('Maria', 'Cueva', 'Guerrero', 'F', '1986-08-26', 1, '99988866', '987987987', 'A');
@@ -74,10 +73,6 @@ INSERT INTO PERSONAL (personal_id, tipo_personal_id, usuario, clave, estado, fec
 
 INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ('019d6571-179d-7c1a-8c36-7a0de4bc5072', 1, NOW());
 INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ('019d6571-179d-7c1a-8c36-7a0de4bc5073', 2, NOW());
-
-select * from persona;
-
-select * from personal;
 
 --- INSERTS DE PRUEBA PARA VALORES DE CAFÉ
 insert into valor_cafe (rango, precio, fecha) values ('60-65', 720, '2026-04-04 08:00:00');

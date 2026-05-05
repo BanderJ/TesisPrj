@@ -43,26 +43,63 @@
 			</article>
 
 			<article class="card registro-card" aria-labelledby="peso-title">
-				<h2 id="peso-title">Pesos de granos</h2>
+				<h2 id="peso-title">Datos de la muestra</h2>
 
-				<div class="field-group">
-					<label for="tamiz">Numero de tamiz (mm)</label>
-					<input id="tamiz" name="tamiz" type="number" min="0" step="0.1" required placeholder="Ejemplo: 6.5">
+				<div class="form-row form-row--2">
+					<div class="field-group">
+						<label for="tipoGrano">Tipo de grano</label>
+						<select id="tipoGrano" name="tipoGrano" required>
+							<option value="" disabled selected>Seleccionar tipo</option>
+						</select>
+					</div>
+
+					<div class="field-group">
+						<label for="numSacos">Número de sacos</label>
+						<input id="numSacos" name="numSacos" type="number" min="1" step="1" required placeholder="Ejemplo: 5">
+						<p id="numSacosHint" class="helper-text" aria-live="polite"></p>
+					</div>
 				</div>
 
-				<div class="field-group">
-					<label for="pesoTotal">Peso total de muestra (g)</label>
-					<input id="pesoTotal" name="pesoTotal" type="number" min="0" step="0.1" required placeholder="Ejemplo: 1200">
+				<div class="form-row form-row--2">
+					<div class="field-group">
+						<label for="pesoTotal">Peso total (kg)</label>
+						<input id="pesoTotal" name="pesoTotal" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 275.50">
+						<p id="pesoTotalHint" class="helper-text" aria-live="polite"></p>
+					</div>
+
+					<div class="field-group">
+						<label for="humedad">Humedad (%)</label>
+						<input id="humedad" name="humedad" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 12.50">
+						<p id="humedadHint" class="helper-text" aria-live="polite"></p>
+					</div>
 				</div>
 
-				<div class="field-group">
-					<label for="pesoTrillados">Peso de granos trillados (g)</label>
-					<input id="pesoTrillados" name="pesoTrillados" type="number" min="0" step="0.1" required placeholder="Ejemplo: 930">
-				</div>
+				<div class="form-row form-row--2">
+					<div class="field-group">
+						<label for="pesoMuestra">Peso de muestra (gr.)</label>
+						<input id="pesoMuestra" name="pesoMuestra" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 1200.00">
+						<p id="pesoMuestraHint" class="helper-text" aria-live="polite"></p>
+					</div>
 
-				<div class="field-group">
-					<label for="pesoTamizados">Peso de granos tamizados (g)</label>
-					<input id="pesoTamizados" name="pesoTamizados" type="number" min="0" step="0.1" required placeholder="Ejemplo: 870">
+					<div class="field-group">
+						<label for="pesoTrillado">Peso trillado (gr.)</label>
+						<input id="pesoTrillado" name="pesoTrillado" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 930.00">
+						<p id="pesoTrilladoHint" class="helper-text" aria-live="polite"></p>
+					</div>
+				</div>
+				
+				<div class="form-row form-row--2">
+					<div class="field-group">
+						<label for="numTamiz">Número de tamiz</label>
+						<input id="numTamiz" name="numTamiz" type="number" min="1" step="1" required placeholder="Ejemplo: 14">
+						<p id="numTamizHint" class="helper-text" aria-live="polite"></p>
+					</div>
+
+					<div class="field-group">
+						<label for="pesoTamizado">Peso tamizado (gr.)</label>
+						<input id="pesoTamizado" name="pesoTamizado" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 870.00">
+						<p id="pesoTamizadoHint" class="helper-text" aria-live="polite"></p>
+					</div>
 				</div>
 			</article>
 		</div>
@@ -76,114 +113,150 @@
 
 <script>
 	(() => {
-		const form = document.getElementById('registroForm');
-		const tipoDocumentoSelect = document.getElementById('tipoDocumento');
-		const numDocumentoInput = document.getElementById('numDocumento');
+		const form                  = document.getElementById('registroForm');
+		const tipoDocumentoSelect   = document.getElementById('tipoDocumento');
+		const numDocumentoInput     = document.getElementById('numDocumento');
 		const nombreCaficultorInput = document.getElementById('nombreCaficultor');
-		const tipoCaficultorInput = document.getElementById('tipoCaficultor');
-		const docHint = document.getElementById('docHint');
-		const caficultorLookupMessage = document.getElementById('caficultorLookupMessage');
-		const startBtn = document.getElementById('startMonitoringBtn');
-		const clearBtn = document.getElementById('clearFormBtn');
+		const tipoCaficultorInput   = document.getElementById('tipoCaficultor');
+		const caficultorLookupMsg   = document.getElementById('caficultorLookupMessage');
+		const tipoGranoSelect       = document.getElementById('tipoGrano');
+		const startBtn              = document.getElementById('startMonitoringBtn');
+		const clearBtn              = document.getElementById('clearFormBtn');
+		const numSacosInput         = document.getElementById('numSacos');
+		const numSacosHint          = document.getElementById('numSacosHint');
+		const pesoTotalInput        = document.getElementById('pesoTotal');
+		const pesoTotalHint         = document.getElementById('pesoTotalHint');
+		const humedadInput          = document.getElementById('humedad');
+		const humedadHint           = document.getElementById('humedadHint');
+		const pesoMuestraInput      = document.getElementById('pesoMuestra');
+		const pesoMuestraHint       = document.getElementById('pesoMuestraHint');
+		const pesoTrilladoInput     = document.getElementById('pesoTrillado');
+		const pesoTrilladoHint      = document.getElementById('pesoTrilladoHint');
+		const numTamizInput         = document.getElementById('numTamiz');
+		const numTamizHint          = document.getElementById('numTamizHint');
+		const pesoTamizadoInput     = document.getElementById('pesoTamizado');
+		const pesoTamizadoHint      = document.getElementById('pesoTamizadoHint');
 
 		const tiposDocumento = new Map();
 		let consultaTimer = null;
 		let caficultorValido = false;
 		let ultimaClaveBusqueda = '';
 
-		function normalizarTexto(valor) {
-			return valor
-				.normalize('NFD')
-				.replace(/[̀-ͯ]/g, '')
-				.toLowerCase()
-				.trim();
+		// ── Utilidades ────────────────────────────────────────────────────
+
+				function normalizarTexto(v) {
+				return v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+			}
+
+		function setHint(el, msg, esError = false) {
+			el.textContent = msg;
+			el.classList.toggle('helper-error', esError);
 		}
 
-		function obtenerReglaDocumento(tipoDocumentoSeleccionadoId) {
-			const id = Number(tipoDocumentoSeleccionadoId || 0);
-			const nombreTipo = normalizarTexto(tiposDocumento.get(id) || '');
+		function rechazar(msg, campo = null) {
+			CoffeeModal.warning(msg);
+			campo?.focus();
+			return false;
+		}
 
-			if (nombreTipo === 'dni') {
-				return {
-					maxLength: 8,
-					soloNumeros: true,
-					hint: 'DNI: exactamente 8 digitos numericos.',
-					placeholder: 'Ingrese 8 digitos de DNI',
-					validationMessage: 'Para DNI se requieren 8 digitos numericos.',
-					regex: /^\d{8}$/,
-					longitudesAutoBusqueda: [8],
-				};
+		function validarInline(input, testFn, hintEl, errorMsg) {
+			if (!input.value) { setHint(hintEl, ''); return; }
+			const ok = testFn(input.value);
+			setHint(hintEl, ok ? '' : errorMsg, !ok);
+		}
+
+		const esEnteroPositivo = (v) => { const n = Number(v); return Number.isFinite(n) && Number.isInteger(n) && n >= 1; };
+		const esFloatPositivo  = (v) => { const n = parseFloat(v); return Number.isFinite(n) && n > 0; };
+		const redondear2       = (v) => Math.round(parseFloat(v) * 100) / 100;
+
+		function forzarEntero(input) {
+			input.addEventListener('change', () => {
+				const n = parseInt(input.value, 10);
+				if (!isNaN(n)) input.value = n;
+			});
+		}
+
+		function forzar2Decimales(input) {
+			input.addEventListener('blur', () => {
+				const n = parseFloat(input.value);
+				if (input.value && !isNaN(n)) input.value = redondear2(n).toFixed(2);
+			});
+		}
+
+		async function cargarSelect(url, selectEl) {
+			const res = await fetch(url);
+			if (!res.ok) throw new Error(`Error al cargar ${url}`);
+			const items = await res.json();
+			const frag = document.createDocumentFragment();
+			for (const item of items) {
+				const opt = document.createElement('option');
+				opt.value = String(item.id);
+				opt.textContent = item.nombre;
+				frag.appendChild(opt);
 			}
+			selectEl.appendChild(frag);
+			return items;
+		}
 
-			if (nombreTipo === 'pasaporte' || nombreTipo === 'carnet de extranjeria') {
-				return {
-					maxLength: 12,
-					soloNumeros: false,
-					hint: 'Pasaporte/Carnet: exactamente 12 caracteres alfanumericos.',
-					placeholder: 'Ingrese 12 caracteres',
-					validationMessage: 'Para Pasaporte/Carnet se requieren 12 caracteres alfanumericos.',
-					regex: /^[A-Za-z0-9]{12}$/,
-					longitudesAutoBusqueda: [12],
-				};
-			}
+		// ── Documento ─────────────────────────────────────────────────────
 
+		function obtenerReglaDocumento(tipoId) {
+			const nombreTipo = normalizarTexto(tiposDocumento.get(Number(tipoId || 0)) || '');
+			if (nombreTipo === 'dni') return {
+				maxLength: 8, soloNumeros: true,
+				hint: 'DNI: exactamente 8 digitos numericos.',
+				placeholder: 'Ingrese 8 digitos de DNI',
+				validationMessage: 'Para DNI se requieren 8 digitos numericos.',
+				regex: /^\d{8}$/, longitudesAutoBusqueda: [8],
+			};
+			if (nombreTipo === 'pasaporte' || nombreTipo === 'carnet de extranjeria') return {
+				maxLength: 12, soloNumeros: false,
+				hint: 'Pasaporte/Carnet: 12 caracteres alfanumericos.',
+				placeholder: 'Ingrese 12 caracteres',
+				validationMessage: 'Para Pasaporte/Carnet se requieren 12 caracteres alfanumericos.',
+				regex: /^[A-Za-z0-9]{12}$/, longitudesAutoBusqueda: [12],
+			};
 			return {
-				maxLength: 12,
-				soloNumeros: false,
+				maxLength: 12, soloNumeros: false,
 				hint: 'Documento entre 8 y 12 caracteres alfanumericos.',
 				placeholder: 'Ingrese documento (8 a 12 caracteres)',
 				validationMessage: 'Documento invalido. Use de 8 a 12 caracteres alfanumericos.',
-				regex: /^[A-Za-z0-9]{8,12}$/,
-				longitudesAutoBusqueda: [8, 12],
+				regex: /^[A-Za-z0-9]{8,12}$/, longitudesAutoBusqueda: [8, 12],
 			};
 		}
 
 		function limpiarDocumentoSegunRegla(valor, regla) {
 			const texto = String(valor || '').trim();
-			if (regla.soloNumeros) {
-				return texto.replace(/\D/g, '').slice(0, regla.maxLength);
-			}
-			return texto.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, regla.maxLength);
-		}
-
-		function validarDocumentoPorTipoId(tipoId, documento) {
-			const id = Number(tipoId || 0);
-			if (!id) return { ok: false, mensaje: 'Selecciona primero el tipo de documento.' };
-			const regla = obtenerReglaDocumento(id);
-			if (!regla.regex.test(documento)) return { ok: false, mensaje: regla.validationMessage };
-			return { ok: true, mensaje: '' };
+			return regla.soloNumeros
+				? texto.replace(/\D/g, '').slice(0, regla.maxLength)
+				: texto.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, regla.maxLength);
 		}
 
 		function aplicarReglaDocumento() {
 			const regla = obtenerReglaDocumento(tipoDocumentoSelect.value);
-			numDocumentoInput.maxLength = regla.maxLength;
+			numDocumentoInput.maxLength  = regla.maxLength;
 			numDocumentoInput.placeholder = regla.placeholder;
-			numDocumentoInput.inputMode = regla.soloNumeros ? 'numeric' : 'text';
-			docHint.textContent = regla.hint;
+			numDocumentoInput.inputMode  = regla.soloNumeros ? 'numeric' : 'text';
 			numDocumentoInput.value = limpiarDocumentoSegunRegla(numDocumentoInput.value, regla);
 		}
 
 		function limpiarDatosCaficultor() {
 			nombreCaficultorInput.value = '';
-			tipoCaficultorInput.value = '';
+			tipoCaficultorInput.value   = '';
 			caficultorValido = false;
 			numDocumentoInput.setCustomValidity('');
 		}
 
-		function setLookupMessage(message, type = 'neutral') {
-			caficultorLookupMessage.innerHTML = message;
-			caficultorLookupMessage.classList.remove('helper-success', 'helper-error');
-			if (type === 'success') caficultorLookupMessage.classList.add('helper-success');
-			if (type === 'error') caficultorLookupMessage.classList.add('helper-error');
+		function setLookupMessage(msg, type = 'neutral') {
+			caficultorLookupMsg.innerHTML = msg;
+			caficultorLookupMsg.classList.remove('helper-success', 'helper-error');
+			if (type === 'success') caficultorLookupMsg.classList.add('helper-success');
+			if (type === 'error')   caficultorLookupMsg.classList.add('helper-error');
 		}
 
 		async function consultarCaficultor(documento) {
-			const validacion = validarDocumentoPorTipoId(tipoDocumentoSelect.value, documento);
-			if (!validacion.ok) {
-				limpiarDatosCaficultor();
-				setLookupMessage(validacion.mensaje, 'error');
-				return;
-			}
+			const { ok, mensaje } = validarDocumentoPorTipoId(tipoDocumentoSelect.value, documento);
+			if (!ok) { limpiarDatosCaficultor(); setLookupMessage(mensaje, 'error'); return; }
 
 			const clave = `${tipoDocumentoSelect.value}:${documento}`;
 			if (clave === ultimaClaveBusqueda && caficultorValido) return;
@@ -191,100 +264,139 @@
 
 			try {
 				setLookupMessage('Buscando datos del caficultor...');
-				const response = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
-
-				if (!response.ok) {
-					const errorData = await response.json();
-					throw new Error(errorData.detail || 'No se pudo consultar el caficultor');
-				}
-
-				const payload = await response.json();
-
+				const res = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
+				if (!res.ok) throw new Error((await res.json()).detail || 'No se pudo consultar el caficultor');
+				const payload = await res.json();
 				if (!payload.encontrado || !payload.data) {
 					limpiarDatosCaficultor();
-					setLookupMessage((payload.mensaje || 'Caficultor no encontrado.') + ' <a href="/nuevo-caficultor" style="text-decoration:underline;">Registrar caficultor</a>', 'error');
+					setLookupMessage(`${payload.mensaje || 'Caficultor no encontrado.'} <a href="/nuevo-caficultor" style="text-decoration:underline;">Registrar caficultor</a>`, 'error');
 					return;
 				}
-
 				nombreCaficultorInput.value = payload.data.nombre_completo;
-				tipoCaficultorInput.value = payload.data.tipo_caficultor;
+				tipoCaficultorInput.value   = payload.data.tipo_caficultor;
 				caficultorValido = true;
 				numDocumentoInput.setCustomValidity('');
 				setLookupMessage(payload.mensaje || 'Caficultor encontrado.', 'success');
-			} catch (error) {
+			} catch (err) {
 				limpiarDatosCaficultor();
-				setLookupMessage(error.message || 'Error al consultar el caficultor.', 'error');
+				setLookupMessage(err.message || 'Error al consultar el caficultor.', 'error');
 			}
 		}
 
+		function validarDocumentoPorTipoId(tipoId, documento) {
+			const id = Number(tipoId || 0);
+			if (!id) return { ok: false, mensaje: 'Selecciona primero el tipo de documento.' };
+			const regla = obtenerReglaDocumento(id);
+			return regla.regex.test(documento)
+				? { ok: true, mensaje: '' }
+				: { ok: false, mensaje: regla.validationMessage };
+		}
+
 		function intentarBusquedaAutomatica() {
-			const tipoId = Number(tipoDocumentoSelect.value || 0);
-			const regla = obtenerReglaDocumento(tipoId);
+			const tipoId   = Number(tipoDocumentoSelect.value || 0);
+			const regla    = obtenerReglaDocumento(tipoId);
 			const documento = limpiarDocumentoSegunRegla(numDocumentoInput.value, regla);
 			numDocumentoInput.value = documento;
 
 			if (!tipoId) {
 				limpiarDatosCaficultor();
-				setLookupMessage(documento.length > 0 ? 'Selecciona primero el tipo de documento.' : '', documento.length > 0 ? 'error' : 'neutral');
+				setLookupMessage(documento.length ? 'Selecciona primero el tipo de documento.' : '', documento.length ? 'error' : 'neutral');
 				return;
 			}
-
 			if (!regla.longitudesAutoBusqueda.includes(documento.length)) {
 				limpiarDatosCaficultor();
-				setLookupMessage(documento.length > 0 ? regla.hint : '');
+				setLookupMessage(documento.length ? regla.hint : '');
 				return;
 			}
-
 			if (consultaTimer) clearTimeout(consultaTimer);
 			consultaTimer = setTimeout(() => consultarCaficultor(documento), 300);
 		}
 
 		async function cargarTiposDocumento() {
 			try {
-				const response = await fetch('/tipo-documento/listar');
-				if (!response.ok) throw new Error('No se pudo obtener tipos de documento');
-
-				const tipos = await response.json();
-				const placeholder = tipoDocumentoSelect.querySelector('option[value=""]');
-				tipoDocumentoSelect.innerHTML = '';
-				tipoDocumentoSelect.appendChild(placeholder);
-
-				const fragment = document.createDocumentFragment();
-				for (const tipo of tipos) {
-					const id = Number(tipo.id);
-					tiposDocumento.set(id, String(tipo.nombre));
-					const option = document.createElement('option');
-					option.value = String(id);
-					option.textContent = tipo.nombre;
-					fragment.appendChild(option);
+				const res = await fetch('/tipo-documento/listar');
+				if (!res.ok) throw new Error('HTTP ' + res.status);
+				const tipos = await res.json();
+				for (const t of tipos) {
+					tiposDocumento.set(Number(t.id), String(t.nombre));
+					const opt = document.createElement('option');
+					opt.value = String(t.id);
+					opt.textContent = t.nombre;
+					tipoDocumentoSelect.appendChild(opt);
 				}
-				tipoDocumentoSelect.appendChild(fragment);
-
-				const entryDni = [...tiposDocumento.entries()].find(
-					([, nombre]) => normalizarTexto(nombre) === 'dni'
-				);
+				const entryDni = [...tiposDocumento.entries()].find(([, n]) => normalizarTexto(n) === 'dni');
 				if (entryDni) tipoDocumentoSelect.value = String(entryDni[0]);
-
 				aplicarReglaDocumento();
-			} catch (error) {
-				console.error(error);
-			}
+			} catch (err) { console.error('cargarTiposDocumento:', err); }
 		}
 
+		// ── Muestra ───────────────────────────────────────────────────────
+
+		async function cargarTiposGrano() {
+			try {
+				const res = await fetch('/tipo-grano/listar');
+				if (!res.ok) throw new Error('HTTP ' + res.status);
+				const tipos = await res.json();
+				for (const t of tipos) {
+					const opt = document.createElement('option');
+					opt.value = String(t.id);
+					opt.textContent = t.nombre;
+					tipoGranoSelect.appendChild(opt);
+				}
+			} catch (err) { console.error('cargarTiposGrano:', err); }
+		}
+
+		function actualizarHintLimite(hijoInput, padreInput, hintEl, labelPadre) {
+			if (!hijoInput.value) return setHint(hintEl, '');
+			if (!esFloatPositivo(hijoInput.value)) return setHint(hintEl, 'Debe ser un número positivo (gr.).', true);
+			const valor  = parseFloat(hijoInput.value);
+			const limite = parseFloat(padreInput.value);
+			if (esFloatPositivo(limite) && valor > limite)
+				setHint(hintEl, `No puede superar ${labelPadre} (${redondear2(limite).toFixed(2)} gr.)`, true);
+			else if (esFloatPositivo(limite))
+				setHint(hintEl, `Máximo: ${redondear2(limite).toFixed(2)} gr.`);
+			else
+				setHint(hintEl, '');
+		}
+
+		function validarCamposMuestra() {
+			const pt = parseFloat(pesoTrilladoInput.value);
+			const pm = parseFloat(pesoMuestraInput.value);
+			const pz = parseFloat(pesoTamizadoInput.value);
+
+			if (!esEnteroPositivo(numSacosInput.value))   return rechazar('El número de sacos debe ser un entero positivo (mínimo 1).', numSacosInput);
+			if (!esFloatPositivo(pesoTotalInput.value))   return rechazar('El peso total debe ser un número positivo (en kg).', pesoTotalInput);
+			if (!esFloatPositivo(humedadInput.value))     return rechazar('La humedad debe ser un número positivo.', humedadInput);
+			if (parseFloat(humedadInput.value) > 100)     return rechazar('La humedad no puede superar 100%.', humedadInput);
+			if (!esFloatPositivo(pm))                     return rechazar('El peso de muestra debe ser un número positivo (en gr.).', pesoMuestraInput);
+			if (!esFloatPositivo(pt))                     return rechazar('El peso trillado debe ser un número positivo (en gr.).', pesoTrilladoInput);
+			if (pt > pm)                                  return rechazar('El peso trillado no puede ser mayor al peso de muestra.', pesoTrilladoInput);
+			if (!esEnteroPositivo(numTamizInput.value))   return rechazar('El número de tamiz debe ser un entero positivo (mínimo 1).', numTamizInput);
+			if (!esFloatPositivo(pz))                     return rechazar('El peso tamizado debe ser un número positivo (en gr.).', pesoTamizadoInput);
+			if (pz > pt)                                  return rechazar('El peso tamizado no puede ser mayor al peso trillado.', pesoTamizadoInput);
+			return true;
+		}
+
+		// ── Persistencia ──────────────────────────────────────────────────
+
 		function guardarMuestraPendiente() {
-			const payload = {
-				tipoDocumentoId: tipoDocumentoSelect.value,
+			sessionStorage.setItem('coffeeren.pendingSample', JSON.stringify({
+				tipoDocumentoId:   tipoDocumentoSelect.value,
 				tipoDocumentoNombre: tipoDocumentoSelect.options[tipoDocumentoSelect.selectedIndex]?.text || '',
-				numDocumento: numDocumentoInput.value.trim(),
-				nombreCaficultor: nombreCaficultorInput.value.trim(),
-				tipoCaficultor: tipoCaficultorInput.value.trim(),
-				tamiz: document.getElementById('tamiz').value,
-				pesoTotal: document.getElementById('pesoTotal').value,
-				pesoTrillados: document.getElementById('pesoTrillados').value,
-				pesoTamizados: document.getElementById('pesoTamizados').value,
-				fechaRegistro: new Date().toISOString()
-			};
-			sessionStorage.setItem('coffeeren.pendingSample', JSON.stringify(payload));
+				numDocumento:      numDocumentoInput.value.trim(),
+				nombreCaficultor:  nombreCaficultorInput.value.trim(),
+				tipoCaficultor:    tipoCaficultorInput.value.trim(),
+				tipoGranoId:       tipoGranoSelect.value,
+				tipoGranoNombre:   tipoGranoSelect.options[tipoGranoSelect.selectedIndex]?.text || '',
+				numSacos:          parseInt(numSacosInput.value, 10),
+				pesoTotal:         redondear2(pesoTotalInput.value),
+				humedad:           redondear2(humedadInput.value),
+				pesoMuestra:       redondear2(pesoMuestraInput.value),
+				pesoTrillado:      redondear2(pesoTrilladoInput.value),
+				numTamiz:          parseInt(numTamizInput.value, 10),
+				pesoTamizado:      redondear2(pesoTamizadoInput.value),
+				fechaRegistro:     new Date().toISOString(),
+			}));
 		}
 
 		function clearAll() {
@@ -293,15 +405,13 @@
 			setLookupMessage('');
 			ultimaClaveBusqueda = '';
 			aplicarReglaDocumento();
+			for (const h of [numSacosHint, pesoTotalHint, humedadHint, pesoMuestraHint,
+			                  pesoTrilladoHint, numTamizHint, pesoTamizadoHint]) setHint(h, '');
 		}
 
 		function validateForm() {
-			const requiredFields = form.querySelectorAll('input[required], select[required]');
-			for (const field of requiredFields) {
-				if (!field.value.trim()) {
-					field.reportValidity();
-					return false;
-				}
+			for (const f of form.querySelectorAll('input[required], select[required]')) {
+				if (!f.value.trim()) { f.reportValidity(); return false; }
 			}
 			if (!caficultorValido) {
 				numDocumentoInput.setCustomValidity('Debe consultar y validar un caficultor registrado para continuar');
@@ -309,8 +419,10 @@
 				numDocumentoInput.setCustomValidity('');
 				return false;
 			}
-			return true;
+			return validarCamposMuestra();
 		}
+
+		// ── Eventos ───────────────────────────────────────────────────────
 
 		tipoDocumentoSelect.addEventListener('change', () => {
 			aplicarReglaDocumento();
@@ -327,16 +439,49 @@
 			intentarBusquedaAutomatica();
 		});
 
-		startBtn.addEventListener('click', () => {
-			if (validateForm()) {
-				guardarMuestraPendiente();
-				window.location.href = '/monitoreo';
-			}
+		numSacosInput.addEventListener('input', () =>
+			validarInline(numSacosInput, esEnteroPositivo, numSacosHint, 'Debe ser un entero positivo (mínimo 1).'));
+
+		pesoTotalInput.addEventListener('input', () =>
+			validarInline(pesoTotalInput, esFloatPositivo, pesoTotalHint, 'Debe ser un número positivo (kg).'));
+
+		humedadInput.addEventListener('input', () => {
+			const h = parseFloat(humedadInput.value);
+			if (!humedadInput.value)        { setHint(humedadHint, ''); return; }
+			if (!esFloatPositivo(h))         setHint(humedadHint, 'Debe ser un número positivo.', true);
+			else if (h > 100)                setHint(humedadHint, 'La humedad no puede superar 100%.', true);
+			else                             setHint(humedadHint, '');
 		});
 
+		pesoMuestraInput.addEventListener('input', () => {
+			validarInline(pesoMuestraInput, esFloatPositivo, pesoMuestraHint, 'Debe ser un número positivo (gr.).');
+			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput, pesoTrilladoHint, 'el peso de muestra');
+		});
+
+		numTamizInput.addEventListener('input', () =>
+			validarInline(numTamizInput, esEnteroPositivo, numTamizHint, 'Debe ser un entero positivo (mínimo 1).'));
+
+		pesoTrilladoInput.addEventListener('input', () => {
+			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput,  pesoTrilladoHint,  'el peso de muestra');
+			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint, 'el peso trillado');
+		});
+
+		pesoTamizadoInput.addEventListener('input', () =>
+			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint, 'el peso trillado'));
+
+		forzarEntero(numSacosInput);
+		forzarEntero(numTamizInput);
+		[pesoTotalInput, humedadInput, pesoMuestraInput, pesoTrilladoInput, pesoTamizadoInput]
+			.forEach(forzar2Decimales);
+
+		startBtn.addEventListener('click', () => {
+			if (validateForm()) { guardarMuestraPendiente(); window.location.href = '/monitoreo'; }
+		});
 		clearBtn.addEventListener('click', clearAll);
 
 		cargarTiposDocumento();
+		cargarTiposGrano();
 	})();
 </script>
 {% endblock %}
+

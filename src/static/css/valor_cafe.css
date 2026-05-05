@@ -8,7 +8,7 @@
 }
 
 .valor-cafe-hero {
-    background: linear-gradient(135deg, color-mix(in oklab, var(--primary) 24%, transparent 76%) 0%, color-mix(in oklab, var(--accent) 20%, transparent 80%) 100%);
+    background-color: var(--primary);
     padding: 2rem;
     border-radius: 0.5rem;
     margin-bottom: 2rem;
@@ -142,12 +142,14 @@
 .vc-btn-primary {
     background-color: var(--primary);
     color: var(--primary-foreground);
+    transition: filter 0.2s ease;
 }
 
 .vc-btn-primary:hover {
     background-color: color-mix(in oklab, var(--primary) 88%, black 12%);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px color-mix(in oklab, var(--primary) 30%, transparent 70%);
+    filter: brightness(0.85) saturate(1.1);
 }
 
 .vc-btn-secondary {

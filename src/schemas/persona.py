@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class PersonaRegistroRequest(BaseModel):
@@ -18,11 +18,18 @@ class PersonaRegistroRequest(BaseModel):
 	)
 	telefono: str | None = Field(
 		default=None,
-		pattern=r"^\d{9}$|^$",
+		pattern=r"^\d{9}$",
 		description="Telefono de 9 digitos. Puede enviarse vacio.",
 	)
 	ubigeo: str | None = Field(
 		default=None,
-		pattern=r"^\d{6}$|^$",
+		pattern=r"^\d{6}$",
 		description="Codigo INEI de 6 digitos del distrito. Opcional.",
 	)
+
+	@field_validator("telefono", "ubigeo", mode="before")
+	@classmethod
+	def normalizar_opcionales(cls, v: str | None) -> str | None:
+		if not v or not isinstance(v, str) or not v.strip():
+			return None
+		return v.strip()

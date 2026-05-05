@@ -13,6 +13,7 @@ from src.routes.dni import dni_router
 from src.routes.persona import persona_router
 from src.routes.tipo_caficultor import tipo_caficultor_router
 from src.routes.tipo_documento import tipo_documento_router
+from src.routes.tipo_grano import tipo_grano_router
 from src.routes.tipo_personal import tipo_personal_router
 from src.routes.ubigeo import ubigeo_router
 from src.routes.valor_cafe import valor_cafe_router
@@ -59,6 +60,7 @@ app.include_router(dni_router, prefix="/dni", tags=["dni"])
 app.include_router(persona_router, prefix="/persona", tags=["persona"])
 app.include_router(tipo_caficultor_router, prefix="/tipo-caficultor", tags=["tipo-caficultor"])
 app.include_router(tipo_documento_router, prefix="/tipo-documento", tags=["tipo-documento"])
+app.include_router(tipo_grano_router, prefix="/tipo-grano", tags=["tipo-grano"])
 app.include_router(tipo_personal_router, prefix="/tipo-personal", tags=["tipo-personal"])
 app.include_router(ubigeo_router, prefix="/ubigeo", tags=["ubigeo"])
 app.include_router(valor_cafe_router, prefix="/valor-cafe", tags=["valor-cafe"])
