@@ -65,3 +65,19 @@ When a service needs to write to multiple tables atomically, it creates one `Con
 | `/nuevo-caficultor` | `nuevo_caficultor.html` |
 | `/monitoreo` | `monitoreo.html` |
 | `/registro` | `registro.html` |
+
+## Backend Rules (always apply when writing Python/FastAPI code)
+
+**Before creating anything new:** Does it already exist? → Reuse. Minor variation? → Parametrize. No unique value? → Delete.
+
+**Layer discipline** (never cross boundaries):
+- Routes: HTTP only, no business logic, no SQL
+- Services: orchestration and business logic, no SQL
+- Models: raw SQL only, no logic
+- Schemas: all Pydantic validation here, nowhere else
+
+**Non-negotiables:**
+- Type hints on every function (Python 3.10+ syntax: `list[dict]`, `str | None`)
+- SQL always parametrized: `db.obtener("SELECT … WHERE id=%s", [id])` — never f-strings
+- Always `try … finally: db.close()` when opening a Connection manually
+- No duplicate methods — one flexible parametrized method beats three near-identical ones
