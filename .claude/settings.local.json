@@ -6,7 +6,11 @@
       "Bash(python -c ' *)",
       "Bash(Get-ChildItem -Recurse -Force)",
       "Bash(Select-Object -First 50 FullName)",
-      "Bash(xargs grep -l \"ubigeo_sunat\\\\|reniec\\\\|dni.*consultar\")"
+      "Bash(xargs grep -l \"ubigeo_sunat\\\\|reniec\\\\|dni.*consultar\")",
+      "Bash(mkdir -p \"d:/TesisPrj/.claude/skills/frontend-coffeeren\")"
+    ],
+    "additionalDirectories": [
+      "d:\\TesisPrj\\.claude\\skills"
     ]
   }
 }

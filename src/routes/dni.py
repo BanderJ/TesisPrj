@@ -1,27 +1,21 @@
-import re
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Path
 
-from src.apis.reniec_api import ReniecApi
+from src.services.dni_service import DniService
 from src.schemas.dni import DniConsultaResponse
 
 dni_router = APIRouter()
+_dni_service = DniService()
 
 
 @dni_router.get("/consultar/{dni}", response_model=DniConsultaResponse)
-async def consultar_dni(dni: str) -> DniConsultaResponse:
-    """Consulta datos personales de un DNI via Factiliza y devuelve campos normalizados."""
-    if not re.fullmatch(r"\d{8}", dni):
-        raise HTTPException(status_code=400, detail="El DNI debe tener exactamente 8 digitos.")
-
+async def consultar_dni(
+    dni: Annotated[str, Path(pattern=r"^\d{8}$", description="Número de DNI de 8 dígitos")],
+) -> DniConsultaResponse:
     try:
-        data = ReniecApi.consultar_dni(dni)
+        return _dni_service.consultar_dni(dni)
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail="Error al consultar el servicio externo.") from exc
-
-    if data is None:
-        return DniConsultaResponse(encontrado=False)
-
-    return DniConsultaResponse(encontrado=True, **data)
