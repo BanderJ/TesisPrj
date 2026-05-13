@@ -1,15 +1,15 @@
 {% extends "main.html" %}
 
 {% block style %}
-	<link rel="stylesheet" href="/static/css/registro.css">
+	<link rel="stylesheet" href="/static/css/registro.css?v=3">
 {% endblock %}
 
 {% block content %}
 <section class="registro-page" aria-label="Registro de muestra de cafe">
 	<div class="registro-header card">
-		<p class="kicker info-text">Captura de muestra</p>
-		<h1>Registro de muestra</h1>
-		<p class="info-text">Completa la ficha tecnica para iniciar clasificacion. El monitoreo se abrira en una vista dedicada.</p>
+		<!-- <p class="kicker info-text">Captura de muestra</p> -->
+		<h1 class="hero-title">Registro de muestra</h1>
+		<p class="hero-description">Completa la ficha tecnica para iniciar clasificacion. El monitoreo se abrira en una vista dedicada.</p>
 	</div>
 
 	<form id="registroForm" class="registro-form" novalidate>
@@ -108,6 +108,7 @@
 			<button type="button" id="clearFormBtn" class="btn btn-outline">Limpiar formulario</button>
 			<button type="button" id="startMonitoringBtn" class="btn btn-primary">Iniciar clasificacion y monitoreo</button>
 		</div>
+		<p id="submitError" class="helper-text helper-error" style="text-align:center;margin-top:.5rem;" aria-live="polite"></p>
 	</form>
 </section>
 
@@ -379,24 +380,41 @@
 
 		// ── Persistencia ──────────────────────────────────────────────────
 
-		function guardarMuestraPendiente() {
-			sessionStorage.setItem('coffeeren.pendingSample', JSON.stringify({
-				tipoDocumentoId:   tipoDocumentoSelect.value,
-				tipoDocumentoNombre: tipoDocumentoSelect.options[tipoDocumentoSelect.selectedIndex]?.text || '',
-				numDocumento:      numDocumentoInput.value.trim(),
-				nombreCaficultor:  nombreCaficultorInput.value.trim(),
-				tipoCaficultor:    tipoCaficultorInput.value.trim(),
-				tipoGranoId:       tipoGranoSelect.value,
-				tipoGranoNombre:   tipoGranoSelect.options[tipoGranoSelect.selectedIndex]?.text || '',
-				numSacos:          parseInt(numSacosInput.value, 10),
-				pesoTotal:         redondear2(pesoTotalInput.value),
-				humedad:           redondear2(humedadInput.value),
-				pesoMuestra:       redondear2(pesoMuestraInput.value),
-				pesoTrillado:      redondear2(pesoTrilladoInput.value),
-				numTamiz:          parseInt(numTamizInput.value, 10),
-				pesoTamizado:      redondear2(pesoTamizadoInput.value),
-				fechaRegistro:     new Date().toISOString(),
-			}));
+		const submitErrorEl = document.getElementById('submitError');
+
+		async function registrarEvaluacion() {
+			submitErrorEl.textContent = '';
+			startBtn.disabled = true;
+			startBtn.textContent = 'Registrando...';
+			try {
+				const body = {
+					num_documento: numDocumentoInput.value.trim(),
+					num_sacos:     parseInt(numSacosInput.value, 10),
+					peso_bruto:    redondear2(pesoTotalInput.value),
+					humedad:       parseInt(humedadInput.value, 10),
+					peso_muestra:  redondear2(pesoMuestraInput.value),
+					peso_trillado: redondear2(pesoTrilladoInput.value),
+					num_tamiz:     parseInt(numTamizInput.value, 10),
+					peso_tamizado: redondear2(pesoTamizadoInput.value),
+					tipo_grano_id: parseInt(tipoGranoSelect.value, 10),
+				};
+				const res = await fetch('/evaluacion/registrar', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(body),
+				});
+				if (!res.ok) {
+					const err = await res.json();
+					throw new Error(err.detail || 'Error al registrar la evaluacion.');
+				}
+				const { data } = await res.json();
+				sessionStorage.setItem('coffeeren.evaluacion', JSON.stringify(data));
+				window.location.href = `/monitoreo/${encodeURIComponent(data.evaluacion_id)}`;
+			} catch (err) {
+				submitErrorEl.textContent = err.message || 'Error inesperado. Intente nuevamente.';
+				startBtn.disabled = false;
+				startBtn.textContent = 'Iniciar clasificacion y monitoreo';
+			}
 		}
 
 		function clearAll() {
@@ -475,7 +493,7 @@
 			.forEach(forzar2Decimales);
 
 		startBtn.addEventListener('click', () => {
-			if (validateForm()) { guardarMuestraPendiente(); window.location.href = '/monitoreo'; }
+			if (validateForm()) registrarEvaluacion();
 		});
 		clearBtn.addEventListener('click', clearAll);
 

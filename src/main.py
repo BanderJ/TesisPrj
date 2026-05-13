@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 
 from src.routes.auth_login import auth as auth_router
 from src.routes.caficultor import caficultor_router
+from src.routes.evaluacion import evaluacion_router
 from src.routes.dni import dni_router
 from src.routes.persona import persona_router
 from src.routes.tipo_caficultor import tipo_caficultor_router
@@ -56,6 +57,7 @@ async def auth_exception_handler(request: Request, exc: RequerirLoginException) 
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
+app.include_router(evaluacion_router, prefix="/evaluacion", tags=["evaluacion"])
 app.include_router(dni_router, prefix="/dni", tags=["dni"])
 app.include_router(persona_router, prefix="/persona", tags=["persona"])
 app.include_router(tipo_caficultor_router, prefix="/tipo-caficultor", tags=["tipo-caficultor"])
@@ -87,13 +89,31 @@ async def registro(request: Request, user: dict[str, Any] = Depends(obtener_usua
     )
 
 
-@app.get("/monitoreo")
-async def monitoreo(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
+@app.get("/analisis/{evaluacion_id}")
+async def analisis(
+    evaluacion_id: str,
+    request: Request,
+    user: dict[str, Any] = Depends(obtener_usuario_actual),
+) -> Any:
+    """Página de resumen estadístico del análisis finalizado."""
+    return templates.TemplateResponse(
+        request=request,
+        name="analisis.html",
+        context={"request": request, "user": user, "evaluacion_id": evaluacion_id},
+    )
+
+
+@app.get("/monitoreo/{evaluacion_id}")
+async def monitoreo(
+    evaluacion_id: str,
+    request: Request,
+    user: dict[str, Any] = Depends(obtener_usuario_actual),
+) -> Any:
     """Página de monitoreo en tiempo real de clasificación."""
     return templates.TemplateResponse(
         request=request,
         name="monitoreo.html",
-        context={"request": request, "user": user},
+        context={"request": request, "user": user, "evaluacion_id": evaluacion_id},
     )
 
 
@@ -104,6 +124,16 @@ async def nuevo_caficultor(request: Request, user: dict[str, Any] = Depends(obte
     return templates.TemplateResponse(
         request=request,
         name="nuevo_caficultor.html",
+        context={"request": request, "user": user},
+    )
+
+
+@app.get("/reporte")
+async def reporte(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
+    """Página de búsqueda de muestras por código de evaluación."""
+    return templates.TemplateResponse(
+        request=request,
+        name="reporte.html",
         context={"request": request, "user": user},
     )
 

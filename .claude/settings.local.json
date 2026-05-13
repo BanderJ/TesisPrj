@@ -5,7 +5,8 @@
       "Bash(python -c \"from src.main import app; print\\('OK', [r.path for r in app.routes if '/ubigeo' in r.path]\\)\")",
       "Bash(python -c ' *)",
       "Bash(Get-ChildItem -Recurse -Force)",
-      "Bash(Select-Object -First 50 FullName)"
+      "Bash(Select-Object -First 50 FullName)",
+      "Bash(xargs grep -l \"ubigeo_sunat\\\\|reniec\\\\|dni.*consultar\")"
     ]
   }
 }

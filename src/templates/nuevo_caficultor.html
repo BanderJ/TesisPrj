@@ -1,34 +1,32 @@
 {% extends "main.html" %}
 
 {% block style %}
-    <link rel="stylesheet" href="/static/css/nuevo_caficultor.css">
+    <link rel="stylesheet" href="/static/css/nuevo_caficultor.css?v=7">
 {% endblock %}
 
 {% block content %}
 <section class="socio-page grid gap-3" aria-label="Flujo de registro y conversion de caficultores">
-    <header class="card socio-hero">
-        <p class="socio-kicker info-text">Modulo de afiliacion</p>
-        <h1>Registro y conversion de caficultores</h1>
-        <p class="info-text">
+    <header class="page-hero">
+        <h1 class="hero-title">Registro y conversion de caficultores</h1>
+        <p class="hero-description">
             Gestiona en una sola pantalla el registro de nuevos caficultores y su conversion a socio activo.
         </p>
     </header>
 
     <section class="decision-grid" aria-label="Seleccion de flujo">
         <article class="decision-card" id="cardNuevo">
-            <p class="flow-tag info-text">Flujo A</p>
-            <img class="decision-media" src="/resources/nuevo_caficultor2.jpg" alt="Nuevo caficultor en proceso de registro" loading="lazy">
             <h2>Nuevo Registro</h2>
+            <img class="decision-media" src="/resources/nuevo_caficultor2.jpg" alt="Nuevo caficultor en proceso de registro" loading="lazy">
             <p class="info-text">Registrar caficultor por primera vez.</p>
-            <button type="button" id="btnSelectNuevo" class="flow-btn">Seleccionar</button>
+            <button type="button" id="btnSelectNuevo" class="btn btn-primary flow-btn">Seleccionar</button>
         </article>
 
         <article class="decision-card" id="cardConversion">
-            <p class="flow-tag info-text">Flujo B</p>
-            <img class="decision-media" src="/resources/conversion_socio2.jpg" alt="Caficultor en conversion a socio" loading="lazy">
+            <!-- <p class="flow-tag info-text">Flujo B</p> -->
             <h2>Conversion a Socio</h2>
+            <img class="decision-media" src="/resources/conversion_socio2.jpg" alt="Caficultor en conversion a socio" loading="lazy">
             <p class="info-text">Convertir caficultor externo existente en socio activo.</p>
-            <button type="button" id="btnSelectConversion" class="flow-btn">Seleccionar</button>
+            <button type="button" id="btnSelectConversion" class="btn btn-primary flow-btn">Seleccionar</button>
         </article>
     </section>
 
@@ -117,8 +115,8 @@
                         </select>
                     </div>
                     <div class="form-actions">
-                        <button type="button" id="btnLimpiarNuevo" class="action-btn is-secondary">Limpiar</button>
-                        <button type="submit" id="btnGuardarNuevo" class="action-btn is-primary">Registrar caficultor</button>
+                        <button type="button" id="btnLimpiarNuevo" class="btn btn-secondary">Limpiar</button>
+                        <button type="submit" id="btnGuardarNuevo" class="btn btn-primary">Registrar caficultor</button>
                     </div>
                 </div>
             </div>
@@ -136,6 +134,29 @@
         <div class="panel-head">
             <h3>Conversion de caficultor a socio</h3>
             <p class="info-text">Busca automaticamente por tipo y documento cuando se complete la longitud valida.</p>
+        </div>
+
+        <div class="conversion-info-stack">
+
+            <div class="conversion-bonus-banner">
+                Al convertirse en <strong>socio activo</strong>, el caficultor recibirá un
+                <strong>pago adicional de S/ 20.00</strong> sobre el precio final de
+                liquidación en cada entrega registrada en el sistema.
+            </div>
+
+            <label class="prereq-label" for="checkDocumentosValidados">
+                <input type="checkbox" id="checkDocumentosValidados" class="prereq-input">
+                <span class="prereq-box">
+                    <svg class="prereq-check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="1.5 6 4.5 9.5 10.5 2.5"/>
+                    </svg>
+                </span>
+                <span class="prereq-text">
+                    <span class="prereq-text-title">Confirmo que los documentos han sido validados</span>
+                    <span class="prereq-text-desc">El caficultor tiene todos sus documentos entregados y verificados por el área correspondiente, y está habilitado para la conversión a socio.</span>
+                </span>
+            </label>
+
         </div>
 
         <div class="card flow-card">
@@ -165,7 +186,7 @@
             </div>
 
             <div class="form-actions">
-                <button type="button" id="btnConvertirSocio" class="action-btn is-primary" disabled>Convertir a Socio</button>
+                <button type="button" id="btnConvertirSocio" class="btn btn-primary" disabled>Convertir a Socio</button>
             </div>
         </div>
     </section>
@@ -213,6 +234,7 @@
         const conversionResumen = document.getElementById('conversionResumen');
         const resNombre = document.getElementById('resNombre');
         const resTipo = document.getElementById('resTipo');
+        const checkDocumentosValidados = document.getElementById('checkDocumentosValidados');
 
         const tiposDocumento = new Map();
         const tiposCaficultor = new Map();
@@ -354,9 +376,9 @@
             panelConversion.setAttribute('aria-hidden', modo !== 'conversion');
 
             if (modo === 'nuevo') {
-                panelNuevo.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+                setTimeout(() => panelNuevo.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
             } else if (modo === 'conversion') {
-                panelConversion.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+                setTimeout(() => panelConversion.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
             }
         }
 
@@ -404,6 +426,7 @@
             btnConvertirSocio.disabled = true;
             resNombre.textContent = '-';
             resTipo.textContent = '-';
+            checkDocumentosValidados.checked = false;
             setConversionResumenVisible(false);
             clearConversionBanner();
         }
@@ -562,10 +585,11 @@
             if (data.fecha_nacimiento) fechaNacimiento.value = data.fecha_nacimiento;
             if (data.telefono)         telefono.value        = data.telefono;
 
-            if (data.ubigeo && /^\d{6}$/.test(data.ubigeo)) {
-                const deptoCode = data.ubigeo.substring(0, 2);
-                const provCode  = data.ubigeo.substring(0, 4);
-                const distCode  = data.ubigeo;
+            const ubigeoCode = data.ubigeo_sunat || data.ubigeo;
+            if (ubigeoCode && /^\d{6}$/.test(ubigeoCode)) {
+                const deptoCode = ubigeoCode.substring(0, 2);
+                const provCode  = ubigeoCode.substring(0, 4);
+                const distCode  = ubigeoCode;
 
                 departamento.value = deptoCode;
                 await cargarProvincias(deptoCode);
@@ -664,11 +688,26 @@
 
                 if (tipoActual === TIPO_EXTERNO_NOMBRE) {
                     documentoExisteComoExterno = true;
-                    setRegistroBanner(
-                        'Este caficultor ya esta registrado como Externo.',
-                        'accent',
-                        true,
-                    );
+                    const nombreCaf = payload.data.nombre_completo || documento;
+                    const irAConversion = await CoffeeModal.confirm({
+                        type: 'warning',
+                        title: `Caficultor ya registrado: ${nombreCaf}`,
+                        message: 'Este caficultor ya está registrado como Externo. ¿Desea convertirlo a Socio ahora mismo?',
+                        okText: 'Sí, convertir',
+                        cancelText: 'No',
+                    });
+                    if (irAConversion) {
+                        if (tipoDocumentoId.value) {
+                            tipoDocumentoConversionId.value = tipoDocumentoId.value;
+                        }
+                        aplicarReglaDocumentoConversion();
+                        const regla = obtenerReglaDocumento(tipoDocumentoConversionId.value);
+                        const documento = limpiarDocumentoSegunRegla(numDocumento.value, regla);
+                        setModo('conversion');
+                        buscarDocumento.value = documento;
+                        ultimaClaveBusquedaConversion = '';
+                        intentarBusquedaAutomaticaConversion();
+                    }
                     return;
                 }
 
@@ -729,6 +768,7 @@
                     return;
                 }
 
+                checkDocumentosValidados.checked = false;
                 btnConvertirSocio.disabled = false;
                 setConversionBanner('Caficultor externo encontrado. Puede convertirlo a socio.', 'success');
             } catch (error) {
@@ -785,6 +825,14 @@
 
             if (!conversionEncontrado) {
                 CoffeeModal.warning('Primero debe buscar y validar un caficultor externo.');
+                return;
+            }
+
+            if (!checkDocumentosValidados.checked) {
+                CoffeeModal.warning(
+                    'Debe confirmar que el caficultor tiene todos sus documentos validados y verificados antes de proceder con la conversión a socio.',
+                    'Requisito pendiente',
+                );
                 return;
             }
 

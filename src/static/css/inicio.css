@@ -1,17 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap');
 
-.info-text {
-    font-size: 16px !important;
-    line-height: 1.5;
-}
-
 .control-hero,
 .dashboard-board,
 .workflow-section {
     background-color: var(--card);
     border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
     border-radius: 18px;
-    box-shadow: var(--shadow-lg);
     margin-bottom: 12px;
     padding: clamp(14px, 1.4vw, 22px);
 }
@@ -23,15 +17,6 @@
     grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
     gap: 14px;
     align-items: start;
-}
-
-.hero-kicker {
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--primary);
-    font-weight: 700;
-    font-size: 11px;
 }
 
 .hero-title,
@@ -141,10 +126,8 @@
 .price-label {
     margin: 0;
     color: var(--muted-foreground);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     font-weight: 700;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .price-value {
@@ -168,7 +151,7 @@
 .price-date {
     margin: 6px 0 0;
     color: var(--muted-foreground);
-    font-size: 12px !important;
+    font-size: 12px;
 }
 
 .rango-divider {
@@ -270,6 +253,7 @@
 .chart-svg-wrapper {
     flex: 1;
     min-height: 170px;
+    position: relative;
 }
 
 .price-chart-svg {
@@ -288,7 +272,6 @@
 .chart-ylabel {
     fill: var(--muted-foreground);
     font-size: 11px;
-    font-family: var(--font-sans, system-ui, sans-serif);
     dominant-baseline: middle;
     text-anchor: start;
 }
@@ -296,7 +279,6 @@
 .chart-xlabel {
     fill: var(--muted-foreground);
     font-size: 11px;
-    font-family: var(--font-sans, system-ui, sans-serif);
     dominant-baseline: auto;
     text-anchor: middle;
 }
@@ -311,24 +293,36 @@
     cursor: crosshair;
 }
 
-.chart-tooltip-bg {
-    fill: var(--card);
-    stroke: color-mix(in oklab, var(--border) 85%, transparent 15%);
-    stroke-width: 1;
-    filter: drop-shadow(0 3px 10px rgba(0,0,0,0.13));
+.chart-tip-overlay {
+    position: absolute;
+    pointer-events: none;
+    background: var(--card);
+    border: 1px solid color-mix(in oklab, var(--border) 85%, transparent 15%);
+    border-radius: 9px;
+    padding: 7px 11px;
+    white-space: nowrap;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.13);
+    z-index: 10;
 }
 
-.chart-tooltip-price {
-    fill: var(--foreground);
+.chart-tip-overlay[hidden] {
+    display: none;
+}
+
+.chart-tip-price {
+    display: block;
+    font-family: var(--font-serif);
     font-size: 14px;
     font-weight: 700;
-    font-family: var(--font-serif, Georgia, serif);
+    color: var(--foreground);
+    line-height: 1.3;
 }
 
-.chart-tooltip-label {
-    fill: var(--muted-foreground);
+.chart-tip-label {
+    display: block;
     font-size: 11px;
-    font-family: var(--font-sans, system-ui, sans-serif);
+    color: var(--muted-foreground);
+    margin-top: 2px;
 }
 
 /* Empty / error state */
@@ -420,30 +414,8 @@
 }
 
 .workflow-btn {
+    width: 100%;
     margin-top: auto;
-    min-height: 36px;
-    border-radius: 9px;
-    border: 1px solid color-mix(in oklab, var(--border) 78%, transparent 22%);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 0 14px;
-    cursor: pointer;
-}
-
-.workflow-btn.primary {
-    background: color-mix(in oklab, var(--primary) 90%, white 10%);
-    color: var(--primary-foreground);
-    border-color: transparent;
-    box-shadow: 0 8px 20px color-mix(in oklab, var(--primary) 36%, transparent 64%);
-}
-
-.workflow-btn.muted {
-    background: color-mix(in oklab, var(--muted) 70%, transparent 30%);
-    color: var(--muted-foreground);
 }
 
 /* ===================== ANIMATIONS ===================== */

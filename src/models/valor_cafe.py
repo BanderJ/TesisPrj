@@ -63,6 +63,22 @@ class ValorCafe:
         finally:
             db.close()
 
+    def obtener_mas_reciente(self, db: Connection | None = None) -> dict[str, Any] | None:
+        """Retorna el registro de valor_cafe más reciente por fecha."""
+        owns_db = db is None
+        db = db or Connection()
+        try:
+            sql = """
+                SELECT id::text, rango, precio, fecha
+                FROM valor_cafe
+                ORDER BY fecha DESC
+                LIMIT 1
+            """
+            return db.obtener_uno(sql)
+        finally:
+            if owns_db:
+                db.close()
+
     def crear(self, rango: str, precio: float) -> dict[str, Any]:
         """Inserta un nuevo registro de valor_cafe. Retorna el registro creado."""
         db = Connection()

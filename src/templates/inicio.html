@@ -1,13 +1,13 @@
 {% extends "main.html" %}
 
 {% block style %}
-    <link rel="stylesheet" href="/static/css/inicio.css?v=20260422">
+    <link rel="stylesheet" href="/static/css/inicio.css?v=20260512c">
 {% endblock %}
 
 {% block content %}
     <section class="control-hero reveal-up" aria-label="Centro de control CoffeeRen">
-        <div class="hero-copy">
-            <p class="hero-kicker info-text">Centro de control academico</p>
+        <div class="socio-hero">
+            <!-- <p class="hero-kicker info-text">Centro de control academico</p> -->
             <h1 class="hero-title">Clasificacion inteligente de cafe verde</h1>
             <p class="hero-description">
                 Visualiza el estado de laboratorio, monitorea lotes en proceso y coordina el flujo de clasificacion
@@ -35,7 +35,7 @@
         <div class="board-header">
             <div class="board-header-copy">
                 <h2 id="board-title" class="section-title">Precio referencial del café</h2>
-                <p class="section-subtitle info-text">Historial por rango de calidad · soles por quintal</p>
+                <p class="section-subtitle info-text">Historial por rango de rendimiento del café verde</p>
             </div>
             <div class="period-tabs" id="periodTabs" role="group" aria-label="Periodo del grafico">
                 <button class="period-tab is-active" data-period="dia">Hoy</button>
@@ -46,7 +46,7 @@
 
         <div class="board-grid">
             <article class="price-card" aria-label="Precio referencial hoy">
-                <p class="price-label info-text">Precio máximo (Por quintal (56 kg))</p>
+                <p class="price-label info-text">Precio máximo por quintal</p>
                 <p class="price-value" id="coffeePriceValue">—</p>
                 <p class="price-change" id="coffeePriceChange">—</p>
                 <p class="price-date info-text" id="coffeePriceDate">—</p>
@@ -65,6 +65,7 @@
                 </div>
                 <div class="chart-svg-wrapper">
                     <svg id="priceChartSvg" class="price-chart-svg" viewBox="0 0 800 210" xmlns="http://www.w3.org/2000/svg"></svg>
+                    <div id="chartTip" class="chart-tip-overlay" aria-hidden="true" hidden></div>
                 </div>
                 <p class="chart-empty" id="chartEmpty" hidden>Sin registros para este período</p>
             </article>
@@ -103,28 +104,28 @@
                 <div class="workflow-badge">01</div>
                 <h3>Registrar caficultor</h3>
                 <p>Registro de productor para trazabilidad territorial y analisis por procedencia.</p>
-                <a href="/nuevo-caficultor" class="workflow-btn primary">Registrar</a>
+                <a href="/nuevo-caficultor" class="btn btn-primary workflow-btn">Registrar</a>
             </article>
 
             <article class="workflow-card">
                 <div class="workflow-badge">02</div>
                 <h3>Registrar socio</h3>
                 <p>Gestion de socios y consolidacion de actores vinculados a cada lote.</p>
-                <a href="/nuevo-caficultor" class="workflow-btn primary">Convertir a socio</a>
+                <a href="/nuevo-caficultor" class="btn btn-primary workflow-btn">Convertir a socio</a>
             </article>
 
             <article class="workflow-card">
                 <div class="workflow-badge">03</div>
                 <h3>Realizar muestra</h3>
                 <p>Captura tecnica de pesos y datos de productor para iniciar clasificacion.</p>
-                <a href="/registro" class="workflow-btn primary">Ir a registro</a>
+                <a href="/registro" class="btn btn-primary workflow-btn">Ir a registro</a>
             </article>
 
             <article class="workflow-card">
                 <div class="workflow-badge">04</div>
                 <h3>Buscar muestras</h3>
                 <p>Consulta historica por documento, fecha, rendimiento y estado de lote.</p>
-                <button type="button" class="workflow-btn muted" disabled>Disponible pronto</button>
+                <a href="/reporte" class="btn btn-primary workflow-btn">Buscar muestra</a>
             </article>
         </div>
     </section>
@@ -139,6 +140,7 @@
         const rangoListEl    = document.getElementById('rangoList');
         const rangoLegendEl  = document.getElementById('rangoLegend');
         const chartSvgEl     = document.getElementById('priceChartSvg');
+        const chartTipEl     = document.getElementById('chartTip');
         const chartEmptyEl   = document.getElementById('chartEmpty');
         const periodTabsEl   = document.getElementById('periodTabs');
         const kpiRangosEl    = document.getElementById('kpiRangos');
@@ -304,46 +306,47 @@ ${gridHtml}
 ${xHtml}
 <line id="hLine" x1="0" y1="${MT}" x2="0" y2="${btmY}" class="chart-hover-line" visibility="hidden" pointer-events="none"/>
 <circle id="hDot" cx="0" cy="0" r="5" fill="${color}" stroke="var(--card)" stroke-width="2.5" visibility="hidden" pointer-events="none"/>
-<g id="hTip" visibility="hidden" pointer-events="none">
-  <rect id="hBg" x="0" y="0" width="130" height="50" rx="9" class="chart-tooltip-bg"/>
-  <text id="hPrice" x="12" y="22" class="chart-tooltip-price"></text>
-  <text id="hLabel" x="12" y="38" class="chart-tooltip-label"></text>
-</g>
 ${hitHtml}`;
 
             /* Hover interactions */
-            const hLine  = chartSvgEl.querySelector('#hLine');
-            const hDot   = chartSvgEl.querySelector('#hDot');
-            const hTip   = chartSvgEl.querySelector('#hTip');
-            const hBg    = chartSvgEl.querySelector('#hBg');
-            const hPrice = chartSvgEl.querySelector('#hPrice');
-            const hLabel = chartSvgEl.querySelector('#hLabel');
+            const hLine = chartSvgEl.querySelector('#hLine');
+            const hDot  = chartSvgEl.querySelector('#hDot');
+
+            function svgToWrapper(x, y) {
+                const pt = chartSvgEl.createSVGPoint();
+                pt.x = x; pt.y = y;
+                const screen = pt.matrixTransform(chartSvgEl.getScreenCTM());
+                const rect   = chartSvgEl.parentElement.getBoundingClientRect();
+                return { x: screen.x - rect.left, y: screen.y - rect.top };
+            }
 
             chartSvgEl.querySelectorAll('.chart-hit').forEach(r => {
                 r.addEventListener('mouseenter', () => {
                     const i  = Number(r.dataset.i);
                     const cx = xOf(i), cy = coords[i].y;
-                    const tw = 134, th = 52;
-                    let tx = cx + 12;
-                    if (tx + tw > VB_W - 4) tx = cx - tw - 12;
-                    let ty = Math.max(MT, cy - th - 8);
 
                     hLine.setAttribute('x1', cx); hLine.setAttribute('x2', cx);
                     hLine.setAttribute('visibility', 'visible');
                     hDot.setAttribute('cx', cx); hDot.setAttribute('cy', cy);
                     hDot.setAttribute('visibility', 'visible');
-                    hBg.setAttribute('x', tx); hBg.setAttribute('y', ty);
-                    hBg.setAttribute('width', tw); hBg.setAttribute('height', th);
-                    hPrice.setAttribute('x', tx+10); hPrice.setAttribute('y', ty+22);
-                    hLabel.setAttribute('x', tx+10); hLabel.setAttribute('y', ty+38);
-                    hPrice.textContent = `S/ ${puntos[i].precio.toFixed(2)}`;
-                    hLabel.textContent = puntos[i].etiqueta;
-                    hTip.setAttribute('visibility', 'visible');
+
+                    chartTipEl.innerHTML = `<span class="chart-tip-price">S/ ${puntos[i].precio.toFixed(2)}</span><span class="chart-tip-label">${puntos[i].etiqueta}</span>`;
+                    chartTipEl.hidden = false;
+
+                    const tipW = chartTipEl.offsetWidth;
+                    const tipH = chartTipEl.offsetHeight;
+                    const pos  = svgToWrapper(cx, cy);
+                    const wrapW = chartSvgEl.parentElement.offsetWidth;
+                    let left = pos.x + 14;
+                    if (left + tipW > wrapW - 4) left = pos.x - tipW - 14;
+                    const top = Math.max(0, pos.y - tipH - 8);
+                    chartTipEl.style.left = left + 'px';
+                    chartTipEl.style.top  = top  + 'px';
                 });
                 r.addEventListener('mouseleave', () => {
                     hLine.setAttribute('visibility', 'hidden');
                     hDot.setAttribute('visibility',  'hidden');
-                    hTip.setAttribute('visibility',  'hidden');
+                    chartTipEl.hidden = true;
                 });
             });
         }

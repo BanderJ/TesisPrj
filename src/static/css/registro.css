@@ -2,23 +2,7 @@
     display: grid;
     gap: 0.85rem;
     width: 100%;
-    font-family: var(--font-sans);
     color: var(--foreground);
-    font-size: inherit;
-}
-
-.info-text {
-    font-size: 16px !important;
-    line-height: 1.5;
-}
-
-.kicker {
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--primary);
-    font-weight: 700;
-    font-size: 11px;
 }
 
 .registro-header {
@@ -55,7 +39,6 @@
     border-radius: 16px;
     border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
     background: color-mix(in oklab, var(--card) 97%, transparent 3%);
-    box-shadow: var(--shadow-sm);
     padding: clamp(12px, 1.3vw, 18px);
 }
 
@@ -108,7 +91,6 @@
     min-height: 2.5rem;
     padding: 0.45rem 0.7rem;
     font-size: 14px;
-    font-family: var(--font-sans);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -172,9 +154,8 @@
     padding: 0.4rem 0.9rem;
     font-size: 13px;
     font-weight: 600;
-    font-family: var(--font-sans);
     cursor: pointer;
-    transition: box-shadow 0.18s ease, background-color 0.18s ease;
+    transition: filter 0.18s ease;
 }
 
 .btn:disabled {
@@ -209,24 +190,8 @@
 }
 
 @media (max-width: 640px) {
-
-    .registro-page {
-        font-size: 16px;
-    }
-
-    .info-text {
-        font-size: 15px !important;
-    }
-
-    .form-row--2 {
-        grid-template-columns: 1fr;
-    }
-
     .action-row {
         flex-direction: column;
         align-items: stretch;
     }
-}
-.btn-primary:hover {
-    filter: brightness(0.85) saturate(1.1);
 }

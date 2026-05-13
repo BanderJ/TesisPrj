@@ -1,30 +1,44 @@
 {% extends "main.html" %}
 
 {% block style %}
-	<link rel="stylesheet" href="/static/css/monitoreo.css">
+	<link rel="stylesheet" href="/static/css/monitoreo.css?v=4">
 {% endblock %}
 
 {% block content %}
 <section class="monitor-page" aria-label="Monitoreo en tiempo real">
-	<header class="card monitor-hero">
-		<div>
-			<p class="kicker info-text">Clasificacion en curso</p>
-			<h1>Monitoreo en tiempo real</h1>
-			<p class="info-text">Supervisa deteccion de granos y defectos mientras el lote avanza en la banda.</p>
-		</div>
+	<header class="page-hero monitor-hero">
+		<!-- <p class="kicker info-text">Clasificacion en curso</p> -->
+		<h1 class="hero-title">Monitoreo en tiempo real</h1>
+		<p class="hero-description">Supervisa deteccion de granos y defectos mientras el lote avanza en la banda.</p>
 
 		<div class="hero-meta">
 			<article>
-				<span class="info-text">Documento</span>
+				<span>Documento</span>
 				<strong id="sampleDni">-</strong>
 			</article>
 			<article>
-				<span class="info-text">Caficultor</span>
+				<span>Caficultor</span>
 				<strong id="sampleName">-</strong>
 			</article>
 			<article>
-				<span class="info-text">Tamiz</span>
+				<span>Tipo caficultor</span>
+				<strong id="sampleTipoCaficultor">-</strong>
+			</article>
+			<article>
+				<span>Grano</span>
+				<strong id="sampleGrano">-</strong>
+			</article>
+			<article>
+				<span>Tamiz</span>
 				<strong id="sampleTamiz">-</strong>
+			</article>
+			<article>
+				<span>Sacos</span>
+				<strong id="sampleSacos">-</strong>
+			</article>
+			<article>
+				<span>Peso bruto</span>
+				<strong id="samplePeso">-</strong>
 			</article>
 		</div>
 	</header>
@@ -102,21 +116,27 @@
 	</div>
 
 	<div class="monitor-actions">
-		<a href="/registro" class="monitor-btn secondary">Volver a registro</a>
-		<button id="toggleStreamBtn" type="button" class="monitor-btn secondary">Pausar simulacion</button>
-		<button id="finishBtn" type="button" class="monitor-btn primary">Finalizar monitoreo</button>
+		<a href="/registro" class="btn btn-secondary">Volver a registro</a>
+		<button id="toggleStreamBtn" type="button" class="btn btn-secondary">Pausar simulacion</button>
+		<button id="finishBtn" type="button" class="btn btn-primary">Finalizar monitoreo</button>
 	</div>
 </section>
 
 <script>
 	(() => {
-		const storedSample = sessionStorage.getItem('coffeeren.pendingSample');
-		const sample = storedSample ? JSON.parse(storedSample) : null;
+		const EVALUACION_ID = '{{ evaluacion_id }}';
 
-		const sampleDni = document.getElementById('sampleDni');
-		const sampleName = document.getElementById('sampleName');
-		const sampleTamiz = document.getElementById('sampleTamiz');
-		const timerEl = document.getElementById('sessionTimer');
+		const storedEval = sessionStorage.getItem('coffeeren.evaluacion');
+		const sample = storedEval ? JSON.parse(storedEval) : null;
+
+		const sampleDni             = document.getElementById('sampleDni');
+		const sampleName            = document.getElementById('sampleName');
+		const sampleTipoCaficultor  = document.getElementById('sampleTipoCaficultor');
+		const sampleTamiz           = document.getElementById('sampleTamiz');
+		const sampleGrano           = document.getElementById('sampleGrano');
+		const sampleSacos           = document.getElementById('sampleSacos');
+		const samplePeso            = document.getElementById('samplePeso');
+		const timerEl               = document.getElementById('sessionTimer');
 
 		const totalGrainsEl = document.getElementById('totalGrains');
 		const totalDefectsEl = document.getElementById('totalDefects');
@@ -134,10 +154,16 @@
 		const toggleBtn = document.getElementById('toggleStreamBtn');
 		const finishBtn = document.getElementById('finishBtn');
 
-		if (sampleDni && sampleName && sampleTamiz) {
-			sampleDni.textContent = sample?.dni || 'No disponible';
-			sampleName.textContent = sample?.nombreCaficultor || 'No disponible';
-			sampleTamiz.textContent = sample?.tamiz ? `${sample.tamiz} mm` : 'No disponible';
+		if (sample) {
+			sampleDni.textContent            = sample.num_documento || '-';
+			sampleName.textContent           = sample.caficultor_nombre || '-';
+			sampleTipoCaficultor.textContent = sample.tipo_caficultor   || '-';
+			sampleTamiz.textContent          = sample.num_tamiz ? `N° ${sample.num_tamiz}` : '-';
+			sampleGrano.textContent          = sample.tipo_grano_nombre || '-';
+			sampleSacos.textContent          = sample.num_sacos ?? '-';
+			samplePeso.textContent           = sample.peso_bruto != null ? `${sample.peso_bruto} kg` : '-';
+		} else {
+			document.querySelectorAll('.hero-meta strong').forEach(el => { el.textContent = 'No disponible'; });
 		}
 
 		let running = true;
@@ -220,14 +246,47 @@
 		}
 
 		if (finishBtn) {
-			finishBtn.addEventListener('click', () => {
+			finishBtn.addEventListener('click', async () => {
+				const confirmed = await CoffeeModal.confirm({
+					title: '¿Finalizar monitoreo?',
+					message: '¿Está seguro de finalizar el monitoreo? Se generará el código de evaluación y no podrá continuar el análisis.',
+				});
+				if (!confirmed) return;
+
 				running = false;
 				clearInterval(timerInterval);
 				clearInterval(simInterval);
-				appendLog('Monitoreo finalizado. Regresando al panel principal...');
-				setTimeout(() => {
-					window.location.href = '/inicio';
-				}, 1200);
+				finishBtn.disabled = true;
+				finishBtn.textContent = 'Finalizando...';
+				appendLog('Cerrando evaluacion y generando codigo...');
+
+				sessionStorage.setItem('coffeeren.stats', JSON.stringify({
+					totalGrains,
+					defectNegro,
+					defectBrocado,
+					defectFermentado,
+					elapsedSeconds,
+				}));
+
+				try {
+					const res = await fetch(`/evaluacion/${EVALUACION_ID}/finalizar`, {
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json' },
+					});
+					if (!res.ok) {
+						const err = await res.json();
+						throw new Error(err.detail || 'Error al finalizar la evaluacion.');
+					}
+					const { codigo } = await res.json();
+					sessionStorage.removeItem('coffeeren.evaluacion');
+					appendLog(`Evaluacion finalizada. Codigo: ${codigo}`);
+					setTimeout(() => { window.location.href = `/analisis/${EVALUACION_ID}`; }, 1200);
+				} catch (err) {
+					appendLog(`Error: ${err.message}`);
+					sessionStorage.removeItem('coffeeren.stats');
+					finishBtn.disabled = false;
+					finishBtn.textContent = 'Finalizar monitoreo';
+				}
 			});
 		}
 

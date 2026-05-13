@@ -1,15 +1,14 @@
 {% extends "main.html" %}
 
 {% block style %}
-    <link rel="stylesheet" href="/static/css/valor_cafe.css">
+    <link rel="stylesheet" href="/static/css/valor_cafe.css?v=5">
 {% endblock %}
 
 {% block content %}
 <section class="valor-cafe-page grid gap-3" aria-label="Gestion de valores de cafe">
-    <header class="card valor-cafe-hero">
-        <p class="valor-cafe-kicker info-text">Módulo de administración</p>
-        <h1>Registro de Precios de Café</h1>
-        <p class="info-text">
+    <header class="page-hero">
+        <h1 class="hero-title">Registro de Precios de Café</h1>
+        <p class="hero-description">
             Registra y gestiona los precios del café según el rango de calidad. Define los rangos libremente (ej: <strong>60-65</strong>, <strong>70</strong>). Se almacenan con la fecha y hora actual.
         </p>
     </header>
@@ -55,14 +54,14 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" id="btnRegistrar" class="vc-btn vc-btn-primary">
-                        <svg class="vc-btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button type="submit" id="btnRegistrar" class="btn btn-primary">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
                         Registrar
                     </button>
-                    <button type="reset" class="vc-btn vc-btn-secondary">
-                        <svg class="vc-btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button type="reset" class="btn btn-secondary">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                         Limpiar
@@ -70,10 +69,10 @@
                 </div>
             </form>
 
-            <div class="bloque-separador"></div>
+            <hr class="bloque-separador">
 
             <!-- Registro en bloque (dinámico) -->
-            <div class="bloque-header bloque-head card-header">
+            <div class="bloque-header">
                 <div>
                     <h3>Registro en Bloque</h3>
                     <p class="info-text">Define rangos y precios libremente. Agrégalos según el día.</p>
@@ -92,14 +91,14 @@
                 </button>
 
                 <div class="form-actions">
-                    <button type="submit" id="btnRegistrarBloque" class="vc-btn vc-btn-primary">
-                        <svg class="vc-btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button type="submit" id="btnRegistrarBloque" class="btn btn-primary">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         Registrar Bloque
                     </button>
-                    <button type="button" id="btnLimpiarBloque" class="vc-btn vc-btn-secondary">
-                        <svg class="vc-btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button type="button" id="btnLimpiarBloque" class="btn btn-secondary">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                         Limpiar Todo

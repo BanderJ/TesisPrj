@@ -9,8 +9,7 @@ body {
     background-size: cover;
     background-position: center;
     color: var(--foreground);
-    font-family: var(--font-sans);
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1.5;
     position: relative;
 }
@@ -47,7 +46,6 @@ body.dark::before {
     background: color-mix(in oklab, var(--card) 86%, transparent 14%);
     border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
     backdrop-filter: blur(16px);
-    box-shadow: var(--shadow-xl);
     border-radius: 22px;
 }
 
@@ -68,11 +66,9 @@ body.dark::before {
 
 .login-kicker {
     margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
     color: var(--primary);
     font-weight: 700;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .login-title {
@@ -85,11 +81,6 @@ body.dark::before {
 .text-descr {
     margin: 0;
     color: var(--muted-foreground);
-}
-
-.info-text {
-    font-size: 16px !important;
-    line-height: 1.55;
 }
 
 .login-feature-list {
@@ -132,7 +123,6 @@ body.dark::before {
     display: grid;
     place-items: center;
     background: color-mix(in oklab, var(--primary) 24%, transparent 76%);
-    box-shadow: 0 6px 16px color-mix(in oklab, var(--primary) 26%, transparent 74%);
     margin-bottom: 12px;
 }
 
@@ -193,7 +183,7 @@ body.dark::before {
     border-radius: 12px;
     color: var(--foreground);
     font-size: inherit;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .input-field {
@@ -271,18 +261,11 @@ body.dark::before {
     cursor: pointer;
     color: var(--primary-foreground);
     background-color: var(--primary);
-    box-shadow: 0 12px 24px color-mix(in oklab, var(--primary) 34%, transparent 66%);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s;
+    transition: filter 0.18s ease;
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 30px color-mix(in oklab, var(--primary) 40%, transparent 60%);
     filter: brightness(0.85) saturate(1.1);
-}
-
-.btn-primary:active {
-    transform: translateY(0);
 }
 
 .panel-links {
@@ -310,10 +293,6 @@ body.dark::before {
 }
 
 @media (max-width: 640px) {
-    body {
-        font-size: 16px;
-    }
-
     .login-container {
         padding: 10px;
     }
@@ -321,9 +300,5 @@ body.dark::before {
     .login-stage {
         padding: 14px;
         gap: 12px;
-    }
-
-    .info-text {
-        font-size: 15px !important;
     }
 }

@@ -1,0 +1,5 @@
+{
+  "sketch": "arduino/coffe_ren/logica_hardware/logica_hardware.ino",
+  "board": "arduino:avr:uno",
+  "output": ".build"
+}
