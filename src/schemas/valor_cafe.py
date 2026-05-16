@@ -102,3 +102,27 @@ class ValorCafeCrearBloqueRequest(BaseModel):
 class ValorCafeCrearBloqueResponse(BaseModel):
     total: int
     data: list[ValorCafeCrearResponse]
+
+
+class ValorCafeActualizarPrecioRequest(BaseModel):
+    rango: str = Field(..., min_length=1, max_length=10, description="Rango a actualizar (debe existir hoy)")
+    precio: float = Field(..., gt=0, description="Nuevo precio, debe ser mayor a 0")
+
+    def validar(self) -> dict[str, str]:
+        errores: dict[str, str] = {}
+        error = _error_rango(self.rango)
+        if error:
+            errores["rango"] = error
+        return errores
+
+
+class ValorCafeActualizarPrecioResponse(BaseModel):
+    id: str
+    rango: str
+    precio: float
+    fecha: datetime
+
+
+class ValorCafeEliminarRangoResponse(BaseModel):
+    eliminados: int
+    rango: str

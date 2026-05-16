@@ -3,9 +3,12 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Query, Depends
 
 from src.schemas.valor_cafe import (
+    ValorCafeActualizarPrecioRequest,
+    ValorCafeActualizarPrecioResponse,
     ValorCafeCambiosDiariosResponse,
     ValorCafeCrearBloqueRequest,
     ValorCafeCrearBloqueResponse,
+    ValorCafeEliminarRangoResponse,
     ValorCafeHistorialResponse,
     ValorCafeCrearRequest,
     ValorCafeCrearResponse,
@@ -92,6 +95,35 @@ async def crear_valor_cafe(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail="Error al crear el registro") from exc
+
+
+@valor_cafe_router.patch("/actualizar-precio", response_model=ValorCafeActualizarPrecioResponse)
+async def actualizar_precio_rango(
+    data: ValorCafeActualizarPrecioRequest,
+    token_payload: dict = Depends(jwt_token_requerido),
+) -> ValorCafeActualizarPrecioResponse:
+    """Reemplaza el precio de un rango del día actual (elimina registros anteriores e inserta uno nuevo)."""
+    validar_permiso_creacion(token_payload)
+    errores = data.validar()
+    if errores:
+        raise HTTPException(status_code=400, detail=str(errores))
+    try:
+        return valor_cafe_service.actualizar_precio_rango(data.rango, data.precio)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Error al actualizar el precio") from exc
+
+
+@valor_cafe_router.delete("/eliminar-rango", response_model=ValorCafeEliminarRangoResponse)
+async def eliminar_rango(
+    rango: str = Query(..., min_length=1, max_length=10, description="Rango a eliminar del día actual"),
+    token_payload: dict = Depends(jwt_token_requerido),
+) -> ValorCafeEliminarRangoResponse:
+    """Elimina todos los registros de un rango en el día actual."""
+    validar_permiso_creacion(token_payload)
+    try:
+        return valor_cafe_service.eliminar_rango_hoy(rango)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Error al eliminar el rango") from exc
 
 
 @valor_cafe_router.post("/crear-bloque", response_model=ValorCafeCrearBloqueResponse)

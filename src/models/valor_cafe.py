@@ -57,7 +57,7 @@ class ValorCafe:
                 FROM valor_cafe
                 WHERE fecha::date = %s
                 GROUP BY rango
-                ORDER BY precio DESC
+                ORDER BY CAST(SPLIT_PART(rango, '-', 1) AS INTEGER) ASC
             """
             return db.obtener(sql, (fecha,))
         finally:
@@ -79,9 +79,32 @@ class ValorCafe:
             if owns_db:
                 db.close()
 
-    def crear(self, rango: str, precio: float) -> dict[str, Any]:
+    def eliminar_por_rango_fecha(
+        self, rango: str, fecha: date, db: Connection | None = None
+    ) -> int:
+        """Elimina todos los registros de un rango en una fecha. Retorna cantidad eliminada."""
+        owns_db = db is None
+        db = db or Connection()
+        try:
+            cursor = db.ejecutar(
+                "DELETE FROM valor_cafe WHERE rango = %s AND fecha::date = %s",
+                (rango, fecha),
+            )
+            if owns_db:
+                db.commit()
+            return cursor.rowcount
+        except Exception:
+            if owns_db:
+                db.rollback()
+            raise
+        finally:
+            if owns_db:
+                db.close()
+
+    def crear(self, rango: str, precio: float, db: Connection | None = None) -> dict[str, Any]:
         """Inserta un nuevo registro de valor_cafe. Retorna el registro creado."""
-        db = Connection()
+        owns_db = db is None
+        db = db or Connection()
         try:
             sql = """
                 INSERT INTO valor_cafe (rango, precio, fecha)
@@ -89,13 +112,16 @@ class ValorCafe:
                 RETURNING id::text, rango, precio, fecha
             """
             fila = db.obtener_uno(sql, (rango, precio))
-            db.commit()
+            if owns_db:
+                db.commit()
             return fila
         except Exception:
-            db.rollback()
+            if owns_db:
+                db.rollback()
             raise
         finally:
-            db.close()
+            if owns_db:
+                db.close()
 
     def crear_bloque(self, precios: list[tuple[str, float]]) -> list[dict[str, Any]]:
         """Inserta multiples registros de valor_cafe en una sola operacion."""

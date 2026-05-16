@@ -13,6 +13,25 @@
         </p>
     </header>
 
+    <!-- Panel: rangos ya registrados hoy -->
+    <section id="panelRangosHoy" class="valor-cafe-content" aria-label="Rangos registrados hoy" style="display:none">
+        <article class="card valor-cafe-card" style="grid-column:1/-1">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+                <div>
+                    <h3>Rangos registrados hoy</h3>
+                    <p class="info-text" id="subtituloRangosHoy">—</p>
+                </div>
+                <button type="button" id="btnRefrescarRangos" class="btn btn-secondary" style="width:auto">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Actualizar
+                </button>
+            </div>
+            <div id="tablaRangosHoy" style="overflow-x:auto;margin-top:.75rem"></div>
+        </article>
+    </section>
+
     <section class="valor-cafe-content" aria-label="Formulario de registro">
         <article class="card valor-cafe-card">
 
@@ -160,6 +179,198 @@
 (function () {
     const RANGO_RE = /^\d+(-\d+)?$/;
 
+    /* ── Panel: rangos registrados hoy ───────────────────────────── */
+    const panelRangosHoy   = document.getElementById('panelRangosHoy');
+    const tablaRangosHoy   = document.getElementById('tablaRangosHoy');
+    const subtituloHoy     = document.getElementById('subtituloRangosHoy');
+    const btnRefrescar     = document.getElementById('btnRefrescarRangos');
+
+    async function cargarRangosHoy() {
+        try {
+            const res = await fetch('/valor-cafe/resumen-rangos');
+            if (!res.ok) return;
+            const { fecha_consultada, data } = await res.json();
+
+            if (!data || data.length === 0) {
+                panelRangosHoy.style.display = 'none';
+                return;
+            }
+
+            panelRangosHoy.style.display = '';
+            const d = new Date(fecha_consultada + 'T00:00:00');
+            subtituloHoy.textContent = d.toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            renderTablaRangos(data);
+        } catch { /* no interrumpir si falla */ }
+    }
+
+    function renderTablaRangos(rangos) {
+        tablaRangosHoy.innerHTML = `
+            <table style="width:100%;border-collapse:collapse;font-size:.875rem">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border);text-align:left">
+                        <th style="padding:.5rem .75rem;font-weight:600;color:var(--muted-foreground)">Rango</th>
+                        <th style="padding:.5rem .75rem;font-weight:600;color:var(--muted-foreground)">Precio (S/.)</th>
+                        <th style="padding:.5rem .75rem;font-weight:600;color:var(--muted-foreground)">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyRangos"></tbody>
+            </table>`;
+
+        const tbody = document.getElementById('tbodyRangos');
+        rangos.forEach(item => tbody.appendChild(crearFilaRango(item)));
+    }
+
+    function crearFilaRango({ rango, precio }) {
+        const tr = document.createElement('tr');
+        tr.style.cssText = 'border-bottom:1px solid var(--border);transition:background .15s';
+        tr.setAttribute('data-rango', rango);
+
+        tr.innerHTML = `
+            <td style="padding:.6rem .75rem;font-weight:500">${rango}</td>
+            <td class="celda-precio" style="padding:.6rem .75rem">S/. ${Number(precio).toFixed(2)}</td>
+            <td style="padding:.6rem .75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+                <button type="button" class="btn btn-secondary btn-editar-precio"
+                    style="padding:.3rem .65rem;font-size:.8rem;height:auto">
+                    Editar precio
+                </button>
+                <button type="button" class="btn btn-eliminar-rango"
+                    style="padding:.3rem .65rem;font-size:.8rem;height:auto;background:color-mix(in oklab,var(--destructive) 12%,transparent);border-color:color-mix(in oklab,var(--destructive) 38%,var(--border) 62%);color:var(--destructive)">
+                    Eliminar
+                </button>
+            </td>`;
+
+        tr.querySelector('.btn-editar-precio').addEventListener('click', () => activarEdicionPrecio(tr, rango, precio));
+        tr.querySelector('.btn-eliminar-rango').addEventListener('click', () => confirmarEliminar(tr, rango));
+        return tr;
+    }
+
+    function activarEdicionPrecio(tr, rango, precioActual) {
+        const celdaPrecio = tr.querySelector('.celda-precio');
+        const celdaAcciones = tr.querySelector('td:last-child');
+
+        celdaPrecio.innerHTML = `
+            <input type="number" class="input-nuevo-precio" step="0.01" min="0.01"
+                value="${Number(precioActual).toFixed(2)}"
+                style="width:110px;padding:.3rem .5rem;font-size:.875rem;border:1px solid var(--border);border-radius:6px;background:var(--background);color:var(--foreground)">
+            <p class="campo-error-msg precio-edit-error" style="margin:.2rem 0 0"></p>`;
+
+        celdaAcciones.innerHTML = `
+            <button type="button" class="btn btn-primary btn-guardar-precio"
+                style="padding:.3rem .65rem;font-size:.8rem;height:auto">Guardar</button>
+            <button type="button" class="btn btn-secondary btn-cancelar-edicion"
+                style="padding:.3rem .65rem;font-size:.8rem;height:auto">Cancelar</button>`;
+
+        const input = celdaPrecio.querySelector('.input-nuevo-precio');
+        input.focus();
+        input.select();
+
+        celdaAcciones.querySelector('.btn-cancelar-edicion').addEventListener('click', () => {
+            celdaPrecio.textContent = `S/. ${Number(precioActual).toFixed(2)}`;
+            restaurarBotonesRango(celdaAcciones, tr, rango, precioActual);
+        });
+
+        celdaAcciones.querySelector('.btn-guardar-precio').addEventListener('click', () =>
+            guardarNuevoPrecio(tr, rango, input, celdaPrecio, celdaAcciones)
+        );
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') guardarNuevoPrecio(tr, rango, input, celdaPrecio, celdaAcciones);
+            if (e.key === 'Escape') {
+                celdaPrecio.textContent = `S/. ${Number(precioActual).toFixed(2)}`;
+                restaurarBotonesRango(celdaAcciones, tr, rango, precioActual);
+            }
+        });
+    }
+
+    function restaurarBotonesRango(celdaAcciones, tr, rango, precio) {
+        celdaAcciones.innerHTML = `
+            <button type="button" class="btn btn-secondary btn-editar-precio"
+                style="padding:.3rem .65rem;font-size:.8rem;height:auto">Editar precio</button>
+            <button type="button" class="btn btn-eliminar-rango"
+                style="padding:.3rem .65rem;font-size:.8rem;height:auto;background:color-mix(in oklab,var(--destructive) 12%,transparent);border-color:color-mix(in oklab,var(--destructive) 38%,var(--border) 62%);color:var(--destructive)">
+                Eliminar</button>`;
+        celdaAcciones.querySelector('.btn-editar-precio').addEventListener('click', () => activarEdicionPrecio(tr, rango, precio));
+        celdaAcciones.querySelector('.btn-eliminar-rango').addEventListener('click', () => confirmarEliminar(tr, rango));
+    }
+
+    async function guardarNuevoPrecio(tr, rango, input, celdaPrecio, celdaAcciones) {
+        const errEl = celdaPrecio.querySelector('.precio-edit-error');
+        const nuevoPrecio = parseFloat(input.value);
+
+        if (!input.value || isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
+            input.classList.add('input-invalido');
+            errEl.textContent = 'El precio debe ser mayor a 0';
+            return;
+        }
+        input.classList.remove('input-invalido');
+        errEl.textContent = '';
+
+        const errorContexto = validarPrecioEnContexto(tr, rango, nuevoPrecio);
+        if (errorContexto) {
+            input.classList.add('input-invalido');
+            errEl.textContent = errorContexto;
+            return;
+        }
+
+        const btnGuardar = celdaAcciones.querySelector('.btn-guardar-precio');
+        btnGuardar.disabled = true;
+        btnGuardar.textContent = 'Guardando...';
+
+        try {
+            const res = await fetch('/valor-cafe/actualizar-precio', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rango, precio: nuevoPrecio }),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                CoffeeModal.error(err.detail || 'No se pudo actualizar el precio.');
+                btnGuardar.disabled = false;
+                btnGuardar.textContent = 'Guardar';
+                return;
+            }
+            const data = await res.json();
+            const precioFinal = parseFloat(data.precio);
+            celdaPrecio.textContent = `S/. ${precioFinal.toFixed(2)}`;
+            restaurarBotonesRango(celdaAcciones, tr, rango, precioFinal);
+            CoffeeModal.success(`Precio del rango ${rango} actualizado a S/. ${precioFinal.toFixed(2)}`, 'Precio actualizado');
+        } catch {
+            CoffeeModal.error('Error de conexión al actualizar el precio.');
+            btnGuardar.disabled = false;
+            btnGuardar.textContent = 'Guardar';
+        }
+    }
+
+    async function confirmarEliminar(tr, rango) {
+        const ok = await CoffeeModal.confirm({
+            type: 'warning',
+            title: `Eliminar rango ${rango}`,
+            message: `Se eliminarán todos los precios del rango "${rango}" registrados hoy. Esta acción no se puede deshacer.`,
+            okText: 'Eliminar',
+            cancelText: 'Cancelar',
+        });
+        if (!ok) return;
+
+        try {
+            const res = await fetch(`/valor-cafe/eliminar-rango?rango=${encodeURIComponent(rango)}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const err = await res.json();
+                CoffeeModal.error(err.detail || 'No se pudo eliminar el rango.');
+                return;
+            }
+            tr.remove();
+            const filas = document.querySelectorAll('#tbodyRangos tr');
+            if (filas.length === 0) panelRangosHoy.style.display = 'none';
+            CoffeeModal.success(`Rango ${rango} eliminado correctamente.`, 'Rango eliminado');
+        } catch {
+            CoffeeModal.error('Error de conexión al eliminar el rango.');
+        }
+    }
+
+    btnRefrescar.addEventListener('click', cargarRangosHoy);
+
+    /* Cargar rangos al entrar a la página */
+    cargarRangosHoy();
+
     /* ── Helpers de rango ── */
     function validarRango(rango) {
         const r = rango.trim();
@@ -184,6 +395,68 @@
 
     function seSuperponen(p1, p2) {
         return p1.min <= p2.max && p2.min <= p1.max;
+    }
+
+    function validarPrecioEnContexto(trEditando, rangoEditando, nuevoPrecio) {
+        const rangos = [];
+        document.querySelectorAll('#tbodyRangos tr[data-rango]').forEach(tr => {
+            const r = tr.getAttribute('data-rango');
+            const p = tr === trEditando
+                ? nuevoPrecio
+                : parseFloat(tr.querySelector('.celda-precio').textContent.replace('S/.', '').trim());
+            if (!isNaN(p)) rangos.push({ rango: r, precio: p, parsed: parseRango(r) });
+        });
+
+        rangos.sort((a, b) => a.parsed.min - b.parsed.min);
+
+        for (let i = 1; i < rangos.length; i++) {
+            if (rangos[i].precio < rangos[i - 1].precio) {
+                if (rangos[i].rango === rangoEditando)
+                    return `Precio menor al rango inferior "${rangos[i - 1].rango}" (S/. ${rangos[i - 1].precio.toFixed(2)})`;
+                if (rangos[i - 1].rango === rangoEditando)
+                    return `El precio supera al rango siguiente "${rangos[i].rango}" (S/. ${rangos[i].precio.toFixed(2)})`;
+            }
+        }
+        return null;
+    }
+
+    async function obtenerRangosHoyParseados() {
+        try {
+            const res = await fetch('/valor-cafe/resumen-rangos');
+            if (!res.ok) return [];
+            const { data } = await res.json();
+            return (data || []).map(item => ({
+                rango: item.rango,
+                precio: parseFloat(item.precio),
+                parsed: parseRango(item.rango),
+            }));
+        } catch { return []; }
+    }
+
+    function validarContraExistentes(nuevosRangos, existentes) {
+        const errores = [];
+
+        for (const nuevo of nuevosRangos) {
+            const solapado = existentes.find(e => seSuperponen(e.parsed, nuevo.parsed));
+            if (solapado) {
+                errores.push({ tipo: 'overlap', nuevo, con: solapado });
+            }
+        }
+
+        if (errores.length > 0) return errores;
+
+        const todos = [...existentes, ...nuevosRangos].sort((a, b) => a.parsed.min - b.parsed.min);
+        const nuevosSet = new Set(nuevosRangos.map(r => r.rango));
+        for (let i = 1; i < todos.length; i++) {
+            if (todos[i].precio < todos[i - 1].precio) {
+                const afectaANuevo = nuevosSet.has(todos[i].rango) || nuevosSet.has(todos[i - 1].rango);
+                if (afectaANuevo) {
+                    errores.push({ tipo: 'precio', a: todos[i - 1], b: todos[i] });
+                }
+            }
+        }
+
+        return errores;
     }
 
     function mensajeHttpError(data, status) {
@@ -216,6 +489,27 @@
         if (errorPrecio) { precioInput.classList.add('input-invalido'); precioErrorEl.textContent = errorPrecio; }
         if (errorRango || errorPrecio) return;
 
+        const rangoNormalizado = rangoInput.value.trim();
+        const existentes = await obtenerRangosHoyParseados();
+        if (existentes.length > 0) {
+            const erroresCtx = validarContraExistentes(
+                [{ rango: rangoNormalizado, precio, parsed: parseRango(rangoNormalizado) }],
+                existentes,
+            );
+            for (const err of erroresCtx) {
+                if (err.tipo === 'overlap') {
+                    rangoInput.classList.add('input-invalido');
+                    rangoErrorEl.textContent = `Se superpone con el rango ya registrado "${err.con.rango}"`;
+                } else {
+                    precioInput.classList.add('input-invalido');
+                    precioErrorEl.textContent = err.b.rango === rangoNormalizado
+                        ? `Precio menor al rango inferior ya registrado "${err.a.rango}" (S/. ${err.a.precio.toFixed(2)})`
+                        : `El precio supera al rango siguiente ya registrado "${err.b.rango}" (S/. ${err.b.precio.toFixed(2)})`;
+                }
+            }
+            if (erroresCtx.length > 0) return;
+        }
+
         try {
             const res = await fetch('/valor-cafe/crear', {
                 method: 'POST',
@@ -231,6 +525,7 @@
             formIndividual.reset();
             rangoErrorEl.textContent = '';
             precioErrorEl.textContent = '';
+            cargarRangosHoy();
         } catch {
             CoffeeModal.error('Error de conexión. Verifica tu red e intenta de nuevo.');
         }
@@ -395,6 +690,39 @@
             return;
         }
 
+        /* ── Paso 4: validación contra rangos ya registrados hoy ── */
+        const existentesHoy = await obtenerRangosHoyParseados();
+        if (existentesHoy.length > 0) {
+            const nuevos = entradas.map(({ rango, precio, parsed }) => ({ rango, precio, parsed }));
+            const erroresCtx = validarContraExistentes(nuevos, existentesHoy);
+            for (const err of erroresCtx) {
+                if (err.tipo === 'overlap') {
+                    const entrada = entradas.find(e => e.rango === err.nuevo.rango);
+                    if (entrada) {
+                        entrada.rangoInput.classList.add('input-invalido');
+                        entrada.rangoErrEl.textContent = `Se superpone con el rango ya registrado "${err.con.rango}"`;
+                        hayError = true;
+                    }
+                } else {
+                    const entradaB = entradas.find(e => e.rango === err.b.rango);
+                    const entradaA = entradas.find(e => e.rango === err.a.rango);
+                    if (entradaB) {
+                        entradaB.precioInput.classList.add('input-invalido');
+                        entradaB.precioErrEl.textContent = `Precio menor al rango "${err.a.rango}" ya registrado (S/. ${err.a.precio.toFixed(2)})`;
+                        hayError = true;
+                    } else if (entradaA) {
+                        entradaA.precioInput.classList.add('input-invalido');
+                        entradaA.precioErrEl.textContent = `El precio supera al rango siguiente ya registrado "${err.b.rango}" (S/. ${err.b.precio.toFixed(2)})`;
+                        hayError = true;
+                    }
+                }
+            }
+            if (hayError) {
+                CoffeeModal.error('Los nuevos rangos tienen conflictos con registros ya existentes de hoy. Revisa los campos marcados.');
+                return;
+            }
+        }
+
         /* ── Envío ── */
         const precios = entradas.map(({ rango, precio }) => ({ rango, precio }));
         try {
@@ -413,6 +741,7 @@
             filaIdx = 0;
             actualizarCounter();
             crearFila();
+            cargarRangosHoy();
         } catch {
             CoffeeModal.error('Error de conexión al registrar el bloque.');
         }

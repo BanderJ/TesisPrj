@@ -201,6 +201,13 @@ class EvaluacionService:
             return None
         return ResumenEvaluacionResponse(**fila)
 
+    def verificar_estado(self, evaluacion_id: str) -> str | None:
+        """Retorna 'activa' si aún no tiene codigo, 'finalizada' si ya fue completada, None si no existe."""
+        fila = self.evaluacion_model.obtener_codigo(evaluacion_id)
+        if fila is None:
+            return None
+        return "finalizada" if fila.get("codigo") else "activa"
+
     def finalizar_evaluacion(self, evaluacion_id: str) -> FinalizarEvaluacionResponse:
         """Genera y asigna el codigo EVA a la evaluacion al finalizar el monitoreo."""
         fila = self.evaluacion_model.asignar_codigo(evaluacion_id)

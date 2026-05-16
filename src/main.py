@@ -1,4 +1,5 @@
 import os
+import re
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
@@ -9,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from src.routes.auth_login import auth as auth_router
 from src.routes.caficultor import caficultor_router
+from src.routes.camara import camara_router
 from src.routes.evaluacion import evaluacion_router
 from src.routes.dni import dni_router
 from src.routes.persona import persona_router
@@ -18,7 +20,14 @@ from src.routes.tipo_grano import tipo_grano_router
 from src.routes.tipo_personal import tipo_personal_router
 from src.routes.ubigeo import ubigeo_router
 from src.routes.valor_cafe import valor_cafe_router
+from src.services.camara import camara_service
+from src.services.evaluacion_service import EvaluacionService
 from src.utilities.jwt_required import RequerirLoginException, obtener_usuario_actual
+
+_UUID_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+_evaluacion_service = EvaluacionService()
 
 
 # ==================== CICLO DE VIDA ====================
@@ -28,6 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
     del app  # required by the lifespan protocol; unused at runtime
     print("Application has started successfully!")
     yield
+    camara_service.cerrar()
     print("Application is shutting down...")
 
 
@@ -57,6 +67,7 @@ async def auth_exception_handler(request: Request, exc: RequerirLoginException) 
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
+app.include_router(camara_router, prefix="/camara", tags=["camara"])
 app.include_router(evaluacion_router, prefix="/evaluacion", tags=["evaluacion"])
 app.include_router(dni_router, prefix="/dni", tags=["dni"])
 app.include_router(persona_router, prefix="/persona", tags=["persona"])
@@ -95,7 +106,18 @@ async def analisis(
     request: Request,
     user: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> Any:
-    """Página de resumen estadístico del análisis finalizado."""
+    """Página de resumen estadístico del análisis finalizado.
+    Guard: solo accesible si la evaluacion tiene codigo asignado (finalizada).
+    """
+    if not _UUID_RE.match(evaluacion_id):
+        return RedirectResponse(url="/registro", status_code=status.HTTP_303_SEE_OTHER)
+    estado = _evaluacion_service.verificar_estado(evaluacion_id)
+    if estado is None:
+        return RedirectResponse(url="/registro", status_code=status.HTTP_303_SEE_OTHER)
+    if estado == "activa":
+        return RedirectResponse(
+            url=f"/monitoreo/{evaluacion_id}", status_code=status.HTTP_303_SEE_OTHER
+        )
     return templates.TemplateResponse(
         request=request,
         name="analisis.html",
@@ -109,7 +131,19 @@ async def monitoreo(
     request: Request,
     user: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> Any:
-    """Página de monitoreo en tiempo real de clasificación."""
+    """Página de monitoreo en tiempo real de clasificación.
+    Guard: si la evaluacion ya fue finalizada (tiene codigo), redirige a analisis.
+    Si el UUID no existe, redirige a registro.
+    """
+    if not _UUID_RE.match(evaluacion_id):
+        return RedirectResponse(url="/registro", status_code=status.HTTP_303_SEE_OTHER)
+    estado = _evaluacion_service.verificar_estado(evaluacion_id)
+    if estado is None:
+        return RedirectResponse(url="/registro", status_code=status.HTTP_303_SEE_OTHER)
+    if estado == "finalizada":
+        return RedirectResponse(
+            url=f"/analisis/{evaluacion_id}", status_code=status.HTTP_303_SEE_OTHER
+        )
     return templates.TemplateResponse(
         request=request,
         name="monitoreo.html",

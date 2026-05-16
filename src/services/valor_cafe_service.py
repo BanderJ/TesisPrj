@@ -1,15 +1,18 @@
 from datetime import date, timedelta
 from typing import Any
 
+from src.database.bd import Connection
 from src.models.valor_cafe import ValorCafe
 from src.schemas.valor_cafe import (
     CambioDiario,
     ResumenRangoItem,
+    ValorCafeActualizarPrecioResponse,
     ValorCafeCrearBloqueRequest,
     ValorCafeCrearBloqueResponse,
     ValorCafeCambiosDiariosResponse,
     ValorCafeCrearRequest,
     ValorCafeCrearResponse,
+    ValorCafeEliminarRangoResponse,
     ValorCafeHistorialResponse,
     ValorCafeItem,
     ValorCafeMaximoResponse,
@@ -124,3 +127,27 @@ class ValorCafeService:
         ]
 
         return ValorCafeCrearBloqueResponse(total=len(items), data=items)
+
+    def actualizar_precio_rango(self, rango: str, precio: float) -> ValorCafeActualizarPrecioResponse:
+        """Elimina los registros del rango en el día actual e inserta uno nuevo con el precio dado."""
+        db = Connection()
+        try:
+            self.model.eliminar_por_rango_fecha(rango, date.today(), db=db)
+            fila = self.model.crear(rango, precio, db=db)
+            db.commit()
+            return ValorCafeActualizarPrecioResponse(
+                id=str(fila["id"]),
+                rango=fila["rango"],
+                precio=float(fila["precio"]),
+                fecha=fila["fecha"],
+            )
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    def eliminar_rango_hoy(self, rango: str) -> ValorCafeEliminarRangoResponse:
+        """Elimina todos los registros del rango en el día actual."""
+        eliminados = self.model.eliminar_por_rango_fecha(rango, date.today())
+        return ValorCafeEliminarRangoResponse(eliminados=eliminados, rango=rango)

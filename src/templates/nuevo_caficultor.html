@@ -848,8 +848,9 @@
 
                 const payload = await response.json();
                 CoffeeModal.success(payload.mensaje || 'Conversión realizada correctamente.', 'Socio registrado');
-                resTipo.textContent = 'Socio';
-                btnConvertirSocio.disabled = true;
+                buscarDocumento.value = '';
+                ultimaClaveBusquedaConversion = '';
+                limpiarEstadoConversion();
             } catch (error) {
                 CoffeeModal.error(error.message || 'No se pudo convertir el caficultor a socio.');
             }

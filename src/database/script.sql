@@ -25,11 +25,11 @@ DROP TABLE IF EXISTS TIPO_PERSONAL CASCADE;
 DROP TABLE IF EXISTS UBIGEO CASCADE;
 DROP TABLE IF EXISTS VALOR_CAFE CASCADE;
 
-CREATE TABLE CAFICULTOR (caficultor_id uuid DEFAULT uuidv7(), tipo_caficultor_id int2 NOT NULL, fecha_registro timestamp NOT NULL, cacerio varchar(50), PRIMARY KEY (caficultor_id, tipo_caficultor_id));
+CREATE TABLE CAFICULTOR (caficultor_id uuid DEFAULT uuidv7(), tipo_caficultor_id int2 NOT NULL, fecha_registro timestamp NOT NULL, cacerio varchar(50), PRIMARY KEY (caficultor_id));
 CREATE TABLE CATEGORIA (id SERIAL NOT NULL, nombre varchar(10) NOT NULL, cantidad_defectos int4 NOT NULL, PRIMARY KEY (id));
 CREATE TABLE DETALLE_EVALUACION (id uuid DEFAULT uuidv7(), cantidad int4 NOT NULL, evaluacion_id uuid NOT NULL, tipo_defecto_id int2 NOT NULL, PRIMARY KEY (id));
-CREATE TABLE EVALUACION (id uuid DEFAULT uuidv7(), codigo char(10), personal_id uuid NOT NULL, caficultor_id uuid NOT NULL, valor_cafe_id uuid, tipo_caficultor_id int2 NOT NULL, num_sacos int2 NOT NULL, peso_bruto numeric(7, 2) NOT NULL, humedad int2 NOT NULL, peso_muestra numeric(7, 2) NOT NULL, peso_trillado numeric(7, 2) NOT NULL, peso_cascara numeric(7, 2), peso_cascara_total numeric(7, 2), num_tamiz int2 NOT NULL, peso_tamizado numeric(7, 2) NOT NULL, peso_bueno numeric(7, 2), peso_malo numeric(7, 2), factor_rendimiento numeric(7, 2), tara_saco numeric(3, 2), tara_total int2, peso_neto int4, peso_por_qq numeric(7, 2), pago numeric(7, 2), fecha timestamp, tipo_grano_id int4 NOT NULL, categoria_id int4, PRIMARY KEY (id));
-CREATE TABLE PERSONA (id uuid DEFAULT uuidv7(), nombre varchar(50) NOT NULL, ape_paterno varchar(50) NOT NULL, ape_materno varchar(50) NOT NULL, sexo char(1) NOT NULL, fecha_nacimiento date NOT NULL, tipo_documento_id int2 NOT NULL, num_documento varchar(12) NOT NULL, telefono char(9), ubigeo char(6), estado char(1) NOT NULL, PRIMARY KEY (id));
+CREATE TABLE EVALUACION (id uuid DEFAULT uuidv7(), codigo char(10), personal_id uuid NOT NULL, caficultor_id uuid NOT NULL, tipo_caficultor_id int2 NOT NULL, valor_cafe_id uuid, num_sacos int2 NOT NULL, peso_bruto numeric(7, 2) NOT NULL, humedad int2 NOT NULL, peso_muestra numeric(7, 2) NOT NULL, peso_trillado numeric(7, 2) NOT NULL, peso_cascara numeric(7, 2), peso_cascara_total numeric(7, 2), num_tamiz int2 NOT NULL, peso_tamizado numeric(7, 2) NOT NULL, peso_bueno numeric(7, 2), peso_malo numeric(7, 2), factor_rendimiento numeric(7, 2), tara_saco numeric(3, 2), tara_total int2, peso_neto int4, peso_por_qq numeric(7, 2), pago numeric(7, 2), fecha timestamp, tipo_grano_id int4 NOT NULL, categoria_id int4, PRIMARY KEY (id));
+CREATE TABLE PERSONA (id uuid DEFAULT uuidv7(), nombre varchar(50) NOT NULL, ape_paterno varchar(30) NOT NULL, ape_materno varchar(30) NOT NULL, sexo char(1) NOT NULL, fecha_nacimiento date NOT NULL, tipo_documento_id int2 NOT NULL, num_documento varchar(12) NOT NULL, telefono char(9), ubigeo char(6), estado char(1) NOT NULL, PRIMARY KEY (id));
 CREATE TABLE PERSONAL (personal_id uuid DEFAULT uuidv7(), tipo_personal_id int2 NOT NULL, usuario varchar(30) NOT NULL UNIQUE, clave varchar(255) NOT NULL, estado char(1) NOT NULL, fecha_registro timestamp NOT NULL, PRIMARY KEY (personal_id));
 CREATE TABLE TIPO_CAFICULTOR (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, PRIMARY KEY (id));
 CREATE TABLE TIPO_DEFECTO (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, descripcion text, PRIMARY KEY (id));
@@ -38,18 +38,19 @@ CREATE TABLE TIPO_GRANO (id SERIAL NOT NULL, nombre varchar(20) NOT NULL UNIQUE,
 CREATE TABLE TIPO_PERSONAL (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, PRIMARY KEY (id));
 CREATE TABLE UBIGEO (ubigeo char(6) NOT NULL, provincia varchar(50) NOT NULL, distrito varchar(50) NOT NULL, departamento varchar(50) NOT NULL, PRIMARY KEY (ubigeo));
 CREATE TABLE VALOR_CAFE (id uuid DEFAULT uuidv7(), rango varchar(20) NOT NULL, precio float4 NOT NULL, fecha timestamp NOT NULL, PRIMARY KEY (id));
+ALTER TABLE EVALUACION ADD CONSTRAINT FKEVALUACION949977 FOREIGN KEY (personal_id) REFERENCES PERSONAL (personal_id);
+ALTER TABLE EVALUACION ADD CONSTRAINT FKEVALUACION377725 FOREIGN KEY (caficultor_id) REFERENCES CAFICULTOR (caficultor_id);
+ALTER TABLE EVALUACION ADD CONSTRAINT FKEVALUACION667001 FOREIGN KEY (tipo_caficultor_id) REFERENCES TIPO_CAFICULTOR (id);
 ALTER TABLE EVALUACION ADD CONSTRAINT FKEVALUACION422102 FOREIGN KEY (categoria_id) REFERENCES CATEGORIA (id);
 ALTER TABLE PERSONA ADD CONSTRAINT FKPERSONA975307 FOREIGN KEY (ubigeo) REFERENCES UBIGEO (ubigeo);
 ALTER TABLE EVALUACION ADD CONSTRAINT FKEVALUACION113378 FOREIGN KEY (tipo_grano_id) REFERENCES TIPO_GRANO (id);
 ALTER TABLE EVALUACION ADD CONSTRAINT FKEVALUACION381094 FOREIGN KEY (valor_cafe_id) REFERENCES VALOR_CAFE (id);
 ALTER TABLE PERSONA ADD CONSTRAINT FKPERSONA750498 FOREIGN KEY (tipo_documento_id) REFERENCES TIPO_DOCUMENTO (id);
-ALTER TABLE EVALUACION ADD CONSTRAINT FKEVALUACION941464 FOREIGN KEY (caficultor_id, tipo_caficultor_id) REFERENCES CAFICULTOR (caficultor_id, tipo_caficultor_id);
 ALTER TABLE CAFICULTOR ADD CONSTRAINT FKCAFICULTOR530757 FOREIGN KEY (tipo_caficultor_id) REFERENCES TIPO_CAFICULTOR (id);
 ALTER TABLE CAFICULTOR ADD CONSTRAINT FKCAFICULTOR165779 FOREIGN KEY (caficultor_id) REFERENCES PERSONA (id);
 ALTER TABLE PERSONAL ADD CONSTRAINT FKPERSONAL360810 FOREIGN KEY (personal_id) REFERENCES PERSONA (id);
 ALTER TABLE DETALLE_EVALUACION ADD CONSTRAINT FKDETALLE_EV598148 FOREIGN KEY (tipo_defecto_id) REFERENCES TIPO_DEFECTO (id);
 ALTER TABLE DETALLE_EVALUACION ADD CONSTRAINT FKDETALLE_EV178048 FOREIGN KEY (evaluacion_id) REFERENCES EVALUACION (id);
-ALTER TABLE EVALUACION ADD CONSTRAINT FKEVALUACION949977 FOREIGN KEY (personal_id) REFERENCES PERSONAL (personal_id);
 ALTER TABLE PERSONAL ADD CONSTRAINT FKPERSONAL26887 FOREIGN KEY (tipo_personal_id) REFERENCES TIPO_PERSONAL (id);
 
 --- INSERTS TABLAS MAESTRAS
@@ -61,7 +62,7 @@ INSERT INTO TIPO_GRANO (nombre, peso_qq) VALUES ('Pergamino', 55.20), ('Pilado',
 INSERT INTO CATEGORIA (nombre, cantidad_defectos) VALUES ('Grado 1', 15), ('Grado 2', 23), ('Grado 3', 30);
 
 --- INSERTS DE PRUEBA PARA CREDENCIALES
-INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado) VALUES ('Anderson', 'Baca', 'Chuquimanco', 'M', '1990-08-20', 1, '70994265', '926607008', 'A');
+INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado) VALUES ('Camilo', 'Super', 'Root', 'M', '1990-08-20', 1, '01010101', '926607008', 'A');
 INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado) VALUES ('Juan', 'Perez', 'Gomez', 'M', '1980-05-15', 1, '12345678', '987654321', 'A');
 
 --- INSERTS PRUEBA PARA CAFICULTORES

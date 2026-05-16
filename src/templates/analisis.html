@@ -161,6 +161,13 @@
 (() => {
 	const EVALUACION_ID = '{{ evaluacion_id }}';
 
+	// Bloquear regreso a monitoreo: si el usuario presiona Atrás desde aquí,
+	// redirigir siempre a /registro en vez de volver a /monitoreo/{id}.
+	history.replaceState(null, '', window.location.href);
+	window.addEventListener('popstate', () => {
+		window.location.replace('/registro');
+	});
+
 	const storedStats = sessionStorage.getItem('coffeeren.stats');
 	const stats = storedStats ? JSON.parse(storedStats) : null;
 

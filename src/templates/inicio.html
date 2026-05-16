@@ -363,13 +363,20 @@ ${hitHtml}`;
                 });
 
                 if (payload.data.length) {
-                    const top = payload.data[0];
-                    priceValueEl.textContent = `S/ ${top.precio.toFixed(2)}`;
-                    const dt = new Date(top.registrado_en);
+                    const precios  = payload.data.map(d => d.precio);
+                    const maxPrecio = Math.max(...precios);
+                    const minPrecio = Math.min(...precios);
+                    const itemMax   = payload.data.find(d => d.precio === maxPrecio);
+
+                    priceValueEl.textContent = `S/ ${maxPrecio.toFixed(2)}`;
+                    const dt = new Date(itemMax.registrado_en);
                     priceDateEl.textContent = `Actualizado al ${dt.toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'})}`;
+
+                    if (kpiPrecioMinEl) kpiPrecioMinEl.textContent = `S/ ${minPrecio.toFixed(2)}`;
                 } else {
                     priceValueEl.textContent = '—';
                     priceDateEl.textContent  = 'Sin datos hoy';
+                    if (kpiPrecioMinEl) kpiPrecioMinEl.textContent = '—';
                 }
 
                 try {
@@ -377,7 +384,8 @@ ${hitHtml}`;
                     if (resAyer.ok) {
                         const pa = await resAyer.json();
                         if (pa.data && payload.data.length) {
-                            const pct = ((payload.data[0].precio - pa.data.precio) / pa.data.precio) * 100;
+                            const maxHoy = Math.max(...payload.data.map(d => d.precio));
+                            const pct = ((maxHoy - pa.data.precio) / pa.data.precio) * 100;
                             priceChangeEl.textContent = `${pct>=0?'+':''}${pct.toFixed(1)}% respecto al dia anterior`;
                             priceChangeEl.classList.toggle('negative', pct < 0);
                         } else {
@@ -410,9 +418,7 @@ ${hitHtml}`;
                     rangoLegendEl.appendChild(btn);
                 });
 
-                if (kpiRangosEl)    kpiRangosEl.textContent    = payload.data.length || '—';
-                if (kpiPrecioMinEl) kpiPrecioMinEl.textContent = payload.data.length
-                    ? `S/ ${payload.data[payload.data.length-1].precio.toFixed(2)}` : '—';
+                if (kpiRangosEl) kpiRangosEl.textContent = payload.data.length || '—';
 
             } catch {
                 priceValueEl.textContent = '—';

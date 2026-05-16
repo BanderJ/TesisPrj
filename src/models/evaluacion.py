@@ -64,6 +64,23 @@ class Evaluacion:
             if owns_db:
                 db.close()
 
+    def obtener_codigo(
+        self,
+        evaluacion_id: str,
+        db: Connection | None = None,
+    ) -> dict[str, Any] | None:
+        """Retorna el codigo de la evaluacion (NULL si aún no fue finalizada)."""
+        owns_db = db is None
+        db = db or Connection()
+        try:
+            return db.obtener_uno(
+                "SELECT TRIM(codigo) AS codigo FROM evaluacion WHERE id = %s",
+                (evaluacion_id,),
+            )
+        finally:
+            if owns_db:
+                db.close()
+
     def obtener_resumen(
         self,
         evaluacion_id: str,
@@ -272,7 +289,8 @@ class Evaluacion:
             codigo = self._generar_codigo(db)
             sql = """
                 UPDATE evaluacion
-                SET codigo = %s
+                SET codigo = %s,
+                    fecha  = NOW()
                 WHERE id = %s
                 RETURNING id::text, codigo
             """
