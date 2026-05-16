@@ -26,11 +26,6 @@ class CaficultorService:
         self.tipo_caficultor_model: TipoCaficultor = TipoCaficultor()
         self.tipo_documento_model: TipoDocumento = TipoDocumento()
 
-    def _validar_documento_general(self, num_documento: str) -> None:
-        """Valida formato general de documento alfanumerico de 8 a 12 caracteres."""
-        if not re.fullmatch(r"[A-Za-z0-9]{8,12}", num_documento):
-            raise ValueError("El documento debe tener entre 8 y 12 caracteres alfanumericos")
-
     def _normalizar_nombre_tipo_documento(self, nombre: str) -> str:
         """Normaliza texto para comparar nombres de tipos de documento."""
         texto = unicodedata.normalize("NFD", nombre)
@@ -62,8 +57,6 @@ class CaficultorService:
 
     def obtener_caficultor_por_documento(self, num_documento: str) -> CaficultorData | None:
         """Retorna datos de caficultor por documento o None si no existe."""
-        self._validar_documento_general(num_documento)
-
         resultado: dict[str, Any] | None = self.caficultor_model.obtener_por_num_documento(num_documento)
 
         if not resultado:
@@ -91,14 +84,6 @@ class CaficultorService:
         if not self.tipo_caficultor_model.obtener_por_id(tipo_caficultor_id):
             raise ValueError("El tipo de caficultor seleccionado no existe")
 
-    def _normalizar_telefono(self, telefono: str | None) -> str | None:
-        """Convierte cadena vacia a None para persistencia en BD."""
-        if telefono is None:
-            return None
-
-        telefono_limpio = telefono.strip()
-        return telefono_limpio if telefono_limpio else None
-
     def _obtener_estado_caficultor(self, num_documento: str, db: Connection) -> dict[str, Any] | None:
         """Obtiene estado/tipo del caficultor por documento para conversion a socio."""
         return self.caficultor_model.obtener_estado_y_tipo_por_num_documento(num_documento, db=db)
@@ -123,7 +108,6 @@ class CaficultorService:
         """Registra persona y caficultor en una sola transaccion."""
         self._validar_documento_por_tipo(payload.tipo_documento_id, payload.num_documento)
         self._validar_tipo_caficultor(payload.tipo_caficultor_id)
-        telefono = self._normalizar_telefono(payload.telefono)
 
         db = Connection()
         try:
@@ -140,6 +124,8 @@ class CaficultorService:
             )
             if persona_existente:
                 persona_id = str(persona_existente["id"])
+                if payload.ubigeo:
+                    self.persona_model.actualizar_ubigeo(persona_id, payload.ubigeo, db=db)
             else:
                 persona_id = self.persona_model.registrar(
                     nombre=payload.nombre,
@@ -149,7 +135,8 @@ class CaficultorService:
                     fecha_nacimiento=payload.fecha_nacimiento,
                     tipo_documento_id=payload.tipo_documento_id,
                     num_documento=payload.num_documento,
-                    telefono=telefono,
+                    telefono=payload.telefono,
+                    ubigeo=payload.ubigeo,
                     db=db,
                 )
 
@@ -178,8 +165,6 @@ class CaficultorService:
 
     def convertir_caficultor_a_socio(self, num_documento: str) -> ConvertirSocioResponse:
         """Convierte un caficultor existente y activo al tipo socio """
-        self._validar_documento_general(num_documento)
-
         db = Connection()
         try:
             registro = self._obtener_estado_caficultor(num_documento, db)

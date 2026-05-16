@@ -53,6 +53,7 @@ class AuthService:
         payload = {
             "personal_id": str(usuario_db["personal_id"]),
             "usuario": usuario_db["usuario"],
+            "tipo_personal_id": usuario_db["tipo_personal_id"],
             "rol": usuario_db["rol"],
             "nombre": nombre_completo,
         }

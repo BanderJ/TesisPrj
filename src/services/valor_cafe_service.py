@@ -1,13 +1,22 @@
 from datetime import date, timedelta
 from typing import Any
 
+from src.database.bd import Connection
 from src.models.valor_cafe import ValorCafe
 from src.schemas.valor_cafe import (
     CambioDiario,
+    ResumenRangoItem,
+    ValorCafeActualizarPrecioResponse,
+    ValorCafeCrearBloqueRequest,
+    ValorCafeCrearBloqueResponse,
     ValorCafeCambiosDiariosResponse,
+    ValorCafeCrearRequest,
+    ValorCafeCrearResponse,
+    ValorCafeEliminarRangoResponse,
     ValorCafeHistorialResponse,
     ValorCafeItem,
     ValorCafeMaximoResponse,
+    ValorCafeResumenRangosResponse,
 )
 
 
@@ -24,9 +33,9 @@ class ValorCafeService:
     def __init__(self) -> None:
         self.model = ValorCafe()
 
-    def obtener_historial_dia(self, fecha: date | None) -> ValorCafeHistorialResponse:
+    def obtener_historial_dia(self, fecha: date | None, rango: str | None = None) -> ValorCafeHistorialResponse:
         fecha_efectiva = fecha or date.today()
-        filas = self.model.obtener_historial_dia(fecha_efectiva)
+        filas = self.model.obtener_historial_dia(fecha_efectiva, rango)
         items = [_row_to_item(f) for f in filas]
         return ValorCafeHistorialResponse(
             fecha_consultada=fecha_efectiva,
@@ -46,6 +55,7 @@ class ValorCafeService:
         self,
         desde: date | None,
         hasta: date | None,
+        rango: str | None = None,
     ) -> ValorCafeCambiosDiariosResponse:
         hasta_efectivo = hasta or date.today()
         desde_efectivo = desde or (hasta_efectivo - timedelta(days=29))
@@ -53,7 +63,7 @@ class ValorCafeService:
         if desde_efectivo > hasta_efectivo:
             raise ValueError("'desde' no puede ser posterior a 'hasta'")
 
-        filas = self.model.obtener_cambios_diarios(desde_efectivo, hasta_efectivo)
+        filas = self.model.obtener_cambios_diarios(desde_efectivo, hasta_efectivo, rango)
         cambios = [
             CambioDiario(fecha=f["fecha"], precio_maximo=float(f["precio_maximo"]))
             for f in filas
@@ -64,3 +74,80 @@ class ValorCafeService:
             total=len(cambios),
             data=cambios,
         )
+
+    def obtener_resumen_rangos(self, fecha: date | None = None) -> ValorCafeResumenRangosResponse:
+        fecha_efectiva = fecha or date.today()
+        filas = self.model.obtener_resumen_rangos(fecha_efectiva)
+        items = [
+            ResumenRangoItem(
+                rango=f["rango"],
+                precio=float(f["precio"]),
+                registrado_en=f["registrado_en"],
+            )
+            for f in filas
+        ]
+        return ValorCafeResumenRangosResponse(
+            fecha_consultada=fecha_efectiva,
+            data=items,
+        )
+
+    def crear_precio(self, data: ValorCafeCrearRequest) -> ValorCafeCrearResponse:
+        """Crea un nuevo registro de precio de café. Valida rango y precio."""
+        # Validación
+        errores = data.validar()
+        if errores:
+            raise ValueError(f"Validación fallida: {errores}")
+        
+        # Persistencia
+        fila = self.model.crear(data.rango, data.precio)
+        
+        # Respuesta
+        return ValorCafeCrearResponse(
+            id=str(fila["id"]),
+            rango=fila["rango"],
+            precio=float(fila["precio"]),
+            fecha=fila["fecha"],
+        )
+
+    def crear_precios_bloque(self, data: ValorCafeCrearBloqueRequest) -> ValorCafeCrearBloqueResponse:
+        """Crea multiples registros de precio de café en una sola solicitud."""
+        errores = data.validar()
+        if errores:
+            raise ValueError(f"Validación fallida: {errores}")
+
+        filas = self.model.crear_bloque([(item.rango, item.precio) for item in data.precios])
+        items = [
+            ValorCafeCrearResponse(
+                id=str(fila["id"]),
+                rango=fila["rango"],
+                precio=float(fila["precio"]),
+                fecha=fila["fecha"],
+            )
+            for fila in filas
+        ]
+
+        return ValorCafeCrearBloqueResponse(total=len(items), data=items)
+
+    def actualizar_precio_rango(self, rango: str, precio: float) -> ValorCafeActualizarPrecioResponse:
+        """Elimina los registros del rango en el día actual e inserta uno nuevo con el precio dado."""
+        db = Connection()
+        try:
+            self.model.eliminar_por_rango_fecha(rango, date.today(), db=db)
+            fila = self.model.crear(rango, precio, db=db)
+            db.commit()
+            return ValorCafeActualizarPrecioResponse(
+                id=str(fila["id"]),
+                rango=fila["rango"],
+                precio=float(fila["precio"]),
+                fecha=fila["fecha"],
+            )
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    def eliminar_rango_hoy(self, rango: str) -> ValorCafeEliminarRangoResponse:
+        """Elimina todos los registros del rango en el día actual."""
+        eliminados = self.model.eliminar_por_rango_fecha(rango, date.today())
+        return ValorCafeEliminarRangoResponse(eliminados=eliminados, rango=rango)

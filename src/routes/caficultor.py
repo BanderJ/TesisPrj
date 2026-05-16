@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Path
 
 from src.schemas.caficultor import (
 	ConvertirSocioResponse,
@@ -14,7 +14,9 @@ caficultor_service = CaficultorService()
 
 
 @caficultor_router.get("/consultar/{num_documento}", response_model=ObtenerDatosResponse)
-async def consultar_caficultor(num_documento: str) -> ObtenerDatosResponse:
+async def consultar_caficultor(
+	num_documento: str = Path(..., pattern=r"^[A-Za-z0-9]{8,12}$")
+) -> ObtenerDatosResponse:
 	"""Consulta un caficultor por numero de documento (8 o 12 digitos)."""
 	try:
 		datos = caficultor_service.obtener_caficultor_por_documento(num_documento)
@@ -61,7 +63,9 @@ async def registrar_caficultor(
 	"/convertir-socio/{num_documento}",
 	response_model=ConvertirSocioResponse,
 )
-async def convertir_caficultor_a_socio(num_documento: str) -> ConvertirSocioResponse:
+async def convertir_caficultor_a_socio(
+	num_documento: str = Path(..., pattern=r"^[A-Za-z0-9]{8,12}$")
+) -> ConvertirSocioResponse:
 	"""Convierte un caficultor existente, activo y no socio al tipo socio."""
 	try:
 		return caficultor_service.convertir_caficultor_a_socio(num_documento)

@@ -5,19 +5,18 @@ body {
     place-items: center;
     padding: 20px 0;
     background-color: var(--background);
-    background-image: linear-gradient(color-mix(in oklab, var(--background) 60%, transparent 90%), color-mix(in oklab, var(--background) 70%, transparent 90%)), url('/resources/fondo_temp.jpg');
+    background-image: url('/resources/fondo_temp.jpg');
     background-size: cover;
     background-position: center;
     color: var(--foreground);
-    font-family: var(--font-sans);
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1.5;
     position: relative;
 }
 
 body.dark {
     background-color: var(--background);
-    background-image: linear-gradient(color-mix(in oklab, var(--background) 84%, black 16%), color-mix(in oklab, var(--background) 90%, black 10%)), url('/resources/fondo_temp.jpg');
+    background-image: url('/resources/fondo_temp.jpg');
 }
 
 body::before {
@@ -47,7 +46,6 @@ body.dark::before {
     background: color-mix(in oklab, var(--card) 86%, transparent 14%);
     border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
     backdrop-filter: blur(16px);
-    box-shadow: var(--shadow-xl);
     border-radius: 22px;
 }
 
@@ -62,17 +60,15 @@ body.dark::before {
 .login-context {
     border-radius: 18px;
     border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
-    background: linear-gradient(140deg, color-mix(in oklab, var(--card) 96%, transparent 4%), color-mix(in oklab, var(--secondary) 8%, var(--card) 92%));
+    background-color: var(--card);
     padding: clamp(18px, 2vw, 28px);
 }
 
 .login-kicker {
     margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
     color: var(--primary);
     font-weight: 700;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .login-title {
@@ -85,11 +81,6 @@ body.dark::before {
 .text-descr {
     margin: 0;
     color: var(--muted-foreground);
-}
-
-.info-text {
-    font-size: 16px !important;
-    line-height: 1.55;
 }
 
 .login-feature-list {
@@ -132,7 +123,6 @@ body.dark::before {
     display: grid;
     place-items: center;
     background: color-mix(in oklab, var(--primary) 24%, transparent 76%);
-    box-shadow: 0 6px 16px color-mix(in oklab, var(--primary) 26%, transparent 74%);
     margin-bottom: 12px;
 }
 
@@ -193,7 +183,7 @@ body.dark::before {
     border-radius: 12px;
     color: var(--foreground);
     font-size: inherit;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .input-field {
@@ -270,18 +260,12 @@ body.dark::before {
     font-weight: 600;
     cursor: pointer;
     color: var(--primary-foreground);
-    background: linear-gradient(125deg, color-mix(in oklab, var(--primary) 90%, white 10%), color-mix(in oklab, var(--secondary) 52%, var(--primary) 48%));
-    box-shadow: 0 12px 24px color-mix(in oklab, var(--primary) 34%, transparent 66%);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background-color: var(--primary);
+    transition: filter 0.18s ease;
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 30px color-mix(in oklab, var(--primary) 40%, transparent 60%);
-}
-
-.btn-primary:active {
-    transform: translateY(0);
+    filter: brightness(0.85) saturate(1.1);
 }
 
 .panel-links {
@@ -309,10 +293,6 @@ body.dark::before {
 }
 
 @media (max-width: 640px) {
-    body {
-        font-size: 16px;
-    }
-
     .login-container {
         padding: 10px;
     }
@@ -320,9 +300,5 @@ body.dark::before {
     .login-stage {
         padding: 14px;
         gap: 12px;
-    }
-
-    .info-text {
-        font-size: 15px !important;
     }
 }

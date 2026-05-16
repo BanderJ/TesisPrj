@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from src.database.bd import Connection; db=Connection\\(\\); print\\(db.obtener_uno\\('SELECT COUNT\\(*\\) AS c FROM ubigeo'\\)\\); db.close\\(\\)\")",
+      "Bash(python -c \"from src.main import app; print\\('OK', [r.path for r in app.routes if '/ubigeo' in r.path]\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(Get-ChildItem -Recurse -Force)",
+      "Bash(Select-Object -First 50 FullName)",
+      "Bash(xargs grep -l \"ubigeo_sunat\\\\|reniec\\\\|dni.*consultar\")",
+      "Bash(mkdir -p \"d:/TesisPrj/.claude/skills/frontend-coffeeren\")"
+    ],
+    "additionalDirectories": [
+      "d:\\TesisPrj\\.claude\\skills"
+    ]
+  }
+}

@@ -16,7 +16,7 @@ class Persona:
         try:
             sql = """
                 SELECT id, nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento,
-                       tipo_documento_id, num_documento, telefono, estado
+                       tipo_documento_id, num_documento, telefono, ubigeo, estado
                 FROM persona
                 WHERE num_documento = %s
                   AND estado = 'A'
@@ -37,6 +37,7 @@ class Persona:
         tipo_documento_id: int,
         num_documento: str,
         telefono: str | None,
+        ubigeo: str | None = None,
         db: Connection | None = None,
     ) -> str:
         owns_db = db is None
@@ -53,9 +54,10 @@ class Persona:
                     tipo_documento_id,
                     num_documento,
                     telefono,
+                    ubigeo,
                     estado
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """
             resultado = db.obtener_uno(
@@ -69,6 +71,7 @@ class Persona:
                     tipo_documento_id,
                     num_documento,
                     telefono,
+                    ubigeo,
                     "A",
                 ),
             )
@@ -80,6 +83,28 @@ class Persona:
                 db.commit()
 
             return str(resultado["id"])
+        except Exception:
+            if owns_db:
+                db.rollback()
+            raise
+        finally:
+            if owns_db:
+                db.close()
+
+    def actualizar_ubigeo(
+        self,
+        persona_id: str,
+        ubigeo: str,
+        db: Connection | None = None,
+    ) -> None:
+        owns_db = db is None
+        db = db or Connection()
+
+        try:
+            sql = "UPDATE persona SET ubigeo = %s WHERE id = %s"
+            db.ejecutar(sql, (ubigeo, persona_id))
+            if owns_db:
+                db.commit()
         except Exception:
             if owns_db:
                 db.rollback()

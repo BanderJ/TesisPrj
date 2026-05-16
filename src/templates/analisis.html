@@ -1,0 +1,275 @@
+{% extends "main.html" %}
+
+{% block style %}
+<link rel="stylesheet" href="/static/css/analisis.css?v=4">
+{% endblock %}
+
+{% block content %}
+<section class="analisis-page" id="analisisPage">
+
+	<!-- Toolbar -->
+	<div class="analisis-toolbar">
+		<div class="analisis-toolbar-title">
+			<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--primary);flex-shrink:0">
+				<rect x="3" y="3" width="18" height="18" rx="3"/>
+				<path d="M9 9h1m5 0h1M9 12h6M9 15h4"/>
+			</svg>
+			<h1>Resumen del análisis</h1>
+		</div>
+		<div class="analisis-toolbar-actions">
+			<button class="btn-export pdf" onclick="window.print()">
+				<img src="/static/icon/pdf.png" alt="PDF">
+				Exportar PDF
+			</button>
+			<button class="btn-export excel" id="btnExcel">
+				<img src="/static/icon/excel.png" alt="Excel">
+				Exportar Excel
+			</button>
+		</div>
+	</div>
+
+	<!-- Header card -->
+	<div class="analisis-header-card">
+		<div class="analisis-header-left">
+			<p class="kicker">Evaluación de café</p>
+			<h2 id="codEval">Cargando...</h2>
+			<p id="caficultorNombre" style="font-size:15px;font-weight:600;color:var(--foreground);margin:2px 0 0;">—</p>
+			<div class="analisis-header-meta">
+				<div class="analisis-meta-item">
+					<span>Documento</span>
+					<strong id="metaDoc">—</strong>
+				</div>
+				<div class="analisis-meta-item">
+					<span>Tipo caficultor</span>
+					<strong id="metaTipoCaf">—</strong>
+				</div>
+				<div class="analisis-meta-item">
+					<span>Tipo de grano</span>
+					<strong id="metaGrano">—</strong>
+				</div>
+				<div class="analisis-meta-item">
+					<span>Registrado por</span>
+					<strong id="metaRegistradoPor">—</strong>
+				</div>
+			</div>
+		</div>
+		<div>
+			<span class="status-badge finalizado">
+				<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+				Finalizado
+			</span>
+		</div>
+	</div>
+
+	<!-- Stats cards -->
+	<div class="analisis-stats">
+		<div class="stat-card">
+			<div class="stat-card-label">Granos evaluados</div>
+			<div class="stat-card-value accent-blue" id="statGranos">—</div>
+			<div class="stat-card-sub">Total procesados en banda</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-card-label">Defectos totales</div>
+			<div class="stat-card-value accent-red" id="statDefectos">—</div>
+			<div class="stat-card-sub">Negro · brocado · fermentado</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-card-label">Rendimiento IA</div>
+			<div class="stat-card-value accent-green" id="statRendimiento">98%</div>
+			<div class="stat-card-sub">Precisión del clasificador</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-card-label">Tiempo de análisis</div>
+			<div class="stat-card-value accent-amber" id="statTiempo">—</div>
+			<div class="stat-card-sub">Duración del monitoreo</div>
+		</div>
+	</div>
+
+	<!-- Detail grid: datos de muestra + defectos -->
+	<div class="analisis-detail-grid">
+		<div class="analisis-section">
+			<h3>Datos de la muestra</h3>
+			<table class="data-table">
+				<tbody>
+					<tr><td>Código evaluación</td><td id="tdCodigo">—</td></tr>
+					<tr><td>Fecha</td><td id="tdFecha">—</td></tr>
+					<tr><td>N° de sacos</td><td id="tdSacos">—</td></tr>
+					<tr><td>Peso bruto</td><td id="tdPeso">—</td></tr>
+					<tr><td>Humedad</td><td id="tdHumedad">—</td></tr>
+					<tr><td>Peso de muestra</td><td id="tdPesoMuestra">—</td></tr>
+					<tr><td>Peso trillado</td><td id="tdTrillado">—</td></tr>
+					<tr><td>N° de tamiz</td><td id="tdTamiz">—</td></tr>
+					<tr><td>Peso tamizado</td><td id="tdTamizado">—</td></tr>
+				</tbody>
+			</table>
+		</div>
+
+		<div class="analisis-section">
+			<h3>Defectos detectados</h3>
+
+			<div class="defect-stat">
+				<div class="defect-stat-header">
+					<span>Defecto negro</span>
+					<strong id="dNegroVal">0</strong>
+				</div>
+				<div class="defect-track">
+					<div class="defect-bar negro" id="dNegroBar" style="width:0%"></div>
+				</div>
+			</div>
+
+			<div class="defect-stat">
+				<div class="defect-stat-header">
+					<span>Brocado</span>
+					<strong id="dBrocadoVal">0</strong>
+				</div>
+				<div class="defect-track">
+					<div class="defect-bar brocado" id="dBrocadoBar" style="width:0%"></div>
+				</div>
+			</div>
+
+			<div class="defect-stat">
+				<div class="defect-stat-header">
+					<span>Fermentado</span>
+					<strong id="dFermentadoVal">0</strong>
+				</div>
+				<div class="defect-track">
+					<div class="defect-bar fermentado" id="dFermentadoBar" style="width:0%"></div>
+				</div>
+			</div>
+
+			<p style="margin-top:20px;font-size:12px;color:var(--muted-foreground);line-height:1.5;">
+				Los defectos son detectados automáticamente por el clasificador IA
+				durante el monitoreo en tiempo real de la banda transportadora.
+			</p>
+		</div>
+	</div>
+
+	<!-- Actions -->
+	<div class="analisis-actions">
+		<a href="/inicio" class="btn-export" style="background:color-mix(in oklab,var(--muted) 40%,transparent);border-color:var(--border);color:var(--foreground);">
+			Ir al inicio
+		</a>
+		<a href="/registro" class="btn-export" style="background:color-mix(in oklab,var(--primary) 14%,transparent);border-color:color-mix(in oklab,var(--primary) 38%,var(--border) 62%);color:var(--primary);">
+			Nueva evaluación
+		</a>
+	</div>
+
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script>
+(() => {
+	const EVALUACION_ID = '{{ evaluacion_id }}';
+
+	// Bloquear regreso a monitoreo: si el usuario presiona Atrás desde aquí,
+	// redirigir siempre a /registro en vez de volver a /monitoreo/{id}.
+	history.replaceState(null, '', window.location.href);
+	window.addEventListener('popstate', () => {
+		window.location.replace('/registro');
+	});
+
+	const storedStats = sessionStorage.getItem('coffeeren.stats');
+	const stats = storedStats ? JSON.parse(storedStats) : null;
+
+	async function cargarResumen() {
+		try {
+			const res = await fetch(`/evaluacion/${EVALUACION_ID}/resumen`);
+			if (!res.ok) throw new Error('No se pudo cargar el resumen.');
+			const d = await res.json();
+
+			document.getElementById('codEval').textContent           = d.codigo || `EVA-${EVALUACION_ID.slice(0, 8)}`;
+			document.getElementById('caficultorNombre').textContent  = d.caficultor_nombre || '—';
+			document.getElementById('metaDoc').textContent           = d.num_documento    || '—';
+			document.getElementById('metaTipoCaf').textContent       = d.tipo_caficultor  || '—';
+			document.getElementById('metaGrano').textContent         = d.tipo_grano       || '—';
+			document.getElementById('metaRegistradoPor').textContent = d.registrado_por   || '—';
+
+			document.getElementById('tdCodigo').textContent     = d.codigo                                             || '—';
+			document.getElementById('tdFecha').textContent      = d.fecha                                              || '—';
+			document.getElementById('tdSacos').textContent      = d.num_sacos    != null ? `${d.num_sacos} sacos`     : '—';
+			document.getElementById('tdPeso').textContent       = d.peso_bruto   != null ? `${d.peso_bruto} kg`       : '—';
+			document.getElementById('tdHumedad').textContent    = d.humedad      != null ? `${d.humedad}%`            : '—';
+			document.getElementById('tdPesoMuestra').textContent = d.peso_muestra != null ? `${d.peso_muestra} kg`   : '—';
+			document.getElementById('tdTrillado').textContent   = d.peso_trillado != null ? `${d.peso_trillado} kg`  : '—';
+			document.getElementById('tdTamiz').textContent      = d.num_tamiz    != null ? `N° ${d.num_tamiz}`        : '—';
+			document.getElementById('tdTamizado').textContent   = d.peso_tamizado != null ? `${d.peso_tamizado} kg`  : '—';
+		} catch (e) {
+			console.error(e);
+			if (window.CoffeeModal) {
+				CoffeeModal.error('No se pudo cargar el resumen de la evaluación.', 'Error de carga');
+			}
+		}
+	}
+
+	function cargarStats() {
+		if (!stats) return;
+
+		const { totalGrains = 0, defectNegro = 0, defectBrocado = 0, defectFermentado = 0, elapsedSeconds = 0 } = stats;
+		const totalDefects = defectNegro + defectBrocado + defectFermentado;
+		const maxDefect    = Math.max(defectNegro, defectBrocado, defectFermentado, 1);
+
+		document.getElementById('statGranos').textContent   = totalGrains.toLocaleString('es-PE');
+		document.getElementById('statDefectos').textContent = totalDefects.toLocaleString('es-PE');
+
+		const mins = Math.floor(elapsedSeconds / 60);
+		const secs = elapsedSeconds % 60;
+		document.getElementById('statTiempo').textContent = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+		document.getElementById('dNegroVal').textContent    = defectNegro;
+		document.getElementById('dBrocadoVal').textContent  = defectBrocado;
+		document.getElementById('dFermentadoVal').textContent = defectFermentado;
+
+		requestAnimationFrame(() => {
+			document.getElementById('dNegroBar').style.width    = `${Math.min((defectNegro    / maxDefect) * 100, 100)}%`;
+			document.getElementById('dBrocadoBar').style.width  = `${Math.min((defectBrocado  / maxDefect) * 100, 100)}%`;
+			document.getElementById('dFermentadoBar').style.width = `${Math.min((defectFermentado / maxDefect) * 100, 100)}%`;
+		});
+
+		sessionStorage.removeItem('coffeeren.stats');
+	}
+
+	document.getElementById('btnExcel').addEventListener('click', () => {
+		const rows = [
+			['RESUMEN DE EVALUACIÓN DE CAFÉ - CoffeeRen', ''],
+			[],
+			['DATOS DE LA MUESTRA', ''],
+			['Código evaluación',  document.getElementById('tdCodigo').textContent],
+			['Caficultor',         document.getElementById('caficultorNombre').textContent],
+			['Documento',          document.getElementById('metaDoc').textContent],
+			['Tipo caficultor',    document.getElementById('metaTipoCaf').textContent],
+			['Tipo de grano',      document.getElementById('metaGrano').textContent],
+			['Registrado por',     document.getElementById('metaRegistradoPor').textContent],
+			['Fecha',              document.getElementById('tdFecha').textContent],
+			['N° sacos',           document.getElementById('tdSacos').textContent],
+			['Peso bruto',         document.getElementById('tdPeso').textContent],
+			['Humedad',            document.getElementById('tdHumedad').textContent],
+			['Peso muestra',       document.getElementById('tdPesoMuestra').textContent],
+			['Peso trillado',      document.getElementById('tdTrillado').textContent],
+			['N° tamiz',           document.getElementById('tdTamiz').textContent],
+			['Peso tamizado',      document.getElementById('tdTamizado').textContent],
+			[],
+			['ESTADÍSTICAS DE MONITOREO', ''],
+			['Granos evaluados',   document.getElementById('statGranos').textContent],
+			['Defectos totales',   document.getElementById('statDefectos').textContent],
+			['Rendimiento IA',     document.getElementById('statRendimiento').textContent],
+			['Tiempo de análisis', document.getElementById('statTiempo').textContent],
+			[],
+			['DEFECTOS POR TIPO', ''],
+			['Defecto negro',      document.getElementById('dNegroVal').textContent],
+			['Brocado',            document.getElementById('dBrocadoVal').textContent],
+			['Fermentado',         document.getElementById('dFermentadoVal').textContent],
+		];
+
+		const ws = XLSX.utils.aoa_to_sheet(rows);
+		ws['!cols'] = [{ wch: 26 }, { wch: 32 }];
+		const wb = XLSX.utils.book_new();
+		XLSX.utils.book_append_sheet(wb, ws, 'Resumen');
+		const codigo = document.getElementById('tdCodigo').textContent.replace(/[^A-Za-z0-9]/g, '') || 'evaluacion';
+		XLSX.writeFile(wb, `${codigo}_resumen.xlsx`);
+	});
+
+	cargarResumen();
+	cargarStats();
+})();
+</script>
+{% endblock %}
