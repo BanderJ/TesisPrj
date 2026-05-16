@@ -7,7 +7,9 @@
       "Bash(Get-ChildItem -Recurse -Force)",
       "Bash(Select-Object -First 50 FullName)",
       "Bash(xargs grep -l \"ubigeo_sunat\\\\|reniec\\\\|dni.*consultar\")",
-      "Bash(mkdir -p \"d:/TesisPrj/.claude/skills/frontend-coffeeren\")"
+      "Bash(mkdir -p \"d:/TesisPrj/.claude/skills/frontend-coffeeren\")",
+      "Bash(New-Item -ItemType File -Path \"d:\\\\TesisPrj\\\\README.md\" -Force)",
+      "Bash(Out-Null)"
     ],
     "additionalDirectories": [
       "d:\\TesisPrj\\.claude\\skills"
