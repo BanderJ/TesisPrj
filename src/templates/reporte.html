@@ -23,14 +23,14 @@
     <div class="reporte-search-card">
         <p class="kicker">Consulta de evaluaciones</p>
         <h2 class="reporte-search-title">Búsqueda por código de evaluación</h2>
-        <p class="reporte-search-desc info-text">Ingrese el código asignado a la muestra (ej. EVA0000001) para consultar su resumen.</p>
+        <p class="reporte-search-desc info-text">Ingrese los dígitos del código — el prefijo <strong>EVA</strong> está fijo, solo escriba números.</p>
         <form id="formBuscar" class="reporte-search-form" autocomplete="off">
             <input
                 type="text"
                 id="inputCodigo"
                 class="reporte-input"
-                placeholder="EVA0000001"
                 maxlength="10"
+                inputmode="numeric"
                 spellcheck="false"
                 autocomplete="off"
                 aria-label="Código de evaluación"
@@ -174,16 +174,72 @@
         document.getElementById('tdSacos').textContent       = d.num_sacos    != null ? `${d.num_sacos} sacos`      : '—';
         document.getElementById('tdPeso').textContent        = d.peso_bruto   != null ? `${d.peso_bruto} kg`        : '—';
         document.getElementById('tdHumedad').textContent     = d.humedad      != null ? `${d.humedad}%`             : '—';
-        document.getElementById('tdPesoMuestra').textContent = d.peso_muestra != null ? `${d.peso_muestra} kg`     : '—';
-        document.getElementById('tdTrillado').textContent    = d.peso_trillado != null ? `${d.peso_trillado} kg`   : '—';
+        document.getElementById('tdPesoMuestra').textContent = d.peso_muestra != null ? `${d.peso_muestra} gr`    : '—';
+        document.getElementById('tdTrillado').textContent    = d.peso_trillado != null ? `${d.peso_trillado} gr`  : '—';
         document.getElementById('tdTamiz').textContent       = d.num_tamiz    != null ? `N° ${d.num_tamiz}`         : '—';
-        document.getElementById('tdTamizado').textContent    = d.peso_tamizado != null ? `${d.peso_tamizado} kg`   : '—';
+        document.getElementById('tdTamizado').textContent    = d.peso_tamizado != null ? `${d.peso_tamizado} gr`  : '—';
     }
+
+    // ── Input mask: prefijo "EVA" fijo, solo dígitos después ──────────────
+    const PREFIX     = 'EVA';
+    const MAX_DIGITS = 7;
+
+    function applyMask() {
+        const digits = inputCodigo.value.slice(PREFIX.length).replace(/\D/g, '').slice(0, MAX_DIGITS);
+        inputCodigo.value = PREFIX + digits;
+    }
+
+    function clampCursor() {
+        const s = inputCodigo.selectionStart;
+        const e = inputCodigo.selectionEnd;
+        const minPos = PREFIX.length;
+        if (s < minPos || e < minPos) {
+            const newPos = Math.max(s, minPos);
+            inputCodigo.setSelectionRange(newPos, Math.max(e, minPos));
+        }
+    }
+
+    inputCodigo.addEventListener('focus', () => {
+        applyMask();
+        const len = inputCodigo.value.length;
+        inputCodigo.setSelectionRange(len, len);
+    });
+
+    inputCodigo.addEventListener('keydown', (e) => {
+        const start = inputCodigo.selectionStart;
+        const end   = inputCodigo.selectionEnd;
+
+        // Impedir borrar el prefijo
+        if (e.key === 'Backspace' && start <= PREFIX.length && end <= PREFIX.length) {
+            e.preventDefault(); return;
+        }
+        if (e.key === 'Delete' && start < PREFIX.length) {
+            e.preventDefault(); return;
+        }
+        // Bloquear letras y símbolos (permitir Ctrl+A/C/V/X y teclas de control)
+        if (e.key.length === 1 && !/\d/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault(); return;
+        }
+        // Bloquear si ya hay 7 dígitos y no hay selección
+        const digits = inputCodigo.value.slice(PREFIX.length).replace(/\D/g, '');
+        if (e.key.length === 1 && /\d/.test(e.key) && digits.length >= MAX_DIGITS && start === end) {
+            e.preventDefault();
+        }
+    });
+
+    inputCodigo.addEventListener('input', applyMask);
+    inputCodigo.addEventListener('click', clampCursor);
+    inputCodigo.addEventListener('keyup', clampCursor);
+
+    // Inicializar el input con el prefijo al cargar
+    applyMask();
+    // ───────────────────────────────────────────────────────────────────────
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const codigo = inputCodigo.value.trim().toUpperCase();
-        if (!codigo) return;
+        const digits = inputCodigo.value.slice(PREFIX.length).replace(/\D/g, '');
+        if (!digits) { inputCodigo.focus(); return; }
+        const codigo = PREFIX + digits.padStart(MAX_DIGITS, '0');
 
         btnBuscar.disabled  = true;
         btnBuscar.innerHTML = '<span style="opacity:0.7">Buscando...</span>';
