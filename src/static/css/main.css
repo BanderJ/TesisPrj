@@ -562,13 +562,61 @@ main {
     }
 }
 
+/* Cooperativa Header Banner */
+.cooperativa-header {
+    margin-top: 56px;
+    position: relative;
+}
+
+.cooperativa-banner {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.cooperativa-info {
+    padding: 1.5rem 1rem;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+}
+
+.cooperativa-nombre {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-family: var(--font-serif);
+    color: var(--foreground);
+}
+
+.cooperativa-descripcion {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+    max-width: 700px;
+}
+
+@media (max-width: 640px) {
+    .cooperativa-banner {
+        height: 140px;
+    }
+
+    .cooperativa-info {
+        padding: 1rem;
+    }
+
+    .cooperativa-nombre {
+        font-size: 1.1rem;
+    }
+}
+
 /* Dark Mode Support */
 .dark {
-    --background: oklch(0.1650 0.0180 62.5001);
-    --foreground: oklch(0.9720 0 0);
-    --card: oklch(0.2200 0.0203 63.2513);
-    --border: oklch(0.3800 0.0500 66.0000);
-    --primary: oklch(0.7600 0.1200 131.3265);
+    --background: oklch(0.2200 0.0280 42.0000);
+    --foreground: oklch(0.9200 0 0);
+    --card: oklch(0.2900 0.0320 40.0000);
+    --border: oklch(0.3800 0.0450 40.0000);
+    --primary: oklch(0.6200 0.0800 35.0000);
 }
 
 body.dark {

@@ -247,6 +247,57 @@ function mostrarEstado(state) {
 
 ---
 
+# INTEGRACIÓN MÓDULO ML (YOLO + CLASIFICACIÓN SCA)
+
+## Streaming MJPEG en tiempo real
+
+Página: `/monitoreo/{evaluacion_id}` integra:
+- **`GET /video/stream`** → MJPEG (defectos en **ROJO 🔴**, 1280×720 @ 60fps)
+- **`POST /video/iniciar`** → Inicia captura YOLO + ByteTrack
+- **`POST /video/detener`** → Detiene procesamiento
+- **`GET /lote/conteo`** → Conteo actual `{clase: cantidad, ...}`
+- **`POST /lote/generar-reporte`** → Reporte final {grado, defectos, apto_specialty}
+- **`POST /lote/resetear`** → Prepara nuevo lote
+
+### Patrón de integración en templates
+
+```javascript
+// 1. Iniciar captura
+fetch('/video/iniciar', {method: 'POST'})
+  .then(r => r.json())
+  .then(data => console.log('✅ Captura iniciada'))
+
+// 2. Stream (automático en <img src="/video/stream">)
+<img src="/video/stream" alt="YOLO Live" />
+
+// 3. Obtener conteo en tiempo real (cada 1.5s)
+const res = await fetch('/lote/conteo');
+const {conteo, total_granos} = await res.json();
+// conteo = {negro: 5, partido_maquina: 3, ...}
+
+// 4. Generar reporte final
+const res = await fetch('/lote/generar-reporte', {method: 'POST'});
+const {grado, total_defectos, apto_specialty} = await res.json();
+// grado = "Grado 1 (Specialty)" | "Grado 2" | "Grado 3"
+```
+
+### Colores de defectos en el stream
+
+- **🔴 ROJO (0, 0, 255 BGR)** → Todos los defectos detectados por YOLO
+- **🟡 AMARILLO (0, 255, 255 BGR)** → Estadísticas (contador, FPS)
+
+### Tabla de grados SCA (3 solamente)
+
+| Grado | Defectos Máx | Specialty |
+|-------|:------------:|:---------:|
+| **1** | 0–15 | ✅ Apto |
+| **2** | 16–23 | ❌ No apto |
+| **3** | 24–30 | ❌ No apto |
+
+Documentación completa: [`docs/API_VIDEO_STREAMING.md`](../../docs/API_VIDEO_STREAMING.md)
+
+---
+
 # INTEGRACIÓN ARDUINO / SERIAL
 
 El Arduino (`arduino/coffe_ren/logica_hardware.ino`) comunica por serial a 9600 baud.

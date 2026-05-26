@@ -16,7 +16,7 @@ class Persona:
         try:
             sql = """
                 SELECT id, nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento,
-                       tipo_documento_id, num_documento, telefono, ubigeo, estado
+                       tipo_documento_id, num_documento, telefono, ubigeo, cooperativa_id, estado
                 FROM persona
                 WHERE num_documento = %s
                   AND estado = 'A'
@@ -38,6 +38,7 @@ class Persona:
         num_documento: str,
         telefono: str | None,
         ubigeo: str | None = None,
+        cooperativa_id: str | None = None,
         db: Connection | None = None,
     ) -> str:
         owns_db = db is None
@@ -55,9 +56,10 @@ class Persona:
                     num_documento,
                     telefono,
                     ubigeo,
+                    cooperativa_id,
                     estado
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """
             resultado = db.obtener_uno(
@@ -72,6 +74,7 @@ class Persona:
                     num_documento,
                     telefono,
                     ubigeo,
+                    cooperativa_id,
                     "A",
                 ),
             )

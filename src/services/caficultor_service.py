@@ -19,6 +19,7 @@ class CaficultorService:
     """Servicio para casos de uso relacionados con caficultores."""
 
     TIPO_SOCIO_ID = 1
+    COOPERATIVA_DEFAULT_CODIGO = "LCM001"  # Line Coffee Marañón
 
     def __init__(self) -> None:
         self.caficultor_model: Caficultor = Caficultor()
@@ -84,6 +85,12 @@ class CaficultorService:
         if not self.tipo_caficultor_model.obtener_por_id(tipo_caficultor_id):
             raise ValueError("El tipo de caficultor seleccionado no existe")
 
+    def _obtener_cooperativa_default(self, db: Connection) -> str | None:
+        """Obtiene el ID de la cooperativa por defecto."""
+        sql = "SELECT cooperativa_id FROM COOPERATIVA WHERE codigo = %s LIMIT 1"
+        result = db.obtener_uno(sql, [self.COOPERATIVA_DEFAULT_CODIGO])
+        return str(result["cooperativa_id"]) if result else None
+
     def _obtener_estado_caficultor(self, num_documento: str, db: Connection) -> dict[str, Any] | None:
         """Obtiene estado/tipo del caficultor por documento para conversion a socio."""
         return self.caficultor_model.obtener_estado_y_tipo_por_num_documento(num_documento, db=db)
@@ -111,6 +118,9 @@ class CaficultorService:
 
         db = Connection()
         try:
+            # Obtener cooperativa por defecto
+            cooperativa_id = self._obtener_cooperativa_default(db)
+
             caficultor_existente = self.caficultor_model.obtener_por_num_documento(
                 payload.num_documento,
                 db=db,
@@ -137,6 +147,7 @@ class CaficultorService:
                     num_documento=payload.num_documento,
                     telefono=payload.telefono,
                     ubigeo=payload.ubigeo,
+                    cooperativa_id=cooperativa_id,
                     db=db,
                 )
 

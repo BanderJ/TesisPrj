@@ -75,6 +75,12 @@
                                 </svg>
                                 Configuración
                             </a>
+                            <a href="/configuracion-cooperativa" class="dropdown-item" style="text-decoration: none;">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                Configuración de cooperativa
+                            </a>
                             <a href="/auth/logout" class="dropdown-item" style="text-decoration: none;">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -87,11 +93,20 @@
         </div>
     </header>
 
+    <!-- Cooperativa Header Banner -->
+    <div id="cooperativaHeader" class="cooperativa-header" style="display: none;">
+        <div id="cooperativaBanner" class="cooperativa-banner" style="background-image: linear-gradient(135deg, var(--primary) 0%, var(--primary) 100%);"></div>
+        <div class="cooperativa-info">
+            <h2 id="cooperativaNombre" class="cooperativa-nombre">Cooperativa</h2>
+            <p id="cooperativaDescripcion" class="cooperativa-descripcion"></p>
+        </div>
+    </div>
+
     <!-- Main Content Area -->
     <main>
         <div class="container-main">
             {% block content %}
-            
+
             {% endblock %}
         </div>
     </main>
@@ -431,6 +446,40 @@
             document.addEventListener('keydown', e => {
                 if (e.key === 'Escape' && overlay.style.display !== 'none') closeTC();
             });
+        })();
+
+        // ── Cargar información de cooperativa ──
+        (async () => {
+            try {
+                const res = await fetch('/cooperativas/mi-cooperativa');
+
+                if (res.status === 404) {
+                    console.warn('Usuario sin cooperativa asociada');
+                    return;
+                }
+
+                if (!res.ok) {
+                    console.error('Error HTTP:', res.status, res.statusText);
+                    return;
+                }
+
+                const data = await res.json();
+                const header = document.getElementById('cooperativaHeader');
+                const banner = document.getElementById('cooperativaBanner');
+                const nombre = document.getElementById('cooperativaNombre');
+                const desc = document.getElementById('cooperativaDescripcion');
+
+                nombre.textContent = data.nombre || 'Cooperativa';
+                desc.textContent = data.descripcion || '';
+
+                if (data.imagen_url) {
+                    banner.style.backgroundImage = `url('${data.imagen_url}')`;
+                }
+
+                header.style.display = 'block';
+            } catch (error) {
+                console.error('Error cargando cooperativa:', error);
+            }
         })();
     </script>
 </body>

@@ -1,10 +1,10 @@
 # CoffeeRen
 
-Sistema web de clasificación y gestión de muestras de café para la Cooperativa de Lonya Grande, Amazonas, Perú. Desarrollado como proyecto de tesis universitaria.
+Sistema web de clasificación y gestión de muestras de café verde para la **Cooperativa Agraria Line Coffee Marañón** (Lonya Grande, Utcubamba, Amazonas, Perú). Desarrollado como proyecto de tesis universitaria en la Universidad Católica Santo Toribio de Mogrovejo (USAT).
 
 ## Descripción
 
-CoffeeRen digitaliza el proceso de recepción y clasificación de café: registra la muestra de un caficultor, la procesa en una banda transportadora controlada por Arduino, captura video con una cámara ELP AR0234, calcula el rendimiento y el pago automáticamente, y emite un código de evaluación (EVA) al finalizar.
+CoffeeRen digitaliza el proceso de recepción y clasificación de café verde: registra la muestra de un caficultor, la procesa en una banda transportadora controlada por Arduino, captura video con una cámara ELP AR0234, calcula el rendimiento y el pago automáticamente mediante visión artificial, y emite un código de evaluación (EVA) al finalizar.
 
 ## Tecnologías
 

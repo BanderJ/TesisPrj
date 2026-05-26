@@ -1,244 +1,242 @@
 # Manual de Instalación - CoffeeRen
 
-**Versión:** 1.0  
+**Versión:** 2.0  
 **Fecha de actualización:** 26 de mayo de 2026  
-**Público objetivo:** Técnicos de desarrollo, administradores de sistemas
+**Público objetivo:** Técnicos de desarrollo, administradores de sistemas  
+**Tiempo estimado:** 60-90 minutos
 
 ---
 
 ## Tabla de Contenidos
 
 1. [Introducción](#introducción)
-2. [Requisitos Previos](#requisitos-previos)
+2. [Checklist Preinstalación](#checklist-preinstalación)
 3. [Instalación de PostgreSQL](#instalación-de-postgresql)
-4. [Instalación del Entorno Python](#instalación-del-entorno-python)
-5. [Instalación de Dependencias](#instalación-de-dependencias)
-6. [Configuración de la Base de Datos](#configuración-de-la-base-de-datos)
-7. [Configuración del Proyecto](#configuración-del-proyecto)
-8. [Instalación del Firmware Arduino](#instalación-del-firmware-arduino)
-9. [Compilación de Tailwind CSS](#compilación-de-tailwind-css)
-10. [Ejecución de la Aplicación](#ejecución-de-la-aplicación)
-11. [Verificación de la Instalación](#verificación-de-la-instalación)
-12. [Solución de Problemas Comunes](#solución-de-problemas-comunes)
+4. [Instalación de Python y Entorno Virtual](#instalación-de-python-y-entorno-virtual)
+5. [Descarga y Configuración del Proyecto](#descarga-y-configuración-del-proyecto)
+6. [Instalación de Dependencias Python](#instalación-de-dependencias-python)
+7. [Configuración de la Base de Datos](#configuración-de-la-base-de-datos)
+8. [Configuración del Proyecto CoffeeRen](#configuración-del-proyecto-coffeeren)
+9. [Instalación del Firmware Arduino](#instalación-del-firmware-arduino)
+10. [Configuración de Tailwind CSS](#configuración-de-tailwind-css)
+11. [Ejecución y Verificación](#ejecución-y-verificación)
+12. [Solución de Problemas](#solución-de-problemas)
 13. [Próximos Pasos](#próximos-pasos)
 
 ---
 
 ## Introducción
 
-CoffeeRen es un sistema web integral de clasificación y gestión de muestras de café para cooperativas. El sistema se compone de tres capas principales:
+CoffeeRen es un sistema web integral de clasificación automática de café verde desarrollado para la **Cooperativa Agraria Line Coffee Marañón** (Lonya Grande, Amazonas, Perú). El sistema integra:
 
-- **Backend:** FastAPI con servidor Uvicorn
-- **Base de datos:** PostgreSQL 12 o superior
-- **Frontend:** Jinja2 templates con CSS/JavaScript vanilla
-- **Hardware:** Arduino Uno controlando banda transportadora, sensor de peso y cámara
+- **Aplicación Web:** Backend en FastAPI + Frontend con Jinja2 templates
+- **Base de Datos:** PostgreSQL para almacenamiento de datos
+- **Hardware:** Arduino Uno que controla banda transportadora, celda de carga y servo motor
+- **Visión Artificial:** Cámara ELP AR0234 para detección de defectos en tiempo real
 
-Este manual guía el proceso de instalación completo desde cero, incluyendo todos los componentes: base de datos, aplicación web y firmware del hardware.
+Este manual proporciona instrucciones paso a paso para instalar todos los componentes desde cero, sin asumir experiencia previa con ninguna de estas tecnologías.
 
-**Tiempo estimado de instalación:** 45-90 minutos (según velocidad de conexión y experiencia previa)
+### Estructura del Manual
+
+Cada sección incluye:
+- **Comandos exactos** que puede copiar y pegar
+- **Capturas de concepto** de qué esperar en cada paso
+- **Verificaciones** para confirmar que cada paso funcionó
+- **Alternativas** para diferentes sistemas operativos
 
 ---
 
-## Requisitos Previos
+## Checklist Preinstalación
 
-### Hardware Recomendado
+Antes de comenzar, verifique que tiene:
 
-- Procesador: Intel Core i5 o equivalente
-- RAM: Mínimo 8 GB
-- Almacenamiento: 10 GB disponibles
-- Conexión a internet: Requerida para descargas
+- [ ] Conexión a internet estable (descargará ~500 MB)
+- [ ] Acceso de administrador en su computadora
+- [ ] Al menos 15 GB de espacio libre en disco
+- [ ] Cable USB tipo A-B (para Arduino, si planea usar hardware)
+- [ ] Un editor de texto (Notepad, VS Code, o similar)
 
-### Software Obligatorio
+### Información a Preparar
 
-| Software | Versión | Propósito | Descargar |
-|----------|---------|----------|-----------|
-| Python | 3.11.9 o superior | Runtime de la aplicación | https://www.python.org/downloads/ |
-| PostgreSQL | 12 o superior | Base de datos | https://www.postgresql.org/download/ |
-| Git | Última | Control de versiones (opcional) | https://git-scm.com/ |
-| Arduino IDE | 2.0 o superior | Carga de firmware | https://www.arduino.cc/en/software |
+Antes de instalar, tenga a mano:
 
-### Software Opcional
+1. **Contraseña de PostgreSQL:** Cree una contraseña segura
+   - Ejemplo: `Cafe2026!Seguro`
+   - Anótela en un lugar seguro
 
-- Visual Studio Code: Editor de código
-- Postman o Insomnia: Pruebas de API
-- pgAdmin: Herramienta visual para PostgreSQL
+2. **Clave Secreta JWT:** Genere una cadena aleatoria
+   - Longitud mínima: 32 caracteres
+   - Puede usar: https://www.random.org/strings/
 
-### Información para Configuración
+3. **Puerto PostgreSQL:** Normalmente `5432` (verifique que no esté en uso)
 
-Antes de comenzar, prepare la siguiente información:
-
-- Nombre de usuario para PostgreSQL (por defecto: postgres)
-- Contraseña para usuario PostgreSQL
-- Puerto de PostgreSQL (por defecto: 5432)
-- Nombre de la base de datos (por defecto: coffeeren)
-- Clave secreta JWT (genere una cadena aleatoria segura)
+4. **Ubicación del Proyecto:** Decida dónde clonar el repositorio
+   - Recomendado: `C:\Proyectos\` (Windows) o `~/proyectos/` (Linux/Mac)
 
 ---
 
 ## Instalación de PostgreSQL
 
-### Windows
+### Windows (Pasos Detallados)
 
 #### Paso 1: Descargar PostgreSQL
 
-1. Visite https://www.postgresql.org/download/windows/
-2. Descargue la versión más reciente del instalador (versión 15 o superior recomendada)
-3. Guarde el archivo .exe en una ubicación accesible
+1. Abra un navegador web
+2. Visite: https://www.postgresql.org/download/windows/
+3. Haga clic en el botón **"Download the installer"**
+4. Seleccione la versión **15 o 16** (no use versiones más antiguas)
+5. Elija **Windows x86-64** si su computadora es de 64 bits (lo más común)
+6. Haga clic en **"Download"**
+7. Guarde el archivo en su carpeta de Descargas
+
+**Verificación:** El archivo descargado debe llamarse algo como `postgresql-16.0-1-windows-x64.exe`
 
 #### Paso 2: Ejecutar el instalador
 
-1. Haga doble clic en el archivo descargado
-2. Si se le solicita, confirme que desea ejecutar el instalador
-3. Siga el asistente de instalación
+1. Abra la carpeta de Descargas
+2. Haga doble clic en el archivo `postgresql-16.0-1-windows-x64.exe`
+3. Si Windows solicita confirmación, haga clic en **"Sí"**
+4. Se abrirá el asistente de instalación
 
-#### Paso 3: Configuración inicial
+#### Paso 3: Configurar la instalación
 
-En la pantalla "Setup - PostgreSQL":
-- **Installation Directory:** Deje la ruta predeterminada: `C:\Program Files\PostgreSQL\15`
-- **Data Directory:** Deje la ruta predeterminada: `C:\Program Files\PostgreSQL\15\data`
-- Haga clic en "Next"
+El asistente mostrará varias pantallas. Configure cada una así:
 
-En la pantalla "Password":
-- Ingrese y confirme una contraseña segura para el usuario `postgres`
-- **Anote esta contraseña: la necesitará para configurar la base de datos**
-- Haga clic en "Next"
+**Pantalla 1: Welcome**
+- Haga clic en **"Next"**
 
-En la pantalla "Port":
+**Pantalla 2: Installation Directory**
+- Deje la ruta predeterminada: `C:\Program Files\PostgreSQL\16`
+- Haga clic en **"Next"**
+
+**Pantalla 3: Select Components**
+- Mantenga seleccionadas todas las opciones (están bien así)
+- Haga clic en **"Next"**
+
+**Pantalla 4: Data Directory**
+- Deje la ruta predeterminada: `C:\Program Files\PostgreSQL\16\data`
+- Haga clic en **"Next"**
+
+**Pantalla 5: Password**
+- Ingrese la contraseña que preparó (ej: `Cafe2026!Seguro`)
+- Escriba la misma contraseña en "Confirm password"
+- **Anote esta contraseña: la necesitará en pasos posteriores**
+- Haga clic en **"Next"**
+
+**Pantalla 6: Port**
 - Deje el puerto predeterminado: `5432`
-- Haga clic en "Next"
+- Haga clic en **"Next"**
 
-En la pantalla "Locale":
-- Seleccione el idioma/región (use "Spanish, Spain" o "English, United States")
-- Haga clic en "Next"
+**Pantalla 7: Locale**
+- Seleccione **"Spanish, Spain"** o **"English, United States"** según su idioma
+- Haga clic en **"Next"**
 
-En la pantalla "Ready to Install":
-- Revise la configuración
-- Haga clic en "Install"
-- Espere a que finalice la instalación (puede tomar 2-5 minutos)
+**Pantalla 8: Ready to Install**
+- Revise que todo esté correcto
+- Haga clic en **"Install"**
+- Espere de 2 a 5 minutos a que se complete la instalación
 
-#### Paso 4: Completar la instalación
+**Pantalla 9: Finishing Setup**
+- Desmarque la casilla "Stack Builder" (no lo necesitamos)
+- Haga clic en **"Finish"**
 
-En la pantalla final:
-- Desmarque "Stack Builder" (no es necesario)
-- Haga clic en "Finish"
+#### Paso 4: Verificar que PostgreSQL funciona
 
-#### Paso 5: Verificar instalación en Windows
-
-Abra el símbolo del sistema (cmd.exe) e ingrese:
+Abra el **Símbolo del sistema** (busque "cmd" en el botón Inicio):
 
 ```cmd
 psql --version
 ```
 
-Debería ver una salida similar a:
+Debería ver algo como:
 ```
-psql (PostgreSQL) 15.2
+psql (PostgreSQL) 16.0
 ```
 
-Si obtiene un error "psql: command not found", agregue PostgreSQL al PATH:
+Si ve un error "psql: command not found", verifique que agregó PostgreSQL al PATH:
 
 1. Presione `Win + X` y seleccione "Símbolo del sistema (Administrador)"
 2. Ejecute:
 ```cmd
-setx PATH "%PATH%;C:\Program Files\PostgreSQL\15\bin"
+setx PATH "%PATH%;C:\Program Files\PostgreSQL\16\bin"
 ```
-3. Cierre y abra una nueva ventana de símbolo del sistema
-4. Intente nuevamente con `psql --version`
+3. Cierre y abra un nuevo símbolo del sistema
+4. Intente nuevamente: `psql --version`
 
 ---
 
 ### Linux (Ubuntu/Debian)
 
-#### Paso 1: Actualizar repositorios
-
-Abra una terminal y ejecute:
+Abra una terminal (Ctrl+Alt+T) y ejecute:
 
 ```bash
+# Actualizar lista de paquetes
 sudo apt update
-sudo apt upgrade -y
-```
 
-#### Paso 2: Instalar PostgreSQL
-
-```bash
+# Instalar PostgreSQL
 sudo apt install postgresql postgresql-contrib -y
-```
 
-#### Paso 3: Iniciar el servicio
-
-```bash
+# Iniciar el servicio
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
-```
 
-#### Paso 4: Verificar instalación
-
-```bash
+# Verificar que funciona
 psql --version
 ```
 
-#### Paso 5: Establecer contraseña para usuario postgres
-
-```bash
-sudo -u postgres psql
-```
-
-En la consola psql:
-```sql
-ALTER USER postgres WITH PASSWORD 'tu_contraseña_segura';
-\q
-```
+Si la instalación es exitosa, verá la versión de PostgreSQL.
 
 ---
 
 ### macOS
 
-#### Paso 1: Instalación con Homebrew (recomendado)
+Opción 1: **Usando Homebrew** (recomendado):
 
 ```bash
+# Instalar Homebrew si no lo tiene
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Instalar PostgreSQL
 brew install postgresql
-```
 
-#### Paso 2: Iniciar el servicio
-
-```bash
+# Iniciar el servicio
 brew services start postgresql
-```
 
-#### Paso 3: Verificar instalación
-
-```bash
+# Verificar
 psql --version
 ```
 
-#### Paso 4: Crear usuario (si es necesario)
+Opción 2: **Usando el instalador visual:**
 
-```bash
-createuser -P postgres
-```
+1. Visite: https://www.postgresql.org/download/macosx/
+2. Descargue **PostgreSQL.app**
+3. Arrastre la aplicación a la carpeta **Applications**
+4. Abra PostgreSQL.app desde Applications
 
 ---
 
-## Instalación del Entorno Python
+## Instalación de Python y Entorno Virtual
 
 ### Windows
 
 #### Paso 1: Descargar Python 3.11.9
 
-1. Visite https://www.python.org/downloads/release/python-3119/
-2. Descargue el instalador "Windows installer (64-bit)"
-3. Guarde el archivo en una ubicación accesible
+1. Visite: https://www.python.org/downloads/release/python-3119/
+2. Scroll down hasta encontrar **"Windows installer (64-bit)"**
+3. Haga clic para descargar
+4. Guarde el archivo en su carpeta de Descargas
 
-#### Paso 2: Ejecutar el instalador
+#### Paso 2: Ejecutar el instalador de Python
 
-1. Haga doble clic en el archivo descargado
-2. **IMPORTANTE:** En la primera pantalla, marque la casilla "Add Python 3.11 to PATH"
-3. Haga clic en "Install Now"
-4. Espere a que finalice la instalación
+1. Haga doble clic en `python-3.11.9-amd64.exe`
+2. **IMPORTANTE:** En la primera pantalla, marque la casilla **"Add Python 3.11 to PATH"**
+3. Haga clic en **"Install Now"**
+4. Espere a que finalice (1-2 minutos)
+5. Cuando vea "Setup was successful", cierre el instalador
 
-#### Paso 3: Verificar instalación
+#### Paso 3: Verificar instalación de Python
 
-Abra el símbolo del sistema (cmd.exe):
+Abra el Símbolo del sistema:
 
 ```cmd
 python --version
@@ -249,87 +247,131 @@ Debería ver:
 Python 3.11.9
 ```
 
-Si obtiene un error, verifique que marcó "Add Python 3.11 to PATH" durante la instalación.
+Si obtiene un error, es porque no marcó "Add Python 3.11 to PATH". Desinstale y vuelva a instalar marcando esa casilla.
 
-### Linux y macOS
+---
+
+### Linux (Ubuntu/Debian)
 
 ```bash
-python3 --version
-```
+# Verificar si Python 3.11 está disponible
+python3.11 --version
 
-Si Python 3.11.9 no está disponible, use el gestor de versiones de su distribución:
+# Si no está instalado:
+sudo apt install python3.11 python3.11-venv python3.11-dev -y
 
-**Linux (Ubuntu):**
-```bash
-sudo apt install python3.11 python3.11-venv python3.11-dev
-```
-
-**macOS:**
-```bash
-brew install python@3.11
+# Verificar
+python3.11 --version
 ```
 
 ---
 
-## Instalación de Dependencias
-
-### Paso 1: Clonar o descargar el repositorio
-
-Navegue a una carpeta de trabajo y descargue el proyecto:
+### macOS
 
 ```bash
-git clone <url-repositorio> TesisPrj
+# Si usa Homebrew
+brew install python@3.11
+
+# Verificar
+python3.11 --version
+```
+
+---
+
+## Descarga y Configuración del Proyecto
+
+### Opción A: Usando Git (recomendado para desarrolladores)
+
+#### Paso 1: Instalar Git
+
+**Windows:**
+1. Visite: https://git-scm.com/download/win
+2. Descargue e instale con las opciones predeterminadas
+
+**Linux:**
+```bash
+sudo apt install git -y
+```
+
+**macOS:**
+```bash
+brew install git
+```
+
+#### Paso 2: Clonar el repositorio
+
+Abra una terminal en la carpeta donde quiere el proyecto:
+
+```bash
+cd C:\Proyectos
+
+git clone https://github.com/BanderJ/TesisPrj.git
 cd TesisPrj
 ```
 
-O descargue el archivo ZIP desde el repositorio.
+---
 
-### Paso 2: Crear el entorno virtual
+### Opción B: Descargar ZIP (más simple)
 
-En Windows:
+1. Visite el repositorio del proyecto
+2. Haga clic en **"Code"** > **"Download ZIP"**
+3. Extraiga el archivo ZIP en su carpeta de proyectos
+4. Abra la carpeta extraída en una terminal
+
+---
+
+## Instalación de Dependencias Python
+
+Ahora está en la carpeta `TesisPrj`. En Windows o Linux/Mac:
+
+### Paso 1: Crear el entorno virtual
+
+**Windows:**
 ```cmd
 python -m venv .venv
 .venv\Scripts\activate
 ```
 
-En Linux/macOS:
+**Linux/macOS:**
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-Debería ver el prefijo `(.venv)` en su línea de comandos.
+Después de ejecutar esto, verá `(.venv)` al inicio de su línea de comandos. Esto indica que el entorno virtual está activo.
 
-### Paso 3: Actualizar pip
+### Paso 2: Actualizar pip
 
 ```bash
 python -m pip install --upgrade pip
 ```
 
-### Paso 4: Instalar dependencias del proyecto
+### Paso 3: Instalar todas las dependencias
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Este comando instala todas las librerías necesarias:
-- FastAPI: Framework web
-- Uvicorn: Servidor ASGI
-- psycopg2-binary: Driver de PostgreSQL
-- PyJWT: Manejo de tokens JWT
-- python-argon2: Hash de contraseñas
-- opencv-python: Procesamiento de imágenes
-- Jinja2: Motor de templates (incluido en FastAPI)
+Este paso descargará e instalará:
+- **FastAPI:** Framework web
+- **Uvicorn:** Servidor de aplicaciones
+- **psycopg2-binary:** Driver de PostgreSQL
+- **PyJWT:** Manejo de tokens de autenticación
+- **argon2-cffi:** Hash seguro de contraseñas
+- **opencv-python:** Procesamiento de imágenes
+- **jinja2:** Motor de plantillas HTML
 
-La instalación puede tomar 3-5 minutos.
+La instalación puede tomar 2-5 minutos dependiendo de su conexión.
 
-#### Verificación de instalación
+### Verificación
+
+Para confirmar que todo se instaló correctamente:
 
 ```bash
 pip list
 ```
 
-Debería ver listadas las librerías mencionadas arriba.
+Debería ver las librerías listadas arriba. Si alguna falta, repita el paso 3.
 
 ---
 
@@ -337,72 +379,77 @@ Debería ver listadas las librerías mencionadas arriba.
 
 ### Paso 1: Crear la base de datos
 
-Abra la consola psql:
+Abra una terminal o símbolo del sistema e ingrese a psql:
 
-En Windows:
-```cmd
+```bash
 psql -U postgres
 ```
 
-En Linux/macOS:
-```bash
-sudo -u postgres psql
-```
+Ingrese la contraseña que configuró en la instalación de PostgreSQL.
 
-Ingrese la contraseña de PostgreSQL cuando se solicite.
+Verá el prompt `postgres=#`
 
-En la consola psql, cree la base de datos:
+### Paso 2: Crear la base de datos CoffeeRen
+
+En el prompt de psql, ejecute:
+
 ```sql
 CREATE DATABASE coffeeren ENCODING 'UTF8' LC_COLLATE 'es_ES.UTF-8' LC_CTYPE 'es_ES.UTF-8';
 ```
 
-Verificar que se creó correctamente:
-```sql
-\l
-```
+Si obtiene un error sobre "collate", ejecute simplemente:
 
-Debería ver `coffeeren` en la lista.
-
-Salir de psql:
-```sql
-\q
-```
-
-### Paso 2: Cargar el schema de la base de datos
-
-Desde la carpeta raíz del proyecto (TesisPrj), ejecute:
-
-En Windows:
-```cmd
-psql -U postgres -d coffeeren -f src/database/script.sql
-```
-
-En Linux/macOS:
-```bash
-psql -U postgres -d coffeeren -f src/database/script.sql
-```
-
-Esto creará todas las tablas, relaciones e inserciones de datos iniciales (tipos de personal, documentos, café, defectos, etc.).
-
-**Nota:** Si obtiene un error sobre encoding, ejecute primero:
 ```sql
 CREATE DATABASE coffeeren ENCODING 'UTF8';
 ```
 
-### Paso 3: Verificar que se crearon las tablas
+### Paso 3: Verificar que se creó
 
-Conéctese a la base de datos y verifique:
+```sql
+\l
+```
+
+Debería ver `coffeeren` en la lista de bases de datos.
+
+### Paso 4: Salir de psql
+
+```sql
+\q
+```
+
+---
+
+### Paso 5: Cargar el schema (estructura de tablas)
+
+Desde la carpeta raíz del proyecto (`TesisPrj`), en una terminal normal (no psql):
+
+**Windows:**
+```cmd
+psql -U postgres -d coffeeren -f src/database/script.sql
+```
+
+**Linux/macOS:**
+```bash
+psql -U postgres -d coffeeren -f src/database/script.sql
+```
+
+Este comando crea todas las tablas, relaciones y datos iniciales (tipos de usuario, documentos, precios de café, clasificación de defectos, etc.).
+
+### Verificación
+
+Vuelva a entrar en psql y verifique que las tablas existen:
 
 ```bash
 psql -U postgres -d coffeeren
 ```
 
-En la consola psql:
+En psql, ejecute:
+
 ```sql
 \dt
 ```
 
-Debería listar las tablas:
+Debería listar estas tablas:
 - persona
 - personal
 - tipo_personal
@@ -411,116 +458,134 @@ Debería listar las tablas:
 - detalle_evaluacion
 - categoria
 - valor_cafe
-- etc.
+- tipo_defecto
+- tipo_documento
+- tipo_caficultor
+- tipo_grano
+- ubigeo
 
-Salir:
+Si ve todas estas, la base de datos está lista.
+
 ```sql
 \q
 ```
 
 ---
 
-## Configuración del Proyecto
+## Configuración del Proyecto CoffeeRen
 
-### Paso 1: Configurar variables de entorno
+### Paso 1: Configurar la variable de entorno SECRET_KEY
 
-En Windows, abra una terminal de PowerShell:
+Este es el código secreto que firma los tokens de autenticación. Genere uno seguro:
+
+**Windows (PowerShell):**
 ```powershell
-$env:SECRET_KEY = "tu-clave-secreta-aleatoria-aqui"
+$env:SECRET_KEY = "su-clave-secreta-aleatoria-de-32-caracteres"
 ```
 
-En Linux/macOS:
+O genere uno automáticamente:
+```powershell
+$env:SECRET_KEY = $(python -c "import secrets; print(secrets.token_urlsafe(32))")
+```
+
+**Linux/macOS:**
 ```bash
-export SECRET_KEY="tu-clave-secreta-aleatoria-aqui"
+export SECRET_KEY="su-clave-secreta-aleatoria-de-32-caracteres"
 ```
 
-**Nota:** Genere una clave segura. Puede usar:
-```python
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-```
-
-### Paso 2: Verificar y ajustar configuración de base de datos
-
-Abra el archivo `src/config.py`:
-
+O genere uno:
 ```bash
-code src/config.py
+export SECRET_KEY=$(python -c "import secrets; print(secrets.token_urlsafe(32))")
 ```
 
-Verifique que los parámetros coincidan con su instalación de PostgreSQL:
+### Paso 2: Verificar archivo de configuración
+
+Abra `src/config.py` en su editor:
 
 ```python
 DB_NAME = "coffeeren"
 DB_USER = "postgres"
-DB_PASSWORD = "tu_contraseña_de_postgres"
+DB_PASSWORD = "la_contraseña_que_uso_en_postgres"
 DB_HOST = "localhost"
 DB_PORT = "5432"
 ```
 
+Verifique que **DB_PASSWORD** coincide con la contraseña que estableció en PostgreSQL.
+
 Guarde los cambios.
 
-### Paso 3: Instalar Tailwind CSS CLI (para desarrollo)
+### Paso 3: Descargar Tailwind CSS CLI
 
-Descargue la herramienta Tailwind CSS para su sistema operativo desde:
-https://github.com/tailwindlabs/tailwindcss/releases
+Visite: https://github.com/tailwindlabs/tailwindcss/releases
 
-**Windows:**
-- Descargue `tailwindcss-windows-x64.exe`
-- Colóquelo en la raíz del proyecto: `TesisPrj/tailwindcss-windows-x64.exe`
+Descargue el archivo para su sistema:
 
-**Linux:**
-- Descargue `tailwindcss-linux-x64`
-- Colóquelo en la raíz del proyecto
-- Otorgue permisos de ejecución: `chmod +x tailwindcss-linux-x64`
+| Sistema | Archivo a Descargar |
+|---------|------------------|
+| Windows 64-bit | `tailwindcss-windows-x64.exe` |
+| Linux 64-bit | `tailwindcss-linux-x64` |
+| macOS Intel | `tailwindcss-macos-x64` |
+| macOS Apple Silicon | `tailwindcss-macos-arm64` |
 
-**macOS:**
-- Descargue `tailwindcss-macos-arm64` (Apple Silicon) o `tailwindcss-macos-x64` (Intel)
-- Colóquelo en la raíz del proyecto
+Coloque el archivo descargado en la **raíz del proyecto** (`TesisPrj/`)
+
+**En Linux/macOS, otorgue permisos:**
+```bash
+chmod +x tailwindcss-linux-x64
+```
 
 ---
 
 ## Instalación del Firmware Arduino
 
+Si planea usar los sensores físicos y la banda transportadora, siga estos pasos:
+
 ### Paso 1: Descargar Arduino IDE
 
-1. Visite https://www.arduino.cc/en/software
-2. Descargue Arduino IDE 2.0 o superior
-3. Instale siguiendo el asistente para su sistema operativo
+1. Visite: https://www.arduino.cc/en/software
+2. Descargue **Arduino IDE 2.0 o superior**
+3. Instale siguiendo los pasos del instalador
 
-### Paso 2: Instalar el soporte para Arduino Uno
+### Paso 2: Conectar la placa Arduino
+
+1. Conecte la placa Arduino Uno a su computadora con un cable USB
+2. Espere a que Windows detecte el dispositivo (verá un mensaje)
+
+### Paso 3: Instalar el soporte para Arduino Uno
 
 1. Abra Arduino IDE
 2. Vaya a **Herramientas > Placa > Gestor de tarjetas**
 3. Busque "Arduino AVR Boards"
-4. Haga clic en "Instalar"
+4. Haga clic en **"Instalar"**
+5. Espere a que finalice
 
-### Paso 3: Cargar el firmware CoffeeRen
+### Paso 4: Cargar el firmware CoffeeRen
 
-1. Conecte la placa Arduino Uno a su computadora mediante cable USB
-2. En Arduino IDE, vaya a **Archivo > Abrir**
-3. Navegue a `TesisPrj/arduino/logica_hardware/` y abra el archivo del sketch
-4. En **Herramientas**, configure:
+1. En Arduino IDE, vaya a **Archivo > Abrir**
+2. Navegue a la carpeta: `TesisPrj/arduino/logica_hardware/`
+3. Abra el archivo `.ino` (archivo del sketch)
+4. En la barra de herramientas, configure:
    - **Placa:** Arduino Uno
-   - **Puerto:** COM3 (o el puerto que aparezca en su sistema)
-   - **Velocidad de subida:** 115200
+   - **Puerto:** COM3 o COM4 (el que vea en su sistema)
+   - **Velocidad:** 115200
 
-5. Haga clic en el botón "Subir" (flecha hacia arriba)
-6. Espere a que aparezca el mensaje "Subida completada" en la consola inferior
+5. Haga clic en el botón **"Cargar"** (flecha hacia arriba)
+6. Esperará a que compile y cargue
 
-### Paso 4: Verificar comunicación
+Cuando vea el mensaje "Subida completada", el firmware está instalado en Arduino.
 
-1. Abra el Monitor Serial (Herramientas > Monitor Serial)
-2. Configure la velocidad a 9600 baud
-3. Presione el botón RESET en la placa Arduino
-4. Debería ver un mensaje de inicialización
+### Paso 5: Verificar comunicación (opcional)
+
+1. En Arduino IDE, vaya a **Herramientas > Monitor Serial**
+2. Configure la velocidad a **9600 baud**
+3. Presione el botón **RESET** en la placa Arduino
+4. Debería ver mensajes de inicialización en la consola
 
 ---
 
-## Compilación de Tailwind CSS
+## Configuración de Tailwind CSS
 
-### Modo desarrollo (con observador automático)
-
-Abra una terminal en la carpeta raíz del proyecto y ejecute:
+Abra una **segunda terminal** (no cierre la primera) en la carpeta raíz del proyecto:
 
 **Windows:**
 ```cmd
@@ -532,25 +597,15 @@ Abra una terminal en la carpeta raíz del proyecto y ejecute:
 ./tailwindcss-linux-x64 -i src/static/css/input.css -o src/static/css/tailwind.css --watch
 ```
 
-Este proceso monitorea cambios en `input.css` y recompila automáticamente.
-
-### Compilación única (producción)
-
-```bash
-# Windows
-.\tailwindcss-windows-x64.exe -i src\static\css\input.css -o src\static\css\tailwind.css --minify
-
-# Linux/macOS
-./tailwindcss-linux-x64 -i src/static/css/input.css -o src/static/css/tailwind.css --minify
-```
+Esta terminal compilará los estilos CSS y se quedará monitorando cambios. Déjela abierta mientras desarrolla.
 
 ---
 
-## Ejecución de la Aplicación
+## Ejecución y Verificación
 
-### Paso 1: Activar el entorno virtual
+### Paso 1: Asegúrese de que el entorno virtual está activo
 
-Si no está activado:
+En su terminal principal, verifique que ve `(.venv)` al inicio de la línea. Si no, active:
 
 **Windows:**
 ```cmd
@@ -564,16 +619,19 @@ source .venv/bin/activate
 
 ### Paso 2: Iniciar el servidor FastAPI
 
+En su terminal principal (no la del Tailwind), ejecute:
+
 ```bash
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Debería ver:
+Verá algo como:
 ```
 INFO:     Uvicorn running on http://0.0.0.0:8000
-INFO:     Started reloader process
 INFO:     Application startup complete
 ```
+
+**No cierre esta terminal.** Es el servidor ejecutándose.
 
 ### Paso 3: Acceder a la aplicación
 
@@ -582,144 +640,112 @@ Abra un navegador web y vaya a:
 http://localhost:8000
 ```
 
-Debería ver la página de inicio de CoffeeRen.
+Debería ver la página de inicio de CoffeeRen con todos los estilos cargados correctamente.
 
-### Pasos alternativo: Ejecución sin recarga automática
+### Verificación 1: Página de inicio
 
-Para producción, ejecute sin la opción `--reload`:
+- Verifique que ve el logo de CoffeeRen
+- Verifique que los colores y tipografía se ven bien
+- Verifique que el menú de navegación está visible
 
-```bash
-uvicorn src.main:app --host 0.0.0.0 --port 8000
-```
+### Verificación 2: Login
 
----
-
-## Verificación de la Instalación
-
-### Verificación 1: Acceso a la aplicación web
-
-1. En navegador, vaya a `http://localhost:8000`
-2. Debería ver la página de inicio de CoffeeRen
-3. Verifique que todos los estilos se cargan correctamente (colores, tipografía)
-
-### Verificación 2: Conexión a la base de datos
-
-1. Vaya a `http://localhost:8000/auth/login`
+1. Haga clic en el menú o vaya directamente a: `http://localhost:8000/auth/login`
 2. Intente iniciar sesión con:
-   - Usuario: `admin`
-   - Contraseña: (la que generó en la inserción de datos)
+   - **Usuario:** admin
+   - **Contraseña:** (la que fue generada en el script.sql)
 
-Si accede al dashboard, la conexión a la base de datos es correcta.
+Si accede al dashboard principal, la base de datos está funcionando.
 
-### Verificación 3: Endpoints de API
+### Verificación 3: Base de datos
 
-Pruebe un endpoint de API usando curl o Postman:
+Para confirmar que se están guardando datos:
 
+1. Abra una terminal diferente
+2. Ejecute:
 ```bash
-curl -X GET http://localhost:8000/perfil/usuarios \
-  -H "Authorization: Bearer <token_jwt>"
+psql -U postgres -d coffeeren
 ```
 
-Debería recibir una respuesta JSON con la lista de usuarios.
-
-### Verificación 4: Compilación de CSS
-
-Verifique que el archivo `src/static/css/tailwind.css` existe y contiene CSS compilado:
-
-```bash
-ls -la src/static/css/tailwind.css
+3. Ejecute:
+```sql
+SELECT COUNT(*) FROM persona;
 ```
 
-Debería mostrar un tamaño mayor a 100 KB.
+Debería mostrar un número mayor a 0 (cantidad de personas registradas).
 
-### Verificación 5: Arduino (si está disponible)
-
-1. Conecte la placa Arduino
-2. En el Monitor Serial de Arduino IDE (9600 baud), debería ver mensajes de inicialización
-3. Verifique que los sensores responden (envíe comando "PF" para probar celda de carga)
+4. Salga:
+```sql
+\q
+```
 
 ---
 
-## Solución de Problemas Comunes
+## Solución de Problemas
 
 ### Error: "psql: command not found"
 
-**Causa:** PostgreSQL no está en la variable PATH del sistema
+**Problema:** PostgreSQL no está en la variable PATH
 
-**Solución:**
-- Windows: Agregue `C:\Program Files\PostgreSQL\15\bin` a las variables de entorno
-- Linux: Instale nuevamente con `sudo apt install postgresql`
-- macOS: Ejecute `brew install postgresql`
+**Solución Windows:**
+1. Presione `Win + X`, seleccione "Símbolo del sistema (Administrador)"
+2. Ejecute:
+```cmd
+setx PATH "%PATH%;C:\Program Files\PostgreSQL\16\bin"
+```
+3. Cierre y abra una nueva terminal
+4. Intente: `psql --version`
+
+**Solución Linux:**
+```bash
+sudo apt reinstall postgresql
+```
 
 ---
 
-### Error: "FATAL: Ident authentication failed for user 'postgres'"
+### Error: "FATAL: Ident authentication failed"
 
-**Causa:** PostgreSQL está rechazando la contraseña
+**Problema:** PostgreSQL rechaza la contraseña
 
 **Solución:**
+1. Encuentre el archivo `pg_hba.conf`:
+   - Windows: `C:\Program Files\PostgreSQL\16\data\pg_hba.conf`
+   - Linux: `/etc/postgresql/16/main/pg_hba.conf`
 
-1. Abra `pg_hba.conf` ubicado en:
-   - Windows: `C:\Program Files\PostgreSQL\15\data\pg_hba.conf`
-   - Linux: `/etc/postgresql/15/main/pg_hba.conf`
-   - macOS: `/usr/local/var/postgres/pg_hba.conf`
-
-2. Busque la línea con "local" e "peer"
-
-3. Cámbiela de:
-   ```
-   local   all             all                                     peer
-   ```
-   A:
-   ```
-   local   all             all                                     md5
-   ```
-
-4. Reinicie PostgreSQL:
-   - Windows: Services > PostgreSQL (reiniciar servicio)
+2. Abra el archivo con un editor
+3. Busque la línea que dice: `local   all   all   peer`
+4. Cámbiela a: `local   all   all   md5`
+5. Reinicie PostgreSQL:
+   - Windows: Servicios > PostgreSQL > Reiniciar
    - Linux: `sudo systemctl restart postgresql`
-   - macOS: `brew services restart postgresql`
 
-5. Intente nuevamente con la contraseña
+6. Intente nuevamente
 
 ---
 
-### Error: "psycopg2.OperationalError: FATAL: database 'coffeeren' does not exist"
+### Error: "database 'coffeeren' does not exist"
 
-**Causa:** La base de datos no fue creada o no se cargó el schema
+**Problema:** La base de datos no fue creada
 
 **Solución:**
-
-1. Verifique que la base de datos existe:
-   ```bash
-   psql -U postgres -l | grep coffeeren
-   ```
-
-2. Si no existe, créela:
-   ```bash
-   psql -U postgres -c "CREATE DATABASE coffeeren ENCODING 'UTF8';"
-   ```
-
-3. Cargue el schema nuevamente:
-   ```bash
-   psql -U postgres -d coffeeren -f src/database/script.sql
-   ```
+```bash
+psql -U postgres -c "CREATE DATABASE coffeeren ENCODING 'UTF8';"
+psql -U postgres -d coffeeren -f src/database/script.sql
+```
 
 ---
 
 ### Error: "Port 8000 is already in use"
 
-**Causa:** Otro proceso está usando el puerto 8000
+**Problema:** Otro programa está usando el puerto
 
-**Solución:**
-
-**Windows:**
+**Solución Windows:**
 ```cmd
 netstat -ano | findstr :8000
-taskkill /PID <PID> /F
+taskkill /PID <numero> /F
 ```
 
-**Linux/macOS:**
+**Solución Linux/macOS:**
 ```bash
 lsof -i :8000
 kill -9 <PID>
@@ -734,165 +760,128 @@ uvicorn src.main:app --reload --port 8001
 
 ### Error: "ModuleNotFoundError: No module named 'fastapi'"
 
-**Causa:** Las dependencias no fueron instaladas correctamente
+**Problema:** Las dependencias no se instalaron
 
 **Solución:**
-
-1. Verifique que el entorno virtual está activado (debe ver `(.venv)` en el prompt)
-2. Reinstale las dependencias:
-   ```bash
-   pip install --upgrade pip
-   pip install -r requirements.txt
-   ```
+1. Verifique que el entorno virtual está activo (debe ver `(.venv)`)
+2. Ejecute:
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
 
 3. Verifique:
-   ```bash
-   pip list | grep -i fastapi
-   ```
+```bash
+pip list | grep fastapi
+```
 
 ---
 
-### Error: "Tailwind CSS: cannot find input.css"
+### Página sin estilos CSS (se ve fea)
 
-**Causa:** El archivo `src/static/css/input.css` no existe
-
-**Solución:**
-
-1. Verifique que el archivo existe:
-   ```bash
-   ls -la src/static/css/input.css
-   ```
-
-2. Si no existe, créelo con contenido básico:
-   ```css
-   @tailwind base;
-   @tailwind components;
-   @tailwind utilities;
-   ```
-
-3. Intente la compilación nuevamente
-
----
-
-### Error: "Arduino IDE no reconoce el puerto COM"
-
-**Causa:** Driver USB del Arduino no está instalado
+**Problema:** Tailwind CSS no se compiló
 
 **Solución:**
+1. Verifique que compiló correctamente:
+```bash
+ls -la src/static/css/tailwind.css
+```
 
-**Windows:**
-1. Desconecte el Arduino
-2. Descargue e instale el driver CH340 desde: https://github.com/nodemcu/ch340/releases
-3. Reinicie la computadora
-4. Conecte el Arduino nuevamente
-
-**Linux:**
-1. Instale reglas udev:
-   ```bash
-   sudo apt install arduino
-   ```
-
-2. Agregue su usuario al grupo dialout:
-   ```bash
-   sudo usermod -a -G dialout $USER
-   ```
-
-3. Reinicie la sesión
-
----
-
-### Página web carga pero sin estilos CSS
-
-**Causa:** Tailwind CSS no fue compilado o está desactualizado
-
-**Solución:**
-
-1. Verifique que `src/static/css/tailwind.css` existe
-2. Recompile manualmente:
-   ```bash
-   # Windows
-   .\tailwindcss-windows-x64.exe -i src\static\css\input.css -o src\static\css\tailwind.css
-
-   # Linux/macOS
-   ./tailwindcss-linux-x64 -i src/static/css/input.css -o src/static/css/tailwind.css
-   ```
+2. Si no existe, compile manualmente:
+   - Windows: `.\tailwindcss-windows-x64.exe -i src\static\css\input.css -o src\static\css\tailwind.css`
+   - Linux: `./tailwindcss-linux-x64 -i src/static/css/input.css -o src/static/css/tailwind.css`
 
 3. Recargue la página en el navegador (Ctrl+F5)
 
 ---
 
-### Error al iniciar sesión: "Credenciales incorrectas"
+### Arduino IDE no detecta el puerto
 
-**Causa:** La contraseña hash en la base de datos no coincide
+**Problema:** Driver USB no instalado
 
-**Solución:**
+**Solución Windows:**
+1. Desconecte el Arduino
+2. Descargue el driver CH340: https://github.com/nodemcu/ch340/releases
+3. Instale el driver
+4. Reinicie
+5. Reconecte el Arduino
 
-1. Genere un nuevo hash de contraseña:
-   ```python
-   from src.utilities.security import hash_password
-   print(hash_password("nueva_contraseña"))
-   ```
-
-2. Actualice la base de datos:
-   ```sql
-   UPDATE personal SET clave = 'nuevo_hash_aqui' WHERE usuario = 'admin';
-   ```
-
-3. Intente iniciar sesión nuevamente
+**Solución Linux:**
+```bash
+sudo usermod -a -G dialout $USER
+```
+(Cierre sesión y vuelva a iniciar)
 
 ---
 
-### PostgreSQL no inicia después de reiniciar
+### Error: "Secret key must be set"
+
+**Problema:** No configuró la variable de entorno SECRET_KEY
 
 **Solución:**
 
 **Windows:**
-1. Abra Servicios (Services.msc)
-2. Busque "PostgreSQL Server"
-3. Haga clic derecho > Iniciar
-
-**Linux:**
-```bash
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
+```powershell
+$env:SECRET_KEY = "una-clave-aleatoria-de-32-caracteres"
 ```
 
-**macOS:**
+**Linux/macOS:**
 ```bash
-brew services start postgresql
+export SECRET_KEY="una-clave-aleatoria-de-32-caracteres"
 ```
+
+Luego inicie el servidor nuevamente.
 
 ---
 
 ## Próximos Pasos
 
-Una vez completada la instalación:
+Una vez que la instalación está completa y funcional, realice las siguientes actividades para validar el sistema y prepararlo para la operación en la Cooperativa Agraria Line Coffee Marañón:
 
-1. **Crear usuarios:**
-   - Visite `/nuevo-caficultor` para registrar caficultores
-   - Visite `/perfil` para crear usuarios administrativos
+### 1. Explorar la Aplicación
+- Visite todas las páginas principales
+- Verifique que los menús funcionan
+- Pruebe el formulario de inicio de sesión
+- Valide que los estilos CSS se cargan correctamente
 
-2. **Configurar datos iniciales:**
-   - Configure los precios de café en `/valor-cafe`
-   - Verifique que los tipos de documentos estén en la base de datos
+### 2. Registrar Datos de Prueba
+- Cree un nuevo caficultor en `/nuevo-caficultor` (simule un socio de la cooperativa)
+- Registre una evaluación de muestra en `/registro` con datos reales
+- Verifique que los datos se guardan en la base de datos
+- Genere reportes y códigos EVA
 
-3. **Pruebas del hardware:**
-   - Conecte los sensores Arduino
-   - Realice pruebas de comunicación
-   - Verifique que la banda transportadora funciona
+### 3. Pruebas del Hardware (si tiene Arduino)
+- Conecte la placa Arduino a la banda transportadora
+- Ejecute pruebas de comunicación: envíe comandos desde la terminal
+- Verifique que los sensores responden correctamente
+- Realice pruebas de carga con muestras de café real
 
-4. **Capacitación:**
-   - Revise el Manual de Usuario - CoffeeRen
-   - Pruebe el flujo completo de evaluación
+### 4. Capacitación de Operarios
+- Invite a operarios de la Cooperativa Agraria Line Coffee Marañón
+- Realice sesiones de capacitación en el sistema (30 minutos mínimo)
+- Valide que comprenden el flujo de clasificación
+- Solicite retroalimentación sobre la usabilidad
 
-5. **Despliegue (producción):**
-   - Genere una clave SECRET_KEY segura
-   - Configure un servidor de aplicaciones (Gunicorn/Uvicorn)
-   - Use un servidor proxy (Nginx)
-   - Implemente certificados SSL/TLS
+### 5. Leer la Documentación
+- Revise el **Manual de Usuario - CoffeeRen** para entender la operación
+- Revise el **CLAUDE.md** para entender la arquitectura técnica del código
+- Consulte los documentos de análisis de requerimientos para contexto
+
+### 6. Validación de Datos
+- Verifique que las clasificaciones del sistema coinciden con el criterio manual
+- Valide que los cálculos de rendimiento y pago son precisos
+- Genere reportes comparativos con el método anterior
+
+### 7. Despliegue en Producción (cuando esté listo)
+- Configure un servidor dedicado o VPS para la Cooperativa
+- Obtenga un nombre de dominio apropiado
+- Implemente certificados SSL/TLS para conexiones seguras
+- Configure Nginx como proxy inverso
+- Implemente copias de seguridad automáticas de la base de datos
+- Establezca un plan de mantenimiento periódico
 
 ---
 
 **Fin del Manual de Instalación**
 
-Para soporte técnico o preguntas adicionales, contacte al equipo de desarrollo.
+Este manual fue desarrollado para la **Cooperativa Agraria Line Coffee Marañón** como parte del proyecto de tesis "Clasificación Automática de Café Verde Mediante Visión Artificial". Para soporte técnico adicional o consultas sobre la instalación, contacte al equipo de desarrollo de la Universidad Católica Santo Toribio de Mogrovejo (USAT).

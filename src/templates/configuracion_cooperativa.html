@@ -1,0 +1,180 @@
+{% extends "main.html" %}
+
+{% block style %}
+    <link rel="stylesheet" href="/static/css/configuracion_cooperativa.css?v=1">
+{% endblock %}
+
+{% block content %}
+    <section class="config-hero">
+        <div class="hero-content">
+            <p class="kicker">Administración</p>
+            <h1 class="hero-title">Configuración de cooperativa</h1>
+            <p class="hero-description">Actualiza los datos, descripción e imagen de tu cooperativa</p>
+        </div>
+    </section>
+
+    <div id="loadingState" class="config-state">
+        <p>Cargando información...</p>
+    </div>
+
+    <div id="errorState" class="config-state" hidden>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <p id="errorMessage">Error al cargar cooperativa</p>
+    </div>
+
+    <form id="configForm" class="config-form" hidden>
+        <div class="form-section">
+            <h2>Información básica</h2>
+
+            <div class="field-group">
+                <label for="nombre">Nombre de la cooperativa</label>
+                <input type="text" id="nombre" name="nombre" class="field-input" required maxlength="100">
+            </div>
+
+            <div class="field-group">
+                <label for="codigo">Código</label>
+                <input type="text" id="codigo" name="codigo" class="field-input" maxlength="20">
+            </div>
+
+            <div class="field-group">
+                <label for="direccion">Dirección</label>
+                <input type="text" id="direccion" name="direccion" class="field-input" maxlength="100">
+            </div>
+
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="telefono">Teléfono</label>
+                    <input type="tel" id="telefono" name="telefono" class="field-input" placeholder="9 dígitos" maxlength="9">
+                </div>
+                <div class="field-group">
+                    <label for="correo">Correo</label>
+                    <input type="email" id="correo" name="correo" class="field-input" maxlength="100">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Descripción e imagen</h2>
+
+            <div class="field-group">
+                <label for="descripcion">Descripción</label>
+                <textarea id="descripcion" name="descripcion" class="field-input" maxlength="1000" rows="4" placeholder="Información sobre tu cooperativa..."></textarea>
+            </div>
+
+            <div class="field-group">
+                <label for="imagen_url">URL de imagen/banner</label>
+                <input type="url" id="imagen_url" name="imagen_url" class="field-input" maxlength="500" placeholder="https://...">
+                <p class="field-hint">Tamaño recomendado: 1200x400px</p>
+            </div>
+
+            <div id="previewContainer" class="preview-container" hidden>
+                <img id="imagenPreview" src="" alt="Vista previa" class="imagen-preview">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="submitBtn">Guardar cambios</button>
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='/inicio'">Cancelar</button>
+        </div>
+    </form>
+
+    <script>
+        let cooperativaId = null;
+
+        async function cargarCooperativa() {
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            const configForm = document.getElementById('configForm');
+
+            try {
+                const res = await fetch('/cooperativas/mi-cooperativa');
+                if (!res.ok) {
+                    throw new Error('No se pudo cargar la cooperativa');
+                }
+
+                const data = await res.json();
+                cooperativaId = data.cooperativa_id;
+
+                document.getElementById('nombre').value = data.nombre || '';
+                document.getElementById('codigo').value = data.codigo || '';
+                document.getElementById('direccion').value = data.direccion || '';
+                document.getElementById('telefono').value = data.telefono || '';
+                document.getElementById('correo').value = data.correo || '';
+                document.getElementById('descripcion').value = data.descripcion || '';
+                document.getElementById('imagen_url').value = data.imagen_url || '';
+
+                if (data.imagen_url) {
+                    document.getElementById('imagenPreview').src = data.imagen_url;
+                    document.getElementById('previewContainer').hidden = false;
+                }
+
+                loadingState.hidden = true;
+                configForm.hidden = false;
+            } catch (error) {
+                console.error('Error:', error);
+                loadingState.hidden = true;
+                document.getElementById('errorMessage').textContent = error.message;
+                errorState.hidden = false;
+            }
+        }
+
+        document.getElementById('imagen_url').addEventListener('change', (e) => {
+            const url = e.target.value;
+            if (url) {
+                document.getElementById('imagenPreview').src = url;
+                document.getElementById('previewContainer').hidden = false;
+            } else {
+                document.getElementById('previewContainer').hidden = true;
+            }
+        });
+
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const btnOriginal = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span style="opacity:0.7">Guardando...</span>';
+
+            try {
+                const payload = {
+                    nombre: document.getElementById('nombre').value,
+                    codigo: document.getElementById('codigo').value || null,
+                    direccion: document.getElementById('direccion').value || null,
+                    telefono: document.getElementById('telefono').value || null,
+                    correo: document.getElementById('correo').value || null,
+                    descripcion: document.getElementById('descripcion').value || null,
+                    imagen_url: document.getElementById('imagen_url').value || null,
+                };
+
+                const res = await fetch(`/cooperativas/${cooperativaId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.detail || 'Error al guardar');
+                }
+
+                CoffeeModal.success('Cooperativa actualizada correctamente.');
+                setTimeout(() => {
+                    window.location.href = '/inicio';
+                }, 1500);
+            } catch (error) {
+                console.error('Error:', error);
+                CoffeeModal.error(error.message, 'Error al guardar');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = btnOriginal;
+            }
+        });
+
+        cargarCooperativa();
+    </script>
+{% endblock %}

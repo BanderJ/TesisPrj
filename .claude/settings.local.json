@@ -35,7 +35,10 @@
       "Read(//tmp/**)",
       "Bash(find d:\\\\\\\\TesisPrj -name \"auth_service.py\" -o -name \"AuthService*\")",
       "Bash(python /tmp/create_test_user.py)",
-      "Bash(python /tmp/md_to_docx.py)"
+      "Bash(python /tmp/md_to_docx.py)",
+      "Bash(python -m venv .venv)",
+      "Bash(.venv\\\\Scripts\\\\activate)",
+      "Bash(uvicorn src.main:app --reload)"
     ],
     "additionalDirectories": [
       "d:\\TesisPrj\\.claude\\skills"

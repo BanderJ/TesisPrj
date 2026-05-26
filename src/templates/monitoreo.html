@@ -60,8 +60,8 @@
 					<p>Conectando cámara...</p>
 				</div>
 
-				<!-- Stream en vivo: se muestra al llegar el primer frame -->
-				<img id="cameraStream" class="camera-stream" src="" alt="Feed en tiempo real">
+				<!-- Stream MJPEG en vivo: YOLO + Defectos en ROJO -->
+				<img id="cameraStream" class="camera-stream" src="/video/stream" alt="Feed YOLO en tiempo real">
 
 				<!-- Error: cámara no disponible o timeout -->
 				<div class="camera-error" id="cameraError" style="display:none;">
@@ -134,7 +134,9 @@
 
 	<div class="monitor-actions">
 		<button id="btnVolver" type="button" class="btn btn-secondary">Volver a registro</button>
-		<button id="toggleStreamBtn" type="button" class="btn btn-secondary">Pausar</button>
+		<button id="btnIniciarCaptura" type="button" class="btn btn-secondary">🎥 Iniciar Captura YOLO</button>
+		<button id="btnDetenerCaptura" type="button" class="btn btn-secondary" style="display:none;">⏹️  Detener Captura</button>
+		<button id="btnGenerarReporte" type="button" class="btn btn-secondary" style="display:none;">📋 Generar Reporte</button>
 		<button id="finishBtn" type="button" class="btn btn-primary">Finalizar monitoreo</button>
 	</div>
 </section>
@@ -228,19 +230,18 @@
 			cameraLoadingEl.style.display = 'none';
 		}
 
-		// Verificar disponibilidad y arrancar el stream al entrar a la página
+		// Verificar disponibilidad del sistema YOLO (no inicia automáticamente)
 		(async () => {
 			try {
-				const res = await fetch('/camara/estado');
+				const res = await fetch('/video/status');
 				if (!res.ok) throw new Error();
-				const { disponible } = await res.json();
-				if (disponible) {
-					iniciarStream();
-				} else {
-					mostrarError('Cámara no disponible');
+				const { activo, modelo } = await res.json();
+				if (!activo) {
+					cameraLoadingEl.style.display = 'none';
+					appendLog('🎯 Sistema YOLO listo (modelo: ' + modelo + '). Presiona "Iniciar Captura YOLO".');
 				}
 			} catch {
-				mostrarError('No se pudo conectar con el servidor');
+				appendLog('⚠️  No se pudo conectar con el servidor YOLO');
 			}
 		})();
 
@@ -266,36 +267,15 @@
 			window.location.href = '/registro';
 		});
 
-		// ── Simulación de defectos ────────────────────────────────────────
-		let running = true;
+		// ── Captura YOLO en tiempo real ───────────────────────────────────
+		let capturandoYOLO = false;
 		let elapsedSeconds = 0;
-		let totalGrains = 0;
-		let defectNegro = 0;
-		let defectBrocado = 0;
-		let defectFermentado = 0;
+		let conteoActual = {};
+		let reporteActual = null;
 
-		const defectMessages = {
-			negro: 'Defecto negro detectado en canal 2',
-			brocado: 'Brocado detectado en canal 1',
-			fermentado: 'Posible fermentado detectado en canal 3',
-			sano: 'Flujo normal de granos sanos'
-		};
-
-		function formatTimer(value) {
-			return `${value} seg`;
-		}
-
-		function updateUI() {
-			totalGrainsEl.textContent    = totalGrains;
-			totalDefectsEl.textContent   = defectNegro + defectBrocado + defectFermentado;
-			iaPerformanceEl.textContent  = '80%';
-			negroValueEl.textContent     = defectNegro;
-			brocadoValueEl.textContent   = defectBrocado;
-			fermentadoValueEl.textContent = defectFermentado;
-			negroBarEl.style.width       = (defectNegro * 2) + '%';
-			brocadoBarEl.style.width     = (defectBrocado * 2) + '%';
-			fermentadoBarEl.style.width  = (defectFermentado * 2) + '%';
-		}
+		const btnIniciarCaptura = document.getElementById('btnIniciarCaptura');
+		const btnDetenerCaptura = document.getElementById('btnDetenerCaptura');
+		const btnGenerarReporte = document.getElementById('btnGenerarReporte');
 
 		function appendLog(message) {
 			if (eventLog) {
@@ -303,65 +283,178 @@
 			}
 		}
 
-		function tickSimulation() {
-			if (!running) return;
-			totalGrains    += Math.floor(Math.random() * 50) + 10;
-			defectNegro    += Math.floor(Math.random() * 5);
-			defectBrocado  += Math.floor(Math.random() * 4);
-			defectFermentado += Math.floor(Math.random() * 3);
-			const messages = Object.values(defectMessages);
-			appendLog(messages[Math.floor(Math.random() * messages.length)]);
-			updateUI();
+		function formatTimer(value) {
+			return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
 		}
 
-		const timerInterval = setInterval(() => {
-			if (!running) return;
-			elapsedSeconds += 1;
-			if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
-		}, 1000);
+		function actualizarUIdesdeConteo() {
+			conteoActual = {};
+			let totalGranos = 0;
+			let totalDefectos = 0;
 
-		const simInterval = setInterval(tickSimulation, 1600);
+			// Mapeo de clases YOLO a nombres amigables
+			const clasesYOLO = {
+				'negro': 'Grano Negro',
+				'agrio_severo': 'Agrio Severo',
+				'broca_severo': 'Broca Severa',
+				'partido_maquina': 'Partido Máquina',
+				'cereza_seca': 'Cereza Seca',
+				'averanado': 'Averanado',
+				'inmaduro': 'Inmaduro'
+			};
 
-		if (toggleBtn) {
-			toggleBtn.addEventListener('click', () => {
-				running = !running;
-				if (running) {
-					toggleBtn.textContent = 'Pausar';
-					iniciarStream();
-					appendLog('Monitoreo reanudado');
-				} else {
-					toggleBtn.textContent = 'Reanudar';
-					detenerStream();
-					appendLog('Monitoreo pausado por operador');
-				}
-			});
+			// Actualizar barra de defectos (mostrar solo negro, broca, partido)
+			const negroCount = conteoActual['negro'] || 0;
+			const brocadoCount = (conteoActual['broca_severo'] || 0) + (conteoActual['broca_ligero'] || 0);
+			const partidoCount = (conteoActual['partido_maquina'] || 0) + (conteoActual['partido_mitad'] || 0);
+
+			negroValueEl.textContent = negroCount;
+			brocadoValueEl.textContent = brocadoCount;
+			fermentadoValueEl.textContent = partidoCount;
+
+			negroBarEl.style.width = Math.min(negroCount * 2, 100) + '%';
+			brocadoBarEl.style.width = Math.min(brocadoCount * 2, 100) + '%';
+			fermentadoBarEl.style.width = Math.min(partidoCount * 2, 100) + '%';
+
+			// Totales
+			totalGranos = Object.values(conteoActual).reduce((a, b) => a + b, 0);
+			totalGrainsEl.textContent = totalGranos;
+			totalDefectsEl.textContent = totalGranos;  // Todos los detectados son defectos
+			iaPerformanceEl.textContent = '100%';
 		}
+
+		async function iniciarCaptura() {
+			try {
+				btnIniciarCaptura.disabled = true;
+				appendLog('⏳ Iniciando captura YOLO...');
+
+				const res = await fetch('/video/iniciar', { method: 'POST' });
+				if (!res.ok) throw new Error('Error al iniciar captura');
+
+				const data = await res.json();
+				capturandoYOLO = true;
+				elapsedSeconds = 0;
+
+				btnIniciarCaptura.style.display = 'none';
+				btnDetenerCaptura.style.display = 'inline-block';
+				btnGenerarReporte.style.display = 'inline-block';
+
+				appendLog('✅ Captura YOLO iniciada. Stream en vivo 🎥');
+				iniciarStream();
+
+				// Actualizar conteo cada 1.5 segundos
+				const actualizarConteoInterval = setInterval(async () => {
+					if (!capturandoYOLO) {
+						clearInterval(actualizarConteoInterval);
+						return;
+					}
+					try {
+						const res = await fetch('/lote/conteo');
+						const data = await res.json();
+						conteoActual = data.conteo;
+						actualizarUIdesdeConteo();
+					} catch (e) {
+						console.error('Error obteniendo conteo:', e);
+					}
+				}, 1500);
+
+				// Timer cada segundo
+				const timerInterval = setInterval(() => {
+					if (!capturandoYOLO) {
+						clearInterval(timerInterval);
+						return;
+					}
+					elapsedSeconds += 1;
+					if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
+				}, 1000);
+
+			} catch (err) {
+				appendLog('❌ Error: ' + err.message);
+				btnIniciarCaptura.disabled = false;
+			}
+		}
+
+		async function detenerCaptura() {
+			try {
+				btnDetenerCaptura.disabled = true;
+				appendLog('⏹️  Deteniendo captura...');
+
+				const res = await fetch('/video/detener', { method: 'POST' });
+				if (!res.ok) throw new Error('Error al detener');
+
+				capturandoYOLO = false;
+				detenerStream();
+
+				btnDetenerCaptura.style.display = 'none';
+				btnIniciarCaptura.style.display = 'inline-block';
+
+				appendLog('✅ Captura detenida. Presiona "Generar Reporte" para finalizar.');
+
+			} catch (err) {
+				appendLog('❌ Error: ' + err.message);
+				btnDetenerCaptura.disabled = false;
+			}
+		}
+
+		async function generarReporte() {
+			try {
+				btnGenerarReporte.disabled = true;
+				appendLog('📊 Generando reporte SCA...');
+
+				const res = await fetch('/lote/generar-reporte', { method: 'POST' });
+				if (!res.ok) throw new Error('Error generando reporte');
+
+				reporteActual = await res.json();
+				const { grado, total_defectos, apto_specialty } = reporteActual;
+
+				appendLog(`✅ Reporte: ${grado} | ${total_defectos} defectos | Specialty: ${apto_specialty ? '✅' : '❌'}`);
+				console.log('📋 Reporte completo:', reporteActual);
+
+			} catch (err) {
+				appendLog('❌ Error: ' + err.message);
+				btnGenerarReporte.disabled = false;
+			}
+		}
+
+		btnIniciarCaptura.addEventListener('click', iniciarCaptura);
+		btnDetenerCaptura.addEventListener('click', detenerCaptura);
+		btnGenerarReporte.addEventListener('click', generarReporte);
 
 		if (finishBtn) {
 			finishBtn.addEventListener('click', async () => {
+				if (capturandoYOLO) {
+					appendLog('⚠️  Primero detén la captura YOLO');
+					return;
+				}
+
 				const confirmed = await CoffeeModal.confirm({
 					title: '¿Finalizar monitoreo?',
-					message: '¿Está seguro de finalizar el monitoreo? Se generará el código de evaluación y no podrá continuar el análisis.',
+					message: reporteActual
+						? `Grado: ${reporteActual.grado} | Defectos: ${reporteActual.total_defectos}\n¿Deseas finalizar con estos resultados?`
+						: '¿Está seguro de finalizar? No se generó reporte YOLO.',
 				});
 				if (!confirmed) return;
 
 				monitoreoActivo = false;
-				running = false;
-				clearInterval(timerInterval);
-				clearInterval(simInterval);
 				detenerStream();
 				finishBtn.disabled = true;
 				finishBtn.textContent = 'Finalizando...';
 				appendLog('Cerrando evaluacion y generando codigo...');
 
-				sessionStorage.setItem('coffeeren.stats', JSON.stringify({
-					totalGrains, defectNegro, defectBrocado, defectFermentado, elapsedSeconds,
-				}));
+				const stats = {
+					totalGranos: Object.values(conteoActual).reduce((a, b) => a + b, 0),
+					totalDefectos: reporteActual?.total_defectos || 0,
+					grado: reporteActual?.grado || 'Sin clasificar',
+					aptEspecialty: reporteActual?.apto_specialty || false,
+					elapsedSeconds,
+				};
+				sessionStorage.setItem('coffeeren.stats', JSON.stringify(stats));
 
 				try {
 					const res = await fetch(`/evaluacion/${EVALUACION_ID}/finalizar`, {
 						method: 'PATCH',
 						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ reporte_yolo: reporteActual })
 					});
 					if (!res.ok) {
 						const err = await res.json();
@@ -369,13 +462,11 @@
 					}
 					const { codigo } = await res.json();
 					sessionStorage.removeItem('coffeeren.evaluacion');
-					appendLog(`Evaluacion finalizada. Codigo: ${codigo}`);
-					// Reemplazar la entrada de historial del monitoreo con /registro
-					// para que el botón Atrás desde analisis vaya a /registro, no aquí.
+					appendLog(`✅ Evaluacion finalizada. Codigo: ${codigo}`);
 					history.replaceState(null, '', '/registro');
 					setTimeout(() => { window.location.href = `/analisis/${EVALUACION_ID}`; }, 1200);
 				} catch (err) {
-					appendLog(`Error: ${err.message}`);
+					appendLog(`❌ Error: ${err.message}`);
 					sessionStorage.removeItem('coffeeren.stats');
 					finishBtn.disabled = false;
 					finishBtn.textContent = 'Finalizar monitoreo';
@@ -383,7 +474,7 @@
 			});
 		}
 
-		updateUI();
+		actualizarUIdesdeConteo();
 	})();
 </script>
 {% endblock %}

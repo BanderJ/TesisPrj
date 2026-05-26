@@ -1,0 +1,169 @@
+"""
+TrackerService - Integración de Captura + Procesamiento ML
+Coordina CamaraService (captura de frames) con CoffeeRenTracker (procesamiento YOLO).
+"""
+
+import threading
+import time
+import cv2
+import numpy as np
+from typing import Optional
+
+from src.services.camara import camara_service
+from src.ml.tracker import CoffeeRenTracker
+from src.ml.classifier import generar_reporte
+
+
+class TrackerService:
+    """
+    Servicio que gestiona la captura de video y procesamiento de defectos en tiempo real.
+    - Captura frames desde CamaraService (1280x720 @ 60fps)
+    - Procesa con CoffeeRenTracker (YOLO + ByteTrack)
+    - Calcula grado con classifier.py (SCA)
+    """
+
+    def __init__(self, model_name: str = "yolov8n", conf: float = 0.5):
+        self.model_name = model_name
+        self.conf = conf
+
+        # Inicializar tracker YOLO
+        self.tracker = CoffeeRenTracker(model_name=model_name, conf=conf)
+
+        # Estado
+        self.activo = False
+        self._thread: Optional[threading.Thread] = None
+        self._lock = threading.Lock()
+
+        # Último frame anotado (JPEG)
+        self._frame_anotado: Optional[bytes] = None
+
+    def iniciar(self) -> bool:
+        """
+        Inicia la captura y procesamiento.
+
+        Returns:
+            bool: True si inició exitosamente, False si error
+        """
+        with self._lock:
+            if self.activo:
+                return True
+
+            # Iniciar captura desde cámara
+            if not camara_service.iniciar():
+                print("❌ No se pudo iniciar la cámara")
+                return False
+
+            # Esperar a que la cámara esté lista
+            time.sleep(1)
+            if not camara_service.esta_disponible():
+                print("❌ Cámara no está disponible")
+                return False
+
+            # Iniciar hilo de procesamiento
+            self.activo = True
+            self._thread = threading.Thread(
+                target=self._loop_procesamiento,
+                daemon=True,
+                name="tracker-processing"
+            )
+            self._thread.start()
+            print(f"✅ TrackerService iniciado (modelo: {self.model_name})")
+            return True
+
+    def detener(self) -> None:
+        """Detiene la captura y procesamiento."""
+        with self._lock:
+            self.activo = False
+
+        if self._thread:
+            self._thread.join(timeout=2.0)
+            self._thread = None
+
+        camara_service.cerrar()
+        print("⏹️  TrackerService detenido")
+
+    def _loop_procesamiento(self) -> None:
+        """Loop principal de procesamiento (corre en hilo separado)."""
+        t_anterior = time.time()
+
+        while self.activo:
+            # Obtener frame desde CamaraService
+            jpeg_bytes = camara_service.esperar_frame(timeout=1.0)
+            if jpeg_bytes is None:
+                continue
+
+            # Decodificar JPEG a frame OpenCV
+            frame = self._jpeg_a_frame(jpeg_bytes)
+            if frame is None:
+                continue
+
+            # Procesar con tracker
+            frame_anotado_jpeg = self.tracker.procesar_frame(frame)
+
+            if frame_anotado_jpeg is not None:
+                with self._lock:
+                    self._frame_anotado = frame_anotado_jpeg
+                    # Actualizar FPS
+                    self.tracker._actualizar_fps(t_anterior)
+                    t_anterior = time.time()
+
+    def obtener_frame_streaming(self) -> Optional[bytes]:
+        """
+        Retorna el último frame anotado en JPEG (para MJPEG streaming).
+
+        Returns:
+            bytes: JPEG codificado, o None si no hay frame disponible
+        """
+        with self._lock:
+            return self._frame_anotado
+
+    def obtener_conteo_actual(self) -> dict[str, int]:
+        """
+        Retorna el conteo de granos por clase.
+
+        Returns:
+            dict: {clase: cantidad_granos_unicos}
+        """
+        return self.tracker.obtener_conteo()
+
+    def generar_reporte_lote(self) -> dict:
+        """
+        Genera reporte de clasificación del lote actual.
+
+        Returns:
+            dict: {grado, defectos, apto_specialty, detalles_por_clase, ...}
+        """
+        conteo = self.obtener_conteo_actual()
+        return generar_reporte(conteo)
+
+    def resetear_lote(self) -> None:
+        """Resetea el conteo para iniciar análisis de un nuevo lote."""
+        self.tracker.resetear_conteo()
+        print("🔄 Lote reseteado")
+
+    def esta_activo(self) -> bool:
+        """Verifica si el servicio está activo."""
+        return self.activo and camara_service.esta_disponible()
+
+    @staticmethod
+    def _jpeg_a_frame(jpeg_bytes: bytes) -> Optional[np.ndarray]:
+        """
+        Decodifica JPEG a frame OpenCV BGR.
+
+        Args:
+            jpeg_bytes: Bytes JPEG
+
+        Returns:
+            np.ndarray: Frame BGR, o None si error
+        """
+        try:
+            nparr = np.frombuffer(jpeg_bytes, np.uint8)
+            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            return frame
+        except Exception as e:
+            print(f"⚠️  Error decodificando JPEG: {e}")
+            return None
+
+
+# Instancia global del servicio
+tracker_service = TrackerService()
