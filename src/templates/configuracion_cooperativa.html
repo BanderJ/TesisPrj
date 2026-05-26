@@ -58,22 +58,30 @@
         </div>
 
         <div class="form-section">
-            <h2>Descripción e imagen</h2>
+            <h2>Descripción</h2>
 
             <div class="field-group">
-                <label for="descripcion">Descripción</label>
+                <label for="descripcion">Descripción de la cooperativa</label>
                 <textarea id="descripcion" name="descripcion" class="field-input" maxlength="1000" rows="4" placeholder="Información sobre tu cooperativa..."></textarea>
+                <p class="field-hint">Máximo 1000 caracteres</p>
             </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Imagen/Banner</h2>
 
             <div class="field-group">
-                <label for="imagen_url">URL de imagen/banner</label>
-                <input type="url" id="imagen_url" name="imagen_url" class="field-input" maxlength="500" placeholder="https://...">
-                <p class="field-hint">Tamaño recomendado: 1200x400px</p>
+                <label for="imagen_file">Subir imagen o banner</label>
+                <input type="file" id="imagen_file" name="imagen_file" class="field-input" accept="image/*">
+                <p class="field-hint">Formatos: JPG, PNG. Tamaño recomendado: 1200x400px</p>
             </div>
 
             <div id="previewContainer" class="preview-container" hidden>
-                <img id="imagenPreview" src="" alt="Vista previa" class="imagen-preview">
+                <p class="field-hint">Vista previa:</p>
+                <img id="imagenPreview" src="" alt="Vista previa de imagen" class="imagen-preview">
             </div>
+
+            <input type="hidden" id="imagen_url" name="imagen_url">
         </div>
 
         <div class="form-actions">
@@ -122,13 +130,19 @@
             }
         }
 
-        document.getElementById('imagen_url').addEventListener('change', (e) => {
-            const url = e.target.value;
-            if (url) {
-                document.getElementById('imagenPreview').src = url;
-                document.getElementById('previewContainer').hidden = false;
+        document.getElementById('imagen_file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    document.getElementById('imagenPreview').src = event.target.result;
+                    document.getElementById('imagen_url').value = event.target.result;
+                    document.getElementById('previewContainer').hidden = false;
+                };
+                reader.readAsDataURL(file);
             } else {
                 document.getElementById('previewContainer').hidden = true;
+                document.getElementById('imagen_url').value = '';
             }
         });
 
