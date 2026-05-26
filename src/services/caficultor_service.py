@@ -4,6 +4,7 @@ import unicodedata
 
 from src.database.bd import Connection
 from src.models.caficultor import Caficultor
+from src.models.cooperativa import obtener_id_por_codigo
 from src.models.persona import Persona
 from src.models.tipo_caficultor import TipoCaficultor
 from src.models.tipo_documento import TipoDocumento
@@ -87,9 +88,7 @@ class CaficultorService:
 
     def _obtener_cooperativa_default(self, db: Connection) -> str | None:
         """Obtiene el ID de la cooperativa por defecto."""
-        sql = "SELECT cooperativa_id FROM COOPERATIVA WHERE codigo = %s LIMIT 1"
-        result = db.obtener_uno(sql, [self.COOPERATIVA_DEFAULT_CODIGO])
-        return str(result["cooperativa_id"]) if result else None
+        return obtener_id_por_codigo(self.COOPERATIVA_DEFAULT_CODIGO, db)
 
     def _obtener_estado_caficultor(self, num_documento: str, db: Connection) -> dict[str, Any] | None:
         """Obtiene estado/tipo del caficultor por documento para conversion a socio."""

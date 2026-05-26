@@ -51,6 +51,7 @@
 					En vivo
 				</div>
 				<div class="feed-timer"><span>Tiempo análisis:</span><span id="sessionTimer">00:00</span></div>
+				<button id="startBtn" type="button" class="btn btn-primary" style="margin-left: auto;">Iniciar Captura YOLO</button>
 			</div>
 
 			<div class="feed-frame" aria-label="Feed de clasificación de granos">
@@ -210,6 +211,13 @@
 			const refrescarFrame = async () => {
 				try {
 					const res = await fetch('/video/frame');
+
+					// 503 = no hay frame aún, reintentar
+					if (res.status === 503) {
+						frameTimeout = setTimeout(refrescarFrame, 33);
+						return;
+					}
+
 					if (!res.ok) throw new Error('Error obteniendo frame');
 
 					const blob = await res.blob();
@@ -306,22 +314,15 @@
 		}
 
 		function actualizarUIdesdeConteo() {
-			conteoActual = {};
 			let totalGranos = 0;
-			let totalDefectos = 0;
 
-			// Mapeo de clases YOLO a nombres amigables
-			const clasesYOLO = {
-				'negro': 'Grano Negro',
-				'agrio_severo': 'Agrio Severo',
-				'broca_severo': 'Broca Severa',
-				'partido_maquina': 'Partido Máquina',
-				'cereza_seca': 'Cereza Seca',
-				'averanado': 'Averanado',
-				'inmaduro': 'Inmaduro'
-			};
+			// Calcular totales
+			totalGranos = Object.values(conteoActual).reduce((a, b) => a + b, 0);
+			totalGrainsEl.textContent = totalGranos;
+			totalDefectsEl.textContent = totalGranos;
+			iaPerformanceEl.textContent = '100%';
 
-			// Actualizar barra de defectos (mostrar solo negro, broca, partido)
+			// Actualizar las 3 barras principales
 			const negroCount = conteoActual['negro'] || 0;
 			const brocadoCount = (conteoActual['broca_severo'] || 0) + (conteoActual['broca_ligero'] || 0);
 			const partidoCount = (conteoActual['partido_maquina'] || 0) + (conteoActual['partido_mitad'] || 0);
@@ -333,12 +334,6 @@
 			negroBarEl.style.width = Math.min(negroCount * 2, 100) + '%';
 			brocadoBarEl.style.width = Math.min(brocadoCount * 2, 100) + '%';
 			fermentadoBarEl.style.width = Math.min(partidoCount * 2, 100) + '%';
-
-			// Totales
-			totalGranos = Object.values(conteoActual).reduce((a, b) => a + b, 0);
-			totalGrainsEl.textContent = totalGranos;
-			totalDefectsEl.textContent = totalGranos;  // Todos los detectados son defectos
-			iaPerformanceEl.textContent = '100%';
 		}
 
 		async function iniciarCaptura() {
@@ -346,7 +341,10 @@
 				appendLog('⏳ Iniciando captura YOLO...');
 
 				const res = await fetch('/video/iniciar', { method: 'POST' });
-				if (!res.ok) throw new Error('Error al iniciar captura');
+				if (!res.ok) {
+					const errData = await res.json().catch(() => ({ detail: 'Error desconocido' }));
+					throw new Error(errData.detail || 'Error al iniciar captura');
+				}
 
 				capturandoYOLO = true;
 				elapsedSeconds = 0;
@@ -477,11 +475,13 @@
 		}
 
 		actualizarUIdesdeConteo();
+		appendLog('📷 Sistema listo. Verifica que la cámara esté conectada y presiona "Iniciar Captura YOLO".');
 
-		// Iniciar captura automáticamente al cargar la página
-		setTimeout(() => {
-			iniciarCaptura();
-		}, 500);
+		// Conectar botón "Iniciar Captura YOLO"
+		const startBtn = document.getElementById('startBtn');
+		if (startBtn) {
+			startBtn.addEventListener('click', iniciarCaptura);
+		}
 	})();
 </script>
 {% endblock %}

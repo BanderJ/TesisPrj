@@ -13,6 +13,9 @@ from src.services.camara import camara_service
 from src.ml.tracker import CoffeeRenTracker
 from src.ml.classifier import generar_reporte
 
+# Umbral de confianza global para todas las detecciones YOLO
+CONF_THRESHOLD = 0.3
+
 
 class TrackerService:
     """
@@ -22,12 +25,12 @@ class TrackerService:
     - Calcula grado con classifier.py (SCA)
     """
 
-    def __init__(self, model_name: str = "yolov8n", conf: float = 0.5):
+    def __init__(self, model_name: str = "yolov8n"):
         self.model_name = model_name
-        self.conf = conf
+        self.conf = CONF_THRESHOLD
 
-        # Inicializar tracker YOLO
-        self.tracker = CoffeeRenTracker(model_name=model_name, conf=conf)
+        # Inicializar tracker YOLO con umbral de confianza centralizado
+        self.tracker = CoffeeRenTracker(conf=CONF_THRESHOLD, model_name=model_name)
 
         # Estado
         self.activo = False
@@ -120,6 +123,7 @@ class TrackerService:
     def obtener_frame_streaming(self) -> Optional[bytes]:
         """
         Retorna el último frame anotado en JPEG (para MJPEG streaming).
+        Retorna inmediatamente sin bloquear.
 
         Returns:
             bytes: JPEG codificado, o None si no hay frame disponible
@@ -176,4 +180,4 @@ class TrackerService:
 
 
 # Instancia global del servicio
-tracker_service = TrackerService()
+tracker_service = TrackerService(model_name="yolov26n")

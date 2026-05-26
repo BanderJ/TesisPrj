@@ -39,10 +39,24 @@
       "Bash(python -m venv .venv)",
       "Bash(.venv\\\\Scripts\\\\activate)",
       "Bash(uvicorn src.main:app --reload)",
-      "Bash(grep -n \"^\\\\\\\\.config-\\\\|^\\\\\\\\.form-section\\\\|^\\\\\\\\.field-row\\\\|^\\\\\\\\.field-group\\\\|^\\\\\\\\.form-actions\\\\|^\\\\\\\\.config-form\\\\|^\\\\\\\\.field-input\" src/static/css/configuracion_cooperativa.css)"
+      "Bash(grep -n \"^\\\\\\\\.config-\\\\|^\\\\\\\\.form-section\\\\|^\\\\\\\\.field-row\\\\|^\\\\\\\\.field-group\\\\|^\\\\\\\\.form-actions\\\\|^\\\\\\\\.config-form\\\\|^\\\\\\\\.field-input\" src/static/css/configuracion_cooperativa.css)",
+      "Bash(.venv\\\\Scripts\\\\activate.bat)",
+      "PowerShell(& .\\\\.venv\\\\Scripts\\\\Activate.ps1)",
+      "PowerShell(uvicorn src.main:app --reload)",
+      "Bash(curl -s http://localhost:8000/configuracion-cooperativa)",
+      "Bash(python3 /tmp/verify_form.py)",
+      "Bash(cat > *)",
+      "Bash(python3 /tmp/create_test_user.py)",
+      "Bash(python3 /tmp/screenshot_form.py)",
+      "Bash(python3 -m py_compile src/main.py)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(python3 /tmp/check_user.py)",
+      "PowerShell(uvicorn src.main:app --reload --port 8000)"
     ],
     "additionalDirectories": [
-      "d:\\TesisPrj\\.claude\\skills"
+      "d:\\TesisPrj\\.claude\\skills",
+      "\\tmp"
     ]
   }
 }

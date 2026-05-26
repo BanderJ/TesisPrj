@@ -1,6 +1,5 @@
 import threading
 import cv2
-import os
 
 
 class CamaraService:
@@ -18,8 +17,7 @@ class CamaraService:
         self._new_frame = threading.Event()
         self._running = False
         self._thread: threading.Thread | None = None
-        self._simulada = False
-        self._cap_simulada = None
+        self._passthrough = False
 
     # ── Ciclo de captura (hilo dedicado) ──────────────────────────────
 
@@ -31,24 +29,11 @@ class CamaraService:
             ret, frame = cap.read()
             if not ret or frame is None:
                 continue
-            # Siempre codificar a JPEG (nunca pasar bytes crudos)
-            success, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
-            if not success:
-                continue
-            jpeg = buf.tobytes()
-            with self._frame_lock:
-                self._latest_jpeg = jpeg
-            self._new_frame.set()
-
-    def _capture_loop_simulada(self) -> None:
-        """Loop para cámara simulada (fallback sin hardware)."""
-        if not self._cap_simulada:
-            return
-        self._cap_simulada.iniciar()
-        while self._running:
-            jpeg = self._cap_simulada.esperar_frame(timeout=1.0)
-            if jpeg is None:
-                continue
+            if self._passthrough:
+                jpeg = frame.tobytes()
+            else:
+                _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
+                jpeg = buf.tobytes()
             with self._frame_lock:
                 self._latest_jpeg = jpeg
             self._new_frame.set()
@@ -59,55 +44,66 @@ class CamaraService:
         with self._cap_lock:
             if self._running:
                 return True
-            for idx in (indice, indice + 1, 1, 2):
+
+            # Intentar con índices 0 y 1
+            for idx in (indice, indice + 1):
                 try:
-                    cap = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
+                    # Intentar abrir con CAP_ANY primero (más flexible)
+                    cap = cv2.VideoCapture(idx)
+
                     if not cap.isOpened():
-                        print(f"⚠️  Cámara índice {idx} no disponible")
                         cap.release()
                         continue
-                    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
-                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-                    cap.set(cv2.CAP_PROP_FPS, 60)
-                    # Buffer mínimo: el hilo drena el sensor antes de que acumule
+
+                    # NO forzar resolución específica - usar lo que la cámara soporta
+                    # Setear buffer mínimo para bajo latency
                     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                    # Passthrough MJPEG: bytes nativos del sensor sin decodificar ni re-encodear
-                    cap.set(cv2.CAP_PROP_CONVERT_RGB, 1)
+
+                    # Intentar MJPEG si la cámara lo soporta
+                    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+
+                    # Obtener resolución y FPS reales
+                    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    fps = cap.get(cv2.CAP_PROP_FPS)
+
+                    # Leer frame de prueba para verificar que funciona
+                    ret, test = cap.read()
+                    if not ret or test is None:
+                        print(f"⚠️  Cámara índice {idx} no devuelve frames")
+                        cap.release()
+                        continue
+
+                    # Detectar si passthrough MJPEG funciona
+                    cap.set(cv2.CAP_PROP_CONVERT_RGB, 0)
+                    ret, test2 = cap.read()
+                    if ret and test2 is not None and test2.ndim == 1 and test2.nbytes > 1000:
+                        self._passthrough = True
+                    else:
+                        cap.set(cv2.CAP_PROP_CONVERT_RGB, 1)
+                        self._passthrough = False
+
+                    # Iniciar captura
                     self._cap = cap
                     self._running = True
                     self._thread = threading.Thread(
                         target=self._capture_loop, daemon=True, name="camara-capture"
                     )
                     self._thread.start()
-                    print(f"✅ Cámara iniciada (índice {idx}, passthrough={self._passthrough})")
+
+                    print(f"✅ Cámara iniciada (índice {idx}, {w}x{h} @ {fps}fps, passthrough={self._passthrough})")
                     return True
+
                 except Exception as e:
                     print(f"❌ Error inicializando cámara índice {idx}: {e}")
                     continue
-            print("❌ No se encontró ninguna cámara disponible en índices 0-1")
-            print("⚠️  Usando cámara simulada (frames de prueba) para desarrollo")
 
-            try:
-                from src.services.camara_simulada import camara_simulada
-                self._simulada = True
-                self._cap_simulada = camara_simulada
-                self._running = True
-                self._thread = threading.Thread(
-                    target=self._capture_loop_simulada, daemon=True, name="camara-simulada-wrapper"
-                )
-                self._thread.start()
-                print("✅ Cámara simulada iniciada")
-                return True
-            except Exception as e:
-                print(f"❌ No se pudo iniciar cámara simulada: {e}")
-                return False
+            print("❌ No se encontró cámara disponible en índices 0-1")
+            return False
 
     def cerrar(self) -> None:
         self._running = False
-        self._new_frame.set()  # desbloquea cualquier hilo esperando
-        if self._simulada and self._cap_simulada:
-            self._cap_simulada.cerrar()
+        self._new_frame.set()
         with self._cap_lock:
             if self._cap:
                 self._cap.release()

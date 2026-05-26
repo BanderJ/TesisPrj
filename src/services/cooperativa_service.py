@@ -80,30 +80,9 @@ def desactivar(cooperativa_id: str) -> dict | None:
 
 
 def obtener_por_usuario(personal_id: str) -> dict | None:
-    """Get cooperative associated with a user (via PERSONA.cooperativa_id)."""
+    """Get cooperative associated with a user with default assignment."""
     db = Connection()
     try:
-        # Primero obtener cooperativa_id de la persona
-        persona_sql = "SELECT cooperativa_id FROM PERSONA WHERE id = %s LIMIT 1"
-        persona = db.obtener_uno(persona_sql, [personal_id])
-
-        if not persona or not persona.get("cooperativa_id"):
-            # Si no tiene cooperativa asignada, asignar la default
-            default_coop_sql = "SELECT cooperativa_id FROM COOPERATIVA WHERE codigo = %s LIMIT 1"
-            default_coop = db.obtener_uno(default_coop_sql, ["LCM001"])
-
-            if default_coop:
-                update_sql = "UPDATE PERSONA SET cooperativa_id = %s WHERE id = %s"
-                db.ejecutar(update_sql, [default_coop["cooperativa_id"], personal_id])
-                db.commit()
-                persona_cooperativa = default_coop["cooperativa_id"]
-            else:
-                return None
-        else:
-            persona_cooperativa = persona["cooperativa_id"]
-
-        # Obtener la cooperativa
-        coop_sql = "SELECT * FROM COOPERATIVA WHERE cooperativa_id = %s AND estado = 'A' LIMIT 1"
-        return db.obtener_uno(coop_sql, [persona_cooperativa])
+        return coop_model.obtener_por_usuario(personal_id, db)
     finally:
         db.close()

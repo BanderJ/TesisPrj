@@ -31,7 +31,9 @@ def crear(nombre: str, codigo: str | None, direccion: str | None, telefono: str 
     VALUES (%s, %s, %s, %s, %s, %s, %s, 'A')
     RETURNING *
     """
-    return db.obtener_uno(sql, [nombre, codigo, direccion, telefono, correo, descripcion, imagen_url])
+    result = db.obtener_uno(sql, [nombre, codigo, direccion, telefono, correo, descripcion, imagen_url])
+    db.commit()
+    return result
 
 
 def actualizar(cooperativa_id: str, nombre: str | None = None, codigo: str | None = None,
@@ -69,10 +71,47 @@ def actualizar(cooperativa_id: str, nombre: str | None = None, codigo: str | Non
 
     params.append(cooperativa_id)
     sql = f"UPDATE COOPERATIVA SET {', '.join(updates)} WHERE cooperativa_id=%s RETURNING *"
-    return db.obtener_uno(sql, params)
+    result = db.obtener_uno(sql, params)
+    db.commit()
+    return result
 
 
 def desactivar(cooperativa_id: str, db: Connection = None) -> dict | None:
     """Deactivate a cooperative (soft delete)."""
     sql = "UPDATE COOPERATIVA SET estado='I' WHERE cooperativa_id=%s RETURNING *"
-    return db.obtener_uno(sql, [cooperativa_id])
+    result = db.obtener_uno(sql, [cooperativa_id])
+    db.commit()
+    return result
+
+
+def obtener_id_por_codigo(codigo: str, db: Connection = None) -> str | None:
+    """Get cooperativa ID by codigo (for default assignment)."""
+    sql = "SELECT cooperativa_id FROM COOPERATIVA WHERE codigo = %s LIMIT 1"
+    result = db.obtener_uno(sql, [codigo])
+    return str(result["cooperativa_id"]) if result else None
+
+
+def obtener_por_usuario(personal_id: str, db: Connection = None) -> dict | None:
+    """Get cooperative associated with a user, with default assignment if needed."""
+    # Obtener cooperativa_id de la persona
+    persona_sql = "SELECT cooperativa_id FROM PERSONA WHERE id = %s LIMIT 1"
+    persona = db.obtener_uno(persona_sql, [personal_id])
+
+    if not persona or not persona.get("cooperativa_id"):
+        # Asignar cooperativa default si no tiene
+        default_coop_sql = "SELECT cooperativa_id FROM COOPERATIVA WHERE codigo = %s LIMIT 1"
+        default_coop = db.obtener_uno(default_coop_sql, ["LCM001"])
+
+        if default_coop:
+            update_sql = "UPDATE PERSONA SET cooperativa_id = %s WHERE id = %s"
+            db.ejecutar(update_sql, [default_coop["cooperativa_id"], personal_id])
+            db.commit()
+            persona_cooperativa = default_coop["cooperativa_id"]
+        else:
+            return None
+    else:
+        persona_cooperativa = persona["cooperativa_id"]
+
+    # Obtener la cooperativa
+    coop_sql = "SELECT * FROM COOPERATIVA WHERE cooperativa_id = %s AND estado = 'A' LIMIT 1"
+    return db.obtener_uno(coop_sql, [persona_cooperativa])

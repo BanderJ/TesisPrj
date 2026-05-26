@@ -17,32 +17,7 @@ class PerfilService:
         """Obtiene los datos del usuario actual para pre-llenar el formulario."""
         db = Connection()
         try:
-            sql = """
-                SELECT pe.nombre, pe.ape_paterno, pe.ape_materno, pe.telefono,
-                       COALESCE(pe.correo, '') as correo,
-                       pe.num_documento, pe.sexo, pe.fecha_nacimiento,
-                       p.usuario, p.estado, p.fecha_registro, p.tipo_personal_id,
-                       tp.nombre as rol
-                FROM persona pe
-                INNER JOIN personal p ON pe.id = p.personal_id
-                INNER JOIN tipo_personal tp ON p.tipo_personal_id = tp.id
-                WHERE pe.id = %s
-            """
-            return db.obtener_uno(sql, (personal_id,))
-        except Exception:
-            # If correo column doesn't exist, try without it
-            sql = """
-                SELECT pe.nombre, pe.ape_paterno, pe.ape_materno, pe.telefono,
-                       '' as correo,
-                       pe.num_documento, pe.sexo, pe.fecha_nacimiento,
-                       p.usuario, p.estado, p.fecha_registro, p.tipo_personal_id,
-                       tp.nombre as rol
-                FROM persona pe
-                INNER JOIN personal p ON pe.id = p.personal_id
-                INNER JOIN tipo_personal tp ON p.tipo_personal_id = tp.id
-                WHERE pe.id = %s
-            """
-            return db.obtener_uno(sql, (personal_id,))
+            return self.persona_model.obtener_datos_perfil_completo(personal_id, db)
         finally:
             db.close()
 

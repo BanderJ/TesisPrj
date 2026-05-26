@@ -123,18 +123,14 @@ async def upload_imagen_cooperativa(file: UploadFile = File(...), usuario_actual
 @router.get("/debug/usuario-info")
 async def debug_usuario_info(usuario_actual: dict = Depends(obtener_usuario_actual)):
     """Debug endpoint to check user and cooperative association."""
-    from src.database.bd import Connection
+    from src.models.persona import Persona
 
     personal_id = usuario_actual.get("personal_id")
-    db = Connection()
-    try:
-        persona_sql = "SELECT id, nombre, cooperativa_id FROM PERSONA WHERE id = %s"
-        persona = db.obtener_uno(persona_sql, [personal_id])
+    persona_model = Persona()
+    persona = persona_model.obtener_con_cooperativa(personal_id)
 
-        return {
-            "usuario_actual": usuario_actual,
-            "persona": persona,
-            "personal_id": personal_id,
-        }
-    finally:
-        db.close()
+    return {
+        "usuario_actual": usuario_actual,
+        "persona": persona,
+        "personal_id": personal_id,
+    }

@@ -31,29 +31,41 @@ COLORES_DEFECTOS = {cls: (0, 0, 255) for cls in CLASES}  # Rojo para todos (defe
 
 
 class CoffeeRenTracker:
-    def __init__(self, model_name: str = "yolov8n", conf: float = 0.5):
+    def __init__(self, conf: float, model_name: str = "yolov8n"):
         """
         Inicializa el tracker de granos de café.
 
         Args:
+            conf: Umbral de confianza para detecciones (0.0 - 1.0) — requerido
             model_name: Nombre del modelo YOLO a usar (yolov8n, yolo26n, yolo11n)
-            conf: Umbral de confianza para detecciones (0.0 - 1.0)
         """
         self.conf = conf
         self.model_name = model_name
 
-        # Cargar modelo YOLO
+        # Cargar modelo YOLO con fallback a yolov8n
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         model_path = os.path.join(BASE_DIR, "models", model_name, "best.pt")
 
+        # Si el modelo pedido no existe, usar yolov8n como fallback
         if not os.path.exists(model_path):
-            raise FileNotFoundError(
-                f"Modelo no encontrado: {model_path}\n"
-                f"Asegúrate de descargar best.pt desde Google Drive a models/{model_name}/"
-            )
+            print(f"⚠️  Modelo no encontrado: {model_name}")
+            fallback_model = "yolov8n"
+            fallback_path = os.path.join(BASE_DIR, "models", fallback_model, "best.pt")
+
+            if os.path.exists(fallback_path):
+                print(f"📦 Usando fallback: {fallback_model}")
+                model_path = fallback_path
+                self.model_name = fallback_model
+            else:
+                raise FileNotFoundError(
+                    f"Ningún modelo disponible:\n"
+                    f"  - Primario: {model_name} → no encontrado\n"
+                    f"  - Fallback: {fallback_model} → no encontrado\n"
+                    f"Descarga best.pt desde Google Drive a models/yolov8n/"
+                )
 
         self.model = YOLO(model_path)
-        print(f"✅ Modelo YOLO cargado: {model_name} (conf={conf})")
+        print(f"✅ Modelo YOLO cargado: {self.model_name} (conf={conf})")
 
         # Estado del tracking
         self.conteo_ids = defaultdict(set)        # {clase: {id1, id2, ...}}
@@ -81,6 +93,7 @@ class CoffeeRenTracker:
             results = self.model.track(
                 source=frame,
                 conf=self.conf,
+                imgsz=1280,  # Mayor resolución para detectar granos pequeños
                 tracker="bytetrack.yaml",
                 persist=True,
                 verbose=False
@@ -92,56 +105,66 @@ class CoffeeRenTracker:
         result = results[0]
         frame_anotado = frame.copy()
 
+        detecciones_count = 0
         # Procesar detecciones con IDs
-        if result.boxes is not None and result.boxes.id is not None:
-            for box in result.boxes:
-                track_id = int(box.id[0])
-                clase_idx = int(box.cls[0])
-                clase = CLASES[clase_idx] if clase_idx < len(CLASES) else "desconocido"
-                conf_score = float(box.conf[0])
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
+        if result.boxes is not None and len(result.boxes) > 0:
+            if result.boxes.id is not None:
+                for box in result.boxes:
+                    detecciones_count += 1
+                    track_id = int(box.id[0])
+                    clase_idx = int(box.cls[0])
+                    clase = CLASES[clase_idx] if clase_idx < len(CLASES) else "desconocido"
+                    conf_score = float(box.conf[0])
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
 
-                # Registrar ID único por clase
-                with self.lock:
-                    self.conteo_ids[clase].add(track_id)
+                    # Registrar ID único por clase
+                    with self.lock:
+                        self.conteo_ids[clase].add(track_id)
 
-                # Color: ROJO para defectos (todos los detectados son defectos)
-                color = COLORES_DEFECTOS.get(clase, (0, 0, 255))
+                    # Color: ROJO para defectos (todos los detectados son defectos)
+                    color = COLORES_DEFECTOS.get(clase, (0, 0, 255))
 
-                # Dibujar bounding box
-                cv2.rectangle(frame_anotado, (x1, y1), (x2, y2), color, 3)
+                    # Dibujar bounding box
+                    cv2.rectangle(frame_anotado, (x1, y1), (x2, y2), color, 3)
 
-                # Etiqueta: ID, nombre del defecto, confianza
-                label = f"#{track_id} {clase} {conf_score:.2%}"
-                (tw, th), _ = cv2.getTextSize(
-                    label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2
-                )
+                    # Etiqueta: ID, nombre del defecto, confianza
+                    label = f"#{track_id} {clase} {conf_score:.2%}"
+                    (tw, th), _ = cv2.getTextSize(
+                        label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2
+                    )
 
-                # Fondo blanco para texto legible
-                cv2.rectangle(
-                    frame_anotado,
-                    (x1, y1 - th - 8),
-                    (x1 + tw + 4, y1 - 2),
-                    color, -1
-                )
+                    # Fondo blanco para texto legible
+                    cv2.rectangle(
+                        frame_anotado,
+                        (x1, y1 - th - 8),
+                        (x1 + tw + 4, y1 - 2),
+                        color, -1
+                    )
 
-                # Texto en blanco
-                cv2.putText(
-                    frame_anotado, label,
-                    (x1 + 2, y1 - 4),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                    (255, 255, 255), 2
-                )
+                    # Texto en blanco
+                    cv2.putText(
+                        frame_anotado, label,
+                        (x1 + 2, y1 - 4),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                        (255, 255, 255), 2
+                    )
 
         # Estadísticas en esquina superior izquierda
         total_granos = sum(len(ids) for ids in self.conteo_ids.values())
-        stats_text = f"Granos: {total_granos} | FPS: {self.fps_actual:.1f}"
+        stats_text = f"Granos: {total_granos} | FPS: {self.fps_actual:.1f} | Detecciones: {detecciones_count}"
         cv2.putText(
             frame_anotado, stats_text,
             (15, 35),
             cv2.FONT_HERSHEY_SIMPLEX, 0.8,
             (0, 255, 255), 2
         )
+
+        # Log de debug - mostrar siempre si no hay detecciones
+        if total_granos > 0 and detecciones_count > 0:
+            conteo_por_clase = {cls: len(ids) for cls, ids in self.conteo_ids.items() if len(ids) > 0}
+            print(f"🎯 Detecciones: {detecciones_count} | Total únicos: {total_granos} | {conteo_por_clase}")
+        elif detecciones_count == 0:
+            print(f"⚠️  Frame procesado sin detecciones (boxes: {len(result.boxes) if result.boxes is not None else 0})")
 
         # Codificar frame anotado a JPEG
         try:
