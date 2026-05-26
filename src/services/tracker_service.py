@@ -49,6 +49,7 @@ class TrackerService:
                 return True
 
             # Iniciar captura desde cámara
+            print(f"📷 Iniciando CamaraService...")
             if not camara_service.iniciar():
                 print("❌ No se pudo iniciar la cámara")
                 return False
@@ -56,8 +57,10 @@ class TrackerService:
             # Esperar a que la cámara esté lista
             time.sleep(1)
             if not camara_service.esta_disponible():
-                print("❌ Cámara no está disponible")
+                print("❌ Cámara no está disponible después de esperar")
                 return False
+
+            print("✅ Cámara disponible")
 
             # Iniciar hilo de procesamiento
             self.activo = True
@@ -85,6 +88,7 @@ class TrackerService:
     def _loop_procesamiento(self) -> None:
         """Loop principal de procesamiento (corre en hilo separado)."""
         t_anterior = time.time()
+        frame_count = 0
 
         while self.activo:
             # Obtener frame desde CamaraService
@@ -101,11 +105,16 @@ class TrackerService:
             frame_anotado_jpeg = self.tracker.procesar_frame(frame)
 
             if frame_anotado_jpeg is not None:
+                frame_count += 1
+                if frame_count % 30 == 0:  # Log cada 30 frames (~1 vez por segundo a 30fps)
+                    print(f"📊 TrackerService: procesados {frame_count} frames")
                 with self._lock:
                     self._frame_anotado = frame_anotado_jpeg
                     # Actualizar FPS
                     self.tracker._actualizar_fps(t_anterior)
                     t_anterior = time.time()
+            else:
+                print("⚠️  Tracker retornó None para frame_anotado_jpeg")
 
     def obtener_frame_streaming(self) -> Optional[bytes]:
         """
