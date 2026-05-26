@@ -475,6 +475,11 @@
 		}
 
 		actualizarUIdesdeConteo();
+
+		// Iniciar captura automáticamente al cargar la página
+		setTimeout(() => {
+			iniciarCaptura();
+		}, 500);
 	})();
 </script>
 {% endblock %}

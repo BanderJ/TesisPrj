@@ -60,7 +60,7 @@ class CamaraService:
         with self._cap_lock:
             if self._running:
                 return True
-            for idx in (indice, indice + 1):
+            for idx in (indice, indice + 1, 1, 2):
                 try:
                     cap = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
                     if not cap.isOpened():
