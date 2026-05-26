@@ -1,94 +1,100 @@
 {% extends "main.html" %}
 
 {% block style %}
-    <link rel="stylesheet" href="/static/css/configuracion_cooperativa.css?v=1">
+    <link rel="stylesheet" href="/static/css/configuracion_cooperativa.css?v=2">
 {% endblock %}
 
 {% block content %}
-    <section class="config-hero">
-        <div class="hero-content">
-            <p class="kicker">Administración</p>
+    <section class="config-page">
+        <header class="page-hero">
             <h1 class="hero-title">Configuración de cooperativa</h1>
             <p class="hero-description">Actualiza los datos, descripción e imagen de tu cooperativa</p>
+        </header>
+
+        <div id="loadingState" class="config-state">
+            <p>Cargando información...</p>
         </div>
+
+        <div id="errorState" class="config-state" hidden>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <p id="errorMessage">Error al cargar cooperativa</p>
+        </div>
+
+        <form id="configForm" class="config-form" hidden>
+            <div class="form-section">
+                <h2>Información básica</h2>
+
+                <div class="form-row form-row--1">
+                    <div class="field-group">
+                        <label for="nombre">Nombre de la cooperativa</label>
+                        <input type="text" id="nombre" name="nombre" class="field-input" required maxlength="100" placeholder="Ej: Cooperativa Line Coffee">
+                    </div>
+                </div>
+
+                <div class="form-row form-row--2">
+                    <div class="field-group">
+                        <label for="codigo">Código</label>
+                        <input type="text" id="codigo" name="codigo" class="field-input" maxlength="20" placeholder="Ej: COOPE001">
+                    </div>
+                    <div class="field-group">
+                        <label for="direccion">Dirección</label>
+                        <input type="text" id="direccion" name="direccion" class="field-input" maxlength="100" placeholder="Ej: Av. Principal 123">
+                    </div>
+                </div>
+
+                <div class="form-row form-row--2">
+                    <div class="field-group">
+                        <label for="telefono">Teléfono</label>
+                        <input type="tel" id="telefono" name="telefono" class="field-input" placeholder="Ej: 987654321" maxlength="9">
+                    </div>
+                    <div class="field-group">
+                        <label for="correo">Correo</label>
+                        <input type="email" id="correo" name="correo" class="field-input" maxlength="100" placeholder="Ej: info@cooperativa.com">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Descripción</h2>
+
+                <div class="form-row form-row--1">
+                    <div class="field-group">
+                        <label for="descripcion">Descripción de la cooperativa</label>
+                        <textarea id="descripcion" name="descripcion" class="field-input" maxlength="1000" placeholder="Información sobre tu cooperativa..."></textarea>
+                        <p class="field-hint">Máximo 1000 caracteres</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Imagen/Banner</h2>
+
+                <div class="form-row form-row--1">
+                    <div class="field-group">
+                        <label for="imagen_file">Subir imagen o banner</label>
+                        <input type="file" id="imagen_file" name="imagen_file" class="field-input" accept="image/*">
+                        <p class="field-hint">Formatos: JPG, PNG. Tamaño recomendado: 1200×400px</p>
+                    </div>
+                </div>
+
+                <div id="previewContainer" class="preview-container" hidden>
+                    <p class="field-hint">Vista previa:</p>
+                    <img id="imagenPreview" src="" alt="Vista previa de imagen" class="imagen-preview">
+                </div>
+
+                <input type="hidden" id="imagen_url" name="imagen_url">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="submitBtn">Guardar cambios</button>
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='/inicio'">Cancelar</button>
+            </div>
+        </form>
     </section>
-
-    <div id="loadingState" class="config-state">
-        <p>Cargando información...</p>
-    </div>
-
-    <div id="errorState" class="config-state" hidden>
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <p id="errorMessage">Error al cargar cooperativa</p>
-    </div>
-
-    <form id="configForm" class="config-form" hidden>
-        <div class="form-section">
-            <h2>Información básica</h2>
-
-            <div class="field-group">
-                <label for="nombre">Nombre de la cooperativa</label>
-                <input type="text" id="nombre" name="nombre" class="field-input" required maxlength="100">
-            </div>
-
-            <div class="field-group">
-                <label for="codigo">Código</label>
-                <input type="text" id="codigo" name="codigo" class="field-input" maxlength="20">
-            </div>
-
-            <div class="field-group">
-                <label for="direccion">Dirección</label>
-                <input type="text" id="direccion" name="direccion" class="field-input" maxlength="100">
-            </div>
-
-            <div class="field-row">
-                <div class="field-group">
-                    <label for="telefono">Teléfono</label>
-                    <input type="tel" id="telefono" name="telefono" class="field-input" placeholder="9 dígitos" maxlength="9">
-                </div>
-                <div class="field-group">
-                    <label for="correo">Correo</label>
-                    <input type="email" id="correo" name="correo" class="field-input" maxlength="100">
-                </div>
-            </div>
-        </div>
-
-        <div class="form-section">
-            <h2>Descripción</h2>
-
-            <div class="field-group">
-                <label for="descripcion">Descripción de la cooperativa</label>
-                <textarea id="descripcion" name="descripcion" class="field-input" maxlength="1000" rows="4" placeholder="Información sobre tu cooperativa..."></textarea>
-                <p class="field-hint">Máximo 1000 caracteres</p>
-            </div>
-        </div>
-
-        <div class="form-section">
-            <h2>Imagen/Banner</h2>
-
-            <div class="field-group">
-                <label for="imagen_file">Subir imagen o banner</label>
-                <input type="file" id="imagen_file" name="imagen_file" class="field-input" accept="image/*">
-                <p class="field-hint">Formatos: JPG, PNG. Tamaño recomendado: 1200x400px</p>
-            </div>
-
-            <div id="previewContainer" class="preview-container" hidden>
-                <p class="field-hint">Vista previa:</p>
-                <img id="imagenPreview" src="" alt="Vista previa de imagen" class="imagen-preview">
-            </div>
-
-            <input type="hidden" id="imagen_url" name="imagen_url">
-        </div>
-
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary" id="submitBtn">Guardar cambios</button>
-            <button type="button" class="btn btn-secondary" onclick="window.location.href='/inicio'">Cancelar</button>
-        </div>
-    </form>
 
     <script>
         let cooperativaId = null;
