@@ -7,3 +7,4 @@ argon2-cffi      # Hash seguro de contrasenas con algoritmo Argon2
 PyJWT            # Generacion y validacion de tokens JWT
 python-multipart # Soporte para formularios y subida de archivos multipart/form-data
 opencv-python-headless # Captura de video USB (sin GUI), streaming MJPEG para cámara ELP AR0234
+markitdown[all]==0.1.5

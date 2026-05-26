@@ -13,6 +13,7 @@ from src.routes.caficultor import caficultor_router
 from src.routes.camara import camara_router
 from src.routes.evaluacion import evaluacion_router
 from src.routes.dni import dni_router
+from src.routes.perfil import perfil
 from src.routes.persona import persona_router
 from src.routes.tipo_caficultor import tipo_caficultor_router
 from src.routes.tipo_documento import tipo_documento_router
@@ -70,6 +71,7 @@ app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
 app.include_router(camara_router, prefix="/camara", tags=["camara"])
 app.include_router(evaluacion_router, prefix="/evaluacion", tags=["evaluacion"])
 app.include_router(dni_router, prefix="/dni", tags=["dni"])
+app.include_router(perfil, prefix="/perfil", tags=["perfil"])
 app.include_router(persona_router, prefix="/persona", tags=["persona"])
 app.include_router(tipo_caficultor_router, prefix="/tipo-caficultor", tags=["tipo-caficultor"])
 app.include_router(tipo_documento_router, prefix="/tipo-documento", tags=["tipo-documento"])
