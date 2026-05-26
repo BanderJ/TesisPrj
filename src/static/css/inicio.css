@@ -20,12 +20,6 @@
     display: block;
 }
 
-.cooperativa-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to bottom, transparent 50%, color-mix(in oklab, var(--card) 100%, transparent 0%));
-}
-
 .cooperativa-card {
     background: var(--card);
     border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
