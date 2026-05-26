@@ -134,9 +134,6 @@
 
 	<div class="monitor-actions">
 		<button id="btnVolver" type="button" class="btn btn-secondary">Volver a registro</button>
-		<button id="btnIniciarCaptura" type="button" class="btn btn-secondary">🎥 Iniciar Captura YOLO</button>
-		<button id="btnDetenerCaptura" type="button" class="btn btn-secondary" style="display:none;">⏹️  Detener Captura</button>
-		<button id="btnGenerarReporte" type="button" class="btn btn-secondary" style="display:none;">📋 Generar Reporte</button>
 		<button id="finishBtn" type="button" class="btn btn-primary">Finalizar monitoreo</button>
 	</div>
 </section>
@@ -273,10 +270,6 @@
 		let conteoActual = {};
 		let reporteActual = null;
 
-		const btnIniciarCaptura = document.getElementById('btnIniciarCaptura');
-		const btnDetenerCaptura = document.getElementById('btnDetenerCaptura');
-		const btnGenerarReporte = document.getElementById('btnGenerarReporte');
-
 		function appendLog(message) {
 			if (eventLog) {
 				eventLog.innerHTML = `<p class="log-item">${elapsedSeconds}s - ${message}</p>`;
@@ -325,19 +318,13 @@
 
 		async function iniciarCaptura() {
 			try {
-				btnIniciarCaptura.disabled = true;
 				appendLog('⏳ Iniciando captura YOLO...');
 
 				const res = await fetch('/video/iniciar', { method: 'POST' });
 				if (!res.ok) throw new Error('Error al iniciar captura');
 
-				const data = await res.json();
 				capturandoYOLO = true;
 				elapsedSeconds = 0;
-
-				btnIniciarCaptura.style.display = 'none';
-				btnDetenerCaptura.style.display = 'inline-block';
-				btnGenerarReporte.style.display = 'inline-block';
 
 				appendLog('✅ Captura YOLO iniciada. Stream en vivo 🎥');
 				iniciarStream();
@@ -370,13 +357,11 @@
 
 			} catch (err) {
 				appendLog('❌ Error: ' + err.message);
-				btnIniciarCaptura.disabled = false;
 			}
 		}
 
 		async function detenerCaptura() {
 			try {
-				btnDetenerCaptura.disabled = true;
 				appendLog('⏹️  Deteniendo captura...');
 
 				const res = await fetch('/video/detener', { method: 'POST' });
@@ -385,20 +370,15 @@
 				capturandoYOLO = false;
 				detenerStream();
 
-				btnDetenerCaptura.style.display = 'none';
-				btnIniciarCaptura.style.display = 'inline-block';
-
-				appendLog('✅ Captura detenida. Presiona "Generar Reporte" para finalizar.');
+				appendLog('✅ Captura detenida.');
 
 			} catch (err) {
-				appendLog('❌ Error: ' + err.message);
-				btnDetenerCaptura.disabled = false;
+				appendLog('❌ Error al detener: ' + err.message);
 			}
 		}
 
 		async function generarReporte() {
 			try {
-				btnGenerarReporte.disabled = true;
 				appendLog('📊 Generando reporte SCA...');
 
 				const res = await fetch('/video/lote/generar-reporte', { method: 'POST' });
@@ -411,35 +391,32 @@
 				console.log('📋 Reporte completo:', reporteActual);
 
 			} catch (err) {
-				appendLog('❌ Error: ' + err.message);
-				btnGenerarReporte.disabled = false;
+				appendLog('❌ Error al generar reporte: ' + err.message);
 			}
 		}
 
-		btnIniciarCaptura.addEventListener('click', iniciarCaptura);
-		btnDetenerCaptura.addEventListener('click', detenerCaptura);
-		btnGenerarReporte.addEventListener('click', generarReporte);
-
 		if (finishBtn) {
 			finishBtn.addEventListener('click', async () => {
-				if (capturandoYOLO) {
-					appendLog('⚠️  Primero detén la captura YOLO');
-					return;
-				}
-
 				const confirmed = await CoffeeModal.confirm({
 					title: '¿Finalizar monitoreo?',
-					message: reporteActual
-						? `Grado: ${reporteActual.grado} | Defectos: ${reporteActual.total_defectos}\n¿Deseas finalizar con estos resultados?`
-						: '¿Está seguro de finalizar? No se generó reporte YOLO.',
+					message: '¿Deseas finalizar y generar el reporte?',
 				});
 				if (!confirmed) return;
 
-				monitoreoActivo = false;
-				detenerStream();
 				finishBtn.disabled = true;
 				finishBtn.textContent = 'Finalizando...';
-				appendLog('Cerrando evaluacion y generando codigo...');
+
+				// Detener captura
+				if (capturandoYOLO) {
+					await detenerCaptura();
+				}
+
+				// Generar reporte
+				await generarReporte();
+
+				monitoreoActivo = false;
+				detenerStream();
+				appendLog('Cerrando evaluacion...');
 
 				const stats = {
 					totalGranos: Object.values(conteoActual).reduce((a, b) => a + b, 0),
