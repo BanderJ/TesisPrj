@@ -569,10 +569,9 @@ main {
 }
 
 .cooperativa-banner {
-    height: 320px;
+    height: 450px;
     background-size: cover;
     background-position: center;
-    background-repeat: no-repeat;
 }
 
 .cooperativa-info {
@@ -598,7 +597,7 @@ main {
 
 @media (max-width: 640px) {
     .cooperativa-banner {
-        height: 200px;
+        height: 280px;
     }
 
     .cooperativa-info {
