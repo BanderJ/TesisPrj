@@ -52,7 +52,7 @@ async def stream_mjpeg():
 # ============================================================
 
 @router.post("/iniciar")
-async def iniciar_captura(usuario=obtener_usuario_actual):
+async def iniciar_captura(usuario_actual: dict = Depends(obtener_usuario_actual)):
     """
     Inicia la captura de video y procesamiento en tiempo real.
 
@@ -79,7 +79,7 @@ async def iniciar_captura(usuario=obtener_usuario_actual):
 
 
 @router.post("/detener")
-async def detener_captura(usuario=obtener_usuario_actual):
+async def detener_captura(usuario_actual: dict = Depends(obtener_usuario_actual)):
     """Detiene la captura y streaming de video."""
     tracker_service.detener()
     return {
@@ -93,7 +93,7 @@ async def detener_captura(usuario=obtener_usuario_actual):
 # ============================================================
 
 @router.get("/lote/conteo")
-async def obtener_conteo_lote(usuario=obtener_usuario_actual):
+async def obtener_conteo_lote(usuario_actual: dict = Depends(obtener_usuario_actual)):
     """
     Retorna el conteo actual de granos detectados por clase.
 
@@ -110,7 +110,7 @@ async def obtener_conteo_lote(usuario=obtener_usuario_actual):
 
 
 @router.post("/lote/generar-reporte")
-async def generar_reporte_lote(usuario=obtener_usuario_actual):
+async def generar_reporte_lote(usuario_actual: dict = Depends(obtener_usuario_actual)):
     """
     Genera el reporte final del lote actual.
 
@@ -135,7 +135,7 @@ async def generar_reporte_lote(usuario=obtener_usuario_actual):
 
 
 @router.post("/lote/resetear")
-async def resetear_lote(usuario=obtener_usuario_actual):
+async def resetear_lote(usuario_actual: dict = Depends(obtener_usuario_actual)):
     """
     Resetea el conteo de granos para iniciar análisis de un nuevo lote.
 

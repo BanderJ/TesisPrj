@@ -220,7 +220,7 @@
 
 			cameraStreamEl.onerror = () => mostrarError(null);
 
-			cameraStreamEl.src = '/camara/stream';
+			cameraStreamEl.src = '/video/stream';
 		}
 
 		function detenerStream() {
@@ -349,7 +349,7 @@
 						return;
 					}
 					try {
-						const res = await fetch('/lote/conteo');
+						const res = await fetch('/video/lote/conteo');
 						const data = await res.json();
 						conteoActual = data.conteo;
 						actualizarUIdesdeConteo();
@@ -401,7 +401,7 @@
 				btnGenerarReporte.disabled = true;
 				appendLog('📊 Generando reporte SCA...');
 
-				const res = await fetch('/lote/generar-reporte', { method: 'POST' });
+				const res = await fetch('/video/lote/generar-reporte', { method: 'POST' });
 				if (!res.ok) throw new Error('Error generando reporte');
 
 				reporteActual = await res.json();
