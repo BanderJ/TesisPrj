@@ -178,3 +178,11 @@ async def obtener_status():
         "modelo": tracker_service.model_name,
         "conteo_actual": tracker_service.obtener_conteo_actual()
     }
+
+
+@router.post("/liberar-camara")
+async def liberar_camara(usuario_actual: dict = Depends(obtener_usuario_actual)):
+    """Fuerza la liberación de la cámara (útil si está bloqueada)."""
+    tracker_service.detener()
+    return {"mensaje": "Cámara liberada"}
+

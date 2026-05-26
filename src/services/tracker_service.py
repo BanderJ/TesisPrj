@@ -83,7 +83,8 @@ class TrackerService:
             self._thread = None
 
         camara_service.cerrar()
-        print("⏹️  TrackerService detenido")
+        self.tracker.resetear_conteo()
+        print("⏹️  TrackerService detenido - cámara liberada")
 
     def _loop_procesamiento(self) -> None:
         """Loop principal de procesamiento (corre en hilo separado)."""
