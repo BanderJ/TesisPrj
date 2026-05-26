@@ -38,7 +38,8 @@
       "Bash(python /tmp/md_to_docx.py)",
       "Bash(python -m venv .venv)",
       "Bash(.venv\\\\Scripts\\\\activate)",
-      "Bash(uvicorn src.main:app --reload)"
+      "Bash(uvicorn src.main:app --reload)",
+      "Bash(grep -n \"^\\\\\\\\.config-\\\\|^\\\\\\\\.form-section\\\\|^\\\\\\\\.field-row\\\\|^\\\\\\\\.field-group\\\\|^\\\\\\\\.form-actions\\\\|^\\\\\\\\.config-form\\\\|^\\\\\\\\.field-input\" src/static/css/configuracion_cooperativa.css)"
     ],
     "additionalDirectories": [
       "d:\\TesisPrj\\.claude\\skills"
