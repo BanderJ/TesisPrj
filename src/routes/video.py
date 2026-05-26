@@ -8,7 +8,7 @@ POST /lote/generar-reporte → Genera reporte final del lote
 POST /lote/resetear        → Resetea conteo para nuevo lote
 """
 
-from fastapi import APIRouter, Response, HTTPException
+from fastapi import APIRouter, Depends, Response, HTTPException
 from fastapi.responses import StreamingResponse
 
 from src.services.tracker_service import tracker_service
