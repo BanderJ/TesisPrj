@@ -130,16 +130,30 @@
             }
         }
 
-        document.getElementById('imagen_file').addEventListener('change', (e) => {
+        document.getElementById('imagen_file').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    document.getElementById('imagenPreview').src = event.target.result;
-                    document.getElementById('imagen_url').value = event.target.result;
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const res = await fetch('/cooperativas/upload-imagen', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!res.ok) {
+                        throw new Error('Error al subir imagen');
+                    }
+
+                    const data = await res.json();
+                    document.getElementById('imagenPreview').src = data.imagen_url;
+                    document.getElementById('imagen_url').value = data.imagen_url;
                     document.getElementById('previewContainer').hidden = false;
-                };
-                reader.readAsDataURL(file);
+                } catch (error) {
+                    console.error('Error:', error);
+                    CoffeeModal.error('Error al subir imagen', 'Error');
+                }
             } else {
                 document.getElementById('previewContainer').hidden = true;
                 document.getElementById('imagen_url').value = '';

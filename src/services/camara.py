@@ -18,7 +18,6 @@ class CamaraService:
         self._new_frame = threading.Event()
         self._running = False
         self._thread: threading.Thread | None = None
-        self._passthrough = False
         self._simulada = False
         self._cap_simulada = None
 
@@ -32,11 +31,11 @@ class CamaraService:
             ret, frame = cap.read()
             if not ret or frame is None:
                 continue
-            if self._passthrough:
-                jpeg = frame.tobytes()
-            else:
-                _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
-                jpeg = buf.tobytes()
+            # Siempre codificar a JPEG (nunca pasar bytes crudos)
+            success, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
+            if not success:
+                continue
+            jpeg = buf.tobytes()
             with self._frame_lock:
                 self._latest_jpeg = jpeg
             self._new_frame.set()
@@ -74,13 +73,7 @@ class CamaraService:
                     # Buffer mínimo: el hilo drena el sensor antes de que acumule
                     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                     # Passthrough MJPEG: bytes nativos del sensor sin decodificar ni re-encodear
-                    cap.set(cv2.CAP_PROP_CONVERT_RGB, 0)
-                    ret, test = cap.read()
-                    if ret and test is not None and test.ndim == 1 and test.nbytes > 1000:
-                        self._passthrough = True
-                    else:
-                        cap.set(cv2.CAP_PROP_CONVERT_RGB, 1)
-                        self._passthrough = False
+                    cap.set(cv2.CAP_PROP_CONVERT_RGB, 1)
                     self._cap = cap
                     self._running = True
                     self._thread = threading.Thread(

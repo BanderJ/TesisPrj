@@ -203,21 +203,45 @@
 			cameraStreamEl.style.display  = 'none';
 			cameraErrorEl.style.display   = 'none';
 
-			// Timeout de 12 s si la cámara no responde
-			connectTimeout = setTimeout(() => {
-				cameraStreamEl.src = '';
-				mostrarError('Tiempo de espera agotado');
-			}, 12000);
+			let frameTimeout;
+			let isFirstFrame = true;
 
-			cameraStreamEl.onload = () => {
-				clearTimeout(connectTimeout);
-				cameraLoadingEl.style.display = 'none';
-				cameraStreamEl.style.display  = 'block';
+			// Función para refrescar el frame
+			const refrescarFrame = async () => {
+				try {
+					const res = await fetch('/video/frame');
+					if (!res.ok) throw new Error('Error obteniendo frame');
+
+					const blob = await res.blob();
+					const url = URL.createObjectURL(blob);
+					cameraStreamEl.src = url;
+
+					if (isFirstFrame) {
+						isFirstFrame = false;
+						clearTimeout(connectTimeout);
+						cameraLoadingEl.style.display = 'none';
+						cameraStreamEl.style.display  = 'block';
+					}
+
+					// Refrescar cada 33ms (~30fps)
+					frameTimeout = setTimeout(refrescarFrame, 33);
+				} catch (error) {
+					console.error('Error en stream:', error);
+					if (isFirstFrame) {
+						clearTimeout(connectTimeout);
+						mostrarError('No se pudo conectar con el stream de video');
+					}
+				}
 			};
 
-			cameraStreamEl.onerror = () => mostrarError(null);
+			// Timeout de 10 s si la cámara no responde
+			connectTimeout = setTimeout(() => {
+				if (isFirstFrame) {
+					mostrarError('Tiempo de espera agotado');
+				}
+			}, 10000);
 
-			cameraStreamEl.src = '/video/stream';
+			refrescarFrame();
 		}
 
 		function detenerStream() {
@@ -225,6 +249,7 @@
 			cameraStreamEl.src           = '';
 			cameraStreamEl.style.display = 'none';
 			cameraLoadingEl.style.display = 'none';
+			cameraErrorEl.style.display   = 'none';
 		}
 
 		// Verificar disponibilidad del sistema YOLO (no inicia automáticamente)

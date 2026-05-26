@@ -154,6 +154,22 @@ async def resetear_lote(usuario_actual: dict = Depends(obtener_usuario_actual)):
 # RUTAS DE STATUS
 # ============================================================
 
+@router.get("/frame")
+async def obtener_frame():
+    """
+    Retorna el último frame procesado como JPEG individual.
+    Usado para refrescar continuamente la imagen en el frontend.
+    """
+    frame_jpeg = tracker_service.obtener_frame_streaming()
+    if frame_jpeg is None:
+        raise HTTPException(status_code=503, detail="No hay frame disponible")
+
+    return Response(
+        content=frame_jpeg,
+        media_type="image/jpeg"
+    )
+
+
 @router.get("/status")
 async def obtener_status():
     """Retorna el estado actual del sistema de monitoreo."""

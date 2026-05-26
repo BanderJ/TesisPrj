@@ -1,7 +1,9 @@
 """
 Cooperativa Routes - HTTP endpoints for cooperative management
 """
-from fastapi import APIRouter, HTTPException, status, Depends
+import os
+import uuid
+from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
 from src.schemas.cooperativa import CooperativaCreate, CooperativaUpdate, CooperativaResponse
 from src.services import cooperativa_service
 from src.utilities.jwt_required import obtener_usuario_actual
@@ -87,6 +89,35 @@ async def desactivar_cooperativa(cooperativa_id: str, usuario_actual: dict = Dep
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cooperativa no encontrada")
 
     cooperativa_service.desactivar(cooperativa_id)
+
+
+@router.post("/upload-imagen")
+async def upload_imagen_cooperativa(file: UploadFile = File(...), usuario_actual: dict = Depends(obtener_usuario_actual)):
+    """Upload cooperativa image and save to resources/cooperativa/."""
+    try:
+        # Validar tipo de archivo
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="Solo se aceptan imágenes")
+
+        # Crear directorio si no existe
+        upload_dir = "src/resources/cooperativa"
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Generar nombre único
+        ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+        filename = f"{uuid.uuid4()}.{ext}"
+        filepath = os.path.join(upload_dir, filename)
+
+        # Guardar archivo
+        contents = await file.read()
+        with open(filepath, 'wb') as f:
+            f.write(contents)
+
+        # Retornar URL relativa
+        image_url = f"/resources/cooperativa/{filename}"
+        return {"imagen_url": image_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/debug/usuario-info")
