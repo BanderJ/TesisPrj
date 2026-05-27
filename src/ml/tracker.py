@@ -19,7 +19,7 @@ CAMARA_FPS      = 60    # FPS de procesamiento
 # Clases del modelo YOLO
 CLASES = [
     "agrio_ligero", "agrio_severo", "averanado", "blanco",
-    "broca_ligero", "broca_severo", "cascarilla_cereza_seca",
+    "broca_severo", "broca_ligero", "cascarilla_cereza_seca",
     "cascarilla_pergamino", "cereza_seca", "concha", "deforme",
     "inmaduro", "negro", "partido_maquina", "partido_mitad",
     "pergamino", "verde"
