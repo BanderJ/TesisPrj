@@ -7,8 +7,8 @@ Se mantiene para referencia y posibles usos futuros.
 from ultralytics import YOLO
 import cv2
 import os
-
-from src.ml.constants import CLASES, COLORES
+import importlib.util
+import sys
 
 # Ruta base de modelos
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -16,7 +16,7 @@ MODELS_DIR = os.path.join(BASE_DIR, "models")
 
 
 class CoffeeRenInference:
-    def __init__(self, model_name: str = "yolov8n", conf: float = 0.5):
+    def __init__(self, model_name: str = "yolov8n", conf: float = 0.3):
         """
         Inicializa el modelo de inferencia.
 
@@ -35,7 +35,28 @@ class CoffeeRenInference:
             )
 
         self.model = YOLO(model_path)
+        self._cargar_constantes_modelo()
         print(f"✅ Modelo cargado: {model_name} (conf={conf})")
+
+    def _cargar_constantes_modelo(self) -> None:
+        """Carga dinámicamente las constantes del modelo."""
+        constants_path = os.path.join(MODELS_DIR, self.model_name, "constants.py")
+
+        if not os.path.exists(constants_path):
+            raise FileNotFoundError(
+                f"constants.py no encontrado para modelo {self.model_name} en {constants_path}"
+            )
+
+        spec = importlib.util.spec_from_file_location(
+            f"src.ml.models.{self.model_name}.constants",
+            constants_path
+        )
+        constants_module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = constants_module
+        spec.loader.exec_module(constants_module)
+
+        self.CLASES = constants_module.CLASES
+        self.COLORES = constants_module.COLORES
 
     def predecir(self, frame):
         """
@@ -74,9 +95,9 @@ class CoffeeRenInference:
         for box in result.boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             clase_idx = int(box.cls[0])
-            clase = CLASES[clase_idx] if clase_idx < len(CLASES) else "desconocido"
+            clase = self.CLASES[clase_idx] if clase_idx < len(self.CLASES) else "desconocido"
             conf = float(box.conf[0])
-            color = COLORES.get(clase, (128, 128, 128))
+            color = self.COLORES.get(clase, (128, 128, 128))
 
             # Dibujar bounding box
             cv2.rectangle(frame_anotado, (x1, y1), (x2, y2), color, 2)

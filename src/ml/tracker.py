@@ -60,7 +60,7 @@ class CoffeeRenTracker:
         self._cargar_constantes_modelo()
 
         # Estado del tracking
-        self.conteo_ids = defaultdict(set)        # {clase: {id1, id2, ...}}
+        self.conteo_ids_confianza = defaultdict(list)  # {track_id: [(clase, conf), ...]}
         self.lock = threading.Lock()
 
         # Estadísticas
@@ -131,9 +131,9 @@ class CoffeeRenTracker:
                     conf_score = float(box.conf[0])
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
 
-                    # Registrar ID único por clase
+                    # Guardar detección (clase, confianza) para este ID
                     with self.lock:
-                        self.conteo_ids[clase].add(track_id)
+                        self.conteo_ids_confianza[track_id].append((clase, conf_score))
 
                     # Color: ROJO para defectos (todos los detectados son defectos)
                     color = self.COLORES_DEFECTOS.get(clase, (0, 0, 255))
@@ -164,7 +164,7 @@ class CoffeeRenTracker:
                     )
 
         # Estadísticas en esquina superior izquierda
-        total_granos = sum(len(ids) for ids in self.conteo_ids.values())
+        total_granos = len(self.conteo_ids_confianza)
         stats_text = f"Granos: {total_granos} | FPS: {self.fps_actual:.1f} | Detecciones: {detecciones_count}"
         cv2.putText(
             frame_anotado, stats_text,
@@ -175,8 +175,8 @@ class CoffeeRenTracker:
 
         # Log de debug - mostrar siempre si no hay detecciones
         if total_granos > 0 and detecciones_count > 0:
-            conteo_por_clase = {cls: len(ids) for cls, ids in self.conteo_ids.items() if len(ids) > 0}
-            print(f"🎯 Detecciones: {detecciones_count} | Total únicos: {total_granos} | {conteo_por_clase}")
+            conteo_final = self._calcular_conteo_final()
+            print(f"🎯 Detecciones: {detecciones_count} | Total únicos: {total_granos} | {conteo_final}")
         elif detecciones_count == 0:
             print(f"⚠️  Frame procesado sin detecciones (boxes: {len(result.boxes) if result.boxes is not None else 0})")
 
@@ -193,17 +193,32 @@ class CoffeeRenTracker:
     def resetear_conteo(self) -> None:
         """Resetea el conteo de IDs para un nuevo lote."""
         with self.lock:
-            self.conteo_ids = defaultdict(set)
+            self.conteo_ids_confianza = defaultdict(list)
 
     def obtener_conteo(self) -> dict[str, int]:
         """
         Retorna el conteo actual de granos únicos por clase.
+        Usa la clase con MAYOR CONFIANZA para cada ID único.
 
         Returns:
             dict: {clase: cantidad_granos_unicos}
         """
         with self.lock:
-            return {clase: len(ids) for clase, ids in self.conteo_ids.items()}
+            conteo_final = self._calcular_conteo_final()
+        return conteo_final
+
+    def _calcular_conteo_final(self) -> dict[str, int]:
+        """Calcula conteo final usando la clase con mayor confianza por ID."""
+        conteo_por_clase = defaultdict(set)
+
+        for track_id, detecciones in self.conteo_ids_confianza.items():
+            if not detecciones:
+                continue
+            # Usar la clase con mayor confianza para este ID
+            clase_final = max(detecciones, key=lambda x: x[1])[0]
+            conteo_por_clase[clase_final].add(track_id)
+
+        return {clase: len(ids) for clase, ids in conteo_por_clase.items()}
 
     def _actualizar_fps(self, t_anterior: float) -> float:
         """Actualiza el FPS y retorna el nuevo tiempo anterior."""

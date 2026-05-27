@@ -57,7 +57,11 @@
       "Bash(git commit -m 'Bajar confidence threshold a 0.20 para mejor recall en production *)",
       "Bash(python -m py_compile src/ml/constants.py src/ml/tracker.py src/ml/classifier.py src/ml/inference.py)",
       "Bash(python -m py_compile src/ml/*.py)",
-      "PowerShell(Get-ChildItem -Path \"d:\\\\TesisPrj\\\\src\\\\ml\\\\models\" -Directory | ForEach-Object { Write-Host \"=== $\\($_.Name\\) ===\"; Get-ChildItem -Path $_.FullName -File | ForEach-Object { $_.Name } })"
+      "PowerShell(Get-ChildItem -Path \"d:\\\\TesisPrj\\\\src\\\\ml\\\\models\" -Directory | ForEach-Object { Write-Host \"=== $\\($_.Name\\) ===\"; Get-ChildItem -Path $_.FullName -File | ForEach-Object { $_.Name } })",
+      "WebFetch(domain:www.ultralytics.com)",
+      "PowerShell(python -m py_compile \"d:\\\\TesisPrj\\\\src\\\\ml\\\\tracker.py\")",
+      "Bash(python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8000)",
+      "Bash(curl -s -X POST http://localhost:8000/evaluacion/registrar -H 'Content-Type: application/json' -H 'Cookie: access_token=invalid' -d '{ *)"
     ],
     "additionalDirectories": [
       "d:\\TesisPrj\\.claude\\skills",

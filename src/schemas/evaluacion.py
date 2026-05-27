@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class RegistrarEvaluacionRequest(BaseModel):
@@ -13,6 +13,19 @@ class RegistrarEvaluacionRequest(BaseModel):
     num_tamiz: int = Field(..., ge=1)
     peso_tamizado: Decimal = Field(..., gt=0)
     tipo_grano_id: int = Field(..., ge=1)
+
+    @model_validator(mode="after")
+    def validar_pesos(self):
+        peso_bruto_gramos = self.peso_bruto * Decimal("1000")
+        if self.peso_muestra > peso_bruto_gramos:
+            raise ValueError(f"El peso de muestra no puede superar el peso total ({float(peso_bruto_gramos):.2f} gr.)")
+        if self.peso_trillado == self.peso_muestra:
+            raise ValueError("El peso trillado debe ser diferente al peso de muestra")
+        if self.peso_trillado > self.peso_muestra:
+            raise ValueError("El peso trillado no puede ser mayor al peso de muestra")
+        if self.peso_tamizado > self.peso_trillado:
+            raise ValueError("El peso tamizado no puede ser mayor al peso trillado")
+        return self
 
 
 class EvaluacionData(BaseModel):

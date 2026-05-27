@@ -182,4 +182,4 @@ class TrackerService:
 
 
 # Instancia global del servicio
-tracker_service = TrackerService(model_name="yolov26n")
+tracker_service = TrackerService(model_name="yolov26n_2cls")
