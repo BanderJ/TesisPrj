@@ -1,45 +1,18 @@
 """
-CoffeeRen - Módulo de Inferencia
-Carga el modelo YOLO entrenado y procesa frames individuales.
+CoffeeRen - Módulo de Inferencia (Legacy)
+No se usa en el flujo actual (ByteTrack está en tracker.py).
+Se mantiene para referencia y posibles usos futuros.
 """
 
 from ultralytics import YOLO
 import cv2
 import os
 
+from src.ml.constants import CLASES, COLORES
+
 # Ruta base de modelos
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODELS_DIR = os.path.join(BASE_DIR, "models")
-
-# Clases del modelo
-CLASES = [
-    "agrio_ligero", "agrio_severo", "averanado", "blanco",
-    "broca_ligero", "broca_severo", "cascarilla_cereza_seca",
-    "cascarilla_pergamino", "cereza_seca", "concha", "deforme",
-    "inmaduro", "negro", "partido_maquina", "partido_mitad",
-    "pergamino", "verde"
-]
-
-# Colores por clase (BGR) para visualización
-COLORES = {
-    "agrio_ligero":           (0, 255, 255),
-    "agrio_severo":           (0, 200, 255),
-    "averanado":              (0, 165, 255),
-    "blanco":                 (255, 255, 255),
-    "broca_ligero":           (0, 255, 0),
-    "broca_severo":           (0, 180, 0),
-    "cascarilla_cereza_seca": (255, 0, 255),
-    "cascarilla_pergamino":   (200, 0, 200),
-    "cereza_seca":            (0, 0, 255),
-    "concha":                 (255, 128, 0),
-    "deforme":                (128, 0, 255),
-    "inmaduro":               (0, 255, 128),
-    "negro":                  (50, 50, 50),
-    "partido_maquina":        (255, 0, 0),
-    "partido_mitad":          (200, 0, 0),
-    "pergamino":              (200, 200, 0),
-    "verde":                  (0, 200, 0),
-}
 
 
 class CoffeeRenInference:

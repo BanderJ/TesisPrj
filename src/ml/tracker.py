@@ -7,27 +7,16 @@ Cada grano recibe un ID único para contar defectos sin duplicados.
 import cv2
 import threading
 import time
+import importlib.util
 from collections import defaultdict
 from ultralytics import YOLO
 import os
+import sys
 
 # Configuración de cámara
 CAMARA_WIDTH    = 1280  # Resolución operativa
 CAMARA_HEIGHT   = 720
 CAMARA_FPS      = 60    # FPS de procesamiento
-
-# Clases del modelo YOLO
-CLASES = [
-    "agrio_ligero", "agrio_severo", "averanado", "blanco",
-    "broca_severo", "broca_ligero", "cascarilla_cereza_seca",
-    "cascarilla_pergamino", "cereza_seca", "concha", "deforme",
-    "inmaduro", "negro", "partido_maquina", "partido_mitad",
-    "pergamino", "verde"
-]
-
-# Colores por clase (BGR): Rojo para defectos, Verde para descritos como buenos
-# En SCA, todos los detectados son defectos (rojo)
-COLORES_DEFECTOS = {cls: (0, 0, 255) for cls in CLASES}  # Rojo para todos (defectos)
 
 
 class CoffeeRenTracker:
@@ -67,13 +56,38 @@ class CoffeeRenTracker:
         self.model = YOLO(model_path)
         print(f"✅ Modelo YOLO cargado: {self.model_name} (conf={conf})")
 
+        # Cargar constantes (CLASES, COLORES, EQUIVALENCIAS) específicas del modelo
+        self._cargar_constantes_modelo()
+
         # Estado del tracking
         self.conteo_ids = defaultdict(set)        # {clase: {id1, id2, ...}}
-        self.ultimo_frame_anotado: bytes | None = None
         self.lock = threading.Lock()
 
         # Estadísticas
         self.fps_actual = 0.0
+
+    def _cargar_constantes_modelo(self) -> None:
+        """Carga dinámicamente las constantes (CLASES, COLORES, etc) del modelo."""
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        constants_path = os.path.join(BASE_DIR, "models", self.model_name, "constants.py")
+
+        if not os.path.exists(constants_path):
+            raise FileNotFoundError(
+                f"constants.py no encontrado para modelo {self.model_name} en {constants_path}"
+            )
+
+        spec = importlib.util.spec_from_file_location(
+            f"src.ml.models.{self.model_name}.constants",
+            constants_path
+        )
+        constants_module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = constants_module
+        spec.loader.exec_module(constants_module)
+
+        self.CLASES = constants_module.CLASES
+        self.COLORES = constants_module.COLORES
+        self.EQUIVALENCIAS_DEFECTO = constants_module.EQUIVALENCIAS_DEFECTO
+        self.COLORES_DEFECTOS = {cls: (0, 0, 255) for cls in self.CLASES}
 
     def procesar_frame(self, frame) -> bytes | None:
         """
@@ -113,7 +127,7 @@ class CoffeeRenTracker:
                     detecciones_count += 1
                     track_id = int(box.id[0])
                     clase_idx = int(box.cls[0])
-                    clase = CLASES[clase_idx] if clase_idx < len(CLASES) else "desconocido"
+                    clase = self.CLASES[clase_idx] if clase_idx < len(self.CLASES) else "desconocido"
                     conf_score = float(box.conf[0])
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
 
@@ -122,7 +136,7 @@ class CoffeeRenTracker:
                         self.conteo_ids[clase].add(track_id)
 
                     # Color: ROJO para defectos (todos los detectados son defectos)
-                    color = COLORES_DEFECTOS.get(clase, (0, 0, 255))
+                    color = self.COLORES_DEFECTOS.get(clase, (0, 0, 255))
 
                     # Dibujar bounding box
                     cv2.rectangle(frame_anotado, (x1, y1), (x2, y2), color, 3)
@@ -190,11 +204,6 @@ class CoffeeRenTracker:
         """
         with self.lock:
             return {clase: len(ids) for clase, ids in self.conteo_ids.items()}
-
-    def obtener_frame_jpeg(self) -> bytes | None:
-        """Retorna el último frame anotado en JPEG (para streaming)."""
-        with self.lock:
-            return self.ultimo_frame_anotado
 
     def _actualizar_fps(self, t_anterior: float) -> float:
         """Actualiza el FPS y retorna el nuevo tiempo anterior."""

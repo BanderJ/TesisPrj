@@ -150,7 +150,7 @@ class TrackerService:
             dict: {grado, defectos, apto_specialty, detalles_por_clase, ...}
         """
         conteo = self.obtener_conteo_actual()
-        return generar_reporte(conteo)
+        return generar_reporte(conteo, self.tracker.EQUIVALENCIAS_DEFECTO)
 
     def resetear_lote(self) -> None:
         """Resetea el conteo para iniciar análisis de un nuevo lote."""
