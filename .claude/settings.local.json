@@ -53,7 +53,8 @@
       "Bash(git commit -m ' *)",
       "Bash(python3 /tmp/check_user.py)",
       "PowerShell(uvicorn src.main:app --reload --port 8000)",
-      "Bash(git commit -m 'Corregir mapeo invertido de clases YOLO: broca_ligero ↔ broca_severo *)"
+      "Bash(git commit -m 'Corregir mapeo invertido de clases YOLO: broca_ligero ↔ broca_severo *)",
+      "Bash(git commit -m 'Bajar confidence threshold a 0.20 para mejor recall en production *)"
     ],
     "additionalDirectories": [
       "d:\\TesisPrj\\.claude\\skills",

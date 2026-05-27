@@ -14,7 +14,9 @@ from src.ml.tracker import CoffeeRenTracker
 from src.ml.classifier import generar_reporte
 
 # Umbral de confianza global para todas las detecciones YOLO
-CONF_THRESHOLD = 0.3
+# Bajado a 0.20 para production: mejor recall en agrio (0.61) y partido (0.50)
+# Preferimos falsos positivos sobre granos defectuosos no detectados
+CONF_THRESHOLD = 0.20
 
 
 class TrackerService:
