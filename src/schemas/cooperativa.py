@@ -37,6 +37,7 @@ class CooperativaResponse(CooperativaBase):
     cooperativa_id: str
     estado: str
     fecha_registro: datetime | str
+    tipo_personal_id: int | None = None
 
     class Config:
         from_attributes = True

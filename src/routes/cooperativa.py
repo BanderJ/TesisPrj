@@ -21,6 +21,8 @@ async def obtener_mi_cooperativa(usuario_actual: dict = Depends(obtener_usuario_
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuario no tiene cooperativa asociada"
         )
+    # Agregar tipo_personal_id del usuario autenticado
+    cooperativa["tipo_personal_id"] = usuario_actual.get("tipo_personal_id")
     return cooperativa
 
 
