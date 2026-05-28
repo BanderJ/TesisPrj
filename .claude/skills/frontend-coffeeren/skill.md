@@ -247,6 +247,57 @@ function mostrarEstado(state) {
 
 ---
 
+# INTEGRACIÓN MÓDULO ML (YOLO + CLASIFICACIÓN SCA)
+
+## Streaming MJPEG en tiempo real
+
+Página: `/monitoreo/{evaluacion_id}` integra:
+- **`GET /video/stream`** → MJPEG (defectos en **ROJO 🔴**, 1280×720 @ 60fps)
+- **`POST /video/iniciar`** → Inicia captura YOLO + ByteTrack
+- **`POST /video/detener`** → Detiene procesamiento
+- **`GET /lote/conteo`** → Conteo actual `{clase: cantidad, ...}`
+- **`POST /lote/generar-reporte`** → Reporte final {grado, defectos, apto_specialty}
+- **`POST /lote/resetear`** → Prepara nuevo lote
+
+### Patrón de integración en templates
+
+```javascript
+// 1. Iniciar captura
+fetch('/video/iniciar', {method: 'POST'})
+  .then(r => r.json())
+  .then(data => console.log('✅ Captura iniciada'))
+
+// 2. Stream (automático en <img src="/video/stream">)
+<img src="/video/stream" alt="YOLO Live" />
+
+// 3. Obtener conteo en tiempo real (cada 1.5s)
+const res = await fetch('/lote/conteo');
+const {conteo, total_granos} = await res.json();
+// conteo = {negro: 5, partido_maquina: 3, ...}
+
+// 4. Generar reporte final
+const res = await fetch('/lote/generar-reporte', {method: 'POST'});
+const {grado, total_defectos, apto_specialty} = await res.json();
+// grado = "Grado 1 (Specialty)" | "Grado 2" | "Grado 3"
+```
+
+### Colores de defectos en el stream
+
+- **🔴 ROJO (0, 0, 255 BGR)** → Todos los defectos detectados por YOLO
+- **🟡 AMARILLO (0, 255, 255 BGR)** → Estadísticas (contador, FPS)
+
+### Tabla de grados SCA (3 solamente)
+
+| Grado | Defectos Máx | Specialty |
+|-------|:------------:|:---------:|
+| **1** | 0–15 | ✅ Apto |
+| **2** | 16–23 | ❌ No apto |
+| **3** | 24–30 | ❌ No apto |
+
+Documentación completa: [`docs/API_VIDEO_STREAMING.md`](../../docs/API_VIDEO_STREAMING.md)
+
+---
+
 # INTEGRACIÓN ARDUINO / SERIAL
 
 El Arduino (`arduino/coffe_ren/logica_hardware.ino`) comunica por serial a 9600 baud.
@@ -329,6 +380,119 @@ if (line.includes('"tipo":"peso_final"')) {
 
 ---
 
+---
+
+# PATRONES DE NAVEGACIÓN CON FEEDBACK
+
+## Cambios que requieren reinicio de sesión
+
+Cuando un cambio se guarda exitosamente pero requiere que el usuario reinicie sesión para verlo reflejado (ej: cambio de datos personales, cambio de contraseña):
+
+**❌ MAL:**
+```javascript
+// NO hacer redirect silencioso sin feedback
+CoffeeModal.success('Datos actualizados.');
+setTimeout(() => window.location.href = '/auth/logout', 2000);
+```
+
+**✅ BIEN:**
+```javascript
+// 1. Mostrar modal informativo
+CoffeeModal.success('Datos actualizados correctamente.', 'Cambios guardados');
+
+// 2. Luego de la lectura del usuario, hacer logout
+setTimeout(() => {
+    CoffeeModal.info(
+        'Los cambios se reflejarán al reiniciar sesión. Se cerrará la sesión ahora.',
+        'Por favor reinicie sesión'
+    );
+    
+    // 3. Después del segundo modal, hacer logout
+    setTimeout(() => {
+        window.location.href = '/auth/logout';
+    }, 2500);
+}, 1500);
+```
+
+**Por qué:** El usuario necesita entender QUÉ pasó, POR QUÉ se está cerrando sesión, y QUÉ DEBE HACER DESPUÉS. No dejar cambios "invisibles" sin explicación.
+
+---
+
+# NAVEGACIÓN POR SECCIONES CON SIDEBAR
+
+Patrón para páginas con navegación interna (ej. perfil, configuración):
+
+```html
+<!-- Sidebar con links -->
+<aside class="perfil-sidebar">
+  <nav class="perfil-nav">
+    <a href="#account-control" class="perfil-nav-link active" data-section="account-control">
+      <svg>...</svg>
+      Control de cuenta
+    </a>
+    <a href="#personal-info" class="perfil-nav-link" data-section="personal-info">
+      <!-- ... -->
+    </a>
+  </nav>
+</aside>
+
+<!-- Secciones con ids que coincidan con data-section -->
+<main class="perfil-content">
+  <section id="account-control" class="perfil-section">...</section>
+  <section id="personal-info" class="perfil-section">...</section>
+</main>
+```
+
+```javascript
+// JavaScript para mostrar/ocultar secciones
+document.querySelectorAll('.perfil-nav-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const section = link.getAttribute('data-section');
+
+        // Remover active de todos
+        document.querySelectorAll('.perfil-nav-link').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+
+        // Ocultar todas las secciones
+        document.querySelectorAll('.perfil-section').forEach(s => {
+            s.style.display = 'none';
+        });
+
+        // Mostrar solo la seleccionada
+        const selectedSection = document.getElementById(section);
+        if (selectedSection) {
+            selectedSection.style.display = 'flex';
+        }
+    });
+});
+
+// Inicializar mostrando solo la primera sección
+document.querySelectorAll('.perfil-section').forEach((s, index) => {
+    s.style.display = index === 0 ? 'flex' : 'none';
+});
+```
+
+**CSS importante:**
+```css
+.perfil-section {
+    display: none;  /* Ocultas por defecto */
+    flex-direction: column;
+}
+
+.perfil-section:first-child {
+    display: flex;  /* Primera visible al cargar */
+}
+```
+
+**Ventajas:**
+- Una única sección visible a la vez
+- Transiciones limpias sin scroll excesivo
+- Menos distracciones visuales
+- UX profesional y moderna
+
+---
+
 # ANTIPATRONES A EVITAR
 
 | ❌ Mal | ✅ Bien |
@@ -343,3 +507,7 @@ if (line.includes('"tipo":"peso_final"')) {
 | `font-size: 10px` | mínimo `12px` |
 | `/static/icons/` | `/static/icon/` (sin s) |
 | Lógica de negocio en el template | solo presentación y fetch |
+| Redirect sin feedback | Modal informativo → acción |
+| Mostrar todas las secciones | Ocultar, mostrar solo seleccionada |
+| Sidebars con gap grande | gap: 4px entre items |
+| Validar contraseña en frontend solo | Usar `password_validate()` en backend |

@@ -44,37 +44,66 @@ class CamaraService:
         with self._cap_lock:
             if self._running:
                 return True
+
+            # Intentar con índices 0 y 1
             for idx in (indice, indice + 1):
-                cap = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
-                if not cap.isOpened():
-                    cap.release()
+                try:
+                    # Intentar abrir con CAP_ANY primero (más flexible)
+                    cap = cv2.VideoCapture(idx)
+
+                    if not cap.isOpened():
+                        cap.release()
+                        continue
+
+                    # NO forzar resolución específica - usar lo que la cámara soporta
+                    # Setear buffer mínimo para bajo latency
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
+                    # Intentar MJPEG si la cámara lo soporta
+                    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+
+                    # Obtener resolución y FPS reales
+                    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    fps = cap.get(cv2.CAP_PROP_FPS)
+
+                    # Leer frame de prueba para verificar que funciona
+                    ret, test = cap.read()
+                    if not ret or test is None:
+                        print(f"⚠️  Cámara índice {idx} no devuelve frames")
+                        cap.release()
+                        continue
+
+                    # Detectar si passthrough MJPEG funciona
+                    cap.set(cv2.CAP_PROP_CONVERT_RGB, 0)
+                    ret, test2 = cap.read()
+                    if ret and test2 is not None and test2.ndim == 1 and test2.nbytes > 1000:
+                        self._passthrough = True
+                    else:
+                        cap.set(cv2.CAP_PROP_CONVERT_RGB, 1)
+                        self._passthrough = False
+
+                    # Iniciar captura
+                    self._cap = cap
+                    self._running = True
+                    self._thread = threading.Thread(
+                        target=self._capture_loop, daemon=True, name="camara-capture"
+                    )
+                    self._thread.start()
+
+                    print(f"✅ Cámara iniciada (índice {idx}, {w}x{h} @ {fps}fps, passthrough={self._passthrough})")
+                    return True
+
+                except Exception as e:
+                    print(f"❌ Error inicializando cámara índice {idx}: {e}")
                     continue
-                cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
-                cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-                cap.set(cv2.CAP_PROP_FPS, 60)
-                # Buffer mínimo: el hilo drena el sensor antes de que acumule
-                cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                # Passthrough MJPEG: bytes nativos del sensor sin decodificar ni re-encodear
-                cap.set(cv2.CAP_PROP_CONVERT_RGB, 0)
-                ret, test = cap.read()
-                if ret and test is not None and test.ndim == 1 and test.nbytes > 1000:
-                    self._passthrough = True
-                else:
-                    cap.set(cv2.CAP_PROP_CONVERT_RGB, 1)
-                    self._passthrough = False
-                self._cap = cap
-                self._running = True
-                self._thread = threading.Thread(
-                    target=self._capture_loop, daemon=True, name="camara-capture"
-                )
-                self._thread.start()
-                return True
+
+            print("❌ No se encontró cámara disponible en índices 0-1")
             return False
 
     def cerrar(self) -> None:
         self._running = False
-        self._new_frame.set()  # desbloquea cualquier hilo esperando
+        self._new_frame.set()
         with self._cap_lock:
             if self._cap:
                 self._cap.release()

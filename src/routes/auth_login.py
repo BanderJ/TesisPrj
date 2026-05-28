@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from src.schemas.auth import LoginRequest, LoginResponse
 from src.services.auth_service import AuthService
 import os
@@ -73,7 +73,7 @@ async def login_api(credentials: LoginRequest):
     """
     POST /auth/api/login
     Endpoint para probar con Postman/Bruno
-    
+
     Body (JSON):
     {
         "usuario": "admin",
@@ -85,5 +85,8 @@ async def login_api(credentials: LoginRequest):
     if not login_response:
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
-    return login_response
+    # Return JSON response with httponly cookie
+    response = JSONResponse(content=login_response.dict())
+    response.set_cookie(key="access_token", value=f"Bearer {login_response.token}", httponly=True)
+    return response
 

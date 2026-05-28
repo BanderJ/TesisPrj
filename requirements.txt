@@ -1,9 +1,59 @@
-fastapi          # Framework web para crear APIs y rutas HTTP
-jinja2           # Motor de plantillas HTML para renderizado del frontend
-aiofiles         # Lectura y escritura asincrona de archivos
-uvicorn          # Servidor ASGI para ejecutar la app FastAPI
-psycopg2         # Driver de PostgreSQL para Python
-argon2-cffi      # Hash seguro de contrasenas con algoritmo Argon2
-PyJWT            # Generacion y validacion de tokens JWT
-python-multipart # Soporte para formularios y subida de archivos multipart/form-data
-opencv-python-headless # Captura de video USB (sin GUI), streaming MJPEG para cámara ELP AR0234
+# ============================================================
+# COFFEEREN - DEPENDENCIAS DEL PROYECTO
+# Backend: FastAPI + PostgreSQL + ML (YOLO + ByteTrack + Arduino)
+# ============================================================
+
+# ============================================================
+# FRAMEWORK WEB
+# ============================================================
+fastapi>=0.104.0          # Framework web asincrónico
+uvicorn>=0.24.0           # Servidor ASGI para FastAPI
+python-multipart>=0.0.6   # Soporte para multipart/form-data en formularios
+aiofiles>=23.2.1          # I/O asincrónico para archivos
+pydantic>=2.0.0           # Validación de datos (incluido en FastAPI)
+
+# ============================================================
+# FRONTEND (Jinja2 + plantillas)
+# ============================================================
+jinja2>=3.1.2             # Motor de plantillas HTML para renderizado del servidor
+
+# ============================================================
+# BASE DE DATOS
+# ============================================================
+psycopg2>=2.9.9           # Driver PostgreSQL para Python (con psycopg2-binary como alternativa)
+
+# ============================================================
+# AUTENTICACIÓN & SEGURIDAD
+# ============================================================
+PyJWT>=2.8.0              # Generación y validación de tokens JWT para httponly cookies
+argon2-cffi>=23.1.0       # Hashing seguro de contraseñas con Argon2
+
+# ============================================================
+# VISIÓN ARTIFICIAL & ML
+# ============================================================
+# YOLO (YOLOv8n, YOLO11n, YOLO26n) - Detección de defectos de café
+ultralytics>=8.0.0        # YOLO v8+ framework (incluye torch)
+torch>=2.0.0              # PyTorch para inferencia de modelos YOLO
+torchvision>=0.15.0       # Utilidades de visión para torch
+
+# Tracking & ByteTrack (ID único de granos entre frames)
+# ByteTrack viene incluido en ultralytics, pero si se necesita explícito:
+# bytetrack>=1.0.0
+
+# Procesamiento de video & frames
+opencv-python-headless>=4.8.0  # Captura USB (ELP AR0234), MJPEG streaming (sin GUI)
+numpy>=1.24.0             # Arrays numéricos para frames YOLO
+pillow>=10.0.0            # Procesamiento de imágenes
+
+# ============================================================
+# UTILIDADES
+# ============================================================
+python-dotenv>=1.0.0      # Cargar variables de entorno desde .env
+requests>=2.31.0          # HTTP client para APIs externas
+
+# ============================================================
+# DESARROLLO & DEBUGGING (opcional, descomentar si es necesario)
+# ============================================================
+# pytest>=7.4.0            # Testing framework
+# black>=23.7.0            # Code formatter
+# pylint>=2.17.0           # Code linting

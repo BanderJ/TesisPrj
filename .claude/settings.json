@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m playwright install chromium -q)",
+      "Bash(python -m playwright install chromium)",
+      "Bash(mkdir -p d:\\\\tmp)",
+      "Bash(python test_validaciones.py)",
+      "Bash(curl -s http://localhost:8000/registro -L)",
+      "PowerShell(python -m py_compile \"d:\\\\TesisPrj\\\\src\\\\ml\\\\tracker.py\" \"d:\\\\TesisPrj\\\\src\\\\ml\\\\classifier.py\" \"d:\\\\TesisPrj\\\\src\\\\ml\\\\inference.py\" \"d:\\\\TesisPrj\\\\src\\\\services\\\\tracker_service.py\")",
+      "PowerShell(Copy-Item -Path \"d:\\\\TesisPrj\\\\src\\\\ml\\\\models\\\\yolov26n\\\\constants.py\" -Destination \"d:\\\\TesisPrj\\\\src\\\\ml\\\\models\\\\yolov26n_2cls\\\\constants.py\" -Force)",
+      "PowerShell(python -m py_compile \"d:\\\\TesisPrj\\\\src\\\\services\\\\tracker_service.py\")",
+      "PowerShell(python -m py_compile \"d:\\\\TesisPrj\\\\src\\\\ml\\\\models\\\\yolov26n_2cls\\\\constants.py\")",
+      "Bash(.\\\\tailwindcss-windows-x64.exe -i src/static/css/input.css -o src/static/css/tailwind.css)",
+      "PowerShell(.\\\\tailwindcss-windows-x64.exe -i src/static/css/input.css -o src/static/css/tailwind.css)",
+      "Bash(curl -s http://127.0.0.1:8000/inicio)"
+    ]
+  }
+}

@@ -1,0 +1,732 @@
+{% extends "main.html" %}
+
+{% block style %}
+    <link rel="stylesheet" href="/static/css/perfil.css?v=10">
+    <link rel="stylesheet" href="/static/css/configuracion_cooperativa.css?v=6">
+{% endblock %}
+
+{% block content %}
+<div class="perfil-container">
+    <!-- Header -->
+    <header class="page-hero">
+        <h1 class="hero-title">Configuración de cooperativa</h1>
+        <p class="hero-description">Gestiona los datos de tu cooperativa, tipos de grano y usuarios</p>
+    </header>
+
+    <!-- Main Layout: Sidebar + Content -->
+    <div class="perfil-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="perfil-sidebar">
+            <nav class="perfil-nav">
+                <a href="#basicos" class="perfil-nav-link active" data-section="basicos">
+                    <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    Información básica
+                </a>
+                <a href="#tipos-grano" class="perfil-nav-link" data-section="tipos-grano" id="navTiposGrano" hidden>
+                    <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                    </svg>
+                    Tipos de grano
+                </a>
+                <a href="#usuarios" class="perfil-nav-link" data-section="usuarios" id="navUsuarios" hidden>
+                    <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 12H9m6 0a4 4 0 110 5.292m0 0l-3.464 3.464a4 4 0 11-5.656-5.656l3.464-3.464m0 0l5.657-5.657a4 4 0 015.656 5.656"/>
+                    </svg>
+                    Gestionar usuarios
+                </a>
+                <a href="#crear-usuario" class="perfil-nav-link" data-section="crear-usuario" id="navCrearUsuario" hidden>
+                    <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m0 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                    </svg>
+                    Crear usuario
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="perfil-content">
+            <!-- Loading state -->
+            <div id="loadingState" style="display: flex; align-items: center; justify-content: center; gap: 1rem; min-height: 400px; color: var(--muted-foreground);" class="loading-state">
+                <p>Cargando información...</p>
+            </div>
+
+            <!-- SECCIÓN 1: Información básica -->
+            <section id="basicos" class="perfil-section">
+                <h2 class="perfil-section-title">Información básica</h2>
+
+                <form id="formBasicos" class="perfil-form">
+                    <div class="perfil-form-row single">
+                        <div class="field-group">
+                            <label for="nombre">Nombre de la cooperativa</label>
+                            <input id="nombre" type="text" maxlength="100" required placeholder="Ej: Cooperativa Line Coffee">
+                        </div>
+                    </div>
+
+                    <div class="perfil-form-row">
+                        <div class="field-group">
+                            <label for="codigo">Código</label>
+                            <input id="codigo" type="text" maxlength="20" placeholder="Ej: COOPE001">
+                        </div>
+                        <div class="field-group">
+                            <label for="direccion">Dirección</label>
+                            <input id="direccion" type="text" maxlength="100" placeholder="Ej: Av. Principal 123">
+                        </div>
+                    </div>
+
+                    <div class="perfil-form-row">
+                        <div class="field-group">
+                            <label for="telefono">Teléfono</label>
+                            <input id="telefono" type="tel" maxlength="9" placeholder="Ej: 987654321">
+                        </div>
+                        <div class="field-group">
+                            <label for="correo">Correo</label>
+                            <input id="correo" type="email" maxlength="100" placeholder="Ej: info@cooperativa.com">
+                        </div>
+                    </div>
+
+                    <div class="perfil-form-row single">
+                        <div class="field-group">
+                            <label for="descripcion">Descripción de la cooperativa</label>
+                            <textarea id="descripcion" maxlength="1000" placeholder="Información sobre tu cooperativa..."></textarea>
+                            <p class="perfil-hint">Máximo 1000 caracteres</p>
+                        </div>
+                    </div>
+
+                    <div class="perfil-form-row single">
+                        <div class="field-group">
+                            <label for="imagen_file">Imagen/Banner</label>
+                            <input id="imagen_file" type="file" accept="image/*">
+                            <p class="perfil-hint">Formatos: JPG, PNG. Tamaño recomendado: 1200×400px</p>
+                        </div>
+                    </div>
+
+                    <div id="previewContainer" style="margin-top: 12px; padding: 12px; background: color-mix(in oklab, var(--background) 90%, transparent 10%); border: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%); border-radius: 10px; overflow: hidden;" hidden>
+                        <p class="perfil-hint">Vista previa:</p>
+                        <img id="imagenPreview" src="" alt="Vista previa de imagen" style="width: 100%; height: 320px; object-fit: cover; border-radius: 8px;">
+                    </div>
+
+                    <input type="hidden" id="imagen_url">
+
+                    <div class="perfil-form-actions">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Guardar cambios</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- SECCIÓN 2: Tipos de grano -->
+            <section id="tipos-grano" class="perfil-section" hidden>
+                <h2 class="perfil-section-title">Gestión de tipos de grano</h2>
+
+                <form class="perfil-form" style="display: grid; gap: 1rem; padding: 1.5rem; background: color-mix(in oklab, var(--card) 97%, transparent 3%); border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%); border-radius: 14px;">
+                    <div class="perfil-form-row">
+                        <div class="field-group">
+                            <label for="nuevoTipoNombre">Nombre del tipo</label>
+                            <input id="nuevoTipoNombre" type="text" maxlength="20" placeholder="Ej: Pilado">
+                        </div>
+                        <div class="field-group">
+                            <label for="nuevoTipoPeso">Peso por quintal (kg)</label>
+                            <input id="nuevoTipoPeso" type="number" step="0.01" min="0.01" placeholder="Ej: 46.50">
+                        </div>
+                    </div>
+                    <button type="button" id="btnAgregarTipo" class="btn btn-primary" style="width: fit-content;">Agregar tipo de grano</button>
+                </form>
+
+                <!-- Tabla de tipos de grano -->
+                <div class="tabla-usuarios-wrapper" style="margin-top: 2rem;">
+                    <table class="tabla-usuarios" id="tiposGranoTable">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Peso/Quintal (kg)</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tiposGranoBody">
+                            <tr>
+                                <td colspan="3" style="text-align: center; padding: 2rem; color: #666;">
+                                    Cargando tipos de grano...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: Gestionar Usuarios -->
+            <section id="usuarios" class="perfil-section" hidden>
+                <h2 class="perfil-section-title">Gestionar usuarios</h2>
+
+                <div class="usuarios-buscador">
+                    <input
+                        type="text"
+                        id="buscadorUsuarios"
+                        placeholder="Buscar por nombre, usuario o documento..."
+                        class="buscador-input"
+                    >
+                </div>
+
+                <div class="tabla-usuarios-wrapper">
+                    <table class="tabla-usuarios" id="usuariosTable">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Usuario</th>
+                                <th>Documento</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usuariosTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
+                                    Cargando usuarios...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 4: Crear Usuario -->
+            <section id="crear-usuario" class="perfil-section" hidden>
+                <h2 class="perfil-section-title">Crear nuevo usuario</h2>
+
+                <p class="perfil-section-description">
+                    El nombre de usuario se genera automáticamente: <strong>primera letra del nombre + apellido paterno completo + primera letra del apellido materno</strong>
+                </p>
+                <p class="perfil-section-description" style="font-size: 12px; color: var(--muted-foreground); margin-top: -16px;">
+                    Ejemplo: Juan Cueva Perez → jcuevap
+                </p>
+
+                <form id="formCrearUsuario" class="perfil-form">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-top: 24px; color: var(--foreground, #1a1a1a);">Datos de la Persona</h3>
+
+                    <div class="perfil-form-row">
+                        <div class="field-group">
+                            <label for="crearTipoDocumento">Tipo de Documento *</label>
+                            <select id="crearTipoDocumento" required>
+                                <option value="">Selecciona...</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="crearNumDocumento">Número de Documento *</label>
+                            <input id="crearNumDocumento" type="text" maxlength="12" required placeholder="12345678">
+                            <p class="perfil-hint">8-12 caracteres</p>
+                        </div>
+                    </div>
+                    
+                    <div class="perfil-form-row">
+                        <div class="field-group">
+                            <label for="crearNombre">Nombre *</label>
+                            <input id="crearNombre" type="text" maxlength="50" required placeholder="Juan">
+                        </div>
+                        <div class="field-group">
+                            <label for="crearApePaterno">Apellido Paterno *</label>
+                            <input id="crearApePaterno" type="text" maxlength="30" required placeholder="Cueva">
+                        </div>
+                    </div>
+
+                    <div class="perfil-form-row">
+                        <div class="field-group">
+                            <label for="crearApeMaterno">Apellido Materno *</label>
+                            <input id="crearApeMaterno" type="text" maxlength="30" required placeholder="Perez">
+                        </div>
+                        <div class="field-group">
+                            <label for="crearSexo">Género *</label>
+                            <select id="crearSexo" required>
+                                <option value="">Selecciona...</option>
+                                <option value="M">Masculino</option>
+                                <option value="F">Femenino</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="perfil-form-row">
+                        <div class="field-group">
+                            <label for="crearFechaNacimiento">Fecha de Nacimiento *</label>
+                            <input id="crearFechaNacimiento" type="date" required>
+                        </div>
+                        <div class="field-group">
+                            <label for="crearTelefono">Teléfono</label>
+                            <input id="crearTelefono" type="tel" maxlength="9" placeholder="987654321" inputmode="numeric">
+                            <p class="perfil-hint">9 dígitos (opcional)</p>
+                        </div>
+                    </div>
+
+                    <div class="perfil-form-row single">
+                        <div class="field-group">
+                            <label for="crearCorreo">Correo Electrónico</label>
+                            <input id="crearCorreo" type="email" maxlength="100" placeholder="usuario@example.com">
+                        </div>
+                    </div>
+
+                    <h3 style="font-size: 16px; font-weight: 600; margin-top: 24px; color: var(--foreground, #1a1a1a);">Datos de Acceso</h3>
+
+                    <div class="perfil-form-row">
+                        <div class="field-group">
+                            <label for="crearTipoPersonal">Tipo de Usuario *</label>
+                            <select id="crearTipoPersonal" required>
+                                <option value="">Selecciona...</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="crearUsuarioPreview">Nombre de usuario (generado)</label>
+                            <input id="crearUsuarioPreview" type="text" readonly placeholder="Se genera automáticamente">
+                            <p class="perfil-hint">No editable</p>
+                        </div>
+                    </div>
+
+                    <div class="perfil-form-row single">
+                        <div class="field-group">
+                            <label for="crearContrasena">Contraseña *</label>
+                            <input id="crearContrasena" type="password" required placeholder="Mínimo 8 caracteres">
+                            <p class="perfil-hint">Debe incluir: mayúscula, número y carácter especial (!@#$%^&*)</p>
+                        </div>
+                    </div>
+
+                    <div class="perfil-form-row single">
+                        <div class="field-group">
+                            <label for="crearConfirmarContrasena">Confirmar Contraseña *</label>
+                            <input id="crearConfirmarContrasena" type="password" required placeholder="Repite la contraseña">
+                        </div>
+                    </div>
+
+                    <div class="perfil-form-actions">
+                        <button type="button" id="btnGuardarUsuario" class="btn btn-primary">Crear usuario</button>
+                    </div>
+                </form>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    let cooperativaId = null;
+    let tipoPersonalId = null;
+    let tiposPersonal = [];
+    let tiposDocumento = [];
+
+    // === Navegación entre secciones ===
+    document.querySelectorAll('.perfil-nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const section = link.getAttribute('data-section');
+
+            // Remover active de todos los links
+            document.querySelectorAll('.perfil-nav-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+
+            // Ocultar todas las secciones
+            document.querySelectorAll('.perfil-section').forEach(s => {
+                s.hidden = true;
+            });
+
+            // Mostrar solo la sección seleccionada
+            const selectedSection = document.getElementById(section);
+            if (selectedSection) {
+                selectedSection.hidden = false;
+                if (section === 'tipos-grano') {
+                    cargarTiposGrano();
+                } else if (section === 'usuarios') {
+                    cargarUsuarios();
+                }
+            }
+        });
+    });
+
+    // === Cargar información inicial ===
+    async function cargarCooperativa() {
+        const loadingState = document.getElementById('loadingState');
+
+        try {
+            const res = await fetch('/cooperativas/mi-cooperativa');
+            if (!res.ok) throw new Error('No se pudo cargar la cooperativa');
+
+            const data = await res.json();
+            cooperativaId = data.cooperativa_id;
+            tipoPersonalId = data.tipo_personal_id;
+
+            // Llenar formulario básico
+            document.getElementById('nombre').value = data.nombre || '';
+            document.getElementById('codigo').value = data.codigo || '';
+            document.getElementById('direccion').value = data.direccion || '';
+            document.getElementById('telefono').value = data.telefono || '';
+            document.getElementById('correo').value = data.correo || '';
+            document.getElementById('descripcion').value = data.descripcion || '';
+            document.getElementById('imagen_url').value = data.imagen_url || '';
+
+            if (data.imagen_url) {
+                document.getElementById('imagenPreview').src = data.imagen_url;
+                document.getElementById('previewContainer').hidden = false;
+            }
+
+            // Mostrar secciones de admin
+            if (tipoPersonalId === 2 || tipoPersonalId === 3) {
+                document.getElementById('navTiposGrano').hidden = false;
+                document.getElementById('navUsuarios').hidden = false;
+                document.getElementById('navCrearUsuario').hidden = false;
+                await cargarCatalogos();
+            }
+
+            loadingState.hidden = true;
+            document.querySelector('.perfil-section').hidden = false;
+
+        } catch (error) {
+            console.error('Error:', error);
+            loadingState.innerHTML = `<p style="color: var(--destructive);">${error.message}</p>`;
+        }
+    }
+
+    // === Cargar catálogos ===
+    async function cargarCatalogos() {
+        try {
+            const resTipos = await fetch('/tipo-personal/listar');
+            const resDocumentos = await fetch('/tipo-documento/listar');
+
+            if (resTipos.ok) {
+                tiposPersonal = await resTipos.json();
+                const select = document.getElementById('crearTipoPersonal');
+                tiposPersonal.forEach(tipo => {
+                    const option = document.createElement('option');
+                    option.value = tipo.id;
+                    option.textContent = tipo.nombre;
+                    select.appendChild(option);
+                });
+            }
+
+            if (resDocumentos.ok) {
+                tiposDocumento = await resDocumentos.json();
+                const select = document.getElementById('crearTipoDocumento');
+                tiposDocumento.forEach(doc => {
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = doc.nombre;
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error cargando catálogos:', error);
+        }
+    }
+
+    // === Tipos de grano ===
+    async function cargarTiposGrano() {
+        const tbody = document.getElementById('tiposGranoBody');
+        try {
+            const res = await fetch('/tipo-grano/listar');
+            if (!res.ok) throw new Error('No se pudo cargar tipos de grano');
+
+            const tipos = await res.json();
+            if (tipos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem; color: #666;">No hay tipos de grano registrados</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = tipos.map(tipo => `
+                <tr>
+                    <td><strong>${tipo.nombre}</strong></td>
+                    <td>${tipo.peso_qq}</td>
+                    <td class="acciones-celda">
+                        <button type="button" class="btn-tabla" onclick="editarTipo(${tipo.id})">Editar</button>
+                        <button type="button" class="btn-tabla btn-inactivar" onclick="eliminarTipo(${tipo.id})">Eliminar</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (error) {
+            console.error('Error:', error);
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 2rem; color: #d32f2f;">Error: ${error.message}</td></tr>`;
+        }
+    }
+
+    document.getElementById('btnAgregarTipo').addEventListener('click', async () => {
+        const nombre = document.getElementById('nuevoTipoNombre').value.trim();
+        const peso = parseFloat(document.getElementById('nuevoTipoPeso').value);
+
+        if (!nombre || isNaN(peso) || peso <= 0) {
+            CoffeeModal.warning('Completa nombre y peso válido');
+            return;
+        }
+
+        try {
+            const res = await fetch('/tipo-grano/crear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, peso_qq: peso }),
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Error al crear');
+            }
+
+            document.getElementById('nuevoTipoNombre').value = '';
+            document.getElementById('nuevoTipoPeso').value = '';
+            CoffeeModal.success('Tipo de grano creado');
+            await cargarTiposGrano();
+        } catch (error) {
+            CoffeeModal.error(error.message);
+        }
+    });
+
+    function editarTipo(tipoId) {
+        CoffeeModal.info('Funcionalidad en desarrollo', 'Próximamente');
+    }
+
+    async function eliminarTipo(tipoId) {
+        const ok = await CoffeeModal.confirm({
+            message: '¿Eliminar este tipo de grano?',
+            okText: 'Sí, eliminar',
+            cancelText: 'Cancelar',
+        });
+        if (!ok) return;
+
+        try {
+            const res = await fetch(`/tipo-grano/${tipoId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Error al eliminar');
+            CoffeeModal.success('Tipo eliminado');
+            await cargarTiposGrano();
+        } catch (error) {
+            CoffeeModal.error(error.message);
+        }
+    }
+
+// Guardar cambios básicos
+    document.getElementById('formBasicos').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const btnOriginal = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span style="opacity:0.7">Guardando...</span>';
+
+        try {
+            const res = await fetch(`/cooperativas/${cooperativaId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: document.getElementById('nombre').value,
+                    codigo: document.getElementById('codigo').value || null,
+                    direccion: document.getElementById('direccion').value || null,
+                    telefono: document.getElementById('telefono').value || null,
+                    correo: document.getElementById('correo').value || null,
+                    descripcion: document.getElementById('descripcion').value || null,
+                    imagen_url: document.getElementById('imagen_url').value || null,
+                }),
+            });
+
+            if (!res.ok) throw new Error('Error al guardar');
+            CoffeeModal.success('Cooperativa actualizada');
+        } catch (error) {
+            CoffeeModal.error(error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = btnOriginal;
+        }
+    });
+
+    document.getElementById('imagen_file').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/cooperativas/upload-imagen', {
+                method: 'POST',
+                body: formData
+            });
+            if (!res.ok) throw new Error('Error al subir');
+            const data = await res.json();
+            document.getElementById('imagenPreview').src = data.imagen_url;
+            document.getElementById('imagen_url').value = data.imagen_url;
+            document.getElementById('previewContainer').hidden = false;
+        } catch (error) {
+            CoffeeModal.error(error.message);
+        }
+    });
+
+    // === Usuarios ===
+    const crearNombre = document.getElementById('crearNombre');
+    const crearApePaterno = document.getElementById('crearApePaterno');
+    const crearApeMaterno = document.getElementById('crearApeMaterno');
+    const crearUsuarioPreview = document.getElementById('crearUsuarioPreview');
+    const crearTelefono = document.getElementById('crearTelefono');
+    const formCrearUsuario = document.getElementById('formCrearUsuario');
+    const btnGuardarUsuario = document.getElementById('btnGuardarUsuario');
+    const buscadorUsuarios = document.getElementById('buscadorUsuarios');
+    const usuariosTableBody = document.getElementById('usuariosTableBody');
+
+    let usuariosActuales = [];
+
+    // Generar preview de usuario: primera letra nombre + apellido paterno + primera letra apellido materno
+    function generarUsuarioPreview() {
+        const nombre = crearNombre.value.trim();
+        const apePaterno = crearApePaterno.value.trim();
+        const apeMaterno = crearApeMaterno.value.trim();
+
+        if (nombre && apePaterno && apeMaterno) {
+            const usuarioGenerado = (nombre[0] + apePaterno + apeMaterno[0]).toLowerCase();
+            crearUsuarioPreview.value = usuarioGenerado;
+        } else {
+            crearUsuarioPreview.value = '';
+        }
+    }
+
+    crearNombre.addEventListener('input', generarUsuarioPreview);
+    crearApePaterno.addEventListener('input', generarUsuarioPreview);
+    crearApeMaterno.addEventListener('input', generarUsuarioPreview);
+
+    // Validar teléfono (solo números)
+    crearTelefono.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+    });
+
+    // Cargar lista de usuarios
+    async function cargarUsuarios() {
+        try {
+            const res = await fetch('/perfil/usuarios');
+            if (!res.ok) throw new Error('Error al cargar usuarios');
+
+            const data = await res.json();
+            usuariosActuales = data.usuarios || [];
+            aplicarFiltros();
+        } catch (error) {
+            usuariosTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #d32f2f;">Error: ${error.message}</td></tr>`;
+        }
+    }
+
+    // Aplicar filtros de búsqueda
+    function aplicarFiltros() {
+        const textoBusqueda = buscadorUsuarios.value.toLowerCase();
+
+        const usuariosFiltrados = usuariosActuales.filter(u => {
+            const coincideTexto = !textoBusqueda ||
+                u.nombre.toLowerCase().includes(textoBusqueda) ||
+                u.usuario.toLowerCase().includes(textoBusqueda) ||
+                u.num_documento.toLowerCase().includes(textoBusqueda);
+
+            return coincideTexto;
+        });
+
+        mostrarUsuarios(usuariosFiltrados);
+    }
+
+    if (buscadorUsuarios) {
+        buscadorUsuarios.addEventListener('input', aplicarFiltros);
+    }
+
+    function mostrarUsuarios(usuarios) {
+        if (!usuarios || usuarios.length === 0) {
+            usuariosTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #666;">No hay usuarios registrados</td></tr>';
+            return;
+        }
+
+        usuariosTableBody.innerHTML = usuarios.map(u => `
+            <tr>
+                <td><strong>${u.nombre} ${u.ape_paterno} ${u.ape_materno}</strong></td>
+                <td>@${u.usuario}</td>
+                <td>${u.num_documento}</td>
+                <td>${u.tipo_personal}</td>
+                <td>
+                    <span class="estado-badge ${u.estado === 'A' ? 'activo' : 'inactivo'}">
+                        ${u.estado === 'A' ? 'Activo' : 'Inactivo'}
+                    </span>
+                </td>
+                <td class="acciones-celda">
+                    <button type="button" class="btn-tabla ${u.estado === 'A' ? 'btn-inactivar' : 'btn-activar'}"
+                            onclick="cambiarEstadoUsuario('${u.personal_id}', '${u.estado === 'A' ? 'I' : 'A'}')">
+                        ${u.estado === 'A' ? 'Desactivar' : 'Activar'}
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    window.cambiarEstadoUsuario = async function(personalId, nuevoEstado) {
+        const accion = nuevoEstado === 'I' ? 'desactivar' : 'activar';
+        const ok = await CoffeeModal.confirm({
+            message: `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} este usuario?`,
+            okText: 'Sí, confirmar',
+            cancelText: 'Cancelar',
+        });
+        if (!ok) return;
+
+        try {
+            const res = await fetch(`/perfil/usuarios/${personalId}/estado`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado }),
+            });
+
+            if (!res.ok) throw new Error('Error');
+            CoffeeModal.success(`Usuario ${accion}do correctamente`);
+            cargarUsuarios();
+        } catch (error) {
+            CoffeeModal.error(error.message);
+        }
+    };
+
+    // Crear usuario
+    btnGuardarUsuario.addEventListener('click', async () => {
+        const nombre = crearNombre.value.trim();
+        const apePaterno = crearApePaterno.value.trim();
+        const apeMaterno = crearApeMaterno.value.trim();
+        const sexo = document.getElementById('crearSexo').value;
+        const fechaNac = document.getElementById('crearFechaNacimiento').value;
+        const tipoDoc = parseInt(document.getElementById('crearTipoDocumento').value);
+        const numDoc = document.getElementById('crearNumDocumento').value.trim();
+        const telefono = document.getElementById('crearTelefono').value.trim();
+        const correo = document.getElementById('crearCorreo').value.trim();
+        const tipoPersonal = parseInt(document.getElementById('crearTipoPersonal').value);
+        const clave = document.getElementById('crearContrasena').value;
+        const confirmar = document.getElementById('crearConfirmarContrasena').value;
+
+        if (!nombre || !apePaterno || !apeMaterno || !sexo || !fechaNac || !tipoDoc || !numDoc || !tipoPersonal || !clave) {
+            CoffeeModal.warning('Completa todos los campos requeridos');
+            return;
+        }
+
+        if (clave !== confirmar) {
+            CoffeeModal.warning('Las contraseñas no coinciden');
+            return;
+        }
+
+        try {
+            btnGuardarUsuario.disabled = true;
+            btnGuardarUsuario.innerHTML = '<span style="opacity:0.7">Creando...</span>';
+
+            const res = await fetch('/perfil/usuarios/crear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre, ape_paterno: apePaterno, ape_materno: apeMaterno,
+                    sexo, fecha_nacimiento: fechaNac, tipo_documento_id: tipoDoc,
+                    num_documento: numDoc, telefono: telefono || null,
+                    correo: correo || null, tipo_personal_id: tipoPersonal, clave
+                }),
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Error');
+            }
+
+            formCrearUsuario.reset();
+            crearUsuarioPreview.value = '';
+            CoffeeModal.success('Usuario creado correctamente');
+            cargarUsuarios();
+        } catch (error) {
+            CoffeeModal.error(error.message);
+        } finally {
+            btnGuardarUsuario.disabled = false;
+            btnGuardarUsuario.innerHTML = 'Crear usuario';
+        }
+    });
+
+    // Inicializar
+    cargarCooperativa();
+</script>
+{% endblock %}

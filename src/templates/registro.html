@@ -364,13 +364,16 @@
 			const pt = parseFloat(pesoTrilladoInput.value);
 			const pm = parseFloat(pesoMuestraInput.value);
 			const pz = parseFloat(pesoTamizadoInput.value);
+			const pesoTotalGramos = parseFloat(pesoTotalInput.value) * 1000;
 
 			if (!esEnteroPositivo(numSacosInput.value))   return rechazar('El número de sacos debe ser un entero positivo (mínimo 1).', numSacosInput);
 			if (!esFloatPositivo(pesoTotalInput.value))   return rechazar('El peso total debe ser un número positivo (en kg).', pesoTotalInput);
 			if (!esFloatPositivo(humedadInput.value))     return rechazar('La humedad debe ser un número positivo.', humedadInput);
 			if (parseFloat(humedadInput.value) > 100)     return rechazar('La humedad no puede superar 100%.', humedadInput);
 			if (!esFloatPositivo(pm))                     return rechazar('El peso de muestra debe ser un número positivo (en gr.).', pesoMuestraInput);
+			if (pm > pesoTotalGramos)                     return rechazar(`El peso de muestra no puede superar el peso total (${redondear2(pesoTotalGramos).toFixed(2)} gr.).`, pesoMuestraInput);
 			if (!esFloatPositivo(pt))                     return rechazar('El peso trillado debe ser un número positivo (en gr.).', pesoTrilladoInput);
+			if (pt === pm)                                return rechazar('El peso trillado debe ser diferente al peso de muestra.', pesoTrilladoInput);
 			if (pt > pm)                                  return rechazar('El peso trillado no puede ser mayor al peso de muestra.', pesoTrilladoInput);
 			if (!esEnteroPositivo(numTamizInput.value))   return rechazar('El número de tamiz debe ser un entero positivo (mínimo 1).', numTamizInput);
 			if (!esFloatPositivo(pz))                     return rechazar('El peso tamizado debe ser un número positivo (en gr.).', pesoTamizadoInput);
@@ -460,8 +463,10 @@
 		numSacosInput.addEventListener('input', () =>
 			validarInline(numSacosInput, esEnteroPositivo, numSacosHint, 'Debe ser un entero positivo (mínimo 1).'));
 
-		pesoTotalInput.addEventListener('input', () =>
-			validarInline(pesoTotalInput, esFloatPositivo, pesoTotalHint, 'Debe ser un número positivo (kg).'));
+		pesoTotalInput.addEventListener('input', () => {
+			validarInline(pesoTotalInput, esFloatPositivo, pesoTotalHint, 'Debe ser un número positivo (kg).');
+			pesoMuestraInput.dispatchEvent(new Event('input'));
+		});
 
 		humedadInput.addEventListener('input', () => {
 			const h = parseFloat(humedadInput.value);
@@ -472,7 +477,20 @@
 		});
 
 		pesoMuestraInput.addEventListener('input', () => {
-			validarInline(pesoMuestraInput, esFloatPositivo, pesoMuestraHint, 'Debe ser un número positivo (gr.).');
+			if (!pesoMuestraInput.value) { setHint(pesoMuestraHint, ''); return; }
+			if (!esFloatPositivo(pesoMuestraInput.value)) {
+				setHint(pesoMuestraHint, 'Debe ser un número positivo (gr.).', true);
+				return;
+			}
+			const pm = parseFloat(pesoMuestraInput.value);
+			const pesoTotalGramos = parseFloat(pesoTotalInput.value) * 1000;
+			if (esFloatPositivo(pesoTotalInput.value) && pm > pesoTotalGramos) {
+				setHint(pesoMuestraHint, `No puede superar peso total (${redondear2(pesoTotalGramos).toFixed(2)} gr.)`, true);
+			} else if (esFloatPositivo(pesoTotalInput.value)) {
+				setHint(pesoMuestraHint, `Máximo: ${redondear2(pesoTotalGramos).toFixed(2)} gr.`);
+			} else {
+				setHint(pesoMuestraHint, '');
+			}
 			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput, pesoTrilladoHint, 'el peso de muestra');
 		});
 
@@ -480,7 +498,23 @@
 			validarInline(numTamizInput, esEnteroPositivo, numTamizHint, 'Debe ser un entero positivo (mínimo 1).'));
 
 		pesoTrilladoInput.addEventListener('input', () => {
-			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput,  pesoTrilladoHint,  'el peso de muestra');
+			if (!pesoTrilladoInput.value) {
+				setHint(pesoTrilladoHint, '');
+			} else if (!esFloatPositivo(pesoTrilladoInput.value)) {
+				setHint(pesoTrilladoHint, 'Debe ser un número positivo (gr.).', true);
+			} else {
+				const pt = parseFloat(pesoTrilladoInput.value);
+				const pm = parseFloat(pesoMuestraInput.value);
+				if (esFloatPositivo(pm)) {
+					if (pt === pm) {
+						setHint(pesoTrilladoHint, 'Debe ser diferente al peso de muestra.', true);
+					} else if (pt > pm) {
+						setHint(pesoTrilladoHint, 'No puede superar peso de muestra.', true);
+					} else {
+						setHint(pesoTrilladoHint, `Máximo: ${redondear2(pm).toFixed(2)} gr.`);
+					}
+				}
+			}
 			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint, 'el peso trillado');
 		});
 

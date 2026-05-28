@@ -51,6 +51,7 @@
 					En vivo
 				</div>
 				<div class="feed-timer"><span>Tiempo análisis:</span><span id="sessionTimer">00:00</span></div>
+				<button id="startBtn" type="button" class="btn btn-primary" style="margin-left: auto;">Iniciar Captura YOLO</button>
 			</div>
 
 			<div class="feed-frame" aria-label="Feed de clasificación de granos">
@@ -60,8 +61,8 @@
 					<p>Conectando cámara...</p>
 				</div>
 
-				<!-- Stream en vivo: se muestra al llegar el primer frame -->
-				<img id="cameraStream" class="camera-stream" src="" alt="Feed en tiempo real">
+				<!-- Stream MJPEG en vivo: YOLO + Defectos en ROJO -->
+				<img id="cameraStream" class="camera-stream" src="/video/stream" alt="Feed YOLO en tiempo real">
 
 				<!-- Error: cámara no disponible o timeout -->
 				<div class="camera-error" id="cameraError" style="display:none;">
@@ -134,7 +135,6 @@
 
 	<div class="monitor-actions">
 		<button id="btnVolver" type="button" class="btn btn-secondary">Volver a registro</button>
-		<button id="toggleStreamBtn" type="button" class="btn btn-secondary">Pausar</button>
 		<button id="finishBtn" type="button" class="btn btn-primary">Finalizar monitoreo</button>
 	</div>
 </section>
@@ -204,21 +204,52 @@
 			cameraStreamEl.style.display  = 'none';
 			cameraErrorEl.style.display   = 'none';
 
-			// Timeout de 12 s si la cámara no responde
-			connectTimeout = setTimeout(() => {
-				cameraStreamEl.src = '';
-				mostrarError('Tiempo de espera agotado');
-			}, 12000);
+			let frameTimeout;
+			let isFirstFrame = true;
 
-			cameraStreamEl.onload = () => {
-				clearTimeout(connectTimeout);
-				cameraLoadingEl.style.display = 'none';
-				cameraStreamEl.style.display  = 'block';
+			// Función para refrescar el frame
+			const refrescarFrame = async () => {
+				try {
+					const res = await fetch('/video/frame');
+
+					// 503 = no hay frame aún, reintentar
+					if (res.status === 503) {
+						frameTimeout = setTimeout(refrescarFrame, 33);
+						return;
+					}
+
+					if (!res.ok) throw new Error('Error obteniendo frame');
+
+					const blob = await res.blob();
+					const url = URL.createObjectURL(blob);
+					cameraStreamEl.src = url;
+
+					if (isFirstFrame) {
+						isFirstFrame = false;
+						clearTimeout(connectTimeout);
+						cameraLoadingEl.style.display = 'none';
+						cameraStreamEl.style.display  = 'block';
+					}
+
+					// Refrescar cada 33ms (~30fps)
+					frameTimeout = setTimeout(refrescarFrame, 33);
+				} catch (error) {
+					console.error('Error en stream:', error);
+					if (isFirstFrame) {
+						clearTimeout(connectTimeout);
+						mostrarError('No se pudo conectar con el stream de video');
+					}
+				}
 			};
 
-			cameraStreamEl.onerror = () => mostrarError(null);
+			// Timeout de 10 s si la cámara no responde
+			connectTimeout = setTimeout(() => {
+				if (isFirstFrame) {
+					mostrarError('Tiempo de espera agotado');
+				}
+			}, 10000);
 
-			cameraStreamEl.src = '/camara/stream';
+			refrescarFrame();
 		}
 
 		function detenerStream() {
@@ -226,21 +257,21 @@
 			cameraStreamEl.src           = '';
 			cameraStreamEl.style.display = 'none';
 			cameraLoadingEl.style.display = 'none';
+			cameraErrorEl.style.display   = 'none';
 		}
 
-		// Verificar disponibilidad y arrancar el stream al entrar a la página
+		// Verificar disponibilidad del sistema YOLO (no inicia automáticamente)
 		(async () => {
 			try {
-				const res = await fetch('/camara/estado');
+				const res = await fetch('/video/status');
 				if (!res.ok) throw new Error();
-				const { disponible } = await res.json();
-				if (disponible) {
-					iniciarStream();
-				} else {
-					mostrarError('Cámara no disponible');
+				const { activo, modelo } = await res.json();
+				if (!activo) {
+					cameraLoadingEl.style.display = 'none';
+					appendLog('🎯 Sistema YOLO listo (modelo: ' + modelo + '). Presiona "Iniciar Captura YOLO".');
 				}
 			} catch {
-				mostrarError('No se pudo conectar con el servidor');
+				appendLog('⚠️  No se pudo conectar con el servidor YOLO');
 			}
 		})();
 
@@ -266,36 +297,11 @@
 			window.location.href = '/registro';
 		});
 
-		// ── Simulación de defectos ────────────────────────────────────────
-		let running = true;
+		// ── Captura YOLO en tiempo real ───────────────────────────────────
+		let capturandoYOLO = false;
 		let elapsedSeconds = 0;
-		let totalGrains = 0;
-		let defectNegro = 0;
-		let defectBrocado = 0;
-		let defectFermentado = 0;
-
-		const defectMessages = {
-			negro: 'Defecto negro detectado en canal 2',
-			brocado: 'Brocado detectado en canal 1',
-			fermentado: 'Posible fermentado detectado en canal 3',
-			sano: 'Flujo normal de granos sanos'
-		};
-
-		function formatTimer(value) {
-			return `${value} seg`;
-		}
-
-		function updateUI() {
-			totalGrainsEl.textContent    = totalGrains;
-			totalDefectsEl.textContent   = defectNegro + defectBrocado + defectFermentado;
-			iaPerformanceEl.textContent  = '80%';
-			negroValueEl.textContent     = defectNegro;
-			brocadoValueEl.textContent   = defectBrocado;
-			fermentadoValueEl.textContent = defectFermentado;
-			negroBarEl.style.width       = (defectNegro * 2) + '%';
-			brocadoBarEl.style.width     = (defectBrocado * 2) + '%';
-			fermentadoBarEl.style.width  = (defectFermentado * 2) + '%';
-		}
+		let conteoActual = {};
+		let reporteActual = null;
 
 		function appendLog(message) {
 			if (eventLog) {
@@ -303,65 +309,152 @@
 			}
 		}
 
-		function tickSimulation() {
-			if (!running) return;
-			totalGrains    += Math.floor(Math.random() * 50) + 10;
-			defectNegro    += Math.floor(Math.random() * 5);
-			defectBrocado  += Math.floor(Math.random() * 4);
-			defectFermentado += Math.floor(Math.random() * 3);
-			const messages = Object.values(defectMessages);
-			appendLog(messages[Math.floor(Math.random() * messages.length)]);
-			updateUI();
+		function formatTimer(value) {
+			return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
 		}
 
-		const timerInterval = setInterval(() => {
-			if (!running) return;
-			elapsedSeconds += 1;
-			if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
-		}, 1000);
+		function actualizarUIdesdeConteo() {
+			let totalGranos = 0;
 
-		const simInterval = setInterval(tickSimulation, 1600);
+			// Calcular totales
+			totalGranos = Object.values(conteoActual).reduce((a, b) => a + b, 0);
+			totalGrainsEl.textContent = totalGranos;
+			totalDefectsEl.textContent = totalGranos;
+			iaPerformanceEl.textContent = '100%';
 
-		if (toggleBtn) {
-			toggleBtn.addEventListener('click', () => {
-				running = !running;
-				if (running) {
-					toggleBtn.textContent = 'Pausar';
-					iniciarStream();
-					appendLog('Monitoreo reanudado');
-				} else {
-					toggleBtn.textContent = 'Reanudar';
-					detenerStream();
-					appendLog('Monitoreo pausado por operador');
+			// Actualizar las 3 barras principales
+			const negroCount = conteoActual['negro'] || 0;
+			const brocadoCount = (conteoActual['broca_severo'] || 0) + (conteoActual['broca_ligero'] || 0);
+			const partidoCount = (conteoActual['partido_maquina'] || 0) + (conteoActual['partido_mitad'] || 0);
+
+			negroValueEl.textContent = negroCount;
+			brocadoValueEl.textContent = brocadoCount;
+			fermentadoValueEl.textContent = partidoCount;
+
+			negroBarEl.style.width = Math.min(negroCount * 2, 100) + '%';
+			brocadoBarEl.style.width = Math.min(brocadoCount * 2, 100) + '%';
+			fermentadoBarEl.style.width = Math.min(partidoCount * 2, 100) + '%';
+		}
+
+		async function iniciarCaptura() {
+			try {
+				appendLog('⏳ Iniciando captura YOLO...');
+
+				const res = await fetch('/video/iniciar', { method: 'POST' });
+				if (!res.ok) {
+					const errData = await res.json().catch(() => ({ detail: 'Error desconocido' }));
+					throw new Error(errData.detail || 'Error al iniciar captura');
 				}
-			});
+
+				capturandoYOLO = true;
+				elapsedSeconds = 0;
+
+				appendLog('✅ Captura YOLO iniciada. Stream en vivo 🎥');
+				iniciarStream();
+
+				// Actualizar conteo cada 1.5 segundos
+				const actualizarConteoInterval = setInterval(async () => {
+					if (!capturandoYOLO) {
+						clearInterval(actualizarConteoInterval);
+						return;
+					}
+					try {
+						const res = await fetch('/video/lote/conteo');
+						const data = await res.json();
+						conteoActual = data.conteo;
+						actualizarUIdesdeConteo();
+					} catch (e) {
+						console.error('Error obteniendo conteo:', e);
+					}
+				}, 1500);
+
+				// Timer cada segundo
+				const timerInterval = setInterval(() => {
+					if (!capturandoYOLO) {
+						clearInterval(timerInterval);
+						return;
+					}
+					elapsedSeconds += 1;
+					if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
+				}, 1000);
+
+			} catch (err) {
+				appendLog('❌ Error: ' + err.message);
+			}
+		}
+
+		async function detenerCaptura() {
+			try {
+				appendLog('⏹️  Deteniendo captura...');
+
+				const res = await fetch('/video/detener', { method: 'POST' });
+				if (!res.ok) throw new Error('Error al detener');
+
+				capturandoYOLO = false;
+				detenerStream();
+
+				appendLog('✅ Captura detenida.');
+
+			} catch (err) {
+				appendLog('❌ Error al detener: ' + err.message);
+			}
+		}
+
+		async function generarReporte() {
+			try {
+				appendLog('📊 Generando reporte SCA...');
+
+				const res = await fetch('/video/lote/generar-reporte', { method: 'POST' });
+				if (!res.ok) throw new Error('Error generando reporte');
+
+				reporteActual = await res.json();
+				const { grado, total_defectos, apto_specialty } = reporteActual;
+
+				appendLog(`✅ Reporte: ${grado} | ${total_defectos} defectos | Specialty: ${apto_specialty ? '✅' : '❌'}`);
+				console.log('📋 Reporte completo:', reporteActual);
+
+			} catch (err) {
+				appendLog('❌ Error al generar reporte: ' + err.message);
+			}
 		}
 
 		if (finishBtn) {
 			finishBtn.addEventListener('click', async () => {
 				const confirmed = await CoffeeModal.confirm({
 					title: '¿Finalizar monitoreo?',
-					message: '¿Está seguro de finalizar el monitoreo? Se generará el código de evaluación y no podrá continuar el análisis.',
+					message: '¿Deseas finalizar y generar el reporte?',
 				});
 				if (!confirmed) return;
 
-				monitoreoActivo = false;
-				running = false;
-				clearInterval(timerInterval);
-				clearInterval(simInterval);
-				detenerStream();
 				finishBtn.disabled = true;
 				finishBtn.textContent = 'Finalizando...';
-				appendLog('Cerrando evaluacion y generando codigo...');
 
-				sessionStorage.setItem('coffeeren.stats', JSON.stringify({
-					totalGrains, defectNegro, defectBrocado, defectFermentado, elapsedSeconds,
-				}));
+				// Detener captura
+				if (capturandoYOLO) {
+					await detenerCaptura();
+				}
+
+				// Generar reporte
+				await generarReporte();
+
+				monitoreoActivo = false;
+				detenerStream();
+				appendLog('Cerrando evaluacion...');
+
+				const stats = {
+					totalGranos: Object.values(conteoActual).reduce((a, b) => a + b, 0),
+					totalDefectos: reporteActual?.total_defectos || 0,
+					grado: reporteActual?.grado || 'Sin clasificar',
+					aptEspecialty: reporteActual?.apto_specialty || false,
+					elapsedSeconds,
+				};
+				sessionStorage.setItem('coffeeren.stats', JSON.stringify(stats));
 
 				try {
 					const res = await fetch(`/evaluacion/${EVALUACION_ID}/finalizar`, {
 						method: 'PATCH',
 						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ reporte_yolo: reporteActual })
 					});
 					if (!res.ok) {
 						const err = await res.json();
@@ -369,13 +462,11 @@
 					}
 					const { codigo } = await res.json();
 					sessionStorage.removeItem('coffeeren.evaluacion');
-					appendLog(`Evaluacion finalizada. Codigo: ${codigo}`);
-					// Reemplazar la entrada de historial del monitoreo con /registro
-					// para que el botón Atrás desde analisis vaya a /registro, no aquí.
+					appendLog(`✅ Evaluacion finalizada. Codigo: ${codigo}`);
 					history.replaceState(null, '', '/registro');
 					setTimeout(() => { window.location.href = `/analisis/${EVALUACION_ID}`; }, 1200);
 				} catch (err) {
-					appendLog(`Error: ${err.message}`);
+					appendLog(`❌ Error: ${err.message}`);
 					sessionStorage.removeItem('coffeeren.stats');
 					finishBtn.disabled = false;
 					finishBtn.textContent = 'Finalizar monitoreo';
@@ -383,7 +474,14 @@
 			});
 		}
 
-		updateUI();
+		actualizarUIdesdeConteo();
+		appendLog('📷 Sistema listo. Verifica que la cámara esté conectada y presiona "Iniciar Captura YOLO".');
+
+		// Conectar botón "Iniciar Captura YOLO"
+		const startBtn = document.getElementById('startBtn');
+		if (startBtn) {
+			startBtn.addEventListener('click', iniciarCaptura);
+		}
 	})();
 </script>
 {% endblock %}

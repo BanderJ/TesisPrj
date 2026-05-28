@@ -11,8 +11,10 @@ from fastapi.templating import Jinja2Templates
 from src.routes.auth_login import auth as auth_router
 from src.routes.caficultor import caficultor_router
 from src.routes.camara import camara_router
+from src.routes.cooperativa import router as cooperativa_router
 from src.routes.evaluacion import evaluacion_router
 from src.routes.dni import dni_router
+from src.routes.perfil import perfil
 from src.routes.persona import persona_router
 from src.routes.tipo_caficultor import tipo_caficultor_router
 from src.routes.tipo_documento import tipo_documento_router
@@ -20,7 +22,9 @@ from src.routes.tipo_grano import tipo_grano_router
 from src.routes.tipo_personal import tipo_personal_router
 from src.routes.ubigeo import ubigeo_router
 from src.routes.valor_cafe import valor_cafe_router
+from src.routes.video import router as video_router
 from src.services.camara import camara_service
+from src.services.tracker_service import tracker_service
 from src.services.evaluacion_service import EvaluacionService
 from src.utilities.jwt_required import RequerirLoginException, obtener_usuario_actual
 
@@ -37,6 +41,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
     del app  # required by the lifespan protocol; unused at runtime
     print("Application has started successfully!")
     yield
+    tracker_service.detener()
     camara_service.cerrar()
     print("Application is shutting down...")
 
@@ -68,8 +73,10 @@ async def auth_exception_handler(request: Request, exc: RequerirLoginException) 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
 app.include_router(camara_router, prefix="/camara", tags=["camara"])
+app.include_router(cooperativa_router)
 app.include_router(evaluacion_router, prefix="/evaluacion", tags=["evaluacion"])
 app.include_router(dni_router, prefix="/dni", tags=["dni"])
+app.include_router(perfil, prefix="/perfil", tags=["perfil"])
 app.include_router(persona_router, prefix="/persona", tags=["persona"])
 app.include_router(tipo_caficultor_router, prefix="/tipo-caficultor", tags=["tipo-caficultor"])
 app.include_router(tipo_documento_router, prefix="/tipo-documento", tags=["tipo-documento"])
@@ -77,6 +84,7 @@ app.include_router(tipo_grano_router, prefix="/tipo-grano", tags=["tipo-grano"])
 app.include_router(tipo_personal_router, prefix="/tipo-personal", tags=["tipo-personal"])
 app.include_router(ubigeo_router, prefix="/ubigeo", tags=["ubigeo"])
 app.include_router(valor_cafe_router, prefix="/valor-cafe", tags=["valor-cafe"])
+app.include_router(video_router)  # Video streaming y análisis ML
 
 
 @app.get("/")
@@ -178,5 +186,15 @@ async def valor_cafe(request: Request, user: dict[str, Any] = Depends(obtener_us
     return templates.TemplateResponse(
         request=request,
         name="valor_cafe.html",
+        context={"request": request, "user": user},
+    )
+
+
+@app.get("/configuracion-cooperativa")
+async def configuracion_cooperativa(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
+    """Pantalla de configuración de cooperativa."""
+    return templates.TemplateResponse(
+        request=request,
+        name="configuracion_cooperativa.html",
         context={"request": request, "user": user},
     )

@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A FastAPI web application for managing coffee farmers ("caficultores") at a cooperative, including registration, document validation, and socio conversion workflows. Uses server-rendered Jinja2 templates for the UI.
+**CoffeeRen** — A computer vision system for automated classification of green coffee beans and defect detection in real time. Developed as a thesis project at Universidad Católica Santo Toribio de Mogrovejo (USAT) in collaboration with Cooperativa Agraria Line Coffee Marañón.
+
+The project combines:
+- **FastAPI backend** for managing coffee farmers ("caficultores") registration, document validation, and socio conversion workflows
+- **ML vision module** using YOLO (YOLOv8n, YOLO11n, YOLO26n) for bean defect detection
+- **Real-time video streaming** from ELP Global Shutter camera (AR0234, 1920x1080, 90fps)
+- **Arduino integration** for physical separation actuators
+- **Web UI** with server-rendered Jinja2 templates for local access
 
 ## Development Commands
 
@@ -50,6 +57,72 @@ JWT stored as an httponly cookie (`access_token: "Bearer <token>"`). Passwords h
 
 When a service needs to write to multiple tables atomically, it creates one `Connection`, passes it to each model call, then calls `db.commit()` (or `db.rollback()` on error). Models accept `db: Connection = None` for this purpose.
 
+## ML Module Architecture (`src/ml/`)
+
+### `inference.py` — YOLO Model Inference
+Loads trained YOLO model (`best.pt`) and performs inference on individual frames.
+- **Class**: `CoffeeRenInference`
+- **Key method**: `predecir(frame)` → returns YOLO result object
+- **Key method**: `dibujar_detecciones(frame, result)` → returns annotated frame with bounding boxes
+- **Models location**: `src/ml/models/{model_name}/best.pt` (NOT in Git — download from Google Drive)
+- **Available models**:
+  - `yolov8n/best.pt` — trained unseed, batch=16, mAP50: 0.767, mAP50-95: 0.757 (75 epochs)
+  - `yolo26n/best.pt` — trained seed=42, batch=16 (in progress)
+  - `yolo11n/best.pt` — pending training
+
+### `tracker.py` — Real-time Video Capture & ByteTrack
+Captures video from ELP camera and tracks beans using ByteTrack algorithm (unique ID persistence across frames).
+- **Class**: `CoffeeRenTracker`
+- **Camera**: ELP AR0234 Global Shutter, index=0, 1920×1080 @ 90fps
+- **Key method**: `iniciar()` → starts capture in separate thread (non-blocking)
+- **Key method**: `obtener_frame()` → returns latest annotated frame for MJPEG streaming
+- **Key method**: `obtener_conteo()` → returns `{class: unique_bean_count}` dict
+- **Key method**: `resetear_conteo()` → resets for new batch
+- **Important**: Each bean gets a unique ID that persists to avoid double-counting
+
+### `classifier.py` — Defect Equivalents & SCA Grade
+Calculates defect equivalents and determines batch grade per SCA standards.
+- **Main function**: `generar_reporte(conteo_granos)` — receives output of `tracker.obtener_conteo()`
+- **Returns**: total beans, equivalent defects, grade (1–5), specialty-eligible flag, per-class breakdown
+- **⚠️ Critical**: Defect equivalence table must match Line Coffee Marañón's official standards
+
+### Bean Defect Classes (17 total)
+```
+agrio_ligero, agrio_severo, averanado, blanco,
+broca_ligero, broca_severo, cascarilla_cereza_seca,
+cascarilla_pergamino, cereza_seca, concha, deforme,
+inmaduro, negro, partido_maquina, partido_mitad,
+pergamino, verde
+```
+
+## System Flow
+```
+ELP Camera (90fps)
+    ↓
+tracker.py — detection + ByteTrack (unique IDs)
+    ↓
+MJPEG streaming → web UI
+    ↓
+End of batch → classifier.py
+    ↓
+Report: grade + defects + specialty eligible
+    ↓
+Arduino → physical separation actuator
+```
+
+## Training Results (Validation)
+| Model   | mAP50 | mAP50-95 | Epochs | Duration |
+|---------|:-----:|:--------:|:------:|:--------:|
+| YOLOv8n | 0.767 | 0.757    | 75     | 1.1h     |
+| YOLO26n | —     | —        | in progress | — |
+| YOLO11n | —     | —        | pending    | — |
+
+### Training Context (CRISP-ML(Q))
+- **Dataset**: 3,451 original images → 8,283 with 3× augmentation (Roboflow)
+- **Split**: 88% train / 8% validation / 4% test
+- **Augmentations**: flip H/V, rotate ±15°, brightness ±15%, exposure ±5%, blur 0.5px, noise 0.1%
+- **Infrastructure**: Google Colab A100 GPU, transfer learning from COCO
+
 ### Key Business Rules
 
 - Document validation: DNI must be exactly 8 digits; Pasaporte/Carnet must be 8–12 alphanumeric characters.
@@ -65,6 +138,17 @@ When a service needs to write to multiple tables atomically, it creates one `Con
 | `/nuevo-caficultor` | `nuevo_caficultor.html` |
 | `/monitoreo` | `monitoreo.html` |
 | `/registro` | `registro.html` |
+
+## ML Integration Rules (always apply when modifying ML modules)
+
+- **Model loading**: Always load once at startup, cache in memory — never reload per-request
+- **Threading**: Tracker runs in background thread; routes poll `obtener_frame()` and `obtener_conteo()` (non-blocking)
+- **Frame pipeline**: inference.py → tracker.py → web streaming; never skip steps
+- **Type hints**: All ML functions use type hints (`ndarray`, `dict[str, int]`, etc.)
+- **Defect equivalents**: Must match Line Coffee Marañón's official SCA table — always verify against [docs/documentacion/](docs/documentacion/) before deploying
+- **Arduino communication**: `src/utilities/` handles serial protocol — ML modules call don't send directly
+- **Performance**: Frame drops are acceptable at 90fps; graceful degradation > blocking
+- **No TF/PT exports**: Model weights stay as `.pt` files, not TensorFlow exports
 
 ## Backend Rules (always apply when writing Python/FastAPI code)
 

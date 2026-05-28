@@ -5,6 +5,17 @@
 {% endblock %}
 
 {% block content %}
+    <!-- Cooperativa Info Section -->
+    <section id="cooperativaSection" class="cooperativa-info-section" hidden>
+        <div class="cooperativa-banner-wrapper">
+            <img id="cooperativaImagenBanner" src="" alt="Banner de cooperativa" class="cooperativa-banner-img" hidden>
+        </div>
+        <div class="cooperativa-card">
+            <h2 id="cooperativaNombreTitulo" class="cooperativa-title">Tu Cooperativa</h2>
+            <p id="cooperativaDescripcionTexto" class="cooperativa-description"></p>
+        </div>
+    </section>
+
     <section class="control-hero reveal-up" aria-label="Centro de control CoffeeRen">
         <div class="socio-hero">
             <!-- <p class="hero-kicker info-text">Centro de control academico</p> -->
@@ -131,6 +142,32 @@
     </section>
 
     <script>
+    // Cargar información de cooperativa
+    async function cargarCooperativaInfo() {
+        try {
+            const res = await fetch('/cooperativas/mi-cooperativa');
+            if (!res.ok) return;
+
+            const data = await res.json();
+            const section = document.getElementById('cooperativaSection');
+
+            document.getElementById('cooperativaNombreTitulo').textContent = data.nombre || 'Tu Cooperativa';
+            document.getElementById('cooperativaDescripcionTexto').textContent = data.descripcion || 'Cooperativa registrada en el sistema';
+
+            if (data.imagen_url) {
+                const imgEl = document.getElementById('cooperativaImagenBanner');
+                imgEl.src = data.imagen_url;
+                imgEl.hidden = false;
+            }
+
+            section.hidden = false;
+        } catch (error) {
+            console.error('Error cargando cooperativa:', error);
+        }
+    }
+
+    cargarCooperativaInfo();
+
     (() => {
         const RANGO_COLORS = ['#22c55e', '#f59e0b', '#818cf8', '#f472b6', '#2dd4bf'];
 
