@@ -5,20 +5,17 @@ from src.database.bd import Connection
 
 
 def obtener_todas(db: Connection) -> list[dict]:
-    """Get all active cooperatives."""
-    sql = "SELECT * FROM COOPERATIVA WHERE estado='A' ORDER BY nombre"
+    sql = "SELECT *, id AS cooperativa_id FROM COOPERATIVA WHERE estado='A' ORDER BY nombre"
     return db.obtener(sql)
 
 
 def obtener_por_id(cooperativa_id: str, db: Connection = None) -> dict | None:
-    """Get cooperative by ID."""
-    sql = "SELECT * FROM COOPERATIVA WHERE cooperativa_id=%s"
+    sql = "SELECT *, id AS cooperativa_id FROM COOPERATIVA WHERE id=%s"
     return db.obtener_uno(sql, [cooperativa_id])
 
 
 def obtener_por_codigo(codigo: str, db: Connection = None) -> dict | None:
-    """Get cooperative by codigo (unique)."""
-    sql = "SELECT * FROM COOPERATIVA WHERE codigo=%s AND estado='A'"
+    sql = "SELECT *, id AS cooperativa_id FROM COOPERATIVA WHERE codigo=%s AND estado='A'"
     return db.obtener_uno(sql, [codigo])
 
 
@@ -32,6 +29,8 @@ def crear(nombre: str, codigo: str | None, direccion: str | None, telefono: str 
     RETURNING *
     """
     result = db.obtener_uno(sql, [nombre, codigo, direccion, telefono, correo, descripcion, imagen_url])
+    if result:
+        result["cooperativa_id"] = str(result["id"])
     db.commit()
     return result
 
@@ -70,25 +69,23 @@ def actualizar(cooperativa_id: str, nombre: str | None = None, codigo: str | Non
         return obtener_por_id(cooperativa_id, db)
 
     params.append(cooperativa_id)
-    sql = f"UPDATE COOPERATIVA SET {', '.join(updates)} WHERE cooperativa_id=%s RETURNING *"
+    sql = f"UPDATE COOPERATIVA SET {', '.join(updates)} WHERE id=%s RETURNING *, id AS cooperativa_id"
     result = db.obtener_uno(sql, params)
     db.commit()
     return result
 
 
 def desactivar(cooperativa_id: str, db: Connection = None) -> dict | None:
-    """Deactivate a cooperative (soft delete)."""
-    sql = "UPDATE COOPERATIVA SET estado='I' WHERE cooperativa_id=%s RETURNING *"
+    sql = "UPDATE COOPERATIVA SET estado='I' WHERE id=%s RETURNING *, id AS cooperativa_id"
     result = db.obtener_uno(sql, [cooperativa_id])
     db.commit()
     return result
 
 
 def obtener_id_por_codigo(codigo: str, db: Connection = None) -> str | None:
-    """Get cooperativa ID by codigo (for default assignment)."""
-    sql = "SELECT cooperativa_id FROM COOPERATIVA WHERE codigo = %s LIMIT 1"
+    sql = "SELECT id FROM COOPERATIVA WHERE codigo = %s LIMIT 1"
     result = db.obtener_uno(sql, [codigo])
-    return str(result["cooperativa_id"]) if result else None
+    return str(result["id"]) if result else None
 
 
 def obtener_por_usuario(personal_id: str, db: Connection = None) -> dict | None:
@@ -99,19 +96,19 @@ def obtener_por_usuario(personal_id: str, db: Connection = None) -> dict | None:
 
     if not persona or not persona.get("cooperativa_id"):
         # Asignar cooperativa default si no tiene
-        default_coop_sql = "SELECT cooperativa_id FROM COOPERATIVA WHERE codigo = %s LIMIT 1"
+        default_coop_sql = "SELECT id FROM COOPERATIVA WHERE codigo = %s LIMIT 1"
         default_coop = db.obtener_uno(default_coop_sql, ["LCM001"])
 
         if default_coop:
             update_sql = "UPDATE PERSONA SET cooperativa_id = %s WHERE id = %s"
-            db.ejecutar(update_sql, [default_coop["cooperativa_id"], personal_id])
+            db.ejecutar(update_sql, [default_coop["id"], personal_id])
             db.commit()
-            persona_cooperativa = default_coop["cooperativa_id"]
+            persona_cooperativa = default_coop["id"]
         else:
             return None
     else:
         persona_cooperativa = persona["cooperativa_id"]
 
     # Obtener la cooperativa
-    coop_sql = "SELECT * FROM COOPERATIVA WHERE cooperativa_id = %s AND estado = 'A' LIMIT 1"
+    coop_sql = "SELECT *, id AS cooperativa_id FROM COOPERATIVA WHERE id = %s AND estado = 'A' LIMIT 1"
     return db.obtener_uno(coop_sql, [persona_cooperativa])

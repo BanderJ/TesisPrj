@@ -20,11 +20,9 @@ class AuthService:
         )
 
     def sesion_activa(self, token_cookie: str | None) -> bool:
-        """Valida si el token de cookie representa una sesion activa."""
-        if not token_cookie or not token_cookie.startswith("Bearer "):
+        if not token_cookie:
             return False
-
-        token = token_cookie.split(" ")[1]
+        token = token_cookie.split(" ")[-1] if token_cookie.startswith("Bearer ") else token_cookie
         return verificar_token(token) is not None
 
     def autenticar(self, usuario: str, clave: str) -> LoginResponse | None:

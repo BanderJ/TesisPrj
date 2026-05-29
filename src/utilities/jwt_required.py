@@ -18,10 +18,15 @@ def obtener_usuario_actual(request: Request) -> dict[str, Any]:
     lo que el exception handler global convierte en redirect a /auth/login.
     """
     token_cookie: str | None = request.cookies.get("access_token")
-    if not token_cookie or not token_cookie.startswith("Bearer "):
+    if not token_cookie:
         raise RequerirLoginException()
 
-    token = token_cookie.split(" ", 1)[1].strip()
+    # Soportar tanto token puro como formato legado "Bearer <token>"
+    if token_cookie.startswith("Bearer "):
+        token = token_cookie.split(" ", 1)[1].strip()
+    else:
+        token = token_cookie.strip()
+
     if not token:
         raise RequerirLoginException()
 
