@@ -22,13 +22,21 @@ class CamaraService:
     # ── Ciclo de captura (hilo dedicado) ──────────────────────────────
 
     def _capture_loop(self) -> None:
+        errores_consecutivos = 0
+        MAX_ERRORES = 10  # ~10 lecturas fallidas → cámara desconectada
         while self._running:
             cap = self._cap
             if cap is None or not cap.isOpened():
+                self._running = False
                 break
             ret, frame = cap.read()
             if not ret or frame is None:
+                errores_consecutivos += 1
+                if errores_consecutivos >= MAX_ERRORES:
+                    self._running = False  # señal de desconexión
+                    break
                 continue
+            errores_consecutivos = 0
             if self._passthrough:
                 jpeg = frame.tobytes()
             else:

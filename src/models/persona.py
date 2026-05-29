@@ -116,6 +116,42 @@ class Persona:
             if owns_db:
                 db.close()
 
+    def actualizar_completo(
+        self,
+        persona_id: str,
+        nombre: str,
+        ape_paterno: str,
+        ape_materno: str,
+        sexo: str,
+        fecha_nacimiento,
+        telefono: str | None,
+        correo: str | None,
+        ubigeo: str | None,
+        db: Connection | None = None,
+    ) -> bool:
+        owns_db = db is None
+        db = db or Connection()
+        try:
+            sql = """
+                UPDATE persona
+                SET nombre=%s, ape_paterno=%s, ape_materno=%s, sexo=%s,
+                    fecha_nacimiento=%s, telefono=%s, correo=%s, ubigeo=%s
+                WHERE id=%s
+            """
+            cursor = db.ejecutar(sql, (nombre, ape_paterno, ape_materno, sexo,
+                                       fecha_nacimiento, telefono, correo, ubigeo, persona_id))
+            actualizado = cursor.rowcount > 0
+            if owns_db:
+                db.commit() if actualizado else db.rollback()
+            return actualizado
+        except Exception:
+            if owns_db:
+                db.rollback()
+            raise
+        finally:
+            if owns_db:
+                db.close()
+
     def actualizar_datos_personales(
         self,
         persona_id: str,

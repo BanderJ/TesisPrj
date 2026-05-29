@@ -1,7 +1,7 @@
 {% extends "main.html" %}
 
 {% block style %}
-<link rel="stylesheet" href="/static/css/perfil.css?v=10">
+<link rel="stylesheet" href="/static/css/perfil.css?v=13">
 {% endblock %}
 
 {% block content %}
@@ -161,70 +161,48 @@
                 <form id="formContrasena" class="perfil-form">
                     <p class="perfil-section-description">Cambia tu contraseña regularmente para mantener tu cuenta segura.</p>
 
-                    <div class="perfil-form-row">
+                    <div class="perfil-form-row single">
                         <div class="field-group">
                             <label for="claveActual">Contraseña actual</label>
-                            <input
-                                id="claveActual"
-                                type="password"
-                                required
-                                placeholder="Ingresa tu contraseña actual"
-                            >
+                            <input id="claveActual" type="password" required placeholder="Ingresa tu contraseña actual" maxlength="30">
                         </div>
                     </div>
 
-                    <div class="perfil-form-row single">
+                    <div class="perfil-form-row">
                         <div class="field-group">
-                            <label for="claveNueva">Nueva contraseña</label>
-                            <input
-                                id="claveNueva"
-                                type="password"
-                                required
-                                placeholder="Mínimo 8 caracteres"
-                            >
-
-                            <div class="password-requirements">
+                            <label for="claveNueva" style="display:flex;justify-content:space-between;">
+                                <span>Nueva contraseña</span>
+                                <span id="contadorNueva" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/30</span>
+                            </label>
+                            <input id="claveNueva" type="password" required placeholder="Mínimo 8 caracteres" maxlength="30">
+                            <div class="password-requirements" style="margin-top:6px;">
                                 <div class="requirement" id="req-length">
-                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
+                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     <span>Al menos 8 caracteres</span>
                                 </div>
                                 <div class="requirement" id="req-uppercase">
-                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
+                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     <span>Al menos una letra mayúscula</span>
                                 </div>
                                 <div class="requirement" id="req-number">
-                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
+                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     <span>Al menos un número</span>
                                 </div>
                                 <div class="requirement" id="req-special">
-                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
+                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     <span>Al menos un carácter especial (!@#$%^&*)</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="perfil-form-row">
                         <div class="field-group">
-                            <label for="confirmarClave">Confirmar contraseña</label>
-                            <input
-                                id="confirmarClave"
-                                type="password"
-                                required
-                                placeholder="Repite la nueva contraseña"
-                            >
+                            <label for="confirmarClave" style="display:flex;justify-content:space-between;">
+                                <span>Confirmar contraseña</span>
+                                <span id="contadorConfirmar" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/30</span>
+                            </label>
+                            <input id="confirmarClave" type="password" required placeholder="Repite la nueva contraseña" maxlength="30">
                             <div class="password-match" id="passwordMatch">
-                                <svg class="match-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
+                                <svg class="match-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 <span id="passwordMatchText">Las contraseñas coinciden</span>
                             </div>
                         </div>
@@ -414,13 +392,28 @@
         }
     }
 
+    const MAX_CLAVE = 30;
+    const contadorNueva     = document.getElementById('contadorNueva');
+    const contadorConfirmar = document.getElementById('contadorConfirmar');
+
+    function actualizarContador(input, contadorEl) {
+        const len = input.value.length;
+        contadorEl.textContent = `${len}/${MAX_CLAVE}`;
+        contadorEl.style.color = len >= MAX_CLAVE ? 'var(--destructive)' : 'var(--muted-foreground)';
+        if (len >= MAX_CLAVE) {
+            CoffeeModal.warning(`La contraseña no puede exceder ${MAX_CLAVE} caracteres.`);
+        }
+    }
+
     claveNueva.addEventListener('input', () => {
+        actualizarContador(claveNueva, contadorNueva);
         const requirements = validatePasswordRequirements(claveNueva.value);
         updateRequirementUI(requirements);
         updatePasswordMatch();
     });
 
     confirmarClave.addEventListener('input', () => {
+        actualizarContador(confirmarClave, contadorConfirmar);
         updatePasswordMatch();
     });
 

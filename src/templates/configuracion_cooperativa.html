@@ -2,7 +2,7 @@
 
 {% block style %}
     <link rel="stylesheet" href="/static/css/perfil.css?v=10">
-    <link rel="stylesheet" href="/static/css/configuracion_cooperativa.css?v=6">
+    <link rel="stylesheet" href="/static/css/configuracion_cooperativa.css?v=23">
 {% endblock %}
 
 {% block content %}
@@ -32,15 +32,9 @@
                 </a>
                 <a href="#usuarios" class="perfil-nav-link" data-section="usuarios" id="navUsuarios" hidden>
                     <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 12H9m6 0a4 4 0 110 5.292m0 0l-3.464 3.464a4 4 0 11-5.656-5.656l3.464-3.464m0 0l5.657-5.657a4 4 0 015.656 5.656"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
-                    Gestionar usuarios
-                </a>
-                <a href="#crear-usuario" class="perfil-nav-link" data-section="crear-usuario" id="navCrearUsuario" hidden>
-                    <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m0 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
-                    </svg>
-                    Crear usuario
+                    Gestión de usuarios
                 </a>
             </nav>
         </aside>
@@ -154,17 +148,19 @@
                 </div>
             </section>
 
-            <!-- SECCIÓN 3: Gestionar Usuarios -->
+            <!-- SECCIÓN 3: Gestión de Usuarios -->
             <section id="usuarios" class="perfil-section" hidden>
-                <h2 class="perfil-section-title">Gestionar usuarios</h2>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                    <h2 class="perfil-section-title" style="border-bottom:none;padding-bottom:0;">Gestión de usuarios</h2>
+                    <button type="button" id="btnAbrirCrearUsuario" class="btn btn-primary" style="white-space:nowrap;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                        Agregar usuario
+                    </button>
+                </div>
 
-                <div class="usuarios-buscador">
-                    <input
-                        type="text"
-                        id="buscadorUsuarios"
-                        placeholder="Buscar por nombre, usuario o documento..."
-                        class="buscador-input"
-                    >
+                <div class="field-group" style="max-width:420px;">
+                    <label for="buscadorUsuarios">Buscar usuario</label>
+                    <input type="text" id="buscadorUsuarios" placeholder="Nombre, usuario o documento...">
                 </div>
 
                 <div class="tabla-usuarios-wrapper">
@@ -180,128 +176,160 @@
                             </tr>
                         </thead>
                         <tbody id="usuariosTableBody">
-                            <tr>
-                                <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
-                                    Cargando usuarios...
-                                </td>
-                            </tr>
+                            <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted-foreground);">Cargando usuarios...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- SECCIÓN 4: Crear Usuario -->
-            <section id="crear-usuario" class="perfil-section" hidden>
-                <h2 class="perfil-section-title">Crear nuevo usuario</h2>
-
-                <p class="perfil-section-description">
-                    El nombre de usuario se genera automáticamente: <strong>primera letra del nombre + apellido paterno completo + primera letra del apellido materno</strong>
-                </p>
-                <p class="perfil-section-description" style="font-size: 12px; color: var(--muted-foreground); margin-top: -16px;">
-                    Ejemplo: Juan Cueva Perez → jcuevap
-                </p>
-
-                <form id="formCrearUsuario" class="perfil-form">
-                    <h3 style="font-size: 16px; font-weight: 600; margin-top: 24px; color: var(--foreground, #1a1a1a);">Datos de la Persona</h3>
-
-                    <div class="perfil-form-row">
-                        <div class="field-group">
-                            <label for="crearTipoDocumento">Tipo de Documento *</label>
-                            <select id="crearTipoDocumento" required>
-                                <option value="">Selecciona...</option>
-                            </select>
-                        </div>
-                        <div class="field-group">
-                            <label for="crearNumDocumento">Número de Documento *</label>
-                            <input id="crearNumDocumento" type="text" maxlength="12" required placeholder="12345678">
-                            <p class="perfil-hint">8-12 caracteres</p>
-                        </div>
-                    </div>
-                    
-                    <div class="perfil-form-row">
-                        <div class="field-group">
-                            <label for="crearNombre">Nombre *</label>
-                            <input id="crearNombre" type="text" maxlength="50" required placeholder="Juan">
-                        </div>
-                        <div class="field-group">
-                            <label for="crearApePaterno">Apellido Paterno *</label>
-                            <input id="crearApePaterno" type="text" maxlength="30" required placeholder="Cueva">
-                        </div>
-                    </div>
-
-                    <div class="perfil-form-row">
-                        <div class="field-group">
-                            <label for="crearApeMaterno">Apellido Materno *</label>
-                            <input id="crearApeMaterno" type="text" maxlength="30" required placeholder="Perez">
-                        </div>
-                        <div class="field-group">
-                            <label for="crearSexo">Género *</label>
-                            <select id="crearSexo" required>
-                                <option value="">Selecciona...</option>
-                                <option value="M">Masculino</option>
-                                <option value="F">Femenino</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="perfil-form-row">
-                        <div class="field-group">
-                            <label for="crearFechaNacimiento">Fecha de Nacimiento *</label>
-                            <input id="crearFechaNacimiento" type="date" required>
-                        </div>
-                        <div class="field-group">
-                            <label for="crearTelefono">Teléfono</label>
-                            <input id="crearTelefono" type="tel" maxlength="9" placeholder="987654321" inputmode="numeric">
-                            <p class="perfil-hint">9 dígitos (opcional)</p>
-                        </div>
-                    </div>
-
-                    <div class="perfil-form-row single">
-                        <div class="field-group">
-                            <label for="crearCorreo">Correo Electrónico</label>
-                            <input id="crearCorreo" type="email" maxlength="100" placeholder="usuario@example.com">
-                        </div>
-                    </div>
-
-                    <h3 style="font-size: 16px; font-weight: 600; margin-top: 24px; color: var(--foreground, #1a1a1a);">Datos de Acceso</h3>
-
-                    <div class="perfil-form-row">
-                        <div class="field-group">
-                            <label for="crearTipoPersonal">Tipo de Usuario *</label>
-                            <select id="crearTipoPersonal" required>
-                                <option value="">Selecciona...</option>
-                            </select>
-                        </div>
-                        <div class="field-group">
-                            <label for="crearUsuarioPreview">Nombre de usuario (generado)</label>
-                            <input id="crearUsuarioPreview" type="text" readonly placeholder="Se genera automáticamente">
-                            <p class="perfil-hint">No editable</p>
-                        </div>
-                    </div>
-
-                    <div class="perfil-form-row single">
-                        <div class="field-group">
-                            <label for="crearContrasena">Contraseña *</label>
-                            <input id="crearContrasena" type="password" required placeholder="Mínimo 8 caracteres">
-                            <p class="perfil-hint">Debe incluir: mayúscula, número y carácter especial (!@#$%^&*)</p>
-                        </div>
-                    </div>
-
-                    <div class="perfil-form-row single">
-                        <div class="field-group">
-                            <label for="crearConfirmarContrasena">Confirmar Contraseña *</label>
-                            <input id="crearConfirmarContrasena" type="password" required placeholder="Repite la contraseña">
-                        </div>
-                    </div>
-
-                    <div class="perfil-form-actions">
-                        <button type="button" id="btnGuardarUsuario" class="btn btn-primary">Crear usuario</button>
-                    </div>
-                </form>
-            </section>
-
         </main>
     </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MODAL: Gestión de Usuario (Crear / Editar)
+════════════════════════════════════════════════ -->
+<div id="modalUsuario" style="display:none;position:fixed;inset:0;z-index:9000;align-items:flex-start;justify-content:center;padding:1.5rem;background:rgba(0,0,0,0.48);backdrop-filter:blur(3px);overflow-y:auto;">
+    <div style="position:relative;width:100%;max-width:820px;margin:2rem auto;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 28px;box-shadow:0 24px 64px rgba(0,0,0,0.25);">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--primary);">
+            <h2 id="modalUsuarioTitulo" style="margin:0;font-size:18px;font-weight:700;color:var(--foreground);">Crear usuario</h2>
+            <button type="button" id="btnCerrarModal" style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;color:var(--muted-foreground);font-size:20px;display:flex;align-items:center;justify-content:center;border-radius:6px;" aria-label="Cerrar">✕</button>
+        </div>
+
+        <!-- Nota usuario generado -->
+        <p id="modalNotaUsuario" class="perfil-section-description" style="margin-bottom:12px;">
+            Usuario generado automáticamente: <strong>inicial nombre + apellido paterno + inicial apellido materno</strong>
+        </p>
+
+        <form id="formUsuarioModal" class="perfil-form">
+            <!-- Bloque búsqueda (solo visible en modo crear) -->
+            <div id="bloquesBusqueda">
+                <h3 style="font-size:14px;font-weight:600;margin:0 0 8px;color:var(--muted-foreground);text-transform:uppercase;letter-spacing:.04em;">Búsqueda de Persona</h3>
+                <div class="buscar-persona-block">
+                    <div class="field-group">
+                        <label for="crearTipoDocumento">Tipo de Documento *</label>
+                        <select id="crearTipoDocumento" required>
+                            <option value="">Selecciona...</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="crearNumDocumento">Número de Documento *</label>
+                        <input id="crearNumDocumento" type="text" maxlength="12" required placeholder="DNI o Pasaporte">
+                    </div>
+                    <div class="buscar-estado" id="buscarEstado">
+                        <span>Ingresa el documento para buscar datos de la persona</span>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:600;margin:12px 0 8px;color:var(--muted-foreground);text-transform:uppercase;letter-spacing:.04em;">Datos de la Persona</h3>
+
+            <div class="perfil-form-row perfil-form-row--3">
+                <div class="field-group">
+                    <label for="crearNombre">Nombre *</label>
+                    <input id="crearNombre" type="text" maxlength="50" required placeholder="Juan">
+                </div>
+                <div class="field-group">
+                    <label for="crearApePaterno">Apellido Paterno *</label>
+                    <input id="crearApePaterno" type="text" maxlength="30" required placeholder="Cueva">
+                </div>
+                <div class="field-group">
+                    <label for="crearApeMaterno">Apellido Materno *</label>
+                    <input id="crearApeMaterno" type="text" maxlength="30" required placeholder="Perez">
+                </div>
+            </div>
+
+            <div class="perfil-form-row perfil-form-row--3">
+                <div class="field-group">
+                    <label for="crearSexo">Género *</label>
+                    <select id="crearSexo" required>
+                        <option value="">Selecciona...</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Femenino</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label for="crearFechaNacimiento">Fecha de Nacimiento *</label>
+                    <input id="crearFechaNacimiento" type="date" required>
+                </div>
+                <div class="field-group">
+                    <label for="crearTelefono">Teléfono</label>
+                    <input id="crearTelefono" type="tel" maxlength="9" placeholder="987654321" inputmode="numeric">
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:600;margin:12px 0 8px;color:var(--muted-foreground);text-transform:uppercase;letter-spacing:.04em;">Ubicación Geográfica</h3>
+
+            <div class="perfil-form-row perfil-form-row--3">
+                <div class="field-group">
+                    <label for="crearDepartamento">Departamento</label>
+                    <select id="crearDepartamento"><option value="">Selecciona...</option></select>
+                </div>
+                <div class="field-group">
+                    <label for="crearProvincia">Provincia</label>
+                    <select id="crearProvincia" disabled><option value="">Selecciona...</option></select>
+                </div>
+                <div class="field-group">
+                    <label for="crearDistrito">Distrito</label>
+                    <select id="crearDistrito" disabled><option value="">Selecciona...</option></select>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:600;margin:12px 0 8px;color:var(--muted-foreground);text-transform:uppercase;letter-spacing:.04em;">Datos de Acceso</h3>
+
+            <div class="perfil-form-row perfil-form-row--3">
+                <div class="field-group">
+                    <label for="crearTipoPersonal">Tipo de Usuario *</label>
+                    <select id="crearTipoPersonal" required><option value="">Selecciona...</option></select>
+                </div>
+                <div class="field-group">
+                    <label for="crearUsuarioPreview">Usuario (generado)</label>
+                    <input id="crearUsuarioPreview" type="text" readonly placeholder="Se genera automáticamente">
+                </div>
+                <div class="field-group">
+                    <label for="crearCorreo">Correo Electrónico</label>
+                    <input id="crearCorreo" type="email" maxlength="100" placeholder="usuario@example.com">
+                </div>
+            </div>
+
+            <div class="perfil-form-row">
+                <div class="field-group">
+                    <label for="crearContrasena" style="display:flex;justify-content:space-between;">
+                        <span id="labelClave">Contraseña *</span>
+                        <span id="contadorCrearClave" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/30</span>
+                    </label>
+                    <input id="crearContrasena" type="password" placeholder="Mínimo 8 caracteres" maxlength="30">
+                    <div class="password-requirements" style="margin-top:6px;">
+                        <div class="requirement" id="crear-req-length"><svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Al menos 8 caracteres</span></div>
+                        <div class="requirement" id="crear-req-uppercase"><svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Al menos una letra mayúscula</span></div>
+                        <div class="requirement" id="crear-req-number"><svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Al menos un número</span></div>
+                        <div class="requirement" id="crear-req-special"><svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Al menos un carácter especial (!@#$%^&*)</span></div>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label for="crearConfirmarContrasena" style="display:flex;justify-content:space-between;">
+                        <span id="labelConfirmarClave">Confirmar Contraseña *</span>
+                        <span id="contadorCrearConfirmar" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/30</span>
+                    </label>
+                    <input id="crearConfirmarContrasena" type="password" placeholder="Repite la contraseña" maxlength="30">
+                    <div class="password-match" id="crearPasswordMatch">
+                        <svg class="match-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span id="crearPasswordMatchText">Las contraseñas coinciden</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:8px;border-top:1px solid var(--border);margin-top:8px;">
+                <button type="button" id="btnCancelarModal" class="btn btn-secondary">Cancelar</button>
+                <button type="button" id="btnGuardarUsuario" class="btn btn-primary">Crear usuario</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div style="display:none"><!-- cierre perfil-container movido al modal --></div>
 </div>
 
 <script>
@@ -368,7 +396,6 @@
             if (tipoPersonalId === 2 || tipoPersonalId === 3) {
                 document.getElementById('navTiposGrano').hidden = false;
                 document.getElementById('navUsuarios').hidden = false;
-                document.getElementById('navCrearUsuario').hidden = false;
                 await cargarCatalogos();
             }
 
@@ -549,17 +576,442 @@
     });
 
     // === Usuarios ===
+    const crearTipoDocumento = document.getElementById('crearTipoDocumento');
+    const crearNumDocumento = document.getElementById('crearNumDocumento');
+    const buscarEstado = document.getElementById('buscarEstado');
     const crearNombre = document.getElementById('crearNombre');
     const crearApePaterno = document.getElementById('crearApePaterno');
     const crearApeMaterno = document.getElementById('crearApeMaterno');
-    const crearUsuarioPreview = document.getElementById('crearUsuarioPreview');
+    const crearSexo = document.getElementById('crearSexo');
+    const crearFechaNacimiento = document.getElementById('crearFechaNacimiento');
     const crearTelefono = document.getElementById('crearTelefono');
-    const formCrearUsuario = document.getElementById('formCrearUsuario');
+    const crearDepartamento = document.getElementById('crearDepartamento');
+    const crearProvincia = document.getElementById('crearProvincia');
+    const crearDistrito = document.getElementById('crearDistrito');
+    const crearCorreo = document.getElementById('crearCorreo');
+    const crearUsuarioPreview = document.getElementById('crearUsuarioPreview');
+    const formCrearUsuario = document.getElementById('formUsuarioModal');
     const btnGuardarUsuario = document.getElementById('btnGuardarUsuario');
     const buscadorUsuarios = document.getElementById('buscadorUsuarios');
     const usuariosTableBody = document.getElementById('usuariosTableBody');
 
+    // === Modal usuario ===
+    const modalUsuario = document.getElementById('modalUsuario');
+    let modoModal = 'crear'; // 'crear' | 'editar'
+    let personalIdEditando = null;
+
+    function abrirModal(modo, datos = null) {
+        modoModal = modo;
+        personalIdEditando = datos?.personal_id || null;
+
+        const titulo = document.getElementById('modalUsuarioTitulo');
+        const bloqueBusqueda = document.getElementById('bloquesBusqueda');
+        const labelClave = document.getElementById('labelClave');
+        const labelConfirmar = document.getElementById('labelConfirmarClave');
+        const nota = document.getElementById('modalNotaUsuario');
+
+        if (modo === 'crear') {
+            titulo.textContent = 'Crear usuario';
+            bloqueBusqueda.style.display = '';
+            labelClave.textContent = 'Contraseña *';
+            labelConfirmar.textContent = 'Confirmar Contraseña *';
+            document.getElementById('crearContrasena').required = true;
+            nota.style.display = '';
+            formCrearUsuario.reset();
+            crearUsuarioPreview.value = '';
+            document.getElementById('buscarEstado').className = 'buscar-estado';
+            document.getElementById('buscarEstado').innerHTML = '<span>Ingresa el documento para buscar datos de la persona</span>';
+            btnGuardarUsuario.textContent = 'Crear usuario';
+        } else {
+            titulo.textContent = 'Editar usuario';
+            bloqueBusqueda.style.display = 'none';
+            labelClave.textContent = 'Nueva contraseña (opcional)';
+            labelConfirmar.textContent = 'Confirmar nueva contraseña';
+            document.getElementById('crearContrasena').required = false;
+            nota.style.display = 'none';
+            btnGuardarUsuario.textContent = 'Guardar cambios';
+
+            if (datos) {
+                crearNombre.value       = datos.nombre || '';
+                crearApePaterno.value   = datos.ape_paterno || '';
+                crearApeMaterno.value   = datos.ape_materno || '';
+                crearSexo.value         = datos.sexo || '';
+                crearFechaNacimiento.value = datos.fecha_nacimiento || '';
+                crearTelefono.value     = datos.telefono || '';
+                crearCorreo.value       = datos.correo || '';
+                document.getElementById('crearTipoPersonal').value = datos.tipo_personal_id || '';
+                crearUsuarioPreview.value = datos.usuario || '';
+                generarUsuarioPreview();
+
+                if (datos.ubigeo) cargarYSeleccionarUbigeo(datos.ubigeo);
+            }
+        }
+
+        modalUsuario.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function cerrarModal() {
+        modalUsuario.style.display = 'none';
+        document.body.style.overflow = '';
+        formCrearUsuario.reset();
+        document.getElementById('crearContrasena').required = true;
+        crearProvincia.disabled = true;
+        crearDistrito.disabled = true;
+        document.getElementById('crearPasswordMatch').classList.remove('show', 'match', 'mismatch');
+    }
+
+    document.getElementById('btnCerrarModal').addEventListener('click', cerrarModal);
+    document.getElementById('btnCancelarModal').addEventListener('click', cerrarModal);
+    modalUsuario.addEventListener('click', (e) => { if (e.target === modalUsuario) cerrarModal(); });
+
+    document.getElementById('btnAbrirCrearUsuario').addEventListener('click', () => abrirModal('crear'));
+
     let usuariosActuales = [];
+    let debounceTimer = null;
+
+    // === Validación de contraseña (igual que perfil.html) ===
+    const MAX_CLAVE_CREAR        = 30;
+    const contadorCrearClave     = document.getElementById('contadorCrearClave');
+    const contadorCrearConfirmar = document.getElementById('contadorCrearConfirmar');
+    const crearContrasenaEl      = document.getElementById('crearContrasena');
+    const crearConfirmarEl       = document.getElementById('crearConfirmarContrasena');
+
+    function validarRequisitosCrear(password) {
+        return {
+            length:    password.length >= 8,
+            uppercase: /[A-Z]/.test(password),
+            number:    /\d/.test(password),
+            special:   /[!@#%^&*(),.=?":{}$¿?¡]/.test(password),
+        };
+    }
+
+    function actualizarRequisitosCrear(reqs) {
+        const map = {
+            'crear-req-length':    reqs.length,
+            'crear-req-uppercase': reqs.uppercase,
+            'crear-req-number':    reqs.number,
+            'crear-req-special':   reqs.special,
+        };
+        for (const [id, ok] of Object.entries(map)) {
+            const el = document.getElementById(id);
+            el.classList.toggle('active',   ok);
+            el.classList.toggle('inactive', !ok);
+        }
+    }
+
+    function actualizarMatchCrear() {
+        const matchDiv  = document.getElementById('crearPasswordMatch');
+        const matchText = document.getElementById('crearPasswordMatchText');
+        if (!crearContrasenaEl.value || !crearConfirmarEl.value) {
+            matchDiv.classList.remove('show', 'match', 'mismatch');
+            return;
+        }
+        matchDiv.classList.add('show');
+        const coincide = crearContrasenaEl.value === crearConfirmarEl.value;
+        matchDiv.classList.toggle('match',    coincide);
+        matchDiv.classList.toggle('mismatch', !coincide);
+        matchText.textContent = coincide ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
+    }
+
+    function actualizarContadorClave(input, contadorEl) {
+        const len = input.value.length;
+        contadorEl.textContent = `${len}/${MAX_CLAVE_CREAR}`;
+        contadorEl.style.color = len >= MAX_CLAVE_CREAR ? 'var(--destructive)' : 'var(--muted-foreground)';
+        if (len >= MAX_CLAVE_CREAR) {
+            CoffeeModal.warning(`La contraseña no puede exceder ${MAX_CLAVE_CREAR} caracteres.`);
+        }
+    }
+
+    crearContrasenaEl.addEventListener('input', function() {
+        actualizarContadorClave(this, contadorCrearClave);
+        actualizarRequisitosCrear(validarRequisitosCrear(this.value));
+        actualizarMatchCrear();
+    });
+
+    crearConfirmarEl.addEventListener('input', function() {
+        actualizarContadorClave(this, contadorCrearConfirmar);
+        actualizarMatchCrear();
+    });
+    let departamentosData = [];
+    let provinciasData = [];
+    let distritosData = [];
+
+    // === Normalizar texto ===
+    function normalizarTexto(texto) {
+        return texto
+            .replace(/[̀-ͯ]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
+    // === Sanitización de documento (EXACTO COMO nuevo_caficultor.html) ===
+    function limpiarDocumentoSegunRegla(valor, regla) {
+        const texto = String(valor || '').trim();
+        if (regla.soloNumeros) {
+            return texto.replace(/\D/g, '').slice(0, regla.maxLength);
+        }
+        return texto.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, regla.maxLength);
+    }
+
+    // === Reglas de documento por tipo (EXACTO COMO nuevo_caficultor.html) ===
+    function obtenerReglaDocumento(tipoDocumentoSeleccionadoId) {
+        const id = Number(tipoDocumentoSeleccionadoId || 0);
+        const nombreTipo = normalizarTexto(tiposDocumento.find(t => t.id === id)?.nombre || '');
+
+        if (nombreTipo === 'dni') {
+            return {
+                maxLength: 8,
+                soloNumeros: true,
+                hint: 'DNI: exactamente 8 digitos numericos.',
+                placeholder: 'Ingrese 8 digitos',
+                validationMessage: 'Para DNI se requieren 8 digitos numericos.',
+                regex: /^\d{8}$/,
+                longitudesAutoBusqueda: [8],
+            };
+        }
+
+        if (nombreTipo === 'pasaporte' || nombreTipo === 'carnet de extranjeria') {
+            return {
+                maxLength: 12,
+                soloNumeros: false,
+                hint: 'Pasaporte/Carnet: 8 a 12 caracteres alfanumericos.',
+                placeholder: 'Ingrese 8-12 caracteres',
+                validationMessage: 'Pasaporte/Carnet debe tener 8-12 caracteres alfanumericos.',
+                regex: /^[A-Za-z0-9]{8,12}$/,
+                longitudesAutoBusqueda: [12],
+            };
+        }
+
+        return {
+            maxLength: 12,
+            soloNumeros: false,
+            hint: 'Documento: 8 a 12 caracteres.',
+            placeholder: 'Ingrese documento',
+            validationMessage: 'Documento debe tener 8-12 caracteres.',
+            regex: /^[A-Za-z0-9]{8,12}$/,
+            longitudesAutoBusqueda: [8, 12],
+        };
+    }
+
+    // === Validar documento ===
+    function validarDocumentoPorTipoId(tipoDocumentoSeleccionadoId, documento) {
+        const id = Number(tipoDocumentoSeleccionadoId || 0);
+        if (!id) {
+            return { ok: false, mensaje: 'Selecciona primero el tipo de documento.' };
+        }
+
+        const regla = obtenerReglaDocumento(id);
+        if (!regla.regex.test(documento)) {
+            return { ok: false, mensaje: regla.validationMessage };
+        }
+
+        return { ok: true, mensaje: '' };
+    }
+
+    // === Autollenar datos (EXACTO COMO nuevo_caficultor.html) ===
+    async function autollenarDesdeDni(data) {
+        if (data.nombres) crearNombre.value = data.nombres;
+        if (data.apellido_paterno) crearApePaterno.value = data.apellido_paterno;
+        if (data.apellido_materno) crearApeMaterno.value = data.apellido_materno;
+        if (data.sexo) crearSexo.value = data.sexo;
+        if (data.fecha_nacimiento) crearFechaNacimiento.value = data.fecha_nacimiento;
+        if (data.telefono) crearTelefono.value = data.telefono;
+
+        // Cascada de ubicación: ubigeo es código de 6 dígitos (ej: "150103")
+        const ubigeoCode = data.ubigeo_sunat || data.ubigeo;
+        if (ubigeoCode && /^\d{6}$/.test(ubigeoCode)) {
+            const deptoCode = ubigeoCode.substring(0, 2);    // Primeros 2: "15"
+            const provCode  = ubigeoCode.substring(0, 4);    // Primeros 4: "1501"
+            const distCode  = ubigeoCode;                     // Los 6: "150103"
+
+            // Cargar departamentos si aún no están cargados
+            if (!crearDepartamento.querySelector('option[value="' + deptoCode + '"]')) {
+                await cargarDepartamentos();
+            }
+
+            crearDepartamento.value = deptoCode;
+            await cargarProvincias(deptoCode);
+
+            // Esperar a que se carguen las provincias
+            if (crearProvincia.querySelectorAll('option').length > 1) {
+                crearProvincia.value = provCode;
+                await cargarDistritos(provCode);
+
+                // Esperar a que se carguen los distritos
+                if (crearDistrito.querySelectorAll('option').length > 1) {
+                    crearDistrito.value = distCode;
+                }
+            }
+        }
+    }
+
+    // === Buscar y autollenar (EXACTO COMO nuevo_caficultor.html) ===
+    async function consultarYAutollenar(documento) {
+        buscarEstado.innerHTML = '<span class="buscar-spinner"></span> Buscando...';
+        buscarEstado.className = 'buscar-estado buscando';
+
+        try {
+            // 1. Buscar en BD local
+            const respBD = await fetch(`/persona/consultar/${encodeURIComponent(documento)}`);
+            if (respBD.ok) {
+                const dataBD = await respBD.json();
+                if (dataBD.encontrado) {
+                    await autollenarDesdeDni(dataBD);
+                    buscarEstado.innerHTML = 'Datos cargados desde la base de datos';
+                    buscarEstado.className = 'buscar-estado encontrado';
+                    generarUsuarioPreview();
+                    return;
+                }
+            }
+
+            // 2. Si no está en BD y es DNI, consultar RENIEC
+            const tipoId = Number(crearTipoDocumento.value || 0);
+            const nombreTipo = normalizarTexto(tiposDocumento.find(t => t.id === tipoId)?.nombre || '');
+            if (nombreTipo !== 'dni') {
+                buscarEstado.innerHTML = 'No se encontraron datos para este documento';
+                buscarEstado.className = 'buscar-estado no-encontrado';
+                return;
+            }
+
+            const respAPI = await fetch(`/dni/consultar/${encodeURIComponent(documento)}`);
+            if (!respAPI.ok) {
+                buscarEstado.innerHTML = 'No se encontraron datos en RENIEC';
+                buscarEstado.className = 'buscar-estado no-encontrado';
+                return;
+            }
+
+            const dataAPI = await respAPI.json();
+            if (!dataAPI.encontrado) {
+                buscarEstado.innerHTML = 'DNI no válido en RENIEC';
+                buscarEstado.className = 'buscar-estado no-encontrado';
+                return;
+            }
+
+            await autollenarDesdeDni(dataAPI);
+            buscarEstado.innerHTML = 'Datos cargados desde RENIEC';
+            buscarEstado.className = 'buscar-estado encontrado';
+            generarUsuarioPreview();
+
+        } catch (error) {
+            buscarEstado.innerHTML = 'Error: ' + error.message;
+            buscarEstado.className = 'buscar-estado no-encontrado';
+        }
+    }
+
+    // === Aplicar regla de documento al cambiar tipo ===
+    function aplicarReglaDocumento() {
+        const regla = obtenerReglaDocumento(crearTipoDocumento.value);
+        crearNumDocumento.maxLength = regla.maxLength;
+        crearNumDocumento.placeholder = regla.placeholder;
+        crearNumDocumento.inputMode = regla.soloNumeros ? 'numeric' : 'text';
+        buscarEstado.innerHTML = regla.hint;
+        buscarEstado.className = 'buscar-estado';
+    }
+
+    // === Listeners para búsqueda automática ===
+    crearNumDocumento.addEventListener('input', () => {
+        // Sanitizar en tiempo real: solo números si es DNI, alfanumérico si es otro
+        const regla = obtenerReglaDocumento(crearTipoDocumento.value);
+        crearNumDocumento.value = limpiarDocumentoSegunRegla(crearNumDocumento.value, regla);
+
+        clearTimeout(debounceTimer);
+        const numDoc = crearNumDocumento.value;
+
+        if (regla.longitudesAutoBusqueda.includes(numDoc.length)) {
+            debounceTimer = setTimeout(() => consultarYAutollenar(numDoc), 320);
+        }
+    });
+
+    crearTipoDocumento.addEventListener('change', () => {
+        aplicarReglaDocumento();
+        crearNumDocumento.value = '';
+        buscarEstado.innerHTML = 'Selecciona tipo y escribe el documento';
+        buscarEstado.className = 'buscar-estado';
+    });
+
+    // === Cascada de ubicación (EXACTO COMO nuevo_caficultor.html) ===
+    async function cargarDepartamentos() {
+        try {
+            const res = await fetch('/ubigeo/departamentos');
+            if (!res.ok) throw new Error('Error cargando departamentos');
+            const data = await res.json();
+
+            crearDepartamento.innerHTML = '<option value="">Selecciona...</option>';
+            data.forEach(dep => {
+                const opt = document.createElement('option');
+                opt.value = dep.codigo;
+                opt.textContent = dep.nombre;
+                crearDepartamento.appendChild(opt);
+            });
+        } catch (error) {
+            console.error('Error al cargar departamentos:', error);
+        }
+    }
+
+    async function cargarProvincias(depCode) {
+        try {
+            crearProvincia.innerHTML = '<option value="">Cargando...</option>';
+            const res = await fetch(`/ubigeo/provincias?departamento=${depCode}`);
+            if (!res.ok) throw new Error('Error cargando provincias');
+            const data = await res.json();
+
+            crearProvincia.innerHTML = '<option value="">Selecciona...</option>';
+            data.forEach(prov => {
+                const opt = document.createElement('option');
+                opt.value = prov.codigo;
+                opt.textContent = prov.nombre;
+                crearProvincia.appendChild(opt);
+            });
+            crearProvincia.disabled = false;
+            crearDistrito.disabled = true;
+            crearDistrito.innerHTML = '<option value="">Selecciona provincia primero</option>';
+        } catch (error) {
+            console.error('Error al cargar provincias:', error);
+            crearProvincia.disabled = true;
+        }
+    }
+
+    async function cargarDistritos(provCode) {
+        try {
+            crearDistrito.innerHTML = '<option value="">Cargando...</option>';
+            const res = await fetch(`/ubigeo/distritos?provincia=${provCode}`);
+            if (!res.ok) throw new Error('Error cargando distritos');
+            const data = await res.json();
+
+            crearDistrito.innerHTML = '<option value="">Selecciona...</option>';
+            data.forEach(dist => {
+                const opt = document.createElement('option');
+                opt.value = dist.codigo;
+                opt.textContent = dist.nombre;
+                crearDistrito.appendChild(opt);
+            });
+            crearDistrito.disabled = false;
+        } catch (error) {
+            console.error('Error al cargar distritos:', error);
+            crearDistrito.disabled = true;
+        }
+    }
+
+    crearDepartamento.addEventListener('change', () => {
+        if (crearDepartamento.value) {
+            cargarProvincias(crearDepartamento.value);
+        } else {
+            crearProvincia.disabled = true;
+            crearDistrito.disabled = true;
+            crearProvincia.innerHTML = '<option value="">Selecciona departamento primero</option>';
+            crearDistrito.innerHTML = '<option value="">Selecciona provincia primero</option>';
+        }
+    });
+
+    crearProvincia.addEventListener('change', () => {
+        if (crearProvincia.value) {
+            cargarDistritos(crearProvincia.value);
+        } else {
+            crearDistrito.disabled = true;
+            crearDistrito.innerHTML = '<option value="">Selecciona provincia primero</option>';
+        }
+    });
 
     // Generar preview de usuario: primera letra nombre + apellido paterno + primera letra apellido materno
     function generarUsuarioPreview() {
@@ -620,7 +1072,7 @@
 
     function mostrarUsuarios(usuarios) {
         if (!usuarios || usuarios.length === 0) {
-            usuariosTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #666;">No hay usuarios registrados</td></tr>';
+            usuariosTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted-foreground);">No hay usuarios registrados</td></tr>';
             return;
         }
 
@@ -636,6 +1088,10 @@
                     </span>
                 </td>
                 <td class="acciones-celda">
+                    <button type="button" class="btn-tabla"
+                            onclick="editarUsuario('${u.personal_id}')">
+                        Editar
+                    </button>
                     <button type="button" class="btn-tabla ${u.estado === 'A' ? 'btn-inactivar' : 'btn-activar'}"
                             onclick="cambiarEstadoUsuario('${u.personal_id}', '${u.estado === 'A' ? 'I' : 'A'}')">
                         ${u.estado === 'A' ? 'Desactivar' : 'Activar'}
@@ -644,6 +1100,17 @@
             </tr>
         `).join('');
     }
+
+    window.editarUsuario = async function(personalId) {
+        try {
+            const res = await fetch(`/perfil/usuarios/${personalId}`);
+            if (!res.ok) throw new Error('No se pudo cargar el usuario');
+            const datos = await res.json();
+            abrirModal('editar', datos);
+        } catch (error) {
+            CoffeeModal.error(error.message);
+        }
+    };
 
     window.cambiarEstadoUsuario = async function(personalId, nuevoEstado) {
         const accion = nuevoEstado === 'I' ? 'desactivar' : 'activar';
@@ -669,64 +1136,97 @@
         }
     };
 
-    // Crear usuario
+    // Guardar usuario (crear o editar)
     btnGuardarUsuario.addEventListener('click', async () => {
-        const nombre = crearNombre.value.trim();
-        const apePaterno = crearApePaterno.value.trim();
-        const apeMaterno = crearApeMaterno.value.trim();
-        const sexo = document.getElementById('crearSexo').value;
-        const fechaNac = document.getElementById('crearFechaNacimiento').value;
-        const tipoDoc = parseInt(document.getElementById('crearTipoDocumento').value);
-        const numDoc = document.getElementById('crearNumDocumento').value.trim();
-        const telefono = document.getElementById('crearTelefono').value.trim();
-        const correo = document.getElementById('crearCorreo').value.trim();
+        const nombre      = crearNombre.value.trim();
+        const apePaterno  = crearApePaterno.value.trim();
+        const apeMaterno  = crearApeMaterno.value.trim();
+        const sexo        = crearSexo.value;
+        const fechaNac    = crearFechaNacimiento.value;
         const tipoPersonal = parseInt(document.getElementById('crearTipoPersonal').value);
-        const clave = document.getElementById('crearContrasena').value;
-        const confirmar = document.getElementById('crearConfirmarContrasena').value;
+        const telefono    = crearTelefono.value.trim();
+        const correo      = crearCorreo.value.trim();
+        const ubigeo      = crearDistrito.value || null;
+        const clave       = document.getElementById('crearContrasena').value;
+        const confirmar   = document.getElementById('crearConfirmarContrasena').value;
 
-        if (!nombre || !apePaterno || !apeMaterno || !sexo || !fechaNac || !tipoDoc || !numDoc || !tipoPersonal || !clave) {
+        if (!nombre || !apePaterno || !apeMaterno || !sexo || !fechaNac || !tipoPersonal) {
             CoffeeModal.warning('Completa todos los campos requeridos');
             return;
         }
 
-        if (clave !== confirmar) {
-            CoffeeModal.warning('Las contraseñas no coinciden');
-            return;
-        }
+        if (modoModal === 'crear') {
+            const tipoDoc = parseInt(crearTipoDocumento.value);
+            const numDoc  = crearNumDocumento.value.trim();
+            if (!tipoDoc || !numDoc || !clave) {
+                CoffeeModal.warning('Completa tipo de documento, número de documento y contraseña');
+                return;
+            }
+            if (clave !== confirmar) { CoffeeModal.warning('Las contraseñas no coinciden'); return; }
 
-        try {
+            const btnLabel = btnGuardarUsuario.innerHTML;
             btnGuardarUsuario.disabled = true;
-            btnGuardarUsuario.innerHTML = '<span style="opacity:0.7">Creando...</span>';
-
-            const res = await fetch('/perfil/usuarios/crear', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    nombre, ape_paterno: apePaterno, ape_materno: apeMaterno,
-                    sexo, fecha_nacimiento: fechaNac, tipo_documento_id: tipoDoc,
-                    num_documento: numDoc, telefono: telefono || null,
-                    correo: correo || null, tipo_personal_id: tipoPersonal, clave
-                }),
-            });
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail || 'Error');
+            btnGuardarUsuario.innerHTML = '<span style="opacity:.7">Creando...</span>';
+            try {
+                const res = await fetch('/perfil/usuarios/crear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nombre, ape_paterno: apePaterno, ape_materno: apeMaterno,
+                        sexo, fecha_nacimiento: fechaNac, tipo_documento_id: tipoDoc,
+                        num_documento: numDoc, telefono: telefono || null,
+                        correo: correo || null, ubigeo, tipo_personal_id: tipoPersonal, clave
+                    }),
+                });
+                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Error');
+                CoffeeModal.success('Usuario creado correctamente');
+                cerrarModal();
+                cargarUsuarios();
+            } catch (e) {
+                CoffeeModal.error(e.message);
+            } finally {
+                btnGuardarUsuario.disabled = false;
+                btnGuardarUsuario.innerHTML = btnLabel;
             }
 
-            formCrearUsuario.reset();
-            crearUsuarioPreview.value = '';
-            CoffeeModal.success('Usuario creado correctamente');
-            cargarUsuarios();
-        } catch (error) {
-            CoffeeModal.error(error.message);
-        } finally {
-            btnGuardarUsuario.disabled = false;
-            btnGuardarUsuario.innerHTML = 'Crear usuario';
+        } else {
+            // Editar
+            if (clave && clave !== confirmar) { CoffeeModal.warning('Las contraseñas no coinciden'); return; }
+
+            const btnLabel = btnGuardarUsuario.innerHTML;
+            btnGuardarUsuario.disabled = true;
+            btnGuardarUsuario.innerHTML = '<span style="opacity:.7">Guardando...</span>';
+            try {
+                const res = await fetch(`/perfil/usuarios/${personalIdEditando}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nombre, ape_paterno: apePaterno, ape_materno: apeMaterno,
+                        sexo, fecha_nacimiento: fechaNac,
+                        telefono: telefono || null, correo: correo || null,
+                        ubigeo, tipo_personal_id: tipoPersonal,
+                        clave_nueva: clave || null
+                    }),
+                });
+                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Error');
+                CoffeeModal.success('Usuario actualizado correctamente');
+                cerrarModal();
+                cargarUsuarios();
+            } catch (e) {
+                CoffeeModal.error(e.message);
+            } finally {
+                btnGuardarUsuario.disabled = false;
+                btnGuardarUsuario.innerHTML = btnLabel;
+            }
         }
     });
 
     // Inicializar
-    cargarCooperativa();
+    async function inicializarCrearUsuario() {
+        await cargarDepartamentos();
+        cargarCooperativa();
+    }
+
+    inicializarCrearUsuario();
 </script>
 {% endblock %}

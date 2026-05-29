@@ -172,11 +172,14 @@ async def obtener_frame():
 
 @router.get("/status")
 async def obtener_status():
-    """Retorna el estado actual del sistema de monitoreo."""
+    """Retorna el estado actual del sistema de monitoreo, incluyendo errores de cámara."""
+    estado_error = tracker_service.obtener_estado_error()
     return {
         "activo": tracker_service.esta_activo(),
         "modelo": tracker_service.model_name,
-        "conteo_actual": tracker_service.obtener_conteo_actual()
+        "conteo_actual": tracker_service.obtener_conteo_actual(),
+        "camara_desconectada": estado_error["camara_desconectada"],
+        "error": estado_error["error"],
     }
 
 

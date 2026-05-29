@@ -6,6 +6,7 @@ import os
 from src.utilities.jwt_required import obtener_usuario_actual, jwt_token_requerido
 from src.schemas.perfil import (
     ActualizarDatosPersonales,
+    ActualizarUsuario,
     CambiarContrasena,
     CambiarContraseñaUsuario,
     CambiarEstadoUsuario,
@@ -217,6 +218,37 @@ async def cambiar_contrasena_usuario(
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
+@perfil.patch("/usuarios/{personal_id}")
+async def actualizar_usuario(
+    personal_id: str,
+    body: ActualizarUsuario,
+    user: dict = Depends(obtener_usuario_actual),
+):
+    try:
+        verificar_admin_o_gerente(user)
+        resultado = perfil_service.actualizar_usuario(
+            personal_id=personal_id,
+            nombre=body.nombre,
+            ape_paterno=body.ape_paterno,
+            ape_materno=body.ape_materno,
+            sexo=body.sexo,
+            fecha_nacimiento=body.fecha_nacimiento,
+            telefono=body.telefono,
+            correo=body.correo,
+            ubigeo=body.ubigeo,
+            tipo_personal_id=body.tipo_personal_id,
+            clave_nueva=body.clave_nueva,
+        )
+        return resultado
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @perfil.post("/usuarios/crear")
 async def crear_usuario(
     body: CrearUsuario,
@@ -238,6 +270,7 @@ async def crear_usuario(
             num_documento=body.num_documento,
             telefono=body.telefono,
             correo=body.correo,
+            ubigeo=body.ubigeo,
             tipo_personal_id=body.tipo_personal_id,
             clave=body.clave,
         )

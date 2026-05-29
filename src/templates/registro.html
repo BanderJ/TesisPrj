@@ -1,7 +1,7 @@
 {% extends "main.html" %}
 
 {% block style %}
-	<link rel="stylesheet" href="/static/css/registro.css?v=3">
+	<link rel="stylesheet" href="/static/css/registro.css?v=5">
 {% endblock %}
 
 {% block content %}
@@ -526,8 +526,30 @@
 		[pesoTotalInput, humedadInput, pesoMuestraInput, pesoTrilladoInput, pesoTamizadoInput]
 			.forEach(forzar2Decimales);
 
-		startBtn.addEventListener('click', () => {
-			if (validateForm()) registrarEvaluacion();
+		startBtn.addEventListener('click', async () => {
+			if (!validateForm()) return;
+
+			// Verificar que el sensor ultrasónico detecta la muestra en la banda
+			startBtn.disabled = true;
+			startBtn.textContent = 'Verificando sensor...';
+			try {
+				const res = await fetch('/arduino/estado');
+				if (!res.ok) throw new Error('Error del servidor');
+				const estado = await res.json();
+				if (!estado.listo) {
+					CoffeeModal.warning(estado.mensaje || 'Debe cerrar la tapa luego de haber ingresado los granos de café para continuar al monitoreo.');
+					startBtn.disabled = false;
+					startBtn.textContent = 'Iniciar clasificacion y monitoreo';
+					return;
+				}
+			} catch {
+				CoffeeModal.warning('No se pudo verificar el sensor Arduino. Revise la conexión USB.');
+				startBtn.disabled = false;
+				startBtn.textContent = 'Iniciar clasificacion y monitoreo';
+				return;
+			}
+
+			registrarEvaluacion();
 		});
 		clearBtn.addEventListener('click', clearAll);
 

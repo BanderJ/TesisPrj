@@ -261,7 +261,7 @@ body.dark::before {
     cursor: pointer;
     color: var(--primary-foreground);
     background-color: var(--primary);
-    transition: filter 0.18s ease;
+    transition: filter 0.2s ease;
 }
 
 .btn-primary:hover {
@@ -282,7 +282,7 @@ body.dark::before {
     text-decoration: underline;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 768px) {
     .login-stage {
         grid-template-columns: 1fr;
     }

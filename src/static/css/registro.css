@@ -60,40 +60,16 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Registro-specific field overrides */
 .form-row .field-group {
     margin-bottom: 0;
-}
-
-.field-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    margin-bottom: 0.9rem;
 }
 
 .field-group:last-child {
     margin-bottom: 0;
 }
 
-.field-group label {
-    font-size: inherit;
-    font-weight: 600;
-    color: color-mix(in oklab, var(--foreground) 90%, var(--muted-foreground) 10%);
-}
-
-.field-group input,
-.field-group select {
-    width: 100%;
-    background: color-mix(in oklab, var(--input) 96%, transparent 4%);
-    border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
-    color: var(--foreground);
-    border-radius: 10px;
-    min-height: 2.5rem;
-    padding: 0.45rem 0.7rem;
-    font-size: 14px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
+/* Custom select styling (dropdown arrow) */
 .field-group select {
     appearance: none;
     cursor: pointer;
@@ -110,13 +86,6 @@
 
 .field-group select option {
     color: var(--foreground);
-}
-
-.field-group input:focus,
-.field-group select:focus {
-    outline: none;
-    border-color: var(--ring);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 30%, transparent 70%);
 }
 
 .field-group input[readonly] {
@@ -155,7 +124,7 @@
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: filter 0.18s ease;
+    transition: filter 0.2s ease;
 }
 
 .btn:disabled {
@@ -183,7 +152,7 @@
     color: var(--destructive);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
     .registro-grid {
         grid-template-columns: 1fr;
     }

@@ -139,7 +139,7 @@
     background: color-mix(in oklab, var(--muted) 25%, transparent 75%);
     border: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
     border-radius: 10px;
-    transition: border-color 0.15s;
+    transition: border-color 0.2s;
 }
 
 .bloque-fila:focus-within {
@@ -169,7 +169,7 @@
     color: var(--muted-foreground);
     cursor: pointer;
     flex-shrink: 0;
-    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    transition: border-color 0.15s, background 0.15s, color 0.2s;
 }
 
 .btn-remove-fila:hover {
@@ -199,7 +199,7 @@
     font-size: 13px;
     font-weight: 600;
     margin-bottom: 14px;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition: border-color 0.15s, color 0.15s, background 0.2s;
 }
 
 .btn-add-fila:hover {
@@ -296,13 +296,13 @@
 }
 
 /* Responsive */
-@media (max-width: 900px) {
+@media (max-width: 768px) {
     .valor-cafe-content {
         grid-template-columns: 1fr;
     }
 }
 
-@media (max-width: 580px) {
+@media (max-width: 640px) {
     .bloque-fila {
         grid-template-columns: 1fr 1fr auto;
         gap: 6px;

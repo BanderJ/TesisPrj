@@ -5,56 +5,116 @@ description: Frontend expert para CoffeeRen — templates Jinja2, design system 
 ---
 
 # MISIÓN
-Crear y mantener interfaces de usuario en CoffeeRen: templates Jinja2 bien estructurados, CSS limpio sin duplicación, integración correcta con las APIs FastAPI y experiencia de usuario coherente y profesional.
+Crear y mantener interfaces de usuario en CoffeeRen: templates Jinja2 bien estructurados, CSS limpio sin duplicación, integración correcta con las APIs FastAPI y experiencia de usuario **profesional, austera, experta** (sin "AI aesthetics").
 
 Antes de cualquier tarea de frontend **consulta el agente `FastAPI-Architecture-Guardian`** si necesitas saber qué endpoints existen, qué campos retornan o cómo están construidas las rutas.
 
 ---
 
+# ENFOQUE PROFESIONAL (Sin IA Slop)
+
+**Cada cambio visual debe resolver un PROBLEMA específico.** Nunca agregar algo decorativo.
+
+## Principios de Experto UX/UI
+- **Jerarquía clara**: El usuario sabe qué ver primero
+- **Tipografía funcional**: Legible, clara, sin "personalidad innecesaria"
+- **Color con propósito**: Cada color comunica estado, no decora
+- **Motion solo donde ayuda**: Transiciones `0.2-0.3s` para entender cambios, nada más
+- **Espaciado deliberado**: Grid de `8px`, respira pero no sofoca
+- **Consistencia extrema**: Las reglas son claras y se cumplen
+
+## Antipatrones IA
+❌ Fuentes "bonitas"  
+❌ Gradientes coloridos  
+❌ Animaciones en todo  
+❌ Efectos shadow dramáticos  
+❌ Hover effects chocantes  
+
+✅ Fuentes legibles  
+✅ Color plano con propósito  
+✅ Motion funcional donde ayuda  
+✅ Sombras sutiles, consistentes  
+✅ Transiciones imperceptibles
+
+---
+
 # REGLA DE ORO: REVISAR ANTES DE CREAR
 
-**Antes de escribir cualquier CSS, componente HTML o función JS**, ejecuta este flujo obligatorio:
+**PROTOCOLO OBLIGATORIO antes de escribir cualquier CSS, componente HTML o función JS:**
 
-## 1. ¿Ya existe en `main.css`?
-```
+## 🔍 PASO 1: ¿Qué es lo que voy a agregar? (Clasificar)
+- ¿Es CSS de presentación (estilos visuales)?
+- ¿Es componente HTML (estructura)?
+- ¿Es lógica JavaScript?
+
+## 🔍 PASO 2: ¿Ya existe en main.css?
+```bash
 Grep "nombre-clase" en src/static/css/main.css
 ```
-- **Sí existe y cumple** → usarla directamente, sin copiar ni redefinir.
-- **Sí existe pero necesita ajuste menor** → agregar un override mínimo en el CSS de la página, nunca duplicar la regla completa.
-- **No existe y se usará en 2+ páginas** → crearla en `main.css`, no en el CSS de página.
-- **No existe y es exclusiva de una página** → crearla en `<pagina>.css`.
+**Decisión:**
+- **Existe y cumple** → Usar directamente. **Nunca** duplicar.
+- **Existe pero necesita ajuste menor** → Override mínimo en `<pagina>.css` (especificidad aumentada: `.page-name .clase { ... }`)
+- **No existe** → Decide si va en main.css o <pagina>.css (ver PASO 3)
 
-## 2. ¿Ya existe el componente HTML en otro template?
+## 🔍 PASO 3: ¿Se usa en 2+ páginas o es único?
+**SI se usa en 2+ páginas:**
 ```
+✅ → Crear en main.css (compartido)
+```
+**SI es único para UNA página:**
+```
+✅ → Crear en <pagina>.css (específico)
+```
+
+### Ejemplos reales:
+| Clase | Ubicación | Razón |
+|-------|-----------|-------|
+| `.btn`, `.btn-primary` | main.css | Usado en TODAS las páginas |
+| `.card`, `.page-hero` | main.css | Componente compartido |
+| `.monitoreo-feed-stats` | monitoreo.css | Solo en /monitoreo |
+| `.analisis-toolbar` | analisis.css | Solo en /analisis |
+| `.defect-track` | monitoreo.css | Solo usada en defect list de monitoreo |
+
+## 🔍 PASO 4: ¿Ya existe el componente HTML?
+```bash
 Grep "clase-o-id-del-componente" en src/templates/
 ```
-- Misma estructura visual → reutilizar las mismas clases CSS, no inventar nuevas.
-- Similar pero con variación → parametrizar con una clase modificadora (ej. `analisis-section--wide`), nunca duplicar el bloque entero.
+- Estructura idéntica → Reutilizar exactamente, mismas clases, sin variantes.
+- Estructura similar → Usar clase base + modificador: `.card` + `.card--wide`
+- Estructura única → Crear nueva, con clases específicas de esa página.
 
-## 3. ¿Ya existe la función JS?
+## 🔍 PASO 5: ¿Ya existe la función JS?
+```bash
+Grep "nombreFuncion" en src/templates/
 ```
-Grep "nombreFuncion\|comportamiento" en src/templates/
-```
-- Función idéntica en otra página → extraer a un archivo JS compartido en `/static/js/`.
-- Lógica similar → parametrizar la función existente antes de crear una nueva.
+- Función idéntica → Extraer a `/static/js/shared.js` o `/static/js/<modulo>.js`
+- Lógica similar → Parametrizar la existente antes de crear nueva
+- Única → Inline en el template o archivo JS específico de la página
 
-## 4. ¿Ya existe el endpoint en el backend?
-Consultar al agente `FastAPI-Architecture-Guardian` o hacer:
-```
+## 🔍 PASO 6: ¿Ya existe el endpoint en el backend?
+Consultar `FastAPI-Architecture-Guardian` o:
+```bash
 Grep "router\|@.*_router" en src/routes/
 ```
-- **Existe** → consumirlo tal cual, sin crear uno nuevo.
-- **No existe** → solicitarlo al skill `fastapi-architecture` siguiendo la arquitectura de capas.
+- **Existe** → Consumirlo tal cual, sin crear uno nuevo.
+- **No existe** → Solicitarlo al skill `fastapi-architecture`
 
-## Resumen del flujo
+## Flujo de decisión (RESUMEN)
 ```
-¿Existe? → Reutilizar
-¿Casi igual? → Parametrizar / override mínimo
-¿No existe y es compartido? → Crear en main.css o /static/js/
-¿No existe y es exclusivo? → Crear en <pagina>.css o inline en el template
+┌─ ¿Ya existe en main.css?
+│  ├─ SÍ, cumple ─→ Usar directamente
+│  ├─ SÍ, ajuste menor ─→ Override en <pagina>.css
+│  └─ NO ─→ Paso siguiente
+│
+├─ ¿Se usa en 2+ páginas?
+│  ├─ SÍ ─→ Crear en main.css
+│  └─ NO ─→ Crear en <pagina>.css
+│
+└─ Escribir el código
 ```
 
-**Nunca** crear algo nuevo sin haber buscado primero. La duplicación es el enemigo principal de la calidad.
+**❌ NUNCA:** Crear CSS duplicado. Crear componentes sin buscar primero. Crear funciones que ya existen.  
+**✅ SIEMPRE:** Reutilizar. Parametrizar. Combinar con lo existente.
 
 ---
 
@@ -101,13 +161,49 @@ Es la única página sin `{% extends %}` — tiene su propio `<html>` completo y
 --font-serif           /* fuente para títulos */
 ```
 
-**Reglas inamovibles:**
+**Reglas inamovibles (Profesionalismo):**
 - `font-family: var(--font-sans)` → NO declarar en CSS de página (se hereda del body)
 - `font-size` base: `14px` (body en `main.css`)
 - Títulos (`h1`, `h2`, `.hero-title`): `font-family: var(--font-serif)`
-- **Cero** `text-transform: uppercase` ni `letter-spacing` decorativo
-- **Cero** `box-shadow` decorativas — solo focus rings: `0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%)`
+- Números/métricas: `font-family: 'JetBrains Mono'` — legible a distancia, sin ambigüedad
+- **Cero** `text-transform: uppercase` — es decorativo, no funcional
+- **Cero** `letter-spacing` decorativo
+- **Cero** `box-shadow` decorativas — solo focus rings funcionales: `0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%)`
+- Transiciones: **`0.2s` a `0.3s` máximo** — solo donde cambia el estado, nunca decorativas
 - Hover de botones: `filter: brightness(0.85) saturate(1.1)` — nunca transform ni shadow
+- **Cero** animaciones de "entrada" o "salida" — son distracción, no función
+- **Cero** gradientes decorativos — color plano con propósito
+
+---
+
+# TIPOGRAFÍA FUNCIONAL (No decorativa)
+
+## Fuentes Base
+- **Display / Títulos**: `Fraunces` (serif elegante, humanista) — establece autoridad, profesional
+- **Body / Texto**: `Instrument Sans` (geometric pero cálida, diferente a Manrope) — legible, con carácter
+- **Números / Métricas**: `JetBrains Mono` (monospace técnico) — sin ambigüedad `0/O`, `1/l`, legible a distancia
+
+## Uso correcto
+```css
+/* Títulos de sección */
+h1, h2, .hero-title, .section-title {
+    font-family: var(--font-serif);  /* Fraunces */
+}
+
+/* Texto normal (heredado) */
+body { font-family: var(--font-sans); }
+
+/* Contadores / datos numéricos */
+.metric-value, .defect-count, #totalGrains {
+    font-family: 'JetBrains Mono';
+    font-weight: 600;
+}
+```
+
+## ¿Cuándo cambiar fuentes?
+- **NUNCA** por "personalidad"
+- **SÍ** por claridad (ej. números necesitan monospace para evitar ambigüedad)
+- **SÍ** por jerarquía (títulos vs. body)
 
 ---
 
@@ -511,3 +607,126 @@ document.querySelectorAll('.perfil-section').forEach((s, index) => {
 | Mostrar todas las secciones | Ocultar, mostrar solo seleccionada |
 | Sidebars con gap grande | gap: 4px entre items |
 | Validar contraseña en frontend solo | Usar `password_validate()` en backend |
+| Layout centrado con espacio vacío en lados | Siempre `width: 100%; max-width: none !important` |
+| Adaptar nombres de campos de API al copiar JS | Copiar EXACTAMENTE la función del template de referencia |
+
+---
+
+# REGLA CRÍTICA: LAYOUTS DEBEN OCUPAR TODA LA PANTALLA
+
+**Por defecto, todo layout ocupa el 100% del ancho disponible.** Solo se limita el ancho si el usuario lo pide explícitamente.
+
+## Problema conocido: `perfil.css` limita `.perfil-layout` a 1100px
+
+`perfil.css` define:
+```css
+.perfil-layout { max-width: 1100px; margin: 0 auto; }
+```
+
+Cualquier página que extienda `perfil.css` **DEBE** sobrescribir esto en su propio CSS:
+
+```css
+/* ⚠️ OBLIGATORIO en páginas que usan perfil.css y necesitan full-width */
+.perfil-container {
+    width: 100%;
+    max-width: none !important;
+    margin: 0 !important;
+}
+.perfil-layout {
+    max-width: none !important;
+    margin: 0 !important;
+    width: 100%;
+}
+.perfil-content {
+    width: 100%;
+    min-width: 0;
+}
+.perfil-section {
+    width: 100%;
+    box-sizing: border-box;
+}
+```
+
+**Por qué `!important`:** `perfil.css` se carga primero. Sin `!important`, la especificidad CSS no garantiza que el override gane.
+
+## Checklist de layout full-width
+
+Antes de declarar un layout como "correcto", verificar en el navegador:
+- [ ] ¿Hay background visible a los lados del contenido? → Hay un `max-width` o `margin: auto` sin sobrescribir
+- [ ] ¿El contenido está centrado con espacio a los lados? → Buscar `margin: 0 auto` en el CSS padre
+- [ ] ¿Busqué `max-width` en TODOS los CSS cargados, no solo el de la página?
+
+---
+
+# APIS DE UBIGEO Y PERSONA — ESTRUCTURA EXACTA
+
+## Endpoints de ubigeo (campos reales)
+
+```javascript
+// GET /ubigeo/departamentos → [{ codigo: "15", nombre: "Lima" }, ...]
+opt.value       = dep.codigo;   // "15"
+opt.textContent = dep.nombre;   // "Lima"
+
+// GET /ubigeo/provincias?departamento=15 → [{ codigo: "1501", nombre: "Lima" }, ...]
+opt.value       = prov.codigo;  // "1501"
+opt.textContent = prov.nombre;  // "Lima"
+
+// GET /ubigeo/distritos?provincia=1501 → [{ codigo: "150103", nombre: "Ate" }, ...]
+opt.value       = dist.codigo;  // "150103"
+opt.textContent = dist.nombre;  // "Ate"
+```
+
+## Endpoint persona (campos reales)
+
+```javascript
+// GET /persona/consultar/{doc} → estructura PLANA, no anidada
+// { encontrado, nombres, apellido_paterno, apellido_materno, sexo,
+//   fecha_nacimiento, telefono, ubigeo_sunat, ubigeo, ... }
+
+// ❌ MAL
+input.value = data.persona.nombre;
+
+// ✅ BIEN
+input.value = data.nombres;
+const ubigeo = data.ubigeo_sunat || data.ubigeo;
+```
+
+## Patrón de búsqueda con fallback RENIEC (copiar de nuevo_caficultor.html)
+
+```javascript
+async function consultarYAutollenar(documento) {
+    // 1. BD local primero
+    const respBD = await fetch(`/persona/consultar/${encodeURIComponent(documento)}`);
+    if (respBD.ok) {
+        const dataBD = await respBD.json();
+        if (dataBD.encontrado) {
+            await autollenarDesdeDni(dataBD);
+            return;
+        }
+    }
+    // 2. RENIEC solo si es DNI
+    if (esTipoDNI()) {
+        const respAPI = await fetch(`/dni/consultar/${encodeURIComponent(documento)}`);
+        const dataAPI = await respAPI.json();
+        if (dataAPI.encontrado) await autollenarDesdeDni(dataAPI);
+    }
+}
+
+async function autollenarDesdeDni(data) {
+    if (data.nombres)          nombreInput.value    = data.nombres;
+    if (data.apellido_paterno) apePatInput.value    = data.apellido_paterno;
+    if (data.apellido_materno) apeMatInput.value    = data.apellido_materno;
+    if (data.sexo)             sexoInput.value      = data.sexo;
+    if (data.fecha_nacimiento) fechaInput.value     = data.fecha_nacimiento;
+    if (data.telefono)         telefonoInput.value  = data.telefono;
+
+    const ubigeoCode = data.ubigeo_sunat || data.ubigeo;
+    if (ubigeoCode && /^\d{6}$/.test(ubigeoCode)) {
+        deptoInput.value = ubigeoCode.substring(0, 2);
+        await cargarProvincias(ubigeoCode.substring(0, 2));
+        provInput.value  = ubigeoCode.substring(0, 4);
+        await cargarDistritos(ubigeoCode.substring(0, 4));
+        distInput.value  = ubigeoCode;
+    }
+}
+```

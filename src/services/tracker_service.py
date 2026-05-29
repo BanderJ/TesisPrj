@@ -12,6 +12,8 @@ from typing import Optional
 from src.services.camara import camara_service
 from src.ml.tracker import CoffeeRenTracker
 from src.ml.classifier import generar_reporte
+from src.utilities.arduino_serial import arduino_serial
+from src.utilities.servo_controller import servo_controller
 
 # Umbral de confianza global para todas las detecciones YOLO
 # Bajado a 0.20 para production: mejor recall en agrio (0.61) y partido (0.50)
@@ -42,6 +44,10 @@ class TrackerService:
         # Último frame anotado (JPEG)
         self._frame_anotado: Optional[bytes] = None
 
+        # Estado de error por desconexión de cámara
+        self._camara_desconectada: bool = False
+        self._error_camara: Optional[str] = None
+
     def iniciar(self) -> bool:
         """
         Inicia la captura y procesamiento.
@@ -52,6 +58,11 @@ class TrackerService:
         with self._lock:
             if self.activo:
                 return True
+
+            # Limpiar estado de error previo al reiniciar
+            self._camara_desconectada = False
+            self._error_camara = None
+            servo_controller.desbloquear()
 
             # Iniciar captura desde cámara
             print(f"📷 Iniciando CamaraService...")
@@ -91,12 +102,26 @@ class TrackerService:
         self.tracker.resetear_conteo()
         print("⏹️  TrackerService detenido - cámara liberada")
 
+    def _on_camara_desconectada(self) -> None:
+        """Reacción de emergencia ante pérdida de cámara."""
+        self.activo = False
+        self._camara_desconectada = True
+        self._error_camara = "Desconexión con cámara. La clasificación se ha detenido."
+        servo_controller.bloquear()
+        arduino_serial.enviar_comando("SERVO:DEFECTO")
+        print("⚠️  Cámara desconectada — servo fijado en posición DEFECTO")
+
     def _loop_procesamiento(self) -> None:
         """Loop principal de procesamiento (corre en hilo separado)."""
         t_anterior = time.time()
         frame_count = 0
 
         while self.activo:
+            # Detectar desconexión de cámara
+            if not camara_service.esta_disponible():
+                self._on_camara_desconectada()
+                break
+
             # Obtener frame desde CamaraService
             jpeg_bytes = camara_service.esperar_frame(timeout=1.0)
             if jpeg_bytes is None:
@@ -160,6 +185,13 @@ class TrackerService:
     def esta_activo(self) -> bool:
         """Verifica si el servicio está activo."""
         return self.activo and camara_service.esta_disponible()
+
+    def obtener_estado_error(self) -> dict:
+        """Retorna el estado de error de cámara para el frontend."""
+        return {
+            "camara_desconectada": self._camara_desconectada,
+            "error": self._error_camara,
+        }
 
     @staticmethod
     def _jpeg_a_frame(jpeg_bytes: bytes) -> Optional[np.ndarray]:

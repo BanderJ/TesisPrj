@@ -130,6 +130,50 @@ class PerfilService:
         personas = self.persona_model.obtener_personas_sin_usuario()
         return personas
 
+    def actualizar_usuario(
+        self,
+        personal_id: str,
+        nombre: str,
+        ape_paterno: str,
+        ape_materno: str,
+        sexo: str,
+        fecha_nacimiento: str,
+        telefono: str | None,
+        correo: str | None,
+        ubigeo: str | None,
+        tipo_personal_id: int,
+        clave_nueva: str | None,
+    ) -> dict[str, Any]:
+        from datetime import datetime
+        db = Connection()
+        try:
+            fecha_nac = datetime.strptime(fecha_nacimiento, "%Y-%m-%d").date()
+            self.persona_model.actualizar_completo(
+                persona_id=personal_id,
+                nombre=nombre,
+                ape_paterno=ape_paterno,
+                ape_materno=ape_materno,
+                sexo=sexo,
+                fecha_nacimiento=fecha_nac,
+                telefono=telefono,
+                correo=correo,
+                ubigeo=ubigeo,
+                db=db,
+            )
+            self.personal_model.actualizar_tipo_personal(personal_id, tipo_personal_id, db)
+            if clave_nueva:
+                is_valid, msg = password_validate(clave_nueva)
+                if not is_valid:
+                    raise ValueError(msg)
+                self.personal_model.actualizar_clave(personal_id, hash_password(clave_nueva), db)
+            db.commit()
+            return {"mensaje": "Usuario actualizado correctamente"}
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
     def crear_usuario(
         self,
         nombre: str,
@@ -141,6 +185,7 @@ class PerfilService:
         num_documento: str,
         telefono: str | None,
         correo: str | None,
+        ubigeo: str | None,
         tipo_personal_id: int,
         clave: str,
     ) -> dict[str, Any]:
@@ -168,6 +213,7 @@ class PerfilService:
                     tipo_documento_id=tipo_documento_id,
                     num_documento=num_documento,
                     telefono=telefono,
+                    ubigeo=ubigeo,
                     db=db,
                 )
 
