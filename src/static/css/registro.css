@@ -40,29 +40,33 @@
     border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
     background: color-mix(in oklab, var(--card) 97%, transparent 3%);
     padding: clamp(12px, 1.3vw, 18px);
+    /* Grid interno uniforme — mismo ritmo vertical en ambas tarjetas */
+    display: grid;
+    gap: 10px;
+    align-content: start;
 }
 
 .registro-card h2 {
-    margin-top: 0;
+    margin: 0 0 4px;
     font-family: var(--font-serif);
     font-size: clamp(0.95rem, 1.1vw, 1.1rem);
     font-weight: 700;
-    margin-bottom: 0.65rem;
 }
 
+/* form-row y field-group sin márgenes propios — el gap del card los controla */
 .form-row {
     display: grid;
     gap: 0 0.75rem;
-    margin-bottom: 0.9rem;
+    margin: 0;
 }
 
 .form-row--2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-/* Registro-specific field overrides */
-.form-row .field-group {
-    margin-bottom: 0;
+.form-row .field-group,
+.registro-card > .field-group {
+    margin: 0;
 }
 
 .field-group:last-child {
@@ -96,6 +100,11 @@
 
 .helper-text {
     color: var(--muted-foreground);
+}
+
+/* Ocultar párrafos de ayuda cuando están vacíos — evita altura extra */
+.helper-text:empty {
+    display: none;
 }
 
 .helper-error {

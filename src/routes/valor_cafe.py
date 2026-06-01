@@ -16,7 +16,7 @@ from src.schemas.valor_cafe import (
     ValorCafeResumenRangosResponse,
 )
 from src.services.valor_cafe_service import ValorCafeService
-from src.utilities.jwt_required import jwt_token_requerido
+from src.utilities.jwt_required import obtener_usuario_actual
 
 
 valor_cafe_router = APIRouter()
@@ -81,7 +81,7 @@ async def resumen_rangos(
 @valor_cafe_router.post("/crear", response_model=ValorCafeCrearResponse)
 async def crear_valor_cafe(
     data: ValorCafeCrearRequest,
-    token_payload: dict = Depends(jwt_token_requerido),
+    token_payload: dict = Depends(obtener_usuario_actual),
 ) -> ValorCafeCrearResponse:
     """
     Crea un nuevo registro de valor de café.
@@ -100,13 +100,10 @@ async def crear_valor_cafe(
 @valor_cafe_router.patch("/actualizar-precio", response_model=ValorCafeActualizarPrecioResponse)
 async def actualizar_precio_rango(
     data: ValorCafeActualizarPrecioRequest,
-    token_payload: dict = Depends(jwt_token_requerido),
+    token_payload: dict = Depends(obtener_usuario_actual),
 ) -> ValorCafeActualizarPrecioResponse:
     """Reemplaza el precio de un rango del día actual (elimina registros anteriores e inserta uno nuevo)."""
     validar_permiso_creacion(token_payload)
-    errores = data.validar()
-    if errores:
-        raise HTTPException(status_code=400, detail=str(errores))
     try:
         return valor_cafe_service.actualizar_precio_rango(data.rango, data.precio)
     except Exception as exc:
@@ -116,7 +113,7 @@ async def actualizar_precio_rango(
 @valor_cafe_router.delete("/eliminar-rango", response_model=ValorCafeEliminarRangoResponse)
 async def eliminar_rango(
     rango: str = Query(..., min_length=1, max_length=10, description="Rango a eliminar del día actual"),
-    token_payload: dict = Depends(jwt_token_requerido),
+    token_payload: dict = Depends(obtener_usuario_actual),
 ) -> ValorCafeEliminarRangoResponse:
     """Elimina todos los registros de un rango en el día actual."""
     validar_permiso_creacion(token_payload)
@@ -129,7 +126,7 @@ async def eliminar_rango(
 @valor_cafe_router.post("/crear-bloque", response_model=ValorCafeCrearBloqueResponse)
 async def crear_valor_cafe_bloque(
     data: ValorCafeCrearBloqueRequest,
-    token_payload: dict = Depends(jwt_token_requerido),
+    token_payload: dict = Depends(obtener_usuario_actual),
 ) -> ValorCafeCrearBloqueResponse:
     """Crea registros en bloque para multiples rangos de café."""
     validar_permiso_creacion(token_payload)

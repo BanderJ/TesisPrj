@@ -137,6 +137,7 @@ class Evaluacion:
                     tipo_grano_id,
                     num_sacos,
                     peso_bruto,
+                    humedad,
                     peso_muestra,
                     peso_trillado
                 FROM evaluacion

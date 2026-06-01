@@ -342,102 +342,31 @@
     const claveNueva = document.getElementById('claveNueva');
     const confirmarClave = document.getElementById('confirmarClave');
 
-    // Validación en tiempo real de requisitos de contraseña
-    function validatePasswordRequirements(password) {
-        const requirements = {
-            length: password.length >= 8,
-            uppercase: /[A-Z]/.test(password),
-            number: /\d/.test(password),
-            special: /[!@#%^&*(),.=?":{}$¿?¡]/.test(password)
-        };
-        return requirements;
-    }
-
-    function updateRequirementUI(requirements) {
-        const reqLength = document.getElementById('req-length');
-        const reqUppercase = document.getElementById('req-uppercase');
-        const reqNumber = document.getElementById('req-number');
-        const reqSpecial = document.getElementById('req-special');
-
-        if (requirements.length) {
-            reqLength.classList.add('active');
-            reqLength.classList.remove('inactive');
-        } else {
-            reqLength.classList.remove('active');
-            reqLength.classList.add('inactive');
-        }
-
-        if (requirements.uppercase) {
-            reqUppercase.classList.add('active');
-            reqUppercase.classList.remove('inactive');
-        } else {
-            reqUppercase.classList.remove('active');
-            reqUppercase.classList.add('inactive');
-        }
-
-        if (requirements.number) {
-            reqNumber.classList.add('active');
-            reqNumber.classList.remove('inactive');
-        } else {
-            reqNumber.classList.remove('active');
-            reqNumber.classList.add('inactive');
-        }
-
-        if (requirements.special) {
-            reqSpecial.classList.add('active');
-            reqSpecial.classList.remove('inactive');
-        } else {
-            reqSpecial.classList.remove('active');
-            reqSpecial.classList.add('inactive');
-        }
-    }
-
-    const MAX_CLAVE = 30;
-    const contadorNueva     = document.getElementById('contadorNueva');
-    const contadorConfirmar = document.getElementById('contadorConfirmar');
-
-    function actualizarContador(input, contadorEl) {
-        const len = input.value.length;
-        contadorEl.textContent = `${len}/${MAX_CLAVE}`;
-        contadorEl.style.color = len >= MAX_CLAVE ? 'var(--destructive)' : 'var(--muted-foreground)';
-        if (len >= MAX_CLAVE) {
-            CoffeeModal.warning(`La contraseña no puede exceder ${MAX_CLAVE} caracteres.`);
-        }
-    }
-
-    claveNueva.addEventListener('input', () => {
-        actualizarContador(claveNueva, contadorNueva);
-        const requirements = validatePasswordRequirements(claveNueva.value);
-        updateRequirementUI(requirements);
-        updatePasswordMatch();
+    // Validación de contraseña — usando CoffeeValidators
+    CoffeeValidators.contrasena({
+        inputEl:    'claveNueva',
+        contadorEl: 'contadorNueva',
+        max: 30,
+        reqs: {
+            length:    'req-length',
+            uppercase: 'req-uppercase',
+            number:    'req-number',
+            special:   'req-special',
+        },
     });
 
-    confirmarClave.addEventListener('input', () => {
-        actualizarContador(confirmarClave, contadorConfirmar);
-        updatePasswordMatch();
+    CoffeeValidators.contrasena({
+        inputEl:    'confirmarClave',
+        contadorEl: 'contadorConfirmar',
+        max: 30,
     });
 
-    function updatePasswordMatch() {
-        const passwordMatchDiv = document.getElementById('passwordMatch');
-        const passwordMatchText = document.getElementById('passwordMatchText');
-
-        if (!claveNueva.value || !confirmarClave.value) {
-            passwordMatchDiv.classList.remove('show', 'match', 'mismatch');
-            return;
-        }
-
-        passwordMatchDiv.classList.add('show');
-
-        if (claveNueva.value === confirmarClave.value) {
-            passwordMatchDiv.classList.add('match');
-            passwordMatchDiv.classList.remove('mismatch');
-            passwordMatchText.textContent = 'Las contraseñas coinciden';
-        } else {
-            passwordMatchDiv.classList.add('mismatch');
-            passwordMatchDiv.classList.remove('match');
-            passwordMatchText.textContent = 'Las contraseñas no coinciden';
-        }
-    }
+    CoffeeValidators.confirmar({
+        claveEl:     'claveNueva',
+        confirmarEl: 'confirmarClave',
+        matchEl:     'passwordMatch',
+        matchTextEl: 'passwordMatchText',
+    });
 
     btnCambiarContrasena.addEventListener('click', async () => {
         if (!claveActual.value) {

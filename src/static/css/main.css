@@ -221,19 +221,32 @@ main {
     /* transition: box-shadow 0.18s ease; */
 
 .dark-mode-btn {
-    background-color: color-mix(in oklab, var(--card) 90%, transparent 10%);
-    border: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+    background-color: color-mix(in oklab, var(--muted) 60%, var(--card) 40%);
+    border: 1px solid var(--border);
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
+    transition: background-color 0.2s, border-color 0.2s;
 }
 
 .dark-mode-btn:hover {
-    background-color: color-mix(in oklab, var(--accent) 28%, var(--card) 72%);
+    background-color: color-mix(in oklab, var(--primary) 18%, var(--card) 82%);
+    border-color: color-mix(in oklab, var(--primary) 50%, var(--border) 50%);
+}
+
+/* En modo oscuro: fondo notorio con borde brillante */
+.dark .dark-mode-btn {
+    background-color: oklch(0.42 0.04 270);
+    border-color: oklch(0.55 0.06 270);
+}
+
+.dark .dark-mode-btn:hover {
+    background-color: oklch(0.52 0.06 270);
+    border-color: var(--primary);
 }
 
 /* Dropdown */
@@ -838,8 +851,8 @@ main {
 body.dark {
     background-color: var(--background);
     background-image: linear-gradient(
-        color-mix(in oklab, var(--background) 82%, black 18%),
-        color-mix(in oklab, var(--background) 90%, black 10%)
+        color-mix(in oklab, var(--background) 85%, black 15%),
+        color-mix(in oklab, var(--background) 92%, black 8%)
     ), url('/resources/fondo_temp.jpg');
     color: var(--foreground);
 }

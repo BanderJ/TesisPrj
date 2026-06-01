@@ -20,7 +20,7 @@
             <nav class="perfil-nav">
                 <a href="#basicos" class="perfil-nav-link active" data-section="basicos">
                     <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     Información básica
                 </a>
@@ -28,13 +28,19 @@
                     <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
                     </svg>
-                    Tipos de grano
+                    Gestión tipos de grano
                 </a>
                 <a href="#usuarios" class="perfil-nav-link" data-section="usuarios" id="navUsuarios" hidden>
                     <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
                     Gestión de usuarios
+                </a>
+                <a href="#caficultores" class="perfil-nav-link" data-section="caficultores" id="navCaficultores" hidden>
+                    <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+                    </svg>
+                    Caficultores
                 </a>
             </nav>
         </aside>
@@ -111,24 +117,16 @@
 
             <!-- SECCIÓN 2: Tipos de grano -->
             <section id="tipos-grano" class="perfil-section" hidden>
-                <h2 class="perfil-section-title">Gestión de tipos de grano</h2>
-
-                <form class="perfil-form" style="display: grid; gap: 1rem; padding: 1.5rem; background: color-mix(in oklab, var(--card) 97%, transparent 3%); border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%); border-radius: 14px;">
-                    <div class="perfil-form-row">
-                        <div class="field-group">
-                            <label for="nuevoTipoNombre">Nombre del tipo</label>
-                            <input id="nuevoTipoNombre" type="text" maxlength="20" placeholder="Ej: Pilado">
-                        </div>
-                        <div class="field-group">
-                            <label for="nuevoTipoPeso">Peso por quintal (kg)</label>
-                            <input id="nuevoTipoPeso" type="number" step="0.01" min="0.01" placeholder="Ej: 46.50">
-                        </div>
-                    </div>
-                    <button type="button" id="btnAgregarTipo" class="btn btn-primary" style="width: fit-content;">Agregar tipo de grano</button>
-                </form>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                    <h2 class="perfil-section-title" style="border-bottom:none;padding-bottom:0;">Gestión de tipos de grano</h2>
+                    <button type="button" id="btnAbrirCrearTipoGrano" class="btn btn-primary" style="white-space:nowrap;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                        Agregar tipo de grano
+                    </button>
+                </div>
 
                 <!-- Tabla de tipos de grano -->
-                <div class="tabla-usuarios-wrapper" style="margin-top: 2rem;">
+                <div class="tabla-usuarios-wrapper" style="margin-top: 1.5rem;">
                     <table class="tabla-usuarios" id="tiposGranoTable">
                         <thead>
                             <tr>
@@ -139,7 +137,7 @@
                         </thead>
                         <tbody id="tiposGranoBody">
                             <tr>
-                                <td colspan="3" style="text-align: center; padding: 2rem; color: #666;">
+                                <td colspan="3" style="text-align: center; padding: 2rem; color: var(--muted-foreground);">
                                     Cargando tipos de grano...
                                 </td>
                             </tr>
@@ -177,6 +175,39 @@
                         </thead>
                         <tbody id="usuariosTableBody">
                             <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted-foreground);">Cargando usuarios...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 4: Caficultores -->
+            <section id="caficultores" class="perfil-section" hidden>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">
+                    <div>
+                        <h2 class="perfil-section-title" style="border-bottom:none;padding-bottom:0;margin-bottom:4px;">Caficultores registrados</h2>
+                        <p class="perfil-section-description" id="caficultoresConteo" style="margin:0;"></p>
+                    </div>
+                </div>
+
+                <div class="field-group" style="max-width:420px;margin-bottom:1.25rem;">
+                    <label for="buscadorCaficultores">Buscar caficultor</label>
+                    <input type="text" id="buscadorCaficultores" placeholder="Nombre, documento o tipo...">
+                </div>
+
+                <div class="tabla-usuarios-wrapper">
+                    <table class="tabla-usuarios" id="caficultoresTable">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Documento</th>
+                                <th>Tipo</th>
+                                <th>Ubicación</th>
+                                <th>Teléfono</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="caficultoresBody">
+                            <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted-foreground);">Cargando caficultores...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -285,8 +316,12 @@
                     <select id="crearTipoPersonal" required><option value="">Selecciona...</option></select>
                 </div>
                 <div class="field-group">
-                    <label for="crearUsuarioPreview">Usuario (generado)</label>
-                    <input id="crearUsuarioPreview" type="text" readonly placeholder="Se genera automáticamente">
+                    <label for="crearUsuarioPreview">
+                        Usuario
+                        <span style="font-size:11px;font-weight:400;color:var(--muted-foreground);margin-left:4px;">(permanente, no editable)</span>
+                    </label>
+                    <input id="crearUsuarioPreview" type="text" readonly placeholder="Se genera automáticamente"
+                           style="cursor:not-allowed;background:color-mix(in oklab,var(--muted) 50%,transparent);color:var(--muted-foreground);">
                 </div>
                 <div class="field-group">
                     <label for="crearCorreo">Correo Electrónico</label>
@@ -332,6 +367,53 @@
 <div style="display:none"><!-- cierre perfil-container movido al modal --></div>
 </div>
 
+<!-- ═══════════════════════════════════════════════
+     MODAL: Tipo de Grano (Crear / Editar)
+════════════════════════════════════════════════ -->
+<div id="modalTipoGrano" style="display:none;position:fixed;inset:0;z-index:9000;align-items:flex-start;justify-content:center;padding:1.5rem;background:rgba(0,0,0,0.48);backdrop-filter:blur(3px);overflow-y:auto;">
+    <div style="position:relative;width:100%;max-width:480px;margin:2rem auto;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 28px;box-shadow:0 24px 64px rgba(0,0,0,0.25);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--primary);">
+            <h2 id="modalTipoGranoTitulo" style="margin:0;font-size:18px;font-weight:700;color:var(--foreground);">Agregar tipo de grano</h2>
+            <button type="button" id="btnCerrarModalTipoGrano" style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;color:var(--muted-foreground);font-size:20px;display:flex;align-items:center;justify-content:center;border-radius:6px;" aria-label="Cerrar">✕</button>
+        </div>
+        <form id="formTipoGranoModal" class="perfil-form">
+            <div class="field-group">
+                <label for="modalTipoNombre">Nombre del tipo *</label>
+                <input id="modalTipoNombre" type="text" maxlength="20" required placeholder="Ej: Pilado">
+            </div>
+            <div class="field-group" style="margin-top:12px;">
+                <label for="modalTipoPeso">Peso por quintal (kg) *</label>
+                <input id="modalTipoPeso" type="number" step="0.01" min="0.01" required placeholder="Ej: 46.50">
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:16px;border-top:1px solid var(--border);margin-top:16px;">
+                <button type="button" id="btnCancelarTipoGrano" class="btn btn-secondary">Cancelar</button>
+                <button type="button" id="btnGuardarTipoGrano" class="btn btn-primary">Agregar tipo</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MODAL: Detalle de Caficultor
+════════════════════════════════════════════════ -->
+<div id="modalCaficultor" style="display:none;position:fixed;inset:0;z-index:9000;align-items:flex-start;justify-content:center;padding:1.5rem;background:rgba(0,0,0,0.48);backdrop-filter:blur(3px);overflow-y:auto;">
+    <div style="position:relative;width:100%;max-width:600px;margin:2rem auto;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 28px;box-shadow:0 24px 64px rgba(0,0,0,0.25);">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid var(--primary);">
+            <div>
+                <h2 id="detalleCaficultorNombre" style="margin:0;font-size:18px;font-weight:700;color:var(--foreground);"></h2>
+                <span id="detalleCaficultorBadge" style="display:inline-block;margin-top:4px;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;"></span>
+            </div>
+            <button type="button" id="btnCerrarModalCaficultor" style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;color:var(--muted-foreground);font-size:20px;display:flex;align-items:center;justify-content:center;border-radius:6px;" aria-label="Cerrar">✕</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="detalleCaficultorGrid">
+            <!-- populated by JS -->
+        </div>
+
+    </div>
+</div>
+
 <script>
     let cooperativaId = null;
     let tipoPersonalId = null;
@@ -361,6 +443,8 @@
                     cargarTiposGrano();
                 } else if (section === 'usuarios') {
                     cargarUsuarios();
+                } else if (section === 'caficultores') {
+                    cargarCaficultores();
                 }
             }
         });
@@ -396,6 +480,7 @@
             if (tipoPersonalId === 2 || tipoPersonalId === 3) {
                 document.getElementById('navTiposGrano').hidden = false;
                 document.getElementById('navUsuarios').hidden = false;
+                document.getElementById('navCaficultores').hidden = false;
                 await cargarCatalogos();
             }
 
@@ -441,6 +526,90 @@
     }
 
     // === Tipos de grano ===
+    const modalTipoGrano = document.getElementById('modalTipoGrano');
+    let modoTipoGrano = 'crear'; // 'crear' | 'editar'
+    let tipoGranoIdEditando = null;
+
+    function abrirModalTipoGrano(modo, datos = null) {
+        modoTipoGrano = modo;
+        tipoGranoIdEditando = datos?.id || null;
+        const titulo = document.getElementById('modalTipoGranoTitulo');
+        const btnGuardar = document.getElementById('btnGuardarTipoGrano');
+        document.getElementById('formTipoGranoModal').reset();
+
+        if (modo === 'crear') {
+            titulo.textContent = 'Agregar tipo de grano';
+            btnGuardar.textContent = 'Agregar tipo';
+        } else {
+            titulo.textContent = 'Editar tipo de grano';
+            btnGuardar.textContent = 'Guardar cambios';
+            document.getElementById('modalTipoNombre').value = datos.nombre || '';
+            document.getElementById('modalTipoPeso').value = datos.peso_qq || '';
+        }
+
+        modalTipoGrano.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        document.getElementById('modalTipoNombre').focus();
+    }
+
+    function cerrarModalTipoGrano() {
+        modalTipoGrano.style.display = 'none';
+        document.body.style.overflow = '';
+        document.getElementById('formTipoGranoModal').reset();
+    }
+
+    document.getElementById('btnCerrarModalTipoGrano').addEventListener('click', cerrarModalTipoGrano);
+    document.getElementById('btnCancelarTipoGrano').addEventListener('click', cerrarModalTipoGrano);
+    modalTipoGrano.addEventListener('click', (e) => { if (e.target === modalTipoGrano) cerrarModalTipoGrano(); });
+
+    document.getElementById('btnAbrirCrearTipoGrano').addEventListener('click', () => abrirModalTipoGrano('crear'));
+
+    document.getElementById('btnGuardarTipoGrano').addEventListener('click', async () => {
+        const nombre = document.getElementById('modalTipoNombre').value.trim();
+        const peso = parseFloat(document.getElementById('modalTipoPeso').value);
+
+        if (!nombre || isNaN(peso) || peso <= 0) {
+            CoffeeModal.warning('Completa nombre y peso válido');
+            return;
+        }
+
+        const btn = document.getElementById('btnGuardarTipoGrano');
+        const btnLabel = btn.textContent;
+        btn.disabled = true;
+        btn.innerHTML = '<span style="opacity:.7">Guardando...</span>';
+
+        try {
+            let res;
+            if (modoTipoGrano === 'crear') {
+                res = await fetch('/tipo-grano/crear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, peso_qq: peso }),
+                });
+            } else {
+                res = await fetch(`/tipo-grano/${tipoGranoIdEditando}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, peso_qq: peso }),
+                });
+            }
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Error al guardar');
+            }
+
+            CoffeeModal.success(modoTipoGrano === 'crear' ? 'Tipo de grano creado' : 'Tipo de grano actualizado');
+            cerrarModalTipoGrano();
+            await cargarTiposGrano();
+        } catch (error) {
+            CoffeeModal.error(error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = btnLabel;
+        }
+    });
+
     async function cargarTiposGrano() {
         const tbody = document.getElementById('tiposGranoBody');
         try {
@@ -449,7 +618,7 @@
 
             const tipos = await res.json();
             if (tipos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem; color: #666;">No hay tipos de grano registrados</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--muted-foreground);">No hay tipos de grano registrados</td></tr>';
                 return;
             }
 
@@ -458,52 +627,22 @@
                     <td><strong>${tipo.nombre}</strong></td>
                     <td>${tipo.peso_qq}</td>
                     <td class="acciones-celda">
-                        <button type="button" class="btn-tabla" onclick="editarTipo(${tipo.id})">Editar</button>
+                        <button type="button" class="btn-tabla" onclick="editarTipo(${tipo.id}, '${tipo.nombre}', ${tipo.peso_qq})">Editar</button>
                         <button type="button" class="btn-tabla btn-inactivar" onclick="eliminarTipo(${tipo.id})">Eliminar</button>
                     </td>
                 </tr>
             `).join('');
         } catch (error) {
             console.error('Error:', error);
-            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 2rem; color: #d32f2f;">Error: ${error.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--destructive);">Error: ${error.message}</td></tr>`;
         }
     }
 
-    document.getElementById('btnAgregarTipo').addEventListener('click', async () => {
-        const nombre = document.getElementById('nuevoTipoNombre').value.trim();
-        const peso = parseFloat(document.getElementById('nuevoTipoPeso').value);
+    window.editarTipo = function(tipoId, nombre, peso) {
+        abrirModalTipoGrano('editar', { id: tipoId, nombre, peso_qq: peso });
+    };
 
-        if (!nombre || isNaN(peso) || peso <= 0) {
-            CoffeeModal.warning('Completa nombre y peso válido');
-            return;
-        }
-
-        try {
-            const res = await fetch('/tipo-grano/crear', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, peso_qq: peso }),
-            });
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail || 'Error al crear');
-            }
-
-            document.getElementById('nuevoTipoNombre').value = '';
-            document.getElementById('nuevoTipoPeso').value = '';
-            CoffeeModal.success('Tipo de grano creado');
-            await cargarTiposGrano();
-        } catch (error) {
-            CoffeeModal.error(error.message);
-        }
-    });
-
-    function editarTipo(tipoId) {
-        CoffeeModal.info('Funcionalidad en desarrollo', 'Próximamente');
-    }
-
-    async function eliminarTipo(tipoId) {
+    window.eliminarTipo = async function(tipoId) {
         const ok = await CoffeeModal.confirm({
             message: '¿Eliminar este tipo de grano?',
             okText: 'Sí, eliminar',
@@ -519,7 +658,7 @@
         } catch (error) {
             CoffeeModal.error(error.message);
         }
-    }
+    };
 
 // Guardar cambios básicos
     document.getElementById('formBasicos').addEventListener('submit', async (e) => {
@@ -600,7 +739,7 @@
     let modoModal = 'crear'; // 'crear' | 'editar'
     let personalIdEditando = null;
 
-    function abrirModal(modo, datos = null) {
+    async function abrirModal(modo, datos = null) {
         modoModal = modo;
         personalIdEditando = datos?.personal_id || null;
 
@@ -641,9 +780,8 @@
                 crearCorreo.value       = datos.correo || '';
                 document.getElementById('crearTipoPersonal').value = datos.tipo_personal_id || '';
                 crearUsuarioPreview.value = datos.usuario || '';
-                generarUsuarioPreview();
 
-                if (datos.ubigeo) cargarYSeleccionarUbigeo(datos.ubigeo);
+                if (datos.ubigeo) await ubicacionValidator.seleccionar(datos.ubigeo);
             }
         }
 
@@ -670,189 +808,59 @@
     let usuariosActuales = [];
     let debounceTimer = null;
 
-    // === Validación de contraseña (igual que perfil.html) ===
-    const MAX_CLAVE_CREAR        = 30;
-    const contadorCrearClave     = document.getElementById('contadorCrearClave');
-    const contadorCrearConfirmar = document.getElementById('contadorCrearConfirmar');
-    const crearContrasenaEl      = document.getElementById('crearContrasena');
-    const crearConfirmarEl       = document.getElementById('crearConfirmarContrasena');
-
-    function validarRequisitosCrear(password) {
-        return {
-            length:    password.length >= 8,
-            uppercase: /[A-Z]/.test(password),
-            number:    /\d/.test(password),
-            special:   /[!@#%^&*(),.=?":{}$¿?¡]/.test(password),
-        };
-    }
-
-    function actualizarRequisitosCrear(reqs) {
-        const map = {
-            'crear-req-length':    reqs.length,
-            'crear-req-uppercase': reqs.uppercase,
-            'crear-req-number':    reqs.number,
-            'crear-req-special':   reqs.special,
-        };
-        for (const [id, ok] of Object.entries(map)) {
-            const el = document.getElementById(id);
-            el.classList.toggle('active',   ok);
-            el.classList.toggle('inactive', !ok);
-        }
-    }
-
-    function actualizarMatchCrear() {
-        const matchDiv  = document.getElementById('crearPasswordMatch');
-        const matchText = document.getElementById('crearPasswordMatchText');
-        if (!crearContrasenaEl.value || !crearConfirmarEl.value) {
-            matchDiv.classList.remove('show', 'match', 'mismatch');
-            return;
-        }
-        matchDiv.classList.add('show');
-        const coincide = crearContrasenaEl.value === crearConfirmarEl.value;
-        matchDiv.classList.toggle('match',    coincide);
-        matchDiv.classList.toggle('mismatch', !coincide);
-        matchText.textContent = coincide ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
-    }
-
-    function actualizarContadorClave(input, contadorEl) {
-        const len = input.value.length;
-        contadorEl.textContent = `${len}/${MAX_CLAVE_CREAR}`;
-        contadorEl.style.color = len >= MAX_CLAVE_CREAR ? 'var(--destructive)' : 'var(--muted-foreground)';
-        if (len >= MAX_CLAVE_CREAR) {
-            CoffeeModal.warning(`La contraseña no puede exceder ${MAX_CLAVE_CREAR} caracteres.`);
-        }
-    }
-
-    crearContrasenaEl.addEventListener('input', function() {
-        actualizarContadorClave(this, contadorCrearClave);
-        actualizarRequisitosCrear(validarRequisitosCrear(this.value));
-        actualizarMatchCrear();
+    // === Validación de contraseña — CoffeeValidators ===
+    CoffeeValidators.contrasena({
+        inputEl:    'crearContrasena',
+        contadorEl: 'contadorCrearClave',
+        max: 30,
+        reqs: {
+            length:    'crear-req-length',
+            uppercase: 'crear-req-uppercase',
+            number:    'crear-req-number',
+            special:   'crear-req-special',
+        },
     });
-
-    crearConfirmarEl.addEventListener('input', function() {
-        actualizarContadorClave(this, contadorCrearConfirmar);
-        actualizarMatchCrear();
+    CoffeeValidators.contrasena({ inputEl: 'crearConfirmarContrasena', contadorEl: 'contadorCrearConfirmar', max: 30 });
+    CoffeeValidators.confirmar({
+        claveEl:     'crearContrasena',
+        confirmarEl: 'crearConfirmarContrasena',
+        matchEl:     'crearPasswordMatch',
+        matchTextEl: 'crearPasswordMatchText',
     });
     let departamentosData = [];
     let provinciasData = [];
     let distritosData = [];
 
-    // === Normalizar texto ===
-    function normalizarTexto(texto) {
-        return texto
-            .replace(/[̀-ͯ]/g, '')
-            .toLowerCase()
-            .trim();
-    }
+    // === Cascada ubigeo — CoffeeValidators ===
+    const ubicacionValidator = CoffeeValidators.ubigeo({
+        deptoEl: 'crearDepartamento',
+        provEl:  'crearProvincia',
+        distEl:  'crearDistrito',
+    });
 
-    // === Sanitización de documento (EXACTO COMO nuevo_caficultor.html) ===
-    function limpiarDocumentoSegunRegla(valor, regla) {
-        const texto = String(valor || '').trim();
-        if (regla.soloNumeros) {
-            return texto.replace(/\D/g, '').slice(0, regla.maxLength);
-        }
-        return texto.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, regla.maxLength);
-    }
+    // === Documento — CoffeeValidators ===
+    CoffeeValidators.documento({
+        tipoEl:    'crearTipoDocumento',
+        numEl:     'crearNumDocumento',
+        tiposData: tiposDocumento,
+        onSearch:  (numDoc) => consultarYAutollenar(numDoc),
+    });
 
-    // === Reglas de documento por tipo (EXACTO COMO nuevo_caficultor.html) ===
-    function obtenerReglaDocumento(tipoDocumentoSeleccionadoId) {
-        const id = Number(tipoDocumentoSeleccionadoId || 0);
-        const nombreTipo = normalizarTexto(tiposDocumento.find(t => t.id === id)?.nombre || '');
-
-        if (nombreTipo === 'dni') {
-            return {
-                maxLength: 8,
-                soloNumeros: true,
-                hint: 'DNI: exactamente 8 digitos numericos.',
-                placeholder: 'Ingrese 8 digitos',
-                validationMessage: 'Para DNI se requieren 8 digitos numericos.',
-                regex: /^\d{8}$/,
-                longitudesAutoBusqueda: [8],
-            };
-        }
-
-        if (nombreTipo === 'pasaporte' || nombreTipo === 'carnet de extranjeria') {
-            return {
-                maxLength: 12,
-                soloNumeros: false,
-                hint: 'Pasaporte/Carnet: 8 a 12 caracteres alfanumericos.',
-                placeholder: 'Ingrese 8-12 caracteres',
-                validationMessage: 'Pasaporte/Carnet debe tener 8-12 caracteres alfanumericos.',
-                regex: /^[A-Za-z0-9]{8,12}$/,
-                longitudesAutoBusqueda: [12],
-            };
-        }
-
-        return {
-            maxLength: 12,
-            soloNumeros: false,
-            hint: 'Documento: 8 a 12 caracteres.',
-            placeholder: 'Ingrese documento',
-            validationMessage: 'Documento debe tener 8-12 caracteres.',
-            regex: /^[A-Za-z0-9]{8,12}$/,
-            longitudesAutoBusqueda: [8, 12],
-        };
-    }
-
-    // === Validar documento ===
-    function validarDocumentoPorTipoId(tipoDocumentoSeleccionadoId, documento) {
-        const id = Number(tipoDocumentoSeleccionadoId || 0);
-        if (!id) {
-            return { ok: false, mensaje: 'Selecciona primero el tipo de documento.' };
-        }
-
-        const regla = obtenerReglaDocumento(id);
-        if (!regla.regex.test(documento)) {
-            return { ok: false, mensaje: regla.validationMessage };
-        }
-
-        return { ok: true, mensaje: '' };
-    }
-
-    // === Autollenar datos (EXACTO COMO nuevo_caficultor.html) ===
+    // === Autollenar desde API (lógica de negocio específica — se mantiene) ===
     async function autollenarDesdeDni(data) {
-        if (data.nombres) crearNombre.value = data.nombres;
-        if (data.apellido_paterno) crearApePaterno.value = data.apellido_paterno;
-        if (data.apellido_materno) crearApeMaterno.value = data.apellido_materno;
-        if (data.sexo) crearSexo.value = data.sexo;
+        if (data.nombres)          crearNombre.value          = data.nombres;
+        if (data.apellido_paterno) crearApePaterno.value      = data.apellido_paterno;
+        if (data.apellido_materno) crearApeMaterno.value      = data.apellido_materno;
+        if (data.sexo)             crearSexo.value            = data.sexo;
         if (data.fecha_nacimiento) crearFechaNacimiento.value = data.fecha_nacimiento;
-        if (data.telefono) crearTelefono.value = data.telefono;
-
-        // Cascada de ubicación: ubigeo es código de 6 dígitos (ej: "150103")
-        const ubigeoCode = data.ubigeo_sunat || data.ubigeo;
-        if (ubigeoCode && /^\d{6}$/.test(ubigeoCode)) {
-            const deptoCode = ubigeoCode.substring(0, 2);    // Primeros 2: "15"
-            const provCode  = ubigeoCode.substring(0, 4);    // Primeros 4: "1501"
-            const distCode  = ubigeoCode;                     // Los 6: "150103"
-
-            // Cargar departamentos si aún no están cargados
-            if (!crearDepartamento.querySelector('option[value="' + deptoCode + '"]')) {
-                await cargarDepartamentos();
-            }
-
-            crearDepartamento.value = deptoCode;
-            await cargarProvincias(deptoCode);
-
-            // Esperar a que se carguen las provincias
-            if (crearProvincia.querySelectorAll('option').length > 1) {
-                crearProvincia.value = provCode;
-                await cargarDistritos(provCode);
-
-                // Esperar a que se carguen los distritos
-                if (crearDistrito.querySelectorAll('option').length > 1) {
-                    crearDistrito.value = distCode;
-                }
-            }
-        }
+        if (data.telefono)         crearTelefono.value        = data.telefono;
+        await ubicacionValidator.seleccionar(data.ubigeo_sunat || data.ubigeo);
     }
 
-    // === Buscar y autollenar (EXACTO COMO nuevo_caficultor.html) ===
     async function consultarYAutollenar(documento) {
         buscarEstado.innerHTML = '<span class="buscar-spinner"></span> Buscando...';
         buscarEstado.className = 'buscar-estado buscando';
-
         try {
-            // 1. Buscar en BD local
             const respBD = await fetch(`/persona/consultar/${encodeURIComponent(documento)}`);
             if (respBD.ok) {
                 const dataBD = await respBD.json();
@@ -864,167 +872,36 @@
                     return;
                 }
             }
-
-            // 2. Si no está en BD y es DNI, consultar RENIEC
-            const tipoId = Number(crearTipoDocumento.value || 0);
-            const nombreTipo = normalizarTexto(tiposDocumento.find(t => t.id === tipoId)?.nombre || '');
+            // Fallback RENIEC solo para DNI
+            const nombreTipo = (tiposDocumento.find(t => t.id === Number(crearTipoDocumento.value))?.nombre || '').toLowerCase().trim();
             if (nombreTipo !== 'dni') {
                 buscarEstado.innerHTML = 'No se encontraron datos para este documento';
                 buscarEstado.className = 'buscar-estado no-encontrado';
                 return;
             }
-
             const respAPI = await fetch(`/dni/consultar/${encodeURIComponent(documento)}`);
-            if (!respAPI.ok) {
-                buscarEstado.innerHTML = 'No se encontraron datos en RENIEC';
-                buscarEstado.className = 'buscar-estado no-encontrado';
-                return;
-            }
-
+            if (!respAPI.ok) { buscarEstado.innerHTML = 'No se encontraron datos en RENIEC'; buscarEstado.className = 'buscar-estado no-encontrado'; return; }
             const dataAPI = await respAPI.json();
-            if (!dataAPI.encontrado) {
-                buscarEstado.innerHTML = 'DNI no válido en RENIEC';
-                buscarEstado.className = 'buscar-estado no-encontrado';
-                return;
-            }
-
+            if (!dataAPI.encontrado) { buscarEstado.innerHTML = 'DNI no válido en RENIEC'; buscarEstado.className = 'buscar-estado no-encontrado'; return; }
             await autollenarDesdeDni(dataAPI);
             buscarEstado.innerHTML = 'Datos cargados desde RENIEC';
             buscarEstado.className = 'buscar-estado encontrado';
             generarUsuarioPreview();
-
         } catch (error) {
             buscarEstado.innerHTML = 'Error: ' + error.message;
             buscarEstado.className = 'buscar-estado no-encontrado';
         }
     }
 
-    // === Aplicar regla de documento al cambiar tipo ===
-    function aplicarReglaDocumento() {
-        const regla = obtenerReglaDocumento(crearTipoDocumento.value);
-        crearNumDocumento.maxLength = regla.maxLength;
-        crearNumDocumento.placeholder = regla.placeholder;
-        crearNumDocumento.inputMode = regla.soloNumeros ? 'numeric' : 'text';
-        buscarEstado.innerHTML = regla.hint;
-        buscarEstado.className = 'buscar-estado';
-    }
-
-    // === Listeners para búsqueda automática ===
-    crearNumDocumento.addEventListener('input', () => {
-        // Sanitizar en tiempo real: solo números si es DNI, alfanumérico si es otro
-        const regla = obtenerReglaDocumento(crearTipoDocumento.value);
-        crearNumDocumento.value = limpiarDocumentoSegunRegla(crearNumDocumento.value, regla);
-
-        clearTimeout(debounceTimer);
-        const numDoc = crearNumDocumento.value;
-
-        if (regla.longitudesAutoBusqueda.includes(numDoc.length)) {
-            debounceTimer = setTimeout(() => consultarYAutollenar(numDoc), 320);
-        }
-    });
-
-    crearTipoDocumento.addEventListener('change', () => {
-        aplicarReglaDocumento();
-        crearNumDocumento.value = '';
-        buscarEstado.innerHTML = 'Selecciona tipo y escribe el documento';
-        buscarEstado.className = 'buscar-estado';
-    });
-
-    // === Cascada de ubicación (EXACTO COMO nuevo_caficultor.html) ===
-    async function cargarDepartamentos() {
-        try {
-            const res = await fetch('/ubigeo/departamentos');
-            if (!res.ok) throw new Error('Error cargando departamentos');
-            const data = await res.json();
-
-            crearDepartamento.innerHTML = '<option value="">Selecciona...</option>';
-            data.forEach(dep => {
-                const opt = document.createElement('option');
-                opt.value = dep.codigo;
-                opt.textContent = dep.nombre;
-                crearDepartamento.appendChild(opt);
-            });
-        } catch (error) {
-            console.error('Error al cargar departamentos:', error);
-        }
-    }
-
-    async function cargarProvincias(depCode) {
-        try {
-            crearProvincia.innerHTML = '<option value="">Cargando...</option>';
-            const res = await fetch(`/ubigeo/provincias?departamento=${depCode}`);
-            if (!res.ok) throw new Error('Error cargando provincias');
-            const data = await res.json();
-
-            crearProvincia.innerHTML = '<option value="">Selecciona...</option>';
-            data.forEach(prov => {
-                const opt = document.createElement('option');
-                opt.value = prov.codigo;
-                opt.textContent = prov.nombre;
-                crearProvincia.appendChild(opt);
-            });
-            crearProvincia.disabled = false;
-            crearDistrito.disabled = true;
-            crearDistrito.innerHTML = '<option value="">Selecciona provincia primero</option>';
-        } catch (error) {
-            console.error('Error al cargar provincias:', error);
-            crearProvincia.disabled = true;
-        }
-    }
-
-    async function cargarDistritos(provCode) {
-        try {
-            crearDistrito.innerHTML = '<option value="">Cargando...</option>';
-            const res = await fetch(`/ubigeo/distritos?provincia=${provCode}`);
-            if (!res.ok) throw new Error('Error cargando distritos');
-            const data = await res.json();
-
-            crearDistrito.innerHTML = '<option value="">Selecciona...</option>';
-            data.forEach(dist => {
-                const opt = document.createElement('option');
-                opt.value = dist.codigo;
-                opt.textContent = dist.nombre;
-                crearDistrito.appendChild(opt);
-            });
-            crearDistrito.disabled = false;
-        } catch (error) {
-            console.error('Error al cargar distritos:', error);
-            crearDistrito.disabled = true;
-        }
-    }
-
-    crearDepartamento.addEventListener('change', () => {
-        if (crearDepartamento.value) {
-            cargarProvincias(crearDepartamento.value);
-        } else {
-            crearProvincia.disabled = true;
-            crearDistrito.disabled = true;
-            crearProvincia.innerHTML = '<option value="">Selecciona departamento primero</option>';
-            crearDistrito.innerHTML = '<option value="">Selecciona provincia primero</option>';
-        }
-    });
-
-    crearProvincia.addEventListener('change', () => {
-        if (crearProvincia.value) {
-            cargarDistritos(crearProvincia.value);
-        } else {
-            crearDistrito.disabled = true;
-            crearDistrito.innerHTML = '<option value="">Selecciona provincia primero</option>';
-        }
-    });
-
     // Generar preview de usuario: primera letra nombre + apellido paterno + primera letra apellido materno
     function generarUsuarioPreview() {
+        if (modoModal !== 'crear') return;
         const nombre = crearNombre.value.trim();
         const apePaterno = crearApePaterno.value.trim();
         const apeMaterno = crearApeMaterno.value.trim();
-
-        if (nombre && apePaterno && apeMaterno) {
-            const usuarioGenerado = (nombre[0] + apePaterno + apeMaterno[0]).toLowerCase();
-            crearUsuarioPreview.value = usuarioGenerado;
-        } else {
-            crearUsuarioPreview.value = '';
-        }
+        crearUsuarioPreview.value = (nombre && apePaterno && apeMaterno)
+            ? (nombre[0] + apePaterno + apeMaterno[0]).toLowerCase()
+            : '';
     }
 
     crearNombre.addEventListener('input', generarUsuarioPreview);
@@ -1106,7 +983,7 @@
             const res = await fetch(`/perfil/usuarios/${personalId}`);
             if (!res.ok) throw new Error('No se pudo cargar el usuario');
             const datos = await res.json();
-            abrirModal('editar', datos);
+            await abrirModal('editar', datos);
         } catch (error) {
             CoffeeModal.error(error.message);
         }
@@ -1221,9 +1098,113 @@
         }
     });
 
+    // ═══ CAFICULTORES ═══════════════════════════════════════
+
+    let caficultoresActuales = [];
+
+    async function cargarCaficultores() {
+        const tbody = document.getElementById('caficultoresBody');
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted-foreground);">Cargando...</td></tr>';
+        try {
+            const res = await fetch('/caficultor/listar');
+            if (!res.ok) throw new Error('Error al cargar caficultores');
+            caficultoresActuales = await res.json();
+            const conteo = document.getElementById('caficultoresConteo');
+            conteo.textContent = `${caficultoresActuales.length} caficultor${caficultoresActuales.length !== 1 ? 'es' : ''} registrado${caficultoresActuales.length !== 1 ? 's' : ''}`;
+            aplicarFiltroCaficultores();
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--destructive);">Error: ${error.message}</td></tr>`;
+        }
+    }
+
+    function aplicarFiltroCaficultores() {
+        const texto = (document.getElementById('buscadorCaficultores')?.value || '').toLowerCase();
+        const filtrados = caficultoresActuales.filter(c => {
+            const nombre = `${c.nombre} ${c.ape_paterno} ${c.ape_materno}`.toLowerCase();
+            return !texto || nombre.includes(texto) || c.num_documento.toLowerCase().includes(texto) || c.tipo_caficultor.toLowerCase().includes(texto);
+        });
+        mostrarCaficultores(filtrados);
+    }
+
+    function mostrarCaficultores(lista) {
+        const tbody = document.getElementById('caficultoresBody');
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted-foreground);">No se encontraron caficultores</td></tr>';
+            return;
+        }
+        tbody.innerHTML = lista.map(c => {
+            const nombre = `${c.nombre} ${c.ape_paterno} ${c.ape_materno}`;
+            const ubicacion = [c.provincia, c.departamento].filter(Boolean).join(', ') || '—';
+            const esSocio = c.tipo_caficultor_id === 1;
+            const badgeStyle = esSocio
+                ? 'background:color-mix(in oklab,var(--primary) 15%,transparent);color:var(--primary);'
+                : 'background:color-mix(in oklab,#f59e0b 15%,transparent);color:#b45309;';
+            return `
+                <tr style="cursor:pointer;" onclick="verDetalleCaficultor('${c.persona_id}')">
+                    <td><strong>${nombre}</strong></td>
+                    <td>${c.num_documento}</td>
+                    <td><span style="padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;${badgeStyle}">${c.tipo_caficultor}</span></td>
+                    <td style="color:var(--muted-foreground);font-size:13px;">${ubicacion}</td>
+                    <td>${c.telefono || '—'}</td>
+                    <td class="acciones-celda">
+                        <button type="button" class="btn-tabla" onclick="event.stopPropagation();verDetalleCaficultor('${c.persona_id}')">Ver detalle</button>
+                    </td>
+                </tr>`;
+        }).join('');
+    }
+
+    document.getElementById('buscadorCaficultores')?.addEventListener('input', aplicarFiltroCaficultores);
+
+    window.verDetalleCaficultor = function(personaId) {
+        const c = caficultoresActuales.find(x => x.persona_id === personaId);
+        if (!c) return;
+
+        const nombre = `${c.nombre} ${c.ape_paterno} ${c.ape_materno}`;
+        const esSocio = c.tipo_caficultor_id === 1;
+        const badgeStyle = esSocio
+            ? 'background:color-mix(in oklab,var(--primary) 15%,transparent);color:var(--primary);'
+            : 'background:color-mix(in oklab,#f59e0b 15%,transparent);color:#b45309;';
+        const ubicacion = [c.distrito, c.provincia, c.departamento].filter(Boolean).join(' / ') || '—';
+
+        document.getElementById('detalleCaficultorNombre').textContent = nombre;
+        const badge = document.getElementById('detalleCaficultorBadge');
+        badge.textContent = c.tipo_caficultor;
+        badge.style.cssText = badgeStyle;
+
+        const campos = [
+            { label: 'N° Documento',     valor: c.num_documento },
+            { label: 'Sexo',             valor: c.sexo === 'M' ? 'Masculino' : c.sexo === 'F' ? 'Femenino' : c.sexo || '—' },
+            { label: 'Fecha de nacimiento', valor: c.fecha_nacimiento || '—' },
+            { label: 'Teléfono',         valor: c.telefono || '—' },
+            { label: 'Ubigeo',           valor: c.ubigeo || '—' },
+            { label: 'Ubicación',        valor: ubicacion },
+            { label: 'Registrado como caficultor', valor: c.fecha_registro || '—' },
+        ];
+
+        document.getElementById('detalleCaficultorGrid').innerHTML = campos.map(({ label, valor }) => `
+            <div style="padding:10px 12px;background:color-mix(in oklab,var(--muted) 40%,transparent);border-radius:8px;">
+                <p style="margin:0 0 2px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-foreground);">${label}</p>
+                <p style="margin:0;font-size:14px;font-weight:500;color:var(--foreground);">${valor}</p>
+            </div>`).join('');
+
+        document.getElementById('modalCaficultor').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    };
+
+    document.getElementById('btnCerrarModalCaficultor').addEventListener('click', () => {
+        document.getElementById('modalCaficultor').style.display = 'none';
+        document.body.style.overflow = '';
+    });
+    document.getElementById('modalCaficultor').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('modalCaficultor')) {
+            document.getElementById('modalCaficultor').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    });
+
     // Inicializar
     async function inicializarCrearUsuario() {
-        await cargarDepartamentos();
+        await ubicacionValidator.cargarDepartamentos();
         cargarCooperativa();
     }
 

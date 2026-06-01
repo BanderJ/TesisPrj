@@ -87,6 +87,7 @@ class Personal:
                 SELECT p.personal_id, p.tipo_personal_id, p.usuario, p.estado, p.fecha_registro,
                        pe.id as persona_id, pe.nombre, pe.ape_paterno, pe.ape_materno,
                        pe.sexo, pe.fecha_nacimiento, pe.num_documento, pe.telefono, pe.correo,
+                       pe.ubigeo,
                        tp.nombre as tipo_personal
                 FROM personal p
                 INNER JOIN persona pe ON p.personal_id = pe.id

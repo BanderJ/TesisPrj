@@ -12,7 +12,8 @@ class Connection:
                 password=Config.PASSWORD,
                 host=Config.HOST,
                 port=Config.PORT,
-                database=Config.DATABASE
+                database=Config.DATABASE,
+                client_encoding='utf8',
             )
             # En psycopg2, autocommit es una propiedad del objeto conexión, no un parámetro de conexión
             self.conn.autocommit = False 

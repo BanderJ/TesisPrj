@@ -1,22 +1,22 @@
 import re
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 _RANGO_RE = re.compile(r'^\d+(-\d+)?$')
 
 
-def _error_rango(rango: str) -> str | None:
-    r = rango.strip()
+def _validar_formato_rango(v: str) -> str:
+    r = v.strip()
     if not r:
-        return "El rango no puede estar vacío"
+        raise ValueError("El rango no puede estar vacío")
     if not _RANGO_RE.match(r):
-        return "Formato inválido. Use número (ej: 70) o rango X-Y (ej: 60-65)"
+        raise ValueError("Formato inválido. Use número (ej: 70) o rango X-Y (ej: 60-65)")
     if '-' in r:
         inicio, fin = map(int, r.split('-', 1))
         if inicio >= fin:
-            return "En el rango X-Y, X debe ser menor a Y"
-    return None
+            raise ValueError("En el rango X-Y, X debe ser menor a Y")
+    return r
 
 
 class ValorCafeItem(BaseModel):
@@ -64,12 +64,10 @@ class ValorCafeCrearRequest(BaseModel):
     rango: str = Field(..., description="Número simple (ej: 70) o rango X-Y (ej: 60-65)")
     precio: float = Field(..., gt=0, description="Precio debe ser mayor a 0")
 
-    def validar(self) -> dict[str, str]:
-        errores = {}
-        error = _error_rango(self.rango)
-        if error:
-            errores["rango"] = error
-        return errores
+    @field_validator("rango")
+    @classmethod
+    def validar_rango(cls, v: str) -> str:
+        return _validar_formato_rango(v)
 
 
 class ValorCafeCrearResponse(BaseModel):
@@ -82,21 +80,14 @@ class ValorCafeCrearResponse(BaseModel):
 class ValorCafeCrearBloqueRequest(BaseModel):
     precios: list[ValorCafeCrearRequest] = Field(..., min_length=1, max_length=20)
 
-    def validar(self) -> dict[str, str]:
-        errores: dict[str, str] = {}
-        rangos_vistos: set[str] = set()
-
-        for idx, item in enumerate(self.precios):
-            errores_item = item.validar()
-            if errores_item:
-                errores[f"item_{idx + 1}"] = str(errores_item)
-
-            rango_norm = item.rango.strip()
-            if rango_norm in rangos_vistos:
-                errores[f"item_{idx + 1}"] = f"Rango duplicado en bloque: {rango_norm}"
-            rangos_vistos.add(rango_norm)
-
-        return errores
+    @model_validator(mode="after")
+    def sin_rangos_duplicados(self) -> "ValorCafeCrearBloqueRequest":
+        vistos: set[str] = set()
+        for item in self.precios:
+            if item.rango in vistos:
+                raise ValueError(f"Rango duplicado en bloque: {item.rango}")
+            vistos.add(item.rango)
+        return self
 
 
 class ValorCafeCrearBloqueResponse(BaseModel):
@@ -108,12 +99,10 @@ class ValorCafeActualizarPrecioRequest(BaseModel):
     rango: str = Field(..., min_length=1, max_length=10, description="Rango a actualizar (debe existir hoy)")
     precio: float = Field(..., gt=0, description="Nuevo precio, debe ser mayor a 0")
 
-    def validar(self) -> dict[str, str]:
-        errores: dict[str, str] = {}
-        error = _error_rango(self.rango)
-        if error:
-            errores["rango"] = error
-        return errores
+    @field_validator("rango")
+    @classmethod
+    def validar_rango(cls, v: str) -> str:
+        return _validar_formato_rango(v)
 
 
 class ValorCafeActualizarPrecioResponse(BaseModel):

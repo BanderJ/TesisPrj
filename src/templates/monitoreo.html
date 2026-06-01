@@ -139,6 +139,63 @@
 	</div>
 </section>
 
+<!-- ═══════════════════════════════════════════════
+     OVERLAY: Finalización — NO dismissable
+════════════════════════════════════════════════ -->
+<div id="finalizacionOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:1.5rem;">
+	<div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:36px 32px;max-width:480px;width:100%;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,0.45);">
+
+		<!-- Icono dinámico -->
+		<div id="finIcono" style="width:64px;height:64px;margin:0 auto 20px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in oklab,var(--primary) 12%,transparent);">
+			<!-- spinner -->
+			<svg id="finSpinner" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" style="animation:spin 1s linear infinite;">
+				<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+			</svg>
+			<!-- check (oculto hasta completar) -->
+			<svg id="finCheck" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+				<path d="M5 13l4 4L19 7"/>
+			</svg>
+		</div>
+
+		<h2 id="finTitulo" style="margin:0 0 8px;font-size:20px;font-weight:700;color:var(--foreground);">Procesando clasificación...</h2>
+		<p  id="finDescripcion" style="margin:0 0 20px;font-size:14px;color:var(--muted-foreground);line-height:1.5;"></p>
+
+		<!-- Pasos de progreso -->
+		<div id="finPasos" style="text-align:left;background:color-mix(in oklab,var(--muted) 40%,transparent);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:13px;display:flex;flex-direction:column;gap:6px;">
+			<div id="paso1" style="display:flex;align-items:center;gap:8px;color:var(--muted-foreground);">
+				<span id="paso1ico">⏳</span><span>Deteniendo faja y captura YOLO</span>
+			</div>
+			<div id="paso2" style="display:flex;align-items:center;gap:8px;color:var(--muted-foreground);">
+				<span id="paso2ico">⏳</span><span>Generando reporte SCA de defectos</span>
+			</div>
+			<div id="paso3" style="display:flex;align-items:center;gap:8px;color:var(--muted-foreground);">
+				<span id="paso3ico">⏳</span><span>Guardando evaluación en el sistema</span>
+			</div>
+		</div>
+
+		<!-- Resultado (oculto hasta completar) -->
+		<div id="finResultado" style="display:none;background:color-mix(in oklab,var(--primary) 8%,transparent);border:1px solid color-mix(in oklab,var(--primary) 25%,transparent);border-radius:10px;padding:14px 16px;margin-bottom:20px;text-align:left;">
+			<p style="margin:0 0 6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-foreground);">Resultado</p>
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Código</p><p id="resCode" style="margin:0;font-weight:700;font-size:15px;color:var(--primary);"></p></div>
+				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Granos</p><p id="resGranos" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
+				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Grado</p><p id="resGrado" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
+				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Specialty</p><p id="resSpecialty" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
+			</div>
+		</div>
+
+		<button id="btnIrAnalisis" disabled
+			style="width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:not-allowed;background:color-mix(in oklab,var(--primary) 40%,transparent);color:var(--primary);transition:all .2s;">
+			Procesando...
+		</button>
+
+	</div>
+</div>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
 <script>
 	(() => {
 		const EVALUACION_ID          = '{{ evaluacion_id }}';
@@ -436,6 +493,97 @@
 			}
 		}
 
+		// ── Overlay de finalización ───────────────────────────────────────────
+		const overlay       = document.getElementById('finalizacionOverlay');
+		const finTitulo     = document.getElementById('finTitulo');
+		const finDescripcion= document.getElementById('finDescripcion');
+		const finSpinner    = document.getElementById('finSpinner');
+		const finCheck      = document.getElementById('finCheck');
+		const finResultado  = document.getElementById('finResultado');
+		const btnIrAnalisis = document.getElementById('btnIrAnalisis');
+
+		function _pasoPendiente(n) {
+			const ico = document.getElementById(`paso${n}ico`);
+			const row = document.getElementById(`paso${n}`);
+			if (ico) ico.textContent = '⏳';
+			if (row) row.style.color = 'var(--muted-foreground)';
+		}
+		function _pasoOk(n) {
+			const ico = document.getElementById(`paso${n}ico`);
+			const row = document.getElementById(`paso${n}`);
+			if (ico) ico.textContent = '✅';
+			if (row) row.style.color = 'var(--foreground)';
+		}
+		function _pasoError(n) {
+			const ico = document.getElementById(`paso${n}ico`);
+			if (ico) ico.textContent = '❌';
+		}
+
+		function mostrarOverlay(automatico) {
+			overlay.style.display = 'flex';
+			document.body.style.overflow = 'hidden';
+			finTitulo.textContent = automatico
+				? 'Clasificación finalizada automáticamente'
+				: 'Finalizando monitoreo...';
+			finDescripcion.textContent = automatico
+				? 'No se detectaron nuevos granos en los últimos 10 segundos. El sistema detuvo el proceso y está guardando los resultados.'
+				: 'Por favor espera mientras se guardan los datos y se genera el reporte.';
+			[1,2,3].forEach(_pasoPendiente);
+			finSpinner.style.display = 'block';
+			finCheck.style.display   = 'none';
+			finResultado.style.display = 'none';
+			btnIrAnalisis.disabled = true;
+			btnIrAnalisis.style.cursor = 'not-allowed';
+			btnIrAnalisis.style.background = 'color-mix(in oklab,var(--primary) 40%,transparent)';
+			btnIrAnalisis.textContent = 'Procesando...';
+		}
+
+		function completarOverlay(codigo) {
+			finSpinner.style.display = 'none';
+			finCheck.style.display   = 'block';
+			finTitulo.textContent    = 'Evaluación completada';
+			finDescripcion.textContent = 'El proceso finalizó correctamente. Revisa el resumen antes de continuar al análisis.';
+
+			document.getElementById('resCode').textContent     = codigo || '—';
+			document.getElementById('resGranos').textContent   = Object.values(conteoActual).reduce((a,b)=>a+b,0);
+			document.getElementById('resGrado').textContent    = reporteActual?.grado ? `Grado ${reporteActual.grado}` : '—';
+			document.getElementById('resSpecialty').textContent= reporteActual?.apto_specialty ? 'Apto ✓' : 'No apto';
+			finResultado.style.display = 'block';
+
+			btnIrAnalisis.disabled = false;
+			btnIrAnalisis.style.cursor = 'pointer';
+			btnIrAnalisis.style.background = 'var(--primary)';
+			btnIrAnalisis.style.color = 'var(--primary-foreground, #fff)';
+			btnIrAnalisis.textContent = 'Ir al análisis →';
+		}
+
+		function errorOverlay(msg) {
+			finSpinner.style.display = 'none';
+			finTitulo.textContent    = 'Error al finalizar';
+			finDescripcion.textContent = msg || 'Ocurrió un error. Intenta nuevamente.';
+			_pasoError(3);
+			btnIrAnalisis.disabled = false;
+			btnIrAnalisis.style.cursor = 'pointer';
+			btnIrAnalisis.style.background = 'var(--destructive, #dc2626)';
+			btnIrAnalisis.style.color = '#fff';
+			btnIrAnalisis.textContent = 'Cerrar e intentar de nuevo';
+			btnIrAnalisis.onclick = () => {
+				overlay.style.display = 'none';
+				document.body.style.overflow = '';
+				finalizando = false;
+				if (finishBtn) { finishBtn.disabled = false; finishBtn.textContent = 'Finalizar monitoreo'; }
+				btnIrAnalisis.onclick = null;
+			};
+		}
+
+		btnIrAnalisis.addEventListener('click', () => {
+			if (!btnIrAnalisis.onclick) {
+				finalizando    = false;
+				monitoreoActivo = false;
+				window.location.href = `/analisis/${EVALUACION_ID}`;
+			}
+		});
+
 		// ── Finalización compartida (manual y automática) ─────────────────────
 		async function finalizarMonitoreo(automatico = false) {
 			if (finalizando) return;
@@ -444,16 +592,18 @@
 			clearInterval(timerInterval);
 			clearInterval(conteoInterval);
 
+			mostrarOverlay(automatico);
+
+			// Paso 1: detener
+			_pasoOk(1);
 			if (capturandoYOLO) await detenerCaptura();
 
+			// Paso 2: reporte
 			await generarReporte();
+			_pasoOk(2);
 
 			monitoreoActivo = false;
 			detenerStream();
-
-			if (automatico) {
-				appendLog('Clasificación automática finalizada. Guardando resultados...');
-			}
 
 			const stats = {
 				totalGranos:   Object.values(conteoActual).reduce((a, b) => a + b, 0),
@@ -464,6 +614,7 @@
 			};
 			sessionStorage.setItem('coffeeren.stats', JSON.stringify(stats));
 
+			// Paso 3: guardar evaluacion
 			try {
 				const res = await fetch(`/evaluacion/${EVALUACION_ID}/finalizar`, {
 					method: 'PATCH',
@@ -475,24 +626,22 @@
 					throw new Error(err.detail || 'Error al finalizar la evaluacion.');
 				}
 				const { codigo } = await res.json();
+				_pasoOk(3);
 				sessionStorage.removeItem('coffeeren.evaluacion');
 				appendLog(`Evaluacion finalizada. Código: ${codigo}`);
 				history.replaceState(null, '', '/registro');
-				setTimeout(() => { window.location.href = `/analisis/${EVALUACION_ID}`; }, 1500);
+				completarOverlay(codigo);
 			} catch (err) {
+				_pasoError(3);
 				appendLog('Error: ' + err.message);
 				sessionStorage.removeItem('coffeeren.stats');
-				finalizando = false;
-				if (!automatico) {
-					finishBtn.disabled    = false;
-					finishBtn.textContent = 'Finalizar monitoreo';
-				}
+				errorOverlay(err.message);
 			}
 		}
 
 		// ── Guarda de navegación ──────────────────────────────────────────────
 		window.addEventListener('beforeunload', (e) => {
-			if (!monitoreoActivo) return;
+			if (!monitoreoActivo && !finalizando) return;
 			e.preventDefault();
 			e.returnValue = '';
 		});
