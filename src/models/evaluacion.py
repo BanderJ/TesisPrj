@@ -185,6 +185,7 @@ class Evaluacion:
         peso_por_qq: Decimal,
         pago: Decimal,
         categoria_id: int | None,
+        total_defectos: int,
         db: Connection | None = None,
     ) -> dict[str, Any]:
         """Actualiza la evaluacion con todos los campos derivados. Genera codigo si aún no tiene."""
@@ -209,6 +210,7 @@ class Evaluacion:
                     peso_por_qq        = %s,
                     pago               = %s,
                     categoria_id       = %s,
+                    total_defectos     = %s,
                     fecha              = NOW()
                 WHERE id = %s
                 RETURNING id::text, TRIM(codigo) AS codigo, pago, peso_por_qq, factor_rendimiento
@@ -220,7 +222,7 @@ class Evaluacion:
                 factor_rendimiento, tara_saco,
                 tara_total, peso_neto,
                 peso_por_qq, pago,
-                categoria_id,
+                categoria_id, total_defectos,
                 evaluacion_id,
             )
             cursor = db.ejecutar(sql, params)
@@ -274,6 +276,25 @@ class Evaluacion:
                 WHERE TRIM(e.codigo) = %s
             """
             return db.obtener_uno(sql, (codigo.upper(),))
+        finally:
+            if owns_db:
+                db.close()
+
+    def obtener_kpis(
+        self,
+        db: Connection | None = None,
+    ) -> dict[str, Any]:
+        owns_db = db is None
+        db = db or Connection()
+        try:
+            sql = """
+                SELECT
+                    COUNT(*)                          AS total_lotes,
+                    COALESCE(SUM(total_defectos), 0)  AS total_defectos
+                FROM evaluacion
+                WHERE codigo IS NOT NULL
+            """
+            return db.obtener_uno(sql)
         finally:
             if owns_db:
                 db.close()

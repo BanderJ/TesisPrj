@@ -175,6 +175,7 @@ class EvaluacionService:
                 peso_por_qq=peso_por_qq,
                 pago=pago,
                 categoria_id=categoria_id,
+                total_defectos=payload.total_defectos,
                 db=db,
             )
             db.commit()
@@ -207,6 +208,13 @@ class EvaluacionService:
         if fila is None:
             return None
         return "finalizada" if fila.get("codigo") else "activa"
+
+    def obtener_kpis(self) -> dict[str, int]:
+        fila = self.evaluacion_model.obtener_kpis()
+        return {
+            "total_lotes": int(fila["total_lotes"]) if fila else 0,
+            "total_defectos": int(fila["total_defectos"]) if fila else 0,
+        }
 
     def finalizar_evaluacion(self, evaluacion_id: str) -> FinalizarEvaluacionResponse:
         """Genera y asigna el codigo EVA a la evaluacion al finalizar el monitoreo."""

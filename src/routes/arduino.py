@@ -1,5 +1,7 @@
 """
 GET  /arduino/estado        → estado del sensor ultrasónico (tapa cerrada)
+GET  /arduino/peso          → lectura de la celda de carga (gramos)
+POST /arduino/tare          → tara la báscula (poner en cero)
 POST /arduino/motor/iniciar → envía ON  al Arduino (faja arranca)
 POST /arduino/motor/detener → envía OFF al Arduino (faja para)
 """
@@ -59,6 +61,49 @@ async def estado_arduino(
         "distancia": dist,
         "conectado": True,
         "mensaje": "Debe cerrar la tapa luego de haber ingresado los granos de café para continuar al monitoreo.",
+    }
+
+
+@arduino_router.get("/peso")
+async def obtener_peso(
+    _: dict[str, Any] = Depends(obtener_usuario_actual),
+) -> dict[str, Any]:
+    """
+    Retorna el último peso leído de la celda de carga (HX711).
+    El valor es el promedio deslizante de las últimas 5 muestras.
+    """
+    estado = arduino_serial.obtener_estado()
+    if not estado.conectado:
+        return {
+            "peso": None,
+            "conectado": False,
+            "mensaje": f"Arduino no conectado ({Config.ARDUINO_PORT}).",
+        }
+
+    peso = arduino_serial.obtener_peso()
+    if peso is None:
+        return {
+            "peso": None,
+            "conectado": True,
+            "mensaje": "Esperando lectura de la báscula...",
+        }
+
+    return {
+        "peso": round(peso, 2),
+        "conectado": True,
+        "mensaje": f"{round(peso, 2)} g",
+    }
+
+
+@arduino_router.post("/tare")
+async def tarar_bascula(
+    _: dict[str, Any] = Depends(obtener_usuario_actual),
+) -> dict[str, Any]:
+    """Envía comando TARE al Arduino: pone la báscula en cero."""
+    ok = arduino_serial.enviar_comando("TARE")
+    return {
+        "ok": ok,
+        "mensaje": "Tara enviada. La báscula se está calibrando." if ok else "No se pudo enviar tara. Verifique la conexión Arduino.",
     }
 
 

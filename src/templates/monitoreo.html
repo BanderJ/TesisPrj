@@ -181,6 +181,10 @@
 				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Granos</p><p id="resGranos" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
 				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Grado</p><p id="resGrado" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
 				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Specialty</p><p id="resSpecialty" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
+				<div style="grid-column:1/-1;border-top:1px solid color-mix(in oklab,var(--border) 60%,transparent);padding-top:8px;margin-top:2px;">
+					<p style="margin:0;font-size:11px;color:var(--muted-foreground);">Peso capturado (báscula)</p>
+					<p id="resPeso" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p>
+				</div>
 			</div>
 		</div>
 
@@ -538,7 +542,7 @@
 			btnIrAnalisis.textContent = 'Procesando...';
 		}
 
-		function completarOverlay(codigo) {
+		function completarOverlay(codigo, pesoGramos = 0) {
 			finSpinner.style.display = 'none';
 			finCheck.style.display   = 'block';
 			finTitulo.textContent    = 'Evaluación completada';
@@ -548,6 +552,7 @@
 			document.getElementById('resGranos').textContent   = Object.values(conteoActual).reduce((a,b)=>a+b,0);
 			document.getElementById('resGrado').textContent    = reporteActual?.grado ? `Grado ${reporteActual.grado}` : '—';
 			document.getElementById('resSpecialty').textContent= reporteActual?.apto_specialty ? 'Apto ✓' : 'No apto';
+			document.getElementById('resPeso').textContent     = `${Number(pesoGramos).toFixed(2)} g`;
 			finResultado.style.display = 'block';
 
 			btnIrAnalisis.disabled = false;
@@ -594,11 +599,22 @@
 
 			mostrarOverlay(automatico);
 
-			// Paso 1: detener
+			// Paso 1: detener faja + captura YOLO
 			_pasoOk(1);
 			if (capturandoYOLO) await detenerCaptura();
 
-			// Paso 2: reporte
+			// Paso 2: capturar peso de la celda de carga + generar reporte SCA
+			finDescripcion.textContent = 'Calculando resumen...';
+			let pesoCapturado = 0;
+			try {
+				const pesoRes  = await fetch('/arduino/peso');
+				if (pesoRes.ok) {
+					const pesoData = await pesoRes.json();
+					pesoCapturado  = pesoData.peso ?? 0;
+				}
+			} catch { pesoCapturado = 0; }
+			finDescripcion.textContent = `Calculando resumen... Peso capturado: ${Number(pesoCapturado).toFixed(2)} g`;
+
 			await generarReporte();
 			_pasoOk(2);
 
@@ -606,10 +622,11 @@
 			detenerStream();
 
 			const stats = {
-				totalGranos:   Object.values(conteoActual).reduce((a, b) => a + b, 0),
-				totalDefectos: reporteActual?.total_defectos || 0,
-				grado:         reporteActual?.grado          || 'Sin clasificar',
-				aptEspecialty: reporteActual?.apto_specialty || false,
+				totalGranos:    Object.values(conteoActual).reduce((a, b) => a + b, 0),
+				totalDefectos:  reporteActual?.total_defectos || 0,
+				grado:          reporteActual?.grado          || 'Sin clasificar',
+				aptEspecialty:  reporteActual?.apto_specialty || false,
+				peso_capturado: pesoCapturado,
 				elapsedSeconds,
 			};
 			sessionStorage.setItem('coffeeren.stats', JSON.stringify(stats));
@@ -630,7 +647,7 @@
 				sessionStorage.removeItem('coffeeren.evaluacion');
 				appendLog(`Evaluacion finalizada. Código: ${codigo}`);
 				history.replaceState(null, '', '/registro');
-				completarOverlay(codigo);
+				completarOverlay(codigo, pesoCapturado);
 			} catch (err) {
 				_pasoError(3);
 				appendLog('Error: ' + err.message);
