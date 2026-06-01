@@ -173,6 +173,13 @@ class CaficultorService:
         finally:
             db.close()
 
+    def listar_caficultores(self) -> list[dict]:
+        db = Connection()
+        try:
+            return self.caficultor_model.listar_todos(db=db)
+        finally:
+            db.close()
+
     def convertir_caficultor_a_socio(self, num_documento: str) -> ConvertirSocioResponse:
         """Convierte un caficultor existente y activo al tipo socio """
         db = Connection()

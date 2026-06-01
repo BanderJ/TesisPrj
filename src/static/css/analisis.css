@@ -23,6 +23,7 @@
     margin: 0;
     font-size: clamp(1.1rem, 1.5vw, 1.35rem);
     font-weight: 700;
+    font-family: var(--font-serif);
 }
 
 .analisis-toolbar-actions {
@@ -42,7 +43,7 @@
     font-weight: 600;
     cursor: pointer;
     border: 1px solid;
-    transition: filter 0.18s ease;
+    transition: filter 0.2s ease;
     text-decoration: none;
 }
 
@@ -86,8 +87,8 @@
 .analisis-header-left h2 {
     margin: 0 0 4px;
     font-size: clamp(1.2rem, 1.6vw, 1.5rem);
-    font-weight: 800;
-    letter-spacing: -0.01em;
+    font-weight: 700;
+    font-family: var(--font-serif);
 }
 
 .analisis-header-left p {
@@ -142,9 +143,10 @@
 .analisis-meta-item strong {
     display: block;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--foreground);
     line-height: 1.2;
+    font-family: var(--font-mono);
 }
 
 /* Stats cards */
@@ -318,7 +320,7 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
     .analisis-header-card {
         grid-template-columns: 1fr;
     }
@@ -328,7 +330,7 @@
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 640px) {
     .analisis-header-meta {
         grid-template-columns: repeat(2, 1fr);
     }

@@ -1,7 +1,7 @@
 {% extends "main.html" %}
 
 {% block style %}
-	<link rel="stylesheet" href="/static/css/monitoreo.css?v=4">
+	<link rel="stylesheet" href="/static/css/monitoreo.css?v=7">
 {% endblock %}
 
 {% block content %}
@@ -139,40 +139,96 @@
 	</div>
 </section>
 
+<!-- ═══════════════════════════════════════════════
+     OVERLAY: Finalización — NO dismissable
+════════════════════════════════════════════════ -->
+<div id="finalizacionOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:1.5rem;">
+	<div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:36px 32px;max-width:480px;width:100%;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,0.45);">
+
+		<!-- Icono dinámico -->
+		<div id="finIcono" style="width:64px;height:64px;margin:0 auto 20px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in oklab,var(--primary) 12%,transparent);">
+			<!-- spinner -->
+			<svg id="finSpinner" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" style="animation:spin 1s linear infinite;">
+				<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+			</svg>
+			<!-- check (oculto hasta completar) -->
+			<svg id="finCheck" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+				<path d="M5 13l4 4L19 7"/>
+			</svg>
+		</div>
+
+		<h2 id="finTitulo" style="margin:0 0 8px;font-size:20px;font-weight:700;color:var(--foreground);">Procesando clasificación...</h2>
+		<p  id="finDescripcion" style="margin:0 0 20px;font-size:14px;color:var(--muted-foreground);line-height:1.5;"></p>
+
+		<!-- Pasos de progreso -->
+		<div id="finPasos" style="text-align:left;background:color-mix(in oklab,var(--muted) 40%,transparent);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:13px;display:flex;flex-direction:column;gap:6px;">
+			<div id="paso1" style="display:flex;align-items:center;gap:8px;color:var(--muted-foreground);">
+				<span id="paso1ico">⏳</span><span>Deteniendo faja y captura YOLO</span>
+			</div>
+			<div id="paso2" style="display:flex;align-items:center;gap:8px;color:var(--muted-foreground);">
+				<span id="paso2ico">⏳</span><span>Generando reporte SCA de defectos</span>
+			</div>
+			<div id="paso3" style="display:flex;align-items:center;gap:8px;color:var(--muted-foreground);">
+				<span id="paso3ico">⏳</span><span>Guardando evaluación en el sistema</span>
+			</div>
+		</div>
+
+		<!-- Resultado (oculto hasta completar) -->
+		<div id="finResultado" style="display:none;background:color-mix(in oklab,var(--primary) 8%,transparent);border:1px solid color-mix(in oklab,var(--primary) 25%,transparent);border-radius:10px;padding:14px 16px;margin-bottom:20px;text-align:left;">
+			<p style="margin:0 0 6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-foreground);">Resultado</p>
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Código</p><p id="resCode" style="margin:0;font-weight:700;font-size:15px;color:var(--primary);"></p></div>
+				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Granos</p><p id="resGranos" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
+				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Grado</p><p id="resGrado" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
+				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Specialty</p><p id="resSpecialty" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
+			</div>
+		</div>
+
+		<button id="btnIrAnalisis" disabled
+			style="width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:not-allowed;background:color-mix(in oklab,var(--primary) 40%,transparent);color:var(--primary);transition:all .2s;">
+			Procesando...
+		</button>
+
+	</div>
+</div>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
 <script>
 	(() => {
-		const EVALUACION_ID = '{{ evaluacion_id }}';
+		const EVALUACION_ID          = '{{ evaluacion_id }}';
+		const TIMEOUT_INACTIVIDAD_MS = 10_000; // 10 s sin nuevas detecciones → auto-finalizar
 
+		// ── Datos de la muestra ───────────────────────────────────────────────
 		const storedEval = sessionStorage.getItem('coffeeren.evaluacion');
-		const sample = storedEval ? JSON.parse(storedEval) : null;
+		const sample     = storedEval ? JSON.parse(storedEval) : null;
 
-		const sampleDni             = document.getElementById('sampleDni');
-		const sampleName            = document.getElementById('sampleName');
-		const sampleTipoCaficultor  = document.getElementById('sampleTipoCaficultor');
-		const sampleTamiz           = document.getElementById('sampleTamiz');
-		const sampleGrano           = document.getElementById('sampleGrano');
-		const sampleSacos           = document.getElementById('sampleSacos');
-		const samplePeso            = document.getElementById('samplePeso');
-		const timerEl               = document.getElementById('sessionTimer');
+		const sampleDni            = document.getElementById('sampleDni');
+		const sampleName           = document.getElementById('sampleName');
+		const sampleTipoCaficultor = document.getElementById('sampleTipoCaficultor');
+		const sampleTamiz          = document.getElementById('sampleTamiz');
+		const sampleGrano          = document.getElementById('sampleGrano');
+		const sampleSacos          = document.getElementById('sampleSacos');
+		const samplePeso           = document.getElementById('samplePeso');
+		const timerEl              = document.getElementById('sessionTimer');
 
-		const totalGrainsEl = document.getElementById('totalGrains');
-		const totalDefectsEl = document.getElementById('totalDefects');
-		const iaPerformanceEl = document.getElementById('iaPerformance');
-
-		const negroValueEl = document.getElementById('defectNegroValue');
-		const brocadoValueEl = document.getElementById('defectBrocadoValue');
+		const totalGrainsEl     = document.getElementById('totalGrains');
+		const totalDefectsEl    = document.getElementById('totalDefects');
+		const iaPerformanceEl   = document.getElementById('iaPerformance');
+		const negroValueEl      = document.getElementById('defectNegroValue');
+		const brocadoValueEl    = document.getElementById('defectBrocadoValue');
 		const fermentadoValueEl = document.getElementById('defectFermentadoValue');
-
-		const negroBarEl = document.getElementById('defectNegroBar');
-		const brocadoBarEl = document.getElementById('defectBrocadoBar');
-		const fermentadoBarEl = document.getElementById('defectFermentadoBar');
-
-		const eventLog = document.getElementById('eventLog');
-		const toggleBtn = document.getElementById('toggleStreamBtn');
-		const finishBtn = document.getElementById('finishBtn');
+		const negroBarEl        = document.getElementById('defectNegroBar');
+		const brocadoBarEl      = document.getElementById('defectBrocadoBar');
+		const fermentadoBarEl   = document.getElementById('defectFermentadoBar');
+		const eventLog          = document.getElementById('eventLog');
+		const finishBtn         = document.getElementById('finishBtn');
+		const startBtn          = document.getElementById('startBtn');
 
 		if (sample) {
-			sampleDni.textContent            = sample.num_documento || '-';
+			sampleDni.textContent            = sample.num_documento    || '-';
 			sampleName.textContent           = sample.caficultor_nombre || '-';
 			sampleTipoCaficultor.textContent = sample.tipo_caficultor   || '-';
 			sampleTamiz.textContent          = sample.num_tamiz ? `N° ${sample.num_tamiz}` : '-';
@@ -183,7 +239,7 @@
 			document.querySelectorAll('.hero-meta strong').forEach(el => { el.textContent = 'No disponible'; });
 		}
 
-		// ── Cámara en tiempo real ─────────────────────────────────────────
+		// ── Cámara ────────────────────────────────────────────────────────────
 		const cameraLoadingEl = document.getElementById('cameraLoading');
 		const cameraStreamEl  = document.getElementById('cameraStream');
 		const cameraErrorEl   = document.getElementById('cameraError');
@@ -191,7 +247,7 @@
 
 		let connectTimeout = null;
 
-		function mostrarError(msg) {
+		function mostrarErrorCamara(msg) {
 			clearTimeout(connectTimeout);
 			cameraLoadingEl.style.display = 'none';
 			cameraStreamEl.style.display  = 'none';
@@ -207,46 +263,27 @@
 			let frameTimeout;
 			let isFirstFrame = true;
 
-			// Función para refrescar el frame
 			const refrescarFrame = async () => {
 				try {
 					const res = await fetch('/video/frame');
-
-					// 503 = no hay frame aún, reintentar
-					if (res.status === 503) {
-						frameTimeout = setTimeout(refrescarFrame, 33);
-						return;
-					}
-
+					if (res.status === 503) { frameTimeout = setTimeout(refrescarFrame, 33); return; }
 					if (!res.ok) throw new Error('Error obteniendo frame');
-
-					const blob = await res.blob();
-					const url = URL.createObjectURL(blob);
+					const url = URL.createObjectURL(await res.blob());
 					cameraStreamEl.src = url;
-
 					if (isFirstFrame) {
 						isFirstFrame = false;
 						clearTimeout(connectTimeout);
 						cameraLoadingEl.style.display = 'none';
 						cameraStreamEl.style.display  = 'block';
 					}
-
-					// Refrescar cada 33ms (~30fps)
 					frameTimeout = setTimeout(refrescarFrame, 33);
-				} catch (error) {
-					console.error('Error en stream:', error);
-					if (isFirstFrame) {
-						clearTimeout(connectTimeout);
-						mostrarError('No se pudo conectar con el stream de video');
-					}
+				} catch {
+					if (isFirstFrame) { clearTimeout(connectTimeout); mostrarErrorCamara('No se pudo conectar con el stream de video'); }
 				}
 			};
 
-			// Timeout de 10 s si la cámara no responde
 			connectTimeout = setTimeout(() => {
-				if (isFirstFrame) {
-					mostrarError('Tiempo de espera agotado');
-				}
+				if (isFirstFrame) mostrarErrorCamara('Tiempo de espera agotado. Verifique la cámara.');
 			}, 10000);
 
 			refrescarFrame();
@@ -254,32 +291,357 @@
 
 		function detenerStream() {
 			clearTimeout(connectTimeout);
-			cameraStreamEl.src           = '';
-			cameraStreamEl.style.display = 'none';
+			cameraStreamEl.src            = '';
+			cameraStreamEl.style.display  = 'none';
 			cameraLoadingEl.style.display = 'none';
 			cameraErrorEl.style.display   = 'none';
 		}
 
-		// Verificar disponibilidad del sistema YOLO (no inicia automáticamente)
+		// ── Estado YOLO al cargar ─────────────────────────────────────────────
 		(async () => {
 			try {
 				const res = await fetch('/video/status');
 				if (!res.ok) throw new Error();
 				const { activo, modelo } = await res.json();
-				if (!activo) {
-					cameraLoadingEl.style.display = 'none';
-					appendLog('🎯 Sistema YOLO listo (modelo: ' + modelo + '). Presiona "Iniciar Captura YOLO".');
-				}
+				cameraLoadingEl.style.display = 'none';
+				appendLog(activo
+					? 'Monitoreo ya activo (modelo: ' + modelo + ').'
+					: 'Sistema listo (modelo: ' + modelo + '). Presiona "Iniciar Captura YOLO".'
+				);
 			} catch {
-				appendLog('⚠️  No se pudo conectar con el servidor YOLO');
+				cameraLoadingEl.style.display = 'none';
+				appendLog('No se pudo verificar el servidor YOLO.');
 			}
 		})();
 
-		// ── Guarda de navegación: impide salir sin finalizar ─────────────
-		let monitoreoActivo = true;
+		// ── Estado compartido ─────────────────────────────────────────────────
+		let monitoreoActivo       = true;
+		let capturandoYOLO        = false;
+		let finalizando           = false;
+		let elapsedSeconds        = 0;
+		let conteoActual          = {};
+		let reporteActual         = null;
+		let tiempoUltimaDeteccion = 0;
+		let totalGranosUltimo     = 0;
+		let timerInterval         = null;
+		let conteoInterval        = null;
 
+		// ── UI helpers ────────────────────────────────────────────────────────
+		function appendLog(message) {
+			if (eventLog) eventLog.innerHTML = `<p class="log-item">${elapsedSeconds}s - ${message}</p>`;
+		}
+
+		function formatTimer(v) {
+			return `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`;
+		}
+
+		function actualizarUIdesdeConteo() {
+			const totalGranos  = Object.values(conteoActual).reduce((a, b) => a + b, 0);
+			totalGrainsEl.textContent   = totalGranos;
+			totalDefectsEl.textContent  = totalGranos;
+			iaPerformanceEl.textContent = '100%';
+
+			const negro   = conteoActual['negro']          || 0;
+			const brocado = (conteoActual['broca_severo'] || 0) + (conteoActual['broca_ligero'] || 0);
+			const partido = (conteoActual['partido_maquina'] || 0) + (conteoActual['partido_mitad'] || 0);
+
+			negroValueEl.textContent     = negro;
+			brocadoValueEl.textContent   = brocado;
+			fermentadoValueEl.textContent = partido;
+			negroBarEl.style.width       = Math.min(negro   * 2, 100) + '%';
+			brocadoBarEl.style.width     = Math.min(brocado * 2, 100) + '%';
+			fermentadoBarEl.style.width  = Math.min(partido * 2, 100) + '%';
+		}
+
+		// ── Desconexión de cámara ─────────────────────────────────────────────
+		function _manejarDesconexionCamara(errorMsg) {
+			if (finalizando) return;
+			capturandoYOLO = false;
+			clearInterval(timerInterval);
+			clearInterval(conteoInterval);
+			detenerStream();
+
+			const mensaje = errorMsg || 'Desconexión con cámara. La clasificación se ha detenido.';
+			mostrarErrorCamara(mensaje);
+			appendLog(mensaje);
+
+			// Rehabilitar botón para poder reintentar
+			if (startBtn) {
+				startBtn.disabled    = false;
+				startBtn.textContent = 'Iniciar Captura YOLO';
+			}
+		}
+
+		// ── Faja (Arduino) ────────────────────────────────────────────────────
+		async function iniciarFaja() {
+			try {
+				const res  = await fetch('/arduino/motor/iniciar', { method: 'POST' });
+				const data = await res.json();
+				appendLog(data.mensaje || 'Faja iniciada.');
+			} catch {
+				appendLog('No se pudo iniciar la faja. Verifique la conexión Arduino.');
+			}
+		}
+
+		async function detenerFaja() {
+			try {
+				await fetch('/arduino/motor/detener', { method: 'POST' });
+			} catch { /* silencioso al salir o si Arduino desconectado */ }
+		}
+
+		// ── Captura YOLO ──────────────────────────────────────────────────────
+		async function iniciarCaptura() {
+			if (capturandoYOLO || finalizando) return;
+
+			startBtn.disabled    = true;
+			startBtn.textContent = 'Iniciando...';
+
+			try {
+				appendLog('Iniciando faja y conexión con cámara...');
+
+				// 1. Arrancar faja
+				await iniciarFaja();
+
+				// 2. Iniciar YOLO + cámara
+				const res = await fetch('/video/iniciar', { method: 'POST' });
+				if (!res.ok) {
+					const err = await res.json().catch(() => ({ detail: 'Error desconocido' }));
+					throw new Error(err.detail || 'Error al iniciar captura');
+				}
+
+				capturandoYOLO        = true;
+				elapsedSeconds        = 0;
+				tiempoUltimaDeteccion = Date.now();
+				totalGranosUltimo     = 0;
+
+				startBtn.textContent = 'Capturando...';
+				appendLog('Faja en marcha. Captura YOLO activa.');
+				iniciarStream();
+
+				// Timer de sesión
+				timerInterval = setInterval(() => {
+					elapsedSeconds += 1;
+					if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
+				}, 1000);
+
+				// Conteo + detección de desconexión de cámara + auto-stop
+				conteoInterval = setInterval(async () => {
+					if (!capturandoYOLO || finalizando) return;
+					try {
+						const [rConteo, rStatus] = await Promise.all([
+							fetch('/video/lote/conteo'),
+							fetch('/video/status'),
+						]);
+
+						// Verificar desconexión de cámara primero
+						if (rStatus.ok) {
+							const status = await rStatus.json();
+							if (status.camara_desconectada) {
+								_manejarDesconexionCamara(status.error);
+								return;
+							}
+						}
+
+						const data = await rConteo.json();
+						conteoActual = data.conteo;
+						actualizarUIdesdeConteo();
+
+						// Detectar actividad nueva
+						const totalActual = Object.values(conteoActual).reduce((a, b) => a + b, 0);
+						if (totalActual > totalGranosUltimo) {
+							totalGranosUltimo     = totalActual;
+							tiempoUltimaDeteccion = Date.now();
+						}
+
+						// Auto-finalizar si 10 s sin nuevas detecciones
+						if (Date.now() - tiempoUltimaDeteccion >= TIMEOUT_INACTIVIDAD_MS) {
+							appendLog('Sin detecciones por 10 s. Finalizando clasificación automática...');
+							await finalizarMonitoreo(true);
+						}
+					} catch (e) {
+						console.error('Error obteniendo conteo:', e);
+					}
+				}, 1500);
+
+			} catch (err) {
+				appendLog('Error: ' + err.message);
+				startBtn.disabled    = false;
+				startBtn.textContent = 'Iniciar Captura YOLO';
+				await detenerFaja();
+			}
+		}
+
+		async function detenerCaptura() {
+			clearInterval(timerInterval);
+			clearInterval(conteoInterval);
+			capturandoYOLO = false;
+			try { await fetch('/video/detener', { method: 'POST' }); } catch { /* ignorar */ }
+			detenerStream();
+			await detenerFaja();
+		}
+
+		async function generarReporte() {
+			try {
+				appendLog('Generando reporte SCA...');
+				const res = await fetch('/video/lote/generar-reporte', { method: 'POST' });
+				if (!res.ok) throw new Error('Error generando reporte');
+				reporteActual = await res.json();
+				const { grado, total_defectos, apto_specialty } = reporteActual;
+				appendLog(`Reporte: Grado ${grado} | ${total_defectos} defectos | Specialty: ${apto_specialty ? 'Apto' : 'No apto'}`);
+			} catch (err) {
+				appendLog('Error al generar reporte: ' + err.message);
+			}
+		}
+
+		// ── Overlay de finalización ───────────────────────────────────────────
+		const overlay       = document.getElementById('finalizacionOverlay');
+		const finTitulo     = document.getElementById('finTitulo');
+		const finDescripcion= document.getElementById('finDescripcion');
+		const finSpinner    = document.getElementById('finSpinner');
+		const finCheck      = document.getElementById('finCheck');
+		const finResultado  = document.getElementById('finResultado');
+		const btnIrAnalisis = document.getElementById('btnIrAnalisis');
+
+		function _pasoPendiente(n) {
+			const ico = document.getElementById(`paso${n}ico`);
+			const row = document.getElementById(`paso${n}`);
+			if (ico) ico.textContent = '⏳';
+			if (row) row.style.color = 'var(--muted-foreground)';
+		}
+		function _pasoOk(n) {
+			const ico = document.getElementById(`paso${n}ico`);
+			const row = document.getElementById(`paso${n}`);
+			if (ico) ico.textContent = '✅';
+			if (row) row.style.color = 'var(--foreground)';
+		}
+		function _pasoError(n) {
+			const ico = document.getElementById(`paso${n}ico`);
+			if (ico) ico.textContent = '❌';
+		}
+
+		function mostrarOverlay(automatico) {
+			overlay.style.display = 'flex';
+			document.body.style.overflow = 'hidden';
+			finTitulo.textContent = automatico
+				? 'Clasificación finalizada automáticamente'
+				: 'Finalizando monitoreo...';
+			finDescripcion.textContent = automatico
+				? 'No se detectaron nuevos granos en los últimos 10 segundos. El sistema detuvo el proceso y está guardando los resultados.'
+				: 'Por favor espera mientras se guardan los datos y se genera el reporte.';
+			[1,2,3].forEach(_pasoPendiente);
+			finSpinner.style.display = 'block';
+			finCheck.style.display   = 'none';
+			finResultado.style.display = 'none';
+			btnIrAnalisis.disabled = true;
+			btnIrAnalisis.style.cursor = 'not-allowed';
+			btnIrAnalisis.style.background = 'color-mix(in oklab,var(--primary) 40%,transparent)';
+			btnIrAnalisis.textContent = 'Procesando...';
+		}
+
+		function completarOverlay(codigo) {
+			finSpinner.style.display = 'none';
+			finCheck.style.display   = 'block';
+			finTitulo.textContent    = 'Evaluación completada';
+			finDescripcion.textContent = 'El proceso finalizó correctamente. Revisa el resumen antes de continuar al análisis.';
+
+			document.getElementById('resCode').textContent     = codigo || '—';
+			document.getElementById('resGranos').textContent   = Object.values(conteoActual).reduce((a,b)=>a+b,0);
+			document.getElementById('resGrado').textContent    = reporteActual?.grado ? `Grado ${reporteActual.grado}` : '—';
+			document.getElementById('resSpecialty').textContent= reporteActual?.apto_specialty ? 'Apto ✓' : 'No apto';
+			finResultado.style.display = 'block';
+
+			btnIrAnalisis.disabled = false;
+			btnIrAnalisis.style.cursor = 'pointer';
+			btnIrAnalisis.style.background = 'var(--primary)';
+			btnIrAnalisis.style.color = 'var(--primary-foreground, #fff)';
+			btnIrAnalisis.textContent = 'Ir al análisis →';
+		}
+
+		function errorOverlay(msg) {
+			finSpinner.style.display = 'none';
+			finTitulo.textContent    = 'Error al finalizar';
+			finDescripcion.textContent = msg || 'Ocurrió un error. Intenta nuevamente.';
+			_pasoError(3);
+			btnIrAnalisis.disabled = false;
+			btnIrAnalisis.style.cursor = 'pointer';
+			btnIrAnalisis.style.background = 'var(--destructive, #dc2626)';
+			btnIrAnalisis.style.color = '#fff';
+			btnIrAnalisis.textContent = 'Cerrar e intentar de nuevo';
+			btnIrAnalisis.onclick = () => {
+				overlay.style.display = 'none';
+				document.body.style.overflow = '';
+				finalizando = false;
+				if (finishBtn) { finishBtn.disabled = false; finishBtn.textContent = 'Finalizar monitoreo'; }
+				btnIrAnalisis.onclick = null;
+			};
+		}
+
+		btnIrAnalisis.addEventListener('click', () => {
+			if (!btnIrAnalisis.onclick) {
+				finalizando    = false;
+				monitoreoActivo = false;
+				window.location.href = `/analisis/${EVALUACION_ID}`;
+			}
+		});
+
+		// ── Finalización compartida (manual y automática) ─────────────────────
+		async function finalizarMonitoreo(automatico = false) {
+			if (finalizando) return;
+			finalizando = true;
+
+			clearInterval(timerInterval);
+			clearInterval(conteoInterval);
+
+			mostrarOverlay(automatico);
+
+			// Paso 1: detener
+			_pasoOk(1);
+			if (capturandoYOLO) await detenerCaptura();
+
+			// Paso 2: reporte
+			await generarReporte();
+			_pasoOk(2);
+
+			monitoreoActivo = false;
+			detenerStream();
+
+			const stats = {
+				totalGranos:   Object.values(conteoActual).reduce((a, b) => a + b, 0),
+				totalDefectos: reporteActual?.total_defectos || 0,
+				grado:         reporteActual?.grado          || 'Sin clasificar',
+				aptEspecialty: reporteActual?.apto_specialty || false,
+				elapsedSeconds,
+			};
+			sessionStorage.setItem('coffeeren.stats', JSON.stringify(stats));
+
+			// Paso 3: guardar evaluacion
+			try {
+				const res = await fetch(`/evaluacion/${EVALUACION_ID}/finalizar`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ reporte_yolo: reporteActual }),
+				});
+				if (!res.ok) {
+					const err = await res.json();
+					throw new Error(err.detail || 'Error al finalizar la evaluacion.');
+				}
+				const { codigo } = await res.json();
+				_pasoOk(3);
+				sessionStorage.removeItem('coffeeren.evaluacion');
+				appendLog(`Evaluacion finalizada. Código: ${codigo}`);
+				history.replaceState(null, '', '/registro');
+				completarOverlay(codigo);
+			} catch (err) {
+				_pasoError(3);
+				appendLog('Error: ' + err.message);
+				sessionStorage.removeItem('coffeeren.stats');
+				errorOverlay(err.message);
+			}
+		}
+
+		// ── Guarda de navegación ──────────────────────────────────────────────
 		window.addEventListener('beforeunload', (e) => {
-			if (!monitoreoActivo) return;
+			if (!monitoreoActivo && !finalizando) return;
 			e.preventDefault();
 			e.returnValue = '';
 		});
@@ -292,196 +654,36 @@
 			if (!confirmed) return;
 			monitoreoActivo = false;
 			clearInterval(timerInterval);
-			clearInterval(simInterval);
+			clearInterval(conteoInterval);
+			if (capturandoYOLO) {
+				capturandoYOLO = false;
+				fetch('/video/detener', { method: 'POST' }).catch(() => {});
+			}
 			detenerStream();
+			await detenerFaja();
 			window.location.href = '/registro';
 		});
 
-		// ── Captura YOLO en tiempo real ───────────────────────────────────
-		let capturandoYOLO = false;
-		let elapsedSeconds = 0;
-		let conteoActual = {};
-		let reporteActual = null;
-
-		function appendLog(message) {
-			if (eventLog) {
-				eventLog.innerHTML = `<p class="log-item">${elapsedSeconds}s - ${message}</p>`;
-			}
-		}
-
-		function formatTimer(value) {
-			return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
-		}
-
-		function actualizarUIdesdeConteo() {
-			let totalGranos = 0;
-
-			// Calcular totales
-			totalGranos = Object.values(conteoActual).reduce((a, b) => a + b, 0);
-			totalGrainsEl.textContent = totalGranos;
-			totalDefectsEl.textContent = totalGranos;
-			iaPerformanceEl.textContent = '100%';
-
-			// Actualizar las 3 barras principales
-			const negroCount = conteoActual['negro'] || 0;
-			const brocadoCount = (conteoActual['broca_severo'] || 0) + (conteoActual['broca_ligero'] || 0);
-			const partidoCount = (conteoActual['partido_maquina'] || 0) + (conteoActual['partido_mitad'] || 0);
-
-			negroValueEl.textContent = negroCount;
-			brocadoValueEl.textContent = brocadoCount;
-			fermentadoValueEl.textContent = partidoCount;
-
-			negroBarEl.style.width = Math.min(negroCount * 2, 100) + '%';
-			brocadoBarEl.style.width = Math.min(brocadoCount * 2, 100) + '%';
-			fermentadoBarEl.style.width = Math.min(partidoCount * 2, 100) + '%';
-		}
-
-		async function iniciarCaptura() {
-			try {
-				appendLog('⏳ Iniciando captura YOLO...');
-
-				const res = await fetch('/video/iniciar', { method: 'POST' });
-				if (!res.ok) {
-					const errData = await res.json().catch(() => ({ detail: 'Error desconocido' }));
-					throw new Error(errData.detail || 'Error al iniciar captura');
-				}
-
-				capturandoYOLO = true;
-				elapsedSeconds = 0;
-
-				appendLog('✅ Captura YOLO iniciada. Stream en vivo 🎥');
-				iniciarStream();
-
-				// Actualizar conteo cada 1.5 segundos
-				const actualizarConteoInterval = setInterval(async () => {
-					if (!capturandoYOLO) {
-						clearInterval(actualizarConteoInterval);
-						return;
-					}
-					try {
-						const res = await fetch('/video/lote/conteo');
-						const data = await res.json();
-						conteoActual = data.conteo;
-						actualizarUIdesdeConteo();
-					} catch (e) {
-						console.error('Error obteniendo conteo:', e);
-					}
-				}, 1500);
-
-				// Timer cada segundo
-				const timerInterval = setInterval(() => {
-					if (!capturandoYOLO) {
-						clearInterval(timerInterval);
-						return;
-					}
-					elapsedSeconds += 1;
-					if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
-				}, 1000);
-
-			} catch (err) {
-				appendLog('❌ Error: ' + err.message);
-			}
-		}
-
-		async function detenerCaptura() {
-			try {
-				appendLog('⏹️  Deteniendo captura...');
-
-				const res = await fetch('/video/detener', { method: 'POST' });
-				if (!res.ok) throw new Error('Error al detener');
-
-				capturandoYOLO = false;
-				detenerStream();
-
-				appendLog('✅ Captura detenida.');
-
-			} catch (err) {
-				appendLog('❌ Error al detener: ' + err.message);
-			}
-		}
-
-		async function generarReporte() {
-			try {
-				appendLog('📊 Generando reporte SCA...');
-
-				const res = await fetch('/video/lote/generar-reporte', { method: 'POST' });
-				if (!res.ok) throw new Error('Error generando reporte');
-
-				reporteActual = await res.json();
-				const { grado, total_defectos, apto_specialty } = reporteActual;
-
-				appendLog(`✅ Reporte: ${grado} | ${total_defectos} defectos | Specialty: ${apto_specialty ? '✅' : '❌'}`);
-				console.log('📋 Reporte completo:', reporteActual);
-
-			} catch (err) {
-				appendLog('❌ Error al generar reporte: ' + err.message);
-			}
-		}
-
+		// ── Botones ───────────────────────────────────────────────────────────
 		if (finishBtn) {
 			finishBtn.addEventListener('click', async () => {
 				const confirmed = await CoffeeModal.confirm({
 					title: '¿Finalizar monitoreo?',
-					message: '¿Deseas finalizar y generar el reporte?',
+					message: '¿Deseas detener la faja y generar el reporte final?',
 				});
 				if (!confirmed) return;
-
-				finishBtn.disabled = true;
+				finishBtn.disabled    = true;
 				finishBtn.textContent = 'Finalizando...';
-
-				// Detener captura
-				if (capturandoYOLO) {
-					await detenerCaptura();
-				}
-
-				// Generar reporte
-				await generarReporte();
-
-				monitoreoActivo = false;
-				detenerStream();
-				appendLog('Cerrando evaluacion...');
-
-				const stats = {
-					totalGranos: Object.values(conteoActual).reduce((a, b) => a + b, 0),
-					totalDefectos: reporteActual?.total_defectos || 0,
-					grado: reporteActual?.grado || 'Sin clasificar',
-					aptEspecialty: reporteActual?.apto_specialty || false,
-					elapsedSeconds,
-				};
-				sessionStorage.setItem('coffeeren.stats', JSON.stringify(stats));
-
-				try {
-					const res = await fetch(`/evaluacion/${EVALUACION_ID}/finalizar`, {
-						method: 'PATCH',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ reporte_yolo: reporteActual })
-					});
-					if (!res.ok) {
-						const err = await res.json();
-						throw new Error(err.detail || 'Error al finalizar la evaluacion.');
-					}
-					const { codigo } = await res.json();
-					sessionStorage.removeItem('coffeeren.evaluacion');
-					appendLog(`✅ Evaluacion finalizada. Codigo: ${codigo}`);
-					history.replaceState(null, '', '/registro');
-					setTimeout(() => { window.location.href = `/analisis/${EVALUACION_ID}`; }, 1200);
-				} catch (err) {
-					appendLog(`❌ Error: ${err.message}`);
-					sessionStorage.removeItem('coffeeren.stats');
-					finishBtn.disabled = false;
-					finishBtn.textContent = 'Finalizar monitoreo';
-				}
+				await finalizarMonitoreo(false);
 			});
 		}
 
-		actualizarUIdesdeConteo();
-		appendLog('📷 Sistema listo. Verifica que la cámara esté conectada y presiona "Iniciar Captura YOLO".');
-
-		// Conectar botón "Iniciar Captura YOLO"
-		const startBtn = document.getElementById('startBtn');
 		if (startBtn) {
 			startBtn.addEventListener('click', iniciarCaptura);
 		}
+
+		actualizarUIdesdeConteo();
+		appendLog('Sistema listo. Presiona "Iniciar Captura YOLO" para arrancar la faja y la cámara.');
 	})();
 </script>
 {% endblock %}

@@ -13,6 +13,8 @@ from ultralytics import YOLO
 import os
 import sys
 
+from src.utilities.servo_controller import servo_controller
+
 # Configuración de cámara
 CAMARA_WIDTH    = 1280  # Resolución operativa
 CAMARA_HEIGHT   = 720
@@ -61,6 +63,7 @@ class CoffeeRenTracker:
 
         # Estado del tracking
         self.conteo_ids_confianza = defaultdict(list)  # {track_id: [(clase, conf), ...]}
+        self._ids_servados: set[int] = set()           # track_ids ya enviados al servo
         self.lock = threading.Lock()
 
         # Estadísticas
@@ -131,9 +134,15 @@ class CoffeeRenTracker:
                     conf_score = float(box.conf[0])
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
 
-                    # Guardar detección (clase, confianza) para este ID
+                    # Guardar detección y programar servo para IDs nuevos
                     with self.lock:
                         self.conteo_ids_confianza[track_id].append((clase, conf_score))
+                        if track_id not in self._ids_servados:
+                            self._ids_servados.add(track_id)
+                            servo_controller.solicitar(
+                                obtener_clase=lambda tid=track_id: self._mejor_clase_para(tid),
+                                equivalencias=self.EQUIVALENCIAS_DEFECTO,
+                            )
 
                     # Color: ROJO para defectos (todos los detectados son defectos)
                     color = self.COLORES_DEFECTOS.get(clase, (0, 0, 255))
@@ -194,6 +203,8 @@ class CoffeeRenTracker:
         """Resetea el conteo de IDs para un nuevo lote."""
         with self.lock:
             self.conteo_ids_confianza = defaultdict(list)
+            self._ids_servados = set()
+        servo_controller.limpiar_cola()
 
     def obtener_conteo(self) -> dict[str, int]:
         """
@@ -206,6 +217,18 @@ class CoffeeRenTracker:
         with self.lock:
             conteo_final = self._calcular_conteo_final()
         return conteo_final
+
+    def _mejor_clase_para(self, track_id: int) -> str | None:
+        """
+        Retorna la clase con mayor confianza acumulada para el track_id dado.
+        Llamado por servo_controller en el momento de activar el servo,
+        cuando ya se han acumulado más detecciones que en el primer frame.
+        """
+        with self.lock:
+            detecciones = self.conteo_ids_confianza.get(track_id, [])
+        if not detecciones:
+            return None
+        return max(detecciones, key=lambda x: x[1])[0]
 
     def _calcular_conteo_final(self) -> dict[str, int]:
         """Calcula conteo final usando la clase con mayor confianza por ID."""

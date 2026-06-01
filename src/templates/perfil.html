@@ -1,7 +1,7 @@
 {% extends "main.html" %}
 
 {% block style %}
-<link rel="stylesheet" href="/static/css/perfil.css?v=10">
+<link rel="stylesheet" href="/static/css/perfil.css?v=13">
 {% endblock %}
 
 {% block content %}
@@ -161,70 +161,48 @@
                 <form id="formContrasena" class="perfil-form">
                     <p class="perfil-section-description">Cambia tu contraseña regularmente para mantener tu cuenta segura.</p>
 
-                    <div class="perfil-form-row">
+                    <div class="perfil-form-row single">
                         <div class="field-group">
                             <label for="claveActual">Contraseña actual</label>
-                            <input
-                                id="claveActual"
-                                type="password"
-                                required
-                                placeholder="Ingresa tu contraseña actual"
-                            >
+                            <input id="claveActual" type="password" required placeholder="Ingresa tu contraseña actual" maxlength="30">
                         </div>
                     </div>
 
-                    <div class="perfil-form-row single">
+                    <div class="perfil-form-row">
                         <div class="field-group">
-                            <label for="claveNueva">Nueva contraseña</label>
-                            <input
-                                id="claveNueva"
-                                type="password"
-                                required
-                                placeholder="Mínimo 8 caracteres"
-                            >
-
-                            <div class="password-requirements">
+                            <label for="claveNueva" style="display:flex;justify-content:space-between;">
+                                <span>Nueva contraseña</span>
+                                <span id="contadorNueva" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/30</span>
+                            </label>
+                            <input id="claveNueva" type="password" required placeholder="Mínimo 8 caracteres" maxlength="30">
+                            <div class="password-requirements" style="margin-top:6px;">
                                 <div class="requirement" id="req-length">
-                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
+                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     <span>Al menos 8 caracteres</span>
                                 </div>
                                 <div class="requirement" id="req-uppercase">
-                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
+                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     <span>Al menos una letra mayúscula</span>
                                 </div>
                                 <div class="requirement" id="req-number">
-                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
+                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     <span>Al menos un número</span>
                                 </div>
                                 <div class="requirement" id="req-special">
-                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
+                                    <svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     <span>Al menos un carácter especial (!@#$%^&*)</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="perfil-form-row">
                         <div class="field-group">
-                            <label for="confirmarClave">Confirmar contraseña</label>
-                            <input
-                                id="confirmarClave"
-                                type="password"
-                                required
-                                placeholder="Repite la nueva contraseña"
-                            >
+                            <label for="confirmarClave" style="display:flex;justify-content:space-between;">
+                                <span>Confirmar contraseña</span>
+                                <span id="contadorConfirmar" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/30</span>
+                            </label>
+                            <input id="confirmarClave" type="password" required placeholder="Repite la nueva contraseña" maxlength="30">
                             <div class="password-match" id="passwordMatch">
-                                <svg class="match-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
+                                <svg class="match-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 <span id="passwordMatchText">Las contraseñas coinciden</span>
                             </div>
                         </div>
@@ -364,87 +342,31 @@
     const claveNueva = document.getElementById('claveNueva');
     const confirmarClave = document.getElementById('confirmarClave');
 
-    // Validación en tiempo real de requisitos de contraseña
-    function validatePasswordRequirements(password) {
-        const requirements = {
-            length: password.length >= 8,
-            uppercase: /[A-Z]/.test(password),
-            number: /\d/.test(password),
-            special: /[!@#%^&*(),.=?":{}$¿?¡]/.test(password)
-        };
-        return requirements;
-    }
-
-    function updateRequirementUI(requirements) {
-        const reqLength = document.getElementById('req-length');
-        const reqUppercase = document.getElementById('req-uppercase');
-        const reqNumber = document.getElementById('req-number');
-        const reqSpecial = document.getElementById('req-special');
-
-        if (requirements.length) {
-            reqLength.classList.add('active');
-            reqLength.classList.remove('inactive');
-        } else {
-            reqLength.classList.remove('active');
-            reqLength.classList.add('inactive');
-        }
-
-        if (requirements.uppercase) {
-            reqUppercase.classList.add('active');
-            reqUppercase.classList.remove('inactive');
-        } else {
-            reqUppercase.classList.remove('active');
-            reqUppercase.classList.add('inactive');
-        }
-
-        if (requirements.number) {
-            reqNumber.classList.add('active');
-            reqNumber.classList.remove('inactive');
-        } else {
-            reqNumber.classList.remove('active');
-            reqNumber.classList.add('inactive');
-        }
-
-        if (requirements.special) {
-            reqSpecial.classList.add('active');
-            reqSpecial.classList.remove('inactive');
-        } else {
-            reqSpecial.classList.remove('active');
-            reqSpecial.classList.add('inactive');
-        }
-    }
-
-    claveNueva.addEventListener('input', () => {
-        const requirements = validatePasswordRequirements(claveNueva.value);
-        updateRequirementUI(requirements);
-        updatePasswordMatch();
+    // Validación de contraseña — usando CoffeeValidators
+    CoffeeValidators.contrasena({
+        inputEl:    'claveNueva',
+        contadorEl: 'contadorNueva',
+        max: 30,
+        reqs: {
+            length:    'req-length',
+            uppercase: 'req-uppercase',
+            number:    'req-number',
+            special:   'req-special',
+        },
     });
 
-    confirmarClave.addEventListener('input', () => {
-        updatePasswordMatch();
+    CoffeeValidators.contrasena({
+        inputEl:    'confirmarClave',
+        contadorEl: 'contadorConfirmar',
+        max: 30,
     });
 
-    function updatePasswordMatch() {
-        const passwordMatchDiv = document.getElementById('passwordMatch');
-        const passwordMatchText = document.getElementById('passwordMatchText');
-
-        if (!claveNueva.value || !confirmarClave.value) {
-            passwordMatchDiv.classList.remove('show', 'match', 'mismatch');
-            return;
-        }
-
-        passwordMatchDiv.classList.add('show');
-
-        if (claveNueva.value === confirmarClave.value) {
-            passwordMatchDiv.classList.add('match');
-            passwordMatchDiv.classList.remove('mismatch');
-            passwordMatchText.textContent = 'Las contraseñas coinciden';
-        } else {
-            passwordMatchDiv.classList.add('mismatch');
-            passwordMatchDiv.classList.remove('match');
-            passwordMatchText.textContent = 'Las contraseñas no coinciden';
-        }
-    }
+    CoffeeValidators.confirmar({
+        claveEl:     'claveNueva',
+        confirmarEl: 'confirmarClave',
+        matchEl:     'passwordMatch',
+        matchTextEl: 'passwordMatchText',
+    });
 
     btnCambiarContrasena.addEventListener('click', async () => {
         if (!claveActual.value) {

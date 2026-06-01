@@ -47,9 +47,9 @@ async def login_post(request: Request, usuario: str = Form(...), clave: str = Fo
     if login_response:
         # Redirigir y configurar la cookie JWT
         response = RedirectResponse(url="/", status_code=303)
-        response.set_cookie(key="access_token", value=f"Bearer {login_response.token}", httponly=True)
+        response.set_cookie(key="access_token", value=login_response.token, httponly=True)
         return response
-    
+
     # Si las credenciales son incorrectas
     return templates.TemplateResponse(
         request=request,
@@ -87,6 +87,6 @@ async def login_api(credentials: LoginRequest):
 
     # Return JSON response with httponly cookie
     response = JSONResponse(content=login_response.dict())
-    response.set_cookie(key="access_token", value=f"Bearer {login_response.token}", httponly=True)
+    response.set_cookie(key="access_token", value=login_response.token, httponly=True)
     return response
 

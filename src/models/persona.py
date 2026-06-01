@@ -116,6 +116,42 @@ class Persona:
             if owns_db:
                 db.close()
 
+    def actualizar_completo(
+        self,
+        persona_id: str,
+        nombre: str,
+        ape_paterno: str,
+        ape_materno: str,
+        sexo: str,
+        fecha_nacimiento: date,
+        telefono: str | None,
+        correo: str | None,
+        ubigeo: str | None,
+        db: Connection | None = None,
+    ) -> bool:
+        owns_db = db is None
+        db = db or Connection()
+        try:
+            sql = """
+                UPDATE persona
+                SET nombre=%s, ape_paterno=%s, ape_materno=%s, sexo=%s,
+                    fecha_nacimiento=%s, telefono=%s, correo=%s, ubigeo=%s
+                WHERE id=%s
+            """
+            cursor = db.ejecutar(sql, (nombre, ape_paterno, ape_materno, sexo,
+                                       fecha_nacimiento, telefono, correo, ubigeo, persona_id))
+            actualizado = cursor.rowcount > 0
+            if owns_db:
+                db.commit() if actualizado else db.rollback()
+            return actualizado
+        except Exception:
+            if owns_db:
+                db.rollback()
+            raise
+        finally:
+            if owns_db:
+                db.close()
+
     def actualizar_datos_personales(
         self,
         persona_id: str,
@@ -170,31 +206,15 @@ class Persona:
                 db.close()
 
     def obtener_datos_perfil_completo(self, personal_id: str, db: Connection | None = None) -> dict[str, Any] | None:
-        """Obtiene datos completos del usuario para formulario de perfil."""
         owns_db = db is None
         db = db or Connection()
-
         try:
             sql = """
                 SELECT pe.nombre, pe.ape_paterno, pe.ape_materno, pe.telefono,
-                       COALESCE(pe.correo, '') as correo,
+                       COALESCE(pe.correo, '') AS correo,
                        pe.num_documento, pe.sexo, pe.fecha_nacimiento,
                        p.usuario, p.estado, p.fecha_registro, p.tipo_personal_id,
-                       tp.nombre as rol
-                FROM persona pe
-                INNER JOIN personal p ON pe.id = p.personal_id
-                INNER JOIN tipo_personal tp ON p.tipo_personal_id = tp.id
-                WHERE pe.id = %s
-            """
-            return db.obtener_uno(sql, (personal_id,))
-        except Exception:
-            # Fallback si correo column no existe
-            sql = """
-                SELECT pe.nombre, pe.ape_paterno, pe.ape_materno, pe.telefono,
-                       '' as correo,
-                       pe.num_documento, pe.sexo, pe.fecha_nacimiento,
-                       p.usuario, p.estado, p.fecha_registro, p.tipo_personal_id,
-                       tp.nombre as rol
+                       tp.nombre AS rol
                 FROM persona pe
                 INNER JOIN personal p ON pe.id = p.personal_id
                 INNER JOIN tipo_personal tp ON p.tipo_personal_id = tp.id

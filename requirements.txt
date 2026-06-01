@@ -50,6 +50,7 @@ pillow>=10.0.0            # Procesamiento de imágenes
 # ============================================================
 python-dotenv>=1.0.0      # Cargar variables de entorno desde .env
 requests>=2.31.0          # HTTP client para APIs externas
+pyserial>=3.5             # Comunicación serial con Arduino (sensor ultrasónico)
 
 # ============================================================
 # DESARROLLO & DEBUGGING (opcional, descomentar si es necesario)

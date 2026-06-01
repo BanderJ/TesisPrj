@@ -40,60 +40,40 @@
     border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
     background: color-mix(in oklab, var(--card) 97%, transparent 3%);
     padding: clamp(12px, 1.3vw, 18px);
+    /* Grid interno uniforme — mismo ritmo vertical en ambas tarjetas */
+    display: grid;
+    gap: 10px;
+    align-content: start;
 }
 
 .registro-card h2 {
-    margin-top: 0;
+    margin: 0 0 4px;
     font-family: var(--font-serif);
     font-size: clamp(0.95rem, 1.1vw, 1.1rem);
     font-weight: 700;
-    margin-bottom: 0.65rem;
 }
 
+/* form-row y field-group sin márgenes propios — el gap del card los controla */
 .form-row {
     display: grid;
     gap: 0 0.75rem;
-    margin-bottom: 0.9rem;
+    margin: 0;
 }
 
 .form-row--2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.form-row .field-group {
-    margin-bottom: 0;
-}
-
-.field-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    margin-bottom: 0.9rem;
+.form-row .field-group,
+.registro-card > .field-group {
+    margin: 0;
 }
 
 .field-group:last-child {
     margin-bottom: 0;
 }
 
-.field-group label {
-    font-size: inherit;
-    font-weight: 600;
-    color: color-mix(in oklab, var(--foreground) 90%, var(--muted-foreground) 10%);
-}
-
-.field-group input,
-.field-group select {
-    width: 100%;
-    background: color-mix(in oklab, var(--input) 96%, transparent 4%);
-    border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
-    color: var(--foreground);
-    border-radius: 10px;
-    min-height: 2.5rem;
-    padding: 0.45rem 0.7rem;
-    font-size: 14px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
+/* Custom select styling (dropdown arrow) */
 .field-group select {
     appearance: none;
     cursor: pointer;
@@ -112,13 +92,6 @@
     color: var(--foreground);
 }
 
-.field-group input:focus,
-.field-group select:focus {
-    outline: none;
-    border-color: var(--ring);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 30%, transparent 70%);
-}
-
 .field-group input[readonly] {
     background: color-mix(in oklab, var(--muted) 78%, transparent 22%);
     color: var(--muted-foreground);
@@ -127,6 +100,11 @@
 
 .helper-text {
     color: var(--muted-foreground);
+}
+
+/* Ocultar párrafos de ayuda cuando están vacíos — evita altura extra */
+.helper-text:empty {
+    display: none;
 }
 
 .helper-error {
@@ -155,7 +133,7 @@
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: filter 0.18s ease;
+    transition: filter 0.2s ease;
 }
 
 .btn:disabled {
@@ -183,7 +161,7 @@
     color: var(--destructive);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
     .registro-grid {
         grid-template-columns: 1fr;
     }

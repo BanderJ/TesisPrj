@@ -108,6 +108,39 @@ class Caficultor:
             if owns_db:
                 db.close()
 
+    def listar_todos(self, db: Connection | None = None) -> list[dict[str, Any]]:
+        owns_db = db is None
+        db = db or Connection()
+        try:
+            sql = """
+                SELECT
+                    p.id::text                                        AS persona_id,
+                    p.num_documento,
+                    TRIM(p.nombre)                                    AS nombre,
+                    TRIM(p.ape_paterno)                               AS ape_paterno,
+                    TRIM(p.ape_materno)                               AS ape_materno,
+                    p.sexo,
+                    TRIM(COALESCE(p.telefono, ''))                    AS telefono,
+                    TO_CHAR(p.fecha_nacimiento, 'DD/MM/YYYY')         AS fecha_nacimiento,
+                    COALESCE(p.ubigeo, '')                            AS ubigeo,
+                    tc.nombre                                         AS tipo_caficultor,
+                    c.tipo_caficultor_id,
+                    TO_CHAR(c.fecha_registro, 'DD/MM/YYYY')           AS fecha_registro,
+                    COALESCE(TRIM(u.departamento), '')                AS departamento,
+                    COALESCE(TRIM(u.provincia), '')                   AS provincia,
+                    COALESCE(TRIM(u.distrito), '')                    AS distrito
+                FROM persona p
+                INNER JOIN caficultor c       ON c.caficultor_id   = p.id
+                INNER JOIN tipo_caficultor tc ON tc.id             = c.tipo_caficultor_id
+                LEFT  JOIN ubigeo u           ON u.ubigeo          = p.ubigeo
+                WHERE p.estado = 'A'
+                ORDER BY p.ape_paterno, p.ape_materno, p.nombre
+            """
+            return db.obtener(sql)
+        finally:
+            if owns_db:
+                db.close()
+
     def actualizar_tipo_caficultor_por_num_documento(
         self,
         num_documento: str,

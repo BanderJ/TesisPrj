@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from src.routes.arduino import arduino_router
 from src.routes.auth_login import auth as auth_router
 from src.routes.caficultor import caficultor_router
 from src.routes.camara import camara_router
@@ -25,6 +26,8 @@ from src.routes.valor_cafe import valor_cafe_router
 from src.routes.video import router as video_router
 from src.services.camara import camara_service
 from src.services.tracker_service import tracker_service
+from src.utilities.arduino_serial import arduino_serial
+from src.utilities.servo_controller import servo_controller
 from src.services.evaluacion_service import EvaluacionService
 from src.utilities.jwt_required import RequerirLoginException, obtener_usuario_actual
 
@@ -43,6 +46,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
     yield
     tracker_service.detener()
     camara_service.cerrar()
+    servo_controller.cerrar()
+    arduino_serial.cerrar()
     print("Application is shutting down...")
 
 
@@ -70,6 +75,7 @@ async def auth_exception_handler(request: Request, exc: RequerirLoginException) 
 
 # ==================== RUTAS ====================
 
+app.include_router(arduino_router)
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
 app.include_router(camara_router, prefix="/camara", tags=["camara"])

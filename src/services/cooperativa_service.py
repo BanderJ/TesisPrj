@@ -1,13 +1,11 @@
-"""
-Cooperativa Service - Business logic for cooperative management
-"""
 from src.database.bd import Connection
 from src.models import cooperativa as coop_model
 from src.schemas.cooperativa import CooperativaCreate, CooperativaUpdate
 
+_COOPERATIVA_DEFAULT_CODIGO = "LCM001"
+
 
 def obtener_todas() -> list[dict]:
-    """Get all active cooperatives."""
     db = Connection()
     try:
         return coop_model.obtener_todas(db)
@@ -16,7 +14,6 @@ def obtener_todas() -> list[dict]:
 
 
 def obtener_por_id(cooperativa_id: str) -> dict | None:
-    """Get cooperative by ID."""
     db = Connection()
     try:
         return coop_model.obtener_por_id(cooperativa_id, db)
@@ -25,7 +22,6 @@ def obtener_por_id(cooperativa_id: str) -> dict | None:
 
 
 def obtener_por_codigo(codigo: str) -> dict | None:
-    """Get cooperative by unique codigo."""
     db = Connection()
     try:
         return coop_model.obtener_por_codigo(codigo, db)
@@ -34,10 +30,11 @@ def obtener_por_codigo(codigo: str) -> dict | None:
 
 
 def crear(data: CooperativaCreate) -> dict:
-    """Create a new cooperative."""
     db = Connection()
     try:
-        return coop_model.crear(
+        if data.codigo and coop_model.obtener_por_codigo(data.codigo, db):
+            raise ValueError(f"El código '{data.codigo}' ya está en uso")
+        result = coop_model.crear(
             nombre=data.nombre,
             codigo=data.codigo,
             direccion=data.direccion,
@@ -45,17 +42,27 @@ def crear(data: CooperativaCreate) -> dict:
             correo=data.correo,
             descripcion=data.descripcion,
             imagen_url=data.imagen_url,
-            db=db
+            db=db,
         )
+        db.commit()
+        return result
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
 
 def actualizar(cooperativa_id: str, data: CooperativaUpdate) -> dict | None:
-    """Update cooperative (only non-None fields are updated)."""
     db = Connection()
     try:
-        return coop_model.actualizar(
+        actual = coop_model.obtener_por_id(cooperativa_id, db)
+        if not actual:
+            return None
+        if data.codigo and data.codigo != actual.get("codigo"):
+            if coop_model.obtener_por_codigo(data.codigo, db):
+                raise ValueError(f"El código '{data.codigo}' ya está en uso")
+        result = coop_model.actualizar(
             cooperativa_id=cooperativa_id,
             nombre=data.nombre,
             codigo=data.codigo,
@@ -64,25 +71,46 @@ def actualizar(cooperativa_id: str, data: CooperativaUpdate) -> dict | None:
             correo=data.correo,
             descripcion=data.descripcion,
             imagen_url=data.imagen_url,
-            db=db
+            db=db,
         )
+        db.commit()
+        return result
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
 
 def desactivar(cooperativa_id: str) -> dict | None:
-    """Deactivate a cooperative (soft delete)."""
     db = Connection()
     try:
-        return coop_model.desactivar(cooperativa_id, db)
+        result = coop_model.desactivar(cooperativa_id, db)
+        db.commit()
+        return result
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
 
 def obtener_por_usuario(personal_id: str) -> dict | None:
-    """Get cooperative associated with a user with default assignment."""
     db = Connection()
     try:
-        return coop_model.obtener_por_usuario(personal_id, db)
+        cooperativa = coop_model.obtener_cooperativa_de_usuario(personal_id, db)
+        if cooperativa:
+            return cooperativa
+
+        default_id = coop_model.obtener_id_por_codigo(_COOPERATIVA_DEFAULT_CODIGO, db)
+        if not default_id:
+            return None
+
+        coop_model.asignar_cooperativa_a_persona(personal_id, default_id, db)
+        db.commit()
+        return coop_model.obtener_por_id(default_id, db)
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()

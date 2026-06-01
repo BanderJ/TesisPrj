@@ -11,7 +11,7 @@ from src.schemas.evaluacion import (
     ResumenEvaluacionResponse,
 )
 from src.services.evaluacion_service import EvaluacionService
-from src.utilities.jwt_required import jwt_token_requerido
+from src.utilities.jwt_required import obtener_usuario_actual
 
 
 evaluacion_router = APIRouter()
@@ -27,9 +27,8 @@ _UUID_PATTERN = r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[
 )
 async def registrar_evaluacion(
     payload: RegistrarEvaluacionRequest,
-    usuario: dict[str, Any] = Depends(jwt_token_requerido),
+    usuario: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> RegistrarEvaluacionResponse:
-    """Registra una nueva evaluacion de muestra de cafe sin codigo (se asigna al finalizar)."""
     try:
         personal_id: str = str(usuario["personal_id"])
         return evaluacion_service.registrar_evaluacion(personal_id, payload)
@@ -45,9 +44,8 @@ async def registrar_evaluacion(
 )
 async def buscar_evaluacion_por_codigo(
     codigo: str = Query(..., min_length=1, max_length=10),
-    _: dict[str, Any] = Depends(jwt_token_requerido),
+    _: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> ResumenEvaluacionResponse:
-    """Busca una evaluación por su código EVA correlativo."""
     result = evaluacion_service.buscar_evaluacion_por_codigo(codigo)
     if not result:
         raise HTTPException(status_code=404, detail="Evaluación no encontrada.")
@@ -60,9 +58,8 @@ async def buscar_evaluacion_por_codigo(
 )
 async def obtener_resumen_evaluacion(
     evaluacion_id: str = Path(..., pattern=_UUID_PATTERN),
-    _: dict[str, Any] = Depends(jwt_token_requerido),
+    _: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> ResumenEvaluacionResponse:
-    """Devuelve los datos completos de una evaluacion para la pagina de resumen."""
     try:
         return evaluacion_service.obtener_resumen_evaluacion(evaluacion_id)
     except ValueError as exc:
@@ -78,9 +75,8 @@ async def obtener_resumen_evaluacion(
 async def completar_evaluacion(
     payload: CompletarEvaluacionRequest,
     evaluacion_id: str = Path(..., pattern=_UUID_PATTERN),
-    _: dict[str, Any] = Depends(jwt_token_requerido),
+    _: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> CompletarEvaluacionResponse:
-    """Calcula y guarda todos los campos derivados al finalizar el monitoreo."""
     try:
         return evaluacion_service.completar_evaluacion(evaluacion_id, payload)
     except ValueError as exc:
@@ -95,9 +91,8 @@ async def completar_evaluacion(
 )
 async def finalizar_evaluacion(
     evaluacion_id: str = Path(..., pattern=_UUID_PATTERN),
-    _: dict[str, Any] = Depends(jwt_token_requerido),
+    _: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> FinalizarEvaluacionResponse:
-    """Genera y asigna el codigo EVA correlativo al finalizar el monitoreo."""
     try:
         return evaluacion_service.finalizar_evaluacion(evaluacion_id)
     except ValueError as exc:

@@ -92,16 +92,7 @@ class ValorCafeService:
         )
 
     def crear_precio(self, data: ValorCafeCrearRequest) -> ValorCafeCrearResponse:
-        """Crea un nuevo registro de precio de café. Valida rango y precio."""
-        # Validación
-        errores = data.validar()
-        if errores:
-            raise ValueError(f"Validación fallida: {errores}")
-        
-        # Persistencia
         fila = self.model.crear(data.rango, data.precio)
-        
-        # Respuesta
         return ValorCafeCrearResponse(
             id=str(fila["id"]),
             rango=fila["rango"],
@@ -110,11 +101,6 @@ class ValorCafeService:
         )
 
     def crear_precios_bloque(self, data: ValorCafeCrearBloqueRequest) -> ValorCafeCrearBloqueResponse:
-        """Crea multiples registros de precio de café en una sola solicitud."""
-        errores = data.validar()
-        if errores:
-            raise ValueError(f"Validación fallida: {errores}")
-
         filas = self.model.crear_bloque([(item.rango, item.precio) for item in data.precios])
         items = [
             ValorCafeCrearResponse(

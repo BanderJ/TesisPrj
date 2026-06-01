@@ -87,6 +87,7 @@ class Personal:
                 SELECT p.personal_id, p.tipo_personal_id, p.usuario, p.estado, p.fecha_registro,
                        pe.id as persona_id, pe.nombre, pe.ape_paterno, pe.ape_materno,
                        pe.sexo, pe.fecha_nacimiento, pe.num_documento, pe.telefono, pe.correo,
+                       pe.ubigeo,
                        tp.nombre as tipo_personal
                 FROM personal p
                 INNER JOIN persona pe ON p.personal_id = pe.id
@@ -94,6 +95,29 @@ class Personal:
                 WHERE p.personal_id = %s
             """
             return db.obtener_uno(sql, (personal_id,))
+        finally:
+            if owns_db:
+                db.close()
+
+    def actualizar_tipo_personal(
+        self,
+        personal_id: str,
+        tipo_personal_id: int,
+        db: Connection | None = None,
+    ) -> bool:
+        owns_db = db is None
+        db = db or Connection()
+        try:
+            sql = "UPDATE personal SET tipo_personal_id=%s WHERE personal_id=%s"
+            cursor = db.ejecutar(sql, (tipo_personal_id, personal_id))
+            actualizado = cursor.rowcount > 0
+            if owns_db:
+                db.commit() if actualizado else db.rollback()
+            return actualizado
+        except Exception:
+            if owns_db:
+                db.rollback()
+            raise
         finally:
             if owns_db:
                 db.close()
