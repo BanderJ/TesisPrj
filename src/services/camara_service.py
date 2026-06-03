@@ -78,7 +78,7 @@ class CamaraService:
                     # Leer frame de prueba para verificar que funciona
                     ret, test = cap.read()
                     if not ret or test is None:
-                        print(f"⚠️  Cámara índice {idx} no devuelve frames")
+                        print(f"Cámara índice {idx} no devuelve frames")
                         cap.release()
                         continue
 
@@ -99,14 +99,14 @@ class CamaraService:
                     )
                     self._thread.start()
 
-                    print(f"✅ Cámara iniciada (índice {idx}, {w}x{h} @ {fps}fps, passthrough={self._passthrough})")
+                    print(f"Cámara iniciada (índice {idx}, {w}x{h} @ {fps}fps, passthrough={self._passthrough})")
                     return True
 
                 except Exception as e:
-                    print(f"❌ Error inicializando cámara índice {idx}: {e}")
+                    print(f"Error inicializando cámara índice {idx}: {e}")
                     continue
 
-            print("❌ No se encontró cámara disponible en índices 0-1")
+            print("No se encontró cámara disponible en índices 0-1")
             return False
 
     def cerrar(self) -> None:

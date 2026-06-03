@@ -79,6 +79,7 @@ class CaficultorService:
             num_documento=resultado["num_documento"],
             nombre_completo=nombre_completo,
             tipo_caficultor=resultado["tipo_caficultor"],
+            es_socio=int(resultado["tipo_caficultor_id"]) == self.TIPO_SOCIO_ID,
         )
 
     def _validar_tipo_caficultor(self, tipo_caficultor_id: int) -> None:
@@ -176,7 +177,10 @@ class CaficultorService:
     def listar_caficultores(self) -> list[dict]:
         db = Connection()
         try:
-            return self.caficultor_model.listar_todos(db=db)
+            items = self.caficultor_model.listar_todos(db=db)
+            for item in items:
+                item["es_socio"] = int(item.get("tipo_caficultor_id", 0)) == self.TIPO_SOCIO_ID
+            return items
         finally:
             db.close()
 

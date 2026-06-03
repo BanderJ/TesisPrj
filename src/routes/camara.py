@@ -4,7 +4,7 @@ from typing import Any, AsyncGenerator
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from src.services.camara import CamaraService, camara_service
+from src.services.camara_service import CamaraService, camara_service
 from src.utilities.jwt_required import obtener_usuario_actual
 
 camara_router = APIRouter()

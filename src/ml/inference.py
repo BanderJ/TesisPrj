@@ -16,7 +16,7 @@ MODELS_DIR = os.path.join(BASE_DIR, "models")
 
 
 class CoffeeRenInference:
-    def __init__(self, model_name: str = "yolov8n", conf: float = 0.3):
+    def __init__(self, model_name: str = "yolov8n", conf: float = 0.5):
         """
         Inicializa el modelo de inferencia.
 

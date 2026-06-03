@@ -14,10 +14,10 @@ from fastapi.responses import StreamingResponse
 from src.services.tracker_service import tracker_service
 from src.utilities.jwt_required import obtener_usuario_actual
 
-router = APIRouter(prefix="/video", tags=["video"])
+video_router = APIRouter(prefix="/video", tags=["video"])
 
 
-@router.get("/stream")
+@video_router.get("/stream")
 async def stream_mjpeg():
     """
     Streaming MJPEG del monitoreo en vivo.
@@ -51,8 +51,8 @@ async def stream_mjpeg():
 # RUTAS DE CONTROL (requieren autenticación)
 # ============================================================
 
-@router.post("/iniciar")
-async def iniciar_captura(usuario_actual: dict = Depends(obtener_usuario_actual)):
+@video_router.post("/iniciar")
+async def iniciar_captura(_: dict = Depends(obtener_usuario_actual)):
     """
     Inicia la captura de video y procesamiento en tiempo real.
 
@@ -78,8 +78,8 @@ async def iniciar_captura(usuario_actual: dict = Depends(obtener_usuario_actual)
         raise HTTPException(status_code=500, detail=f"Error al iniciar: {str(e)}")
 
 
-@router.post("/detener")
-async def detener_captura(usuario_actual: dict = Depends(obtener_usuario_actual)):
+@video_router.post("/detener")
+async def detener_captura(_: dict = Depends(obtener_usuario_actual)):
     """Detiene la captura y streaming de video."""
     tracker_service.detener()
     return {
@@ -92,25 +92,13 @@ async def detener_captura(usuario_actual: dict = Depends(obtener_usuario_actual)
 # RUTAS DE ANÁLISIS DE LOTES
 # ============================================================
 
-@router.get("/lote/conteo")
-async def obtener_conteo_lote(usuario_actual: dict = Depends(obtener_usuario_actual)):
-    """
-    Retorna el conteo actual de granos detectados por clase.
-
-    Returns:
-        dict: {clase: cantidad_granos_unicos, total: int}
-    """
-    conteo = tracker_service.obtener_conteo_actual()
-
-    return {
-        "conteo": conteo,
-        "total_granos": sum(conteo.values()),
-        "clases_detectadas": len(conteo)
-    }
+@video_router.get("/lote/conteo")
+async def obtener_conteo_lote(_: dict = Depends(obtener_usuario_actual)):
+    return tracker_service.obtener_conteo_enriquecido()
 
 
-@router.post("/lote/generar-reporte")
-async def generar_reporte_lote(usuario_actual: dict = Depends(obtener_usuario_actual)):
+@video_router.post("/lote/generar-reporte")
+async def generar_reporte_lote(_: dict = Depends(obtener_usuario_actual)):
     """
     Genera el reporte final del lote actual.
 
@@ -134,8 +122,8 @@ async def generar_reporte_lote(usuario_actual: dict = Depends(obtener_usuario_ac
         )
 
 
-@router.post("/lote/resetear")
-async def resetear_lote(usuario_actual: dict = Depends(obtener_usuario_actual)):
+@video_router.post("/lote/resetear")
+async def resetear_lote(_: dict = Depends(obtener_usuario_actual)):
     """
     Resetea el conteo de granos para iniciar análisis de un nuevo lote.
 
@@ -154,7 +142,7 @@ async def resetear_lote(usuario_actual: dict = Depends(obtener_usuario_actual)):
 # RUTAS DE STATUS
 # ============================================================
 
-@router.get("/frame")
+@video_router.get("/frame")
 async def obtener_frame():
     """
     Retorna el último frame procesado como JPEG individual.
@@ -170,7 +158,7 @@ async def obtener_frame():
     )
 
 
-@router.get("/status")
+@video_router.get("/status")
 async def obtener_status():
     """Retorna el estado actual del sistema de monitoreo, incluyendo errores de cámara."""
     estado_error = tracker_service.obtener_estado_error()
@@ -183,8 +171,8 @@ async def obtener_status():
     }
 
 
-@router.post("/liberar-camara")
-async def liberar_camara(usuario_actual: dict = Depends(obtener_usuario_actual)):
+@video_router.post("/liberar-camara")
+async def liberar_camara(_: dict = Depends(obtener_usuario_actual)):
     """Fuerza la liberación de la cámara (útil si está bloqueada)."""
     tracker_service.detener()
     return {"mensaje": "Cámara liberada"}

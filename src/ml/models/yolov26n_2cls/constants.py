@@ -3,6 +3,18 @@ Constantes del modelo YOLO26n_2cls — 2 clases (versión simplificada)
 Clasificación binaria: defecto vs. verde
 """
 
+# Filtro de tamaño de bounding box (píxeles) — calibrar según distancia real de la cámara
+GRANO_MIN_PX = 8
+GRANO_MAX_PX = 200
+
+# Agrupaciones para mostrar en barras del frontend
+# Con 2 clases todos los defectos van a "negro" (barra principal)
+GRUPOS_DISPLAY = {
+    "negro":   ["defecto"],
+    "brocado": [],
+    "partido": [],
+}
+
 CLASES = [
     "defecto", "verde"
 ]

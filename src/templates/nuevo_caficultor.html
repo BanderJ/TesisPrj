@@ -194,8 +194,6 @@
 
 <script>
     (() => {
-        const TIPO_SOCIO_NOMBRE = 'socio';
-        const TIPO_EXTERNO_NOMBRE = 'externo';
 
         const cardNuevo = document.getElementById('cardNuevo');
         const cardConversion = document.getElementById('cardConversion');
@@ -650,7 +648,7 @@
                 option.textContent = nombreTipo;
                 tipoCaficultorId.appendChild(option);
 
-                if (normalizarTexto(nombreTipo) === TIPO_EXTERNO_NOMBRE) {
+                if (!item.is_socio) {
                     externoId = id;
                 }
             }
@@ -682,11 +680,10 @@
                     return;
                 }
 
-                const tipoActual = normalizarTexto(payload.data.tipo_caficultor || '');
                 documentoExiste = true;
                 btnGuardarNuevo.disabled = true;
 
-                if (tipoActual === TIPO_EXTERNO_NOMBRE) {
+                if (!payload.data.es_socio) {
                     documentoExisteComoExterno = true;
                     const nombreCaf = payload.data.nombre_completo || documento;
                     const irAConversion = await CoffeeModal.confirm({
@@ -711,7 +708,7 @@
                     return;
                 }
 
-                if (tipoActual === TIPO_SOCIO_NOMBRE) {
+                if (payload.data.es_socio) {
                     setRegistroBanner(
                         'Esta persona ya cuenta con un estado de Socio Activo.',
                         'destructive',
@@ -756,13 +753,12 @@
                     return;
                 }
 
-                const tipoActual = normalizarTexto(payload.data.tipo_caficultor || '');
                 conversionEncontrado = true;
                 setConversionResumenVisible(true);
                 resNombre.textContent = payload.data.nombre_completo || '-';
                 resTipo.textContent = payload.data.tipo_caficultor || '-';
 
-                if (tipoActual === TIPO_SOCIO_NOMBRE) {
+                if (payload.data.es_socio) {
                     btnConvertirSocio.disabled = true;
                     setConversionBanner('Esta persona ya cuenta con un estado de Socio Activo.', 'destructive');
                     return;

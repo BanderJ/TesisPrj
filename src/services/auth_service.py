@@ -49,11 +49,12 @@ class AuthService:
             f"{usuario_db['ape_materno']}"
         )
         payload = {
-            "personal_id": str(usuario_db["personal_id"]),
-            "usuario": usuario_db["usuario"],
+            "personal_id":    str(usuario_db["personal_id"]),
+            "usuario":        usuario_db["usuario"],
             "tipo_personal_id": usuario_db["tipo_personal_id"],
-            "rol": usuario_db["rol"],
-            "nombre": nombre_completo,
+            "rol":            usuario_db["rol"],
+            "nombre":         nombre_completo,
+            "is_admin":       int(usuario_db["tipo_personal_id"]) in (2, 3),
         }
         token = generar_token(payload)
 

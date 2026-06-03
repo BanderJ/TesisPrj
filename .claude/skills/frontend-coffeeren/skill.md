@@ -589,6 +589,49 @@ document.querySelectorAll('.perfil-section').forEach((s, index) => {
 
 ---
 
+# REGLA CRÍTICA: EL FRONTEND NO TOMA DECISIONES DE NEGOCIO
+
+El frontend es capa de **presentación**. El backend es capa de **lógica**. Si el frontend necesita saber qué es un "defecto", qué clases existen, qué umbral aplica o cómo se calcula un total → **eso ya debe venir calculado en la respuesta del endpoint**.
+
+## Señales de alarma — si ves esto en un template, el contrato de API está mal:
+
+```javascript
+// ❌ MAL: hardcoded names de clases del modelo
+const CLASES_SANAS = new Set(['verde', 'sano', 'bueno', 'normal']);
+
+// ❌ MAL: frontend filtra qué es defecto
+const totalDefectos = Object.entries(conteo)
+    .filter(([cls]) => !CLASES_SANAS.has(cls))
+    .reduce((sum, [, v]) => sum + v, 0);
+
+// ❌ MAL: frontend suma clases por nombre
+const negro = (conteo['negro'] || 0) + (conteo['defecto'] || 0);
+
+// ❌ MAL: frontend aplica umbrales de negocio
+const esEspecialty = totalDefectos <= 15;
+```
+
+## Cómo resolverlo: enriquecer el endpoint
+
+Antes de escribir lógica en el template, pregunta: **¿puede el backend calcular esto?**  
+Si la respuesta es sí → amplía el endpoint en el service.
+
+```javascript
+// ✅ BIEN: el backend ya lo calculó, el frontend solo muestra
+const data = await fetch('/video/lote/conteo').then(r => r.json());
+// data = { conteo: {...}, total_granos: 200, total_defectos: 30, total_sanos: 170 }
+totalDefectsEl.textContent = data.total_defectos;
+totalSanosEl.textContent   = data.total_sanos;
+```
+
+## Test de mantenibilidad
+
+> **Si cambiar el nombre de una clase del modelo ML obliga a tocar un template HTML → hay lógica de negocio en el frontend.**
+
+Ese es el test. Si falla, el problema está en el diseño del endpoint, no en el template.
+
+---
+
 # ANTIPATRONES A EVITAR
 
 | ❌ Mal | ✅ Bien |
@@ -603,6 +646,8 @@ document.querySelectorAll('.perfil-section').forEach((s, index) => {
 | `font-size: 10px` | mínimo `12px` |
 | `/static/icons/` | `/static/icon/` (sin s) |
 | Lógica de negocio en el template | solo presentación y fetch |
+| Hardcoded nombres de clases del modelo ML | pedir totales pre-calculados al backend |
+| Filtrar conteo con `Set` de nombres | usar `total_defectos` / `total_sanos` del endpoint |
 | Redirect sin feedback | Modal informativo → acción |
 | Mostrar todas las secciones | Ocultar, mostrar solo seleccionada |
 | Sidebars con gap grande | gap: 4px entre items |

@@ -23,8 +23,8 @@ from src.routes.tipo_grano import tipo_grano_router
 from src.routes.tipo_personal import tipo_personal_router
 from src.routes.ubigeo import ubigeo_router
 from src.routes.valor_cafe import valor_cafe_router
-from src.routes.video import router as video_router
-from src.services.camara import camara_service
+from src.routes.video import video_router
+from src.services.camara_service import camara_service
 from src.services.tracker_service import tracker_service
 from src.utilities.arduino_serial import arduino_serial
 from src.utilities.servo_controller import servo_controller

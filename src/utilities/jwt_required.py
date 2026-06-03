@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import Header, HTTPException, Request
+from fastapi import Depends, Header, HTTPException, Request
 
 from src.utilities.jwt_utils import verificar_token
 
@@ -11,21 +11,11 @@ class RequerirLoginException(Exception):
 
 
 def obtener_usuario_actual(request: Request) -> dict[str, Any]:
-    """Dependencia FastAPI para rutas HTML protegidas.
-
-    Lee el token JWT desde la cookie 'access_token'.
-    Lanza RequerirLoginException si el token no existe o es invalido,
-    lo que el exception handler global convierte en redirect a /auth/login.
-    """
     token_cookie: str | None = request.cookies.get("access_token")
     if not token_cookie:
         raise RequerirLoginException()
 
-    # Soportar tanto token puro como formato legado "Bearer <token>"
-    if token_cookie.startswith("Bearer "):
-        token = token_cookie.split(" ", 1)[1].strip()
-    else:
-        token = token_cookie.strip()
+    token = token_cookie.split(" ", 1)[1].strip() if token_cookie.startswith("Bearer ") else token_cookie.strip()
 
     if not token:
         raise RequerirLoginException()
@@ -41,13 +31,7 @@ def jwt_token_requerido(
     request: Request,
     authorization: str | None = Header(default=None),
 ) -> dict[str, Any]:
-    """Dependencia FastAPI para rutas API protegidas.
-
-    Acepta token por cabecera Authorization o por cookie access_token.
-    """
-    token_source = authorization
-    if not token_source:
-        token_source = request.cookies.get("access_token")
+    token_source = authorization or request.cookies.get("access_token")
 
     if not token_source:
         raise HTTPException(status_code=401, detail="Token requerido")
@@ -64,3 +48,10 @@ def jwt_token_requerido(
         raise HTTPException(status_code=401, detail="Token invalido o expirado")
 
     return payload
+
+
+def require_admin_o_gerente(user: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
+    """Dependencia FastAPI — exige tipo_personal_id 2 (Gerente) o 3 (Administrador)."""
+    if user.get("tipo_personal_id") not in [2, 3]:
+        raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta sección")
+    return user

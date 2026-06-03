@@ -51,7 +51,7 @@
 					En vivo
 				</div>
 				<div class="feed-timer"><span>Tiempo análisis:</span><span id="sessionTimer">00:00</span></div>
-				<button id="startBtn" type="button" class="btn btn-primary" style="margin-left: auto;">Iniciar Captura YOLO</button>
+				<button id="startBtn" type="button" class="btn btn-primary" style="margin-left: auto; display:none;">Reintentar captura</button>
 			</div>
 
 			<div class="feed-frame" aria-label="Feed de clasificación de granos">
@@ -98,7 +98,7 @@
 			<div class="defect-list">
 				<div class="defect-item">
 					<header>
-						<span>Defecto negro</span>
+						<span>Defectos  detectados</span>
 						<strong id="defectNegroValue">0</strong>
 					</header>
 					<div class="defect-track">
@@ -106,7 +106,7 @@
 					</div>
 				</div>
 
-				<div class="defect-item">
+				<!-- <div class="defect-item">
 					<header>
 						<span>Brocado</span>
 						<strong id="defectBrocadoValue">0</strong>
@@ -124,7 +124,7 @@
 					<div class="defect-track">
 						<div id="defectFermentadoBar" class="defect-fill fermentado"></div>
 					</div>
-				</div>
+				</div> -->
 			</div>
 
 			<div class="event-log" id="eventLog" aria-live="polite">
@@ -166,7 +166,7 @@
 				<span id="paso1ico">⏳</span><span>Deteniendo faja y captura YOLO</span>
 			</div>
 			<div id="paso2" style="display:flex;align-items:center;gap:8px;color:var(--muted-foreground);">
-				<span id="paso2ico">⏳</span><span>Generando reporte SCA de defectos</span>
+				<span id="paso2ico">⏳</span><span>Generando reporte del análisis</span>
 			</div>
 			<div id="paso3" style="display:flex;align-items:center;gap:8px;color:var(--muted-foreground);">
 				<span id="paso3ico">⏳</span><span>Guardando evaluación en el sistema</span>
@@ -203,7 +203,7 @@
 <script>
 	(() => {
 		const EVALUACION_ID          = '{{ evaluacion_id }}';
-		const TIMEOUT_INACTIVIDAD_MS = 10_000; // 10 s sin nuevas detecciones → auto-finalizar
+		const TIMEOUT_INACTIVIDAD_MS = 15_000; // 15 s sin nuevas detecciones → auto-finalizar
 
 		// ── Datos de la muestra ───────────────────────────────────────────────
 		const storedEval = sessionStorage.getItem('coffeeren.evaluacion');
@@ -301,20 +301,53 @@
 			cameraErrorEl.style.display   = 'none';
 		}
 
-		// ── Estado YOLO al cargar ─────────────────────────────────────────────
+		// ── Arranque automático al cargar ────────────────────────────────────
 		(async () => {
 			try {
 				const res = await fetch('/video/status');
 				if (!res.ok) throw new Error();
-				const { activo, modelo } = await res.json();
-				cameraLoadingEl.style.display = 'none';
-				appendLog(activo
-					? 'Monitoreo ya activo (modelo: ' + modelo + ').'
-					: 'Sistema listo (modelo: ' + modelo + '). Presiona "Iniciar Captura YOLO".'
-				);
+				const { activo } = await res.json();
+				if (activo) {
+					// YOLO ya corriendo (ej. recarga de página): reconectar sin POST
+					capturandoYOLO        = true;
+					elapsedSeconds        = 0;
+					tiempoUltimaDeteccion = Date.now();
+					totalGranosUltimo     = 0;
+					iniciarStream();
+					timerInterval = setInterval(() => {
+						elapsedSeconds += 1;
+						if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
+					}, 1000);
+					conteoInterval = setInterval(async () => {
+						if (!capturandoYOLO || finalizando) return;
+						try {
+							const [rConteo, rStatus] = await Promise.all([
+								fetch('/video/lote/conteo'),
+								fetch('/video/status'),
+							]);
+							if (rStatus.ok) {
+								const st = await rStatus.json();
+								if (st.camara_desconectada) { _manejarDesconexionCamara(st.error); return; }
+							}
+							const data = await rConteo.json();
+							conteoActual = data.conteo;
+							gruposActual = data.conteo_agrupado ?? {};
+							actualizarUIdesdeConteo(data.total_defectos, data.total_sanos, gruposActual);
+							const totalActual = data.total_granos;
+							if (totalActual > totalGranosUltimo) { totalGranosUltimo = totalActual; tiempoUltimaDeteccion = Date.now(); }
+							if (Date.now() - tiempoUltimaDeteccion >= TIMEOUT_INACTIVIDAD_MS) {
+								appendLog('Sin detecciones por 10 s. Finalizando clasificación automática...');
+								await finalizarMonitoreo(true);
+							}
+						} catch (e) { console.error('Error obteniendo conteo:', e); }
+					}, 1500);
+					appendLog('Cámara conectada. Monitoreo en curso.');
+				} else {
+					await iniciarCaptura();
+				}
 			} catch {
-				cameraLoadingEl.style.display = 'none';
-				appendLog('No se pudo verificar el servidor YOLO.');
+				appendLog('No se pudo verificar el servidor. Reintentando arranque...');
+				await iniciarCaptura();
 			}
 		})();
 
@@ -324,6 +357,7 @@
 		let finalizando           = false;
 		let elapsedSeconds        = 0;
 		let conteoActual          = {};
+		let gruposActual          = {};
 		let reporteActual         = null;
 		let tiempoUltimaDeteccion = 0;
 		let totalGranosUltimo     = 0;
@@ -339,22 +373,25 @@
 			return `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`;
 		}
 
-		function actualizarUIdesdeConteo() {
-			const totalGranos  = Object.values(conteoActual).reduce((a, b) => a + b, 0);
+		function actualizarUIdesdeConteo(totalDefectos = 0, totalSanos = 0, grupos = {}) {
+			const totalGranos = totalDefectos + totalSanos;
+
 			totalGrainsEl.textContent   = totalGranos;
-			totalDefectsEl.textContent  = totalGranos;
+			totalDefectsEl.textContent  = totalDefectos;
 			iaPerformanceEl.textContent = '100%';
 
-			const negro   = conteoActual['negro']          || 0;
-			const brocado = (conteoActual['broca_severo'] || 0) + (conteoActual['broca_ligero'] || 0);
-			const partido = (conteoActual['partido_maquina'] || 0) + (conteoActual['partido_mitad'] || 0);
+			// Barras por grupo — valores pre-calculados por el backend según el modelo activo
+			const negro   = grupos.negro   ?? 0;
+			const brocado = grupos.brocado ?? 0;
+			const partido = grupos.partido ?? 0;
+			const maxBar  = Math.max(negro, brocado, partido, 1);
 
-			negroValueEl.textContent     = negro;
-			brocadoValueEl.textContent   = brocado;
+			negroValueEl.textContent      = negro;
+			brocadoValueEl.textContent    = brocado;
 			fermentadoValueEl.textContent = partido;
-			negroBarEl.style.width       = Math.min(negro   * 2, 100) + '%';
-			brocadoBarEl.style.width     = Math.min(brocado * 2, 100) + '%';
-			fermentadoBarEl.style.width  = Math.min(partido * 2, 100) + '%';
+			negroBarEl.style.width        = Math.round((negro   / maxBar) * 100) + '%';
+			brocadoBarEl.style.width      = Math.round((brocado / maxBar) * 100) + '%';
+			fermentadoBarEl.style.width   = Math.round((partido / maxBar) * 100) + '%';
 		}
 
 		// ── Desconexión de cámara ─────────────────────────────────────────────
@@ -369,11 +406,7 @@
 			mostrarErrorCamara(mensaje);
 			appendLog(mensaje);
 
-			// Rehabilitar botón para poder reintentar
-			if (startBtn) {
-				startBtn.disabled    = false;
-				startBtn.textContent = 'Iniciar Captura YOLO';
-			}
+			if (startBtn) { startBtn.style.display = 'inline-flex'; startBtn.textContent = 'Reintentar captura'; }
 		}
 
 		// ── Faja (Arduino) ────────────────────────────────────────────────────
@@ -393,32 +426,46 @@
 			} catch { /* silencioso al salir o si Arduino desconectado */ }
 		}
 
+		// ── Esperar primer frame ──────────────────────────────────────────────
+		async function esperarPrimerFrame(timeoutMs = 15000) {
+			const inicio = Date.now();
+			while (Date.now() - inicio < timeoutMs) {
+				const res = await fetch('/video/frame').catch(() => null);
+				if (res && res.ok) return true;
+				await new Promise(r => setTimeout(r, 300));
+			}
+			return false;
+		}
+
 		// ── Captura YOLO ──────────────────────────────────────────────────────
 		async function iniciarCaptura() {
 			if (capturandoYOLO || finalizando) return;
 
-			startBtn.disabled    = true;
-			startBtn.textContent = 'Iniciando...';
+			if (startBtn) { startBtn.style.display = 'none'; }
 
 			try {
-				appendLog('Iniciando faja y conexión con cámara...');
-
-				// 1. Arrancar faja
-				await iniciarFaja();
-
-				// 2. Iniciar YOLO + cámara
+				// 1. Iniciar YOLO + cámara primero
+				appendLog('Cargando modelo y conectando cámara...');
 				const res = await fetch('/video/iniciar', { method: 'POST' });
 				if (!res.ok) {
 					const err = await res.json().catch(() => ({ detail: 'Error desconocido' }));
 					throw new Error(err.detail || 'Error al iniciar captura');
 				}
 
+				// 2. Esperar a que la cámara produzca el primer frame real
+				appendLog('Esperando primer frame de la cámara...');
+				const camaraLista = await esperarPrimerFrame(15000);
+				if (!camaraLista) throw new Error('La cámara no respondió a tiempo. Verifique la conexión.');
+
+				// 3. Cámara confirmada — arrancar faja
+				appendLog('Cámara activa. Arrancando faja transportadora...');
+				await iniciarFaja();
+
 				capturandoYOLO        = true;
 				elapsedSeconds        = 0;
 				tiempoUltimaDeteccion = Date.now();
 				totalGranosUltimo     = 0;
 
-				startBtn.textContent = 'Capturando...';
 				appendLog('Faja en marcha. Captura YOLO activa.');
 				iniciarStream();
 
@@ -448,10 +495,10 @@
 
 						const data = await rConteo.json();
 						conteoActual = data.conteo;
-						actualizarUIdesdeConteo();
+						actualizarUIdesdeConteo(data.total_defectos, data.total_sanos);
 
 						// Detectar actividad nueva
-						const totalActual = Object.values(conteoActual).reduce((a, b) => a + b, 0);
+						const totalActual = data.total_granos;
 						if (totalActual > totalGranosUltimo) {
 							totalGranosUltimo     = totalActual;
 							tiempoUltimaDeteccion = Date.now();
@@ -469,8 +516,7 @@
 
 			} catch (err) {
 				appendLog('Error: ' + err.message);
-				startBtn.disabled    = false;
-				startBtn.textContent = 'Iniciar Captura YOLO';
+				if (startBtn) { startBtn.style.display = 'inline-flex'; startBtn.textContent = 'Reintentar captura'; }
 				await detenerFaja();
 			}
 		}
@@ -486,7 +532,7 @@
 
 		async function generarReporte() {
 			try {
-				appendLog('Generando reporte SCA...');
+				appendLog('Generando reporte ...');
 				const res = await fetch('/video/lote/generar-reporte', { method: 'POST' });
 				if (!res.ok) throw new Error('Error generando reporte');
 				reporteActual = await res.json();
@@ -621,12 +667,18 @@
 			monitoreoActivo = false;
 			detenerStream();
 
+			const _negro   = gruposActual.negro   ?? 0;
+			const _brocado = gruposActual.brocado ?? 0;
+			const _partido = gruposActual.partido ?? 0;
 			const stats = {
-				totalGranos:    Object.values(conteoActual).reduce((a, b) => a + b, 0),
-				totalDefectos:  reporteActual?.total_defectos || 0,
-				grado:          reporteActual?.grado          || 'Sin clasificar',
-				aptEspecialty:  reporteActual?.apto_specialty || false,
-				peso_capturado: pesoCapturado,
+				totalGrains:      reporteActual?.total_granos_analizados || 0,
+				defectNegro:      _negro,
+				defectBrocado:    _brocado,
+				defectFermentado: _partido,
+				totalDefectos:    reporteActual?.total_defectos || 0,
+				grado:            reporteActual?.grado          || 'Sin clasificar',
+				aptEspecialty:    reporteActual?.apto_specialty || false,
+				peso_capturado:   pesoCapturado,
 				elapsedSeconds,
 			};
 			sessionStorage.setItem('coffeeren.stats', JSON.stringify(stats));
@@ -700,7 +752,7 @@
 		}
 
 		actualizarUIdesdeConteo();
-		appendLog('Sistema listo. Presiona "Iniciar Captura YOLO" para arrancar la faja y la cámara.');
+		appendLog('Iniciando sistema...');
 	})();
 </script>
 {% endblock %}
