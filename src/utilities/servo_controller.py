@@ -86,7 +86,7 @@ class ServoController:
 
             if pendiente is not None:
                 clase = pendiente.obtener_clase()
-                es_defecto = clase is not None and clase in pendiente.equivalencias
+                es_defecto = clase is not None and pendiente.equivalencias.get(clase, 0.0) > 0.0
 
                 if es_defecto:
                     arduino_serial.enviar_comando("SERVO:DEFECTO")

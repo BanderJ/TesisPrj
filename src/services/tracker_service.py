@@ -5,20 +5,16 @@ Coordina CamaraService (captura de frames) con CoffeeRenTracker (procesamiento Y
 
 import threading
 import time
-import cv2
-import numpy as np
-from typing import Optional
 
-from src.services.camara import camara_service
+from src.services.camara_service import camara_service
 from src.ml.tracker import CoffeeRenTracker
 from src.ml.classifier import generar_reporte
 from src.utilities.arduino_serial import arduino_serial
 from src.utilities.servo_controller import servo_controller
 
 # Umbral de confianza global para todas las detecciones YOLO
-# Bajado a 0.20 para production: mejor recall en agrio (0.61) y partido (0.50)
-# Preferimos falsos positivos sobre granos defectuosos no detectados
-CONF_THRESHOLD = 0.20
+# Preferir falsos positivos sobre granos defectuosos no detectados
+CONF_THRESHOLD = 0.50
 
 
 class TrackerService:
@@ -38,15 +34,16 @@ class TrackerService:
 
         # Estado
         self.activo = False
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
+        self._inicio_sesion_ts: float = 0.0
 
         # Último frame anotado (JPEG)
-        self._frame_anotado: Optional[bytes] = None
+        self._frame_anotado: bytes | None = None
 
         # Estado de error por desconexión de cámara
         self._camara_desconectada: bool = False
-        self._error_camara: Optional[str] = None
+        self._error_camara: str | None = None
 
     def iniciar(self) -> bool:
         """
@@ -63,20 +60,21 @@ class TrackerService:
             self._camara_desconectada = False
             self._error_camara = None
             servo_controller.desbloquear()
+            self.tracker.ultima_deteccion_frame_ts = None  # timer arranca desde primera detección
 
             # Iniciar captura desde cámara
-            print(f"📷 Iniciando CamaraService...")
+            print(f"Iniciando CamaraService...")
             if not camara_service.iniciar():
-                print("❌ No se pudo iniciar la cámara")
+                print("No se pudo iniciar la cámara")
                 return False
 
             # Esperar a que la cámara esté lista
             time.sleep(1)
             if not camara_service.esta_disponible():
-                print("❌ Cámara no está disponible después de esperar")
+                print("Cámara no está disponible después de esperar")
                 return False
 
-            print("✅ Cámara disponible")
+            print("Cámara disponible")
 
             # Iniciar hilo de procesamiento
             self.activo = True
@@ -86,7 +84,7 @@ class TrackerService:
                 name="tracker-processing"
             )
             self._thread.start()
-            print(f"✅ TrackerService iniciado (modelo: {self.model_name})")
+            print(f"TrackerService iniciado (modelo: {self.model_name})")
             return True
 
     def detener(self) -> None:
@@ -100,7 +98,7 @@ class TrackerService:
 
         camara_service.cerrar()
         self.tracker.resetear_conteo()
-        print("⏹️  TrackerService detenido - cámara liberada")
+        print("TrackerService detenido - cámara liberada")
 
     def _on_camara_desconectada(self) -> None:
         """Reacción de emergencia ante pérdida de cámara."""
@@ -109,7 +107,7 @@ class TrackerService:
         self._error_camara = "Desconexión con cámara. La clasificación se ha detenido."
         servo_controller.bloquear()
         arduino_serial.enviar_comando("SERVO:DEFECTO")
-        print("⚠️  Cámara desconectada — servo fijado en posición DEFECTO")
+        print("Cámara desconectada — servo fijado en posición DEFECTO")
 
     def _loop_procesamiento(self) -> None:
         """Loop principal de procesamiento (corre en hilo separado)."""
@@ -122,13 +120,9 @@ class TrackerService:
                 self._on_camara_desconectada()
                 break
 
-            # Obtener frame desde CamaraService
-            jpeg_bytes = camara_service.esperar_frame(timeout=1.0)
-            if jpeg_bytes is None:
-                continue
-
-            # Decodificar JPEG a frame OpenCV
-            frame = self._jpeg_a_frame(jpeg_bytes)
+            # Esperar nuevo frame y obtener BGR directo (sin ciclo JPEG)
+            camara_service.esperar_frame(timeout=1.0)
+            frame = camara_service.obtener_frame_bgr()
             if frame is None:
                 continue
 
@@ -138,16 +132,16 @@ class TrackerService:
             if frame_anotado_jpeg is not None:
                 frame_count += 1
                 if frame_count % 30 == 0:  # Log cada 30 frames (~1 vez por segundo a 30fps)
-                    print(f"📊 TrackerService: procesados {frame_count} frames")
+                    print(f"TrackerService: procesados {frame_count} frames")
                 with self._lock:
                     self._frame_anotado = frame_anotado_jpeg
                     # Actualizar FPS
                     self.tracker._actualizar_fps(t_anterior)
                     t_anterior = time.time()
             else:
-                print("⚠️  Tracker retornó None para frame_anotado_jpeg")
+                print("Tracker retornó None para frame_anotado_jpeg")
 
-    def obtener_frame_streaming(self) -> Optional[bytes]:
+    def obtener_frame_streaming(self) -> bytes | None:
         """
         Retorna el último frame anotado en JPEG (para MJPEG streaming).
         Retorna inmediatamente sin bloquear.
@@ -159,13 +153,28 @@ class TrackerService:
             return self._frame_anotado
 
     def obtener_conteo_actual(self) -> dict[str, int]:
-        """
-        Retorna el conteo de granos por clase.
-
-        Returns:
-            dict: {clase: cantidad_granos_unicos}
-        """
         return self.tracker.obtener_conteo()
+
+    def obtener_conteo_enriquecido(self) -> dict:
+        conteo = self.obtener_conteo_actual()
+        eq = self.tracker.EQUIVALENCIAS_DEFECTO
+        total_defectos = sum(v for k, v in conteo.items() if eq.get(k, 0.0) > 0.0)
+        total_sanos    = sum(v for k, v in conteo.items() if eq.get(k, 0.0) == 0.0)
+        conteo_agrupado = {
+            grupo: sum(conteo.get(c, 0) for c in clases)
+            for grupo, clases in self.tracker.GRUPOS_DISPLAY.items()
+        }
+        ts = self.tracker.ultima_deteccion_frame_ts
+        segundos_sin_deteccion = round(time.time() - ts, 1) if ts is not None else None
+        return {
+            "conteo":                  conteo,
+            "total_granos":            total_defectos + total_sanos,
+            "total_defectos":          total_defectos,
+            "total_sanos":             total_sanos,
+            "conteo_agrupado":         conteo_agrupado,
+            "clases_detectadas":       len(conteo),
+            "segundos_sin_deteccion":  segundos_sin_deteccion,
+        }
 
     def generar_reporte_lote(self) -> dict:
         """
@@ -180,7 +189,7 @@ class TrackerService:
     def resetear_lote(self) -> None:
         """Resetea el conteo para iniciar análisis de un nuevo lote."""
         self.tracker.resetear_conteo()
-        print("🔄 Lote reseteado")
+        print("Lote reseteado")
 
     def esta_activo(self) -> bool:
         """Verifica si el servicio está activo."""
@@ -193,24 +202,6 @@ class TrackerService:
             "error": self._error_camara,
         }
 
-    @staticmethod
-    def _jpeg_a_frame(jpeg_bytes: bytes) -> Optional[np.ndarray]:
-        """
-        Decodifica JPEG a frame OpenCV BGR.
-
-        Args:
-            jpeg_bytes: Bytes JPEG
-
-        Returns:
-            np.ndarray: Frame BGR, o None si error
-        """
-        try:
-            nparr = np.frombuffer(jpeg_bytes, np.uint8)
-            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            return frame
-        except Exception as e:
-            print(f"⚠️  Error decodificando JPEG: {e}")
-            return None
 
 
 # Instancia global del servicio

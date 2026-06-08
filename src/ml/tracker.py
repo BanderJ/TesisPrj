@@ -16,9 +16,10 @@ import sys
 from src.utilities.servo_controller import servo_controller
 
 # Configuración de cámara
-CAMARA_WIDTH    = 1280  # Resolución operativa
-CAMARA_HEIGHT   = 720
-CAMARA_FPS      = 60    # FPS de procesamiento
+CAMARA_WIDTH  = 1280  # Resolución operativa
+CAMARA_HEIGHT = 720
+CAMARA_FPS    = 60    # FPS de procesamiento
+
 
 
 class CoffeeRenTracker:
@@ -39,12 +40,12 @@ class CoffeeRenTracker:
 
         # Si el modelo pedido no existe, usar yolov8n como fallback
         if not os.path.exists(model_path):
-            print(f"⚠️  Modelo no encontrado: {model_name}")
+            print(f"Modelo no encontrado: {model_name}")
             fallback_model = "yolov8n"
             fallback_path = os.path.join(BASE_DIR, "models", fallback_model, "best.pt")
 
             if os.path.exists(fallback_path):
-                print(f"📦 Usando fallback: {fallback_model}")
+                print(f"Usando fallback: {fallback_model}")
                 model_path = fallback_path
                 self.model_name = fallback_model
             else:
@@ -55,8 +56,10 @@ class CoffeeRenTracker:
                     f"Descarga best.pt desde Google Drive a models/yolov8n/"
                 )
 
+        import torch
+        self._device = 0 if torch.cuda.is_available() else "cpu"
         self.model = YOLO(model_path)
-        print(f"✅ Modelo YOLO cargado: {self.model_name} (conf={conf})")
+        print(f"Modelo YOLO cargado: {self.model_name} (conf={conf}, device={self._device})")
 
         # Cargar constantes (CLASES, COLORES, EQUIVALENCIAS) específicas del modelo
         self._cargar_constantes_modelo()
@@ -68,6 +71,7 @@ class CoffeeRenTracker:
 
         # Estadísticas
         self.fps_actual = 0.0
+        self.ultima_deteccion_frame_ts: float | None = None  # None hasta la primera detección real
 
     def _cargar_constantes_modelo(self) -> None:
         """Carga dinámicamente las constantes (CLASES, COLORES, etc) del modelo."""
@@ -90,7 +94,9 @@ class CoffeeRenTracker:
         self.CLASES = constants_module.CLASES
         self.COLORES = constants_module.COLORES
         self.EQUIVALENCIAS_DEFECTO = constants_module.EQUIVALENCIAS_DEFECTO
-        self.COLORES_DEFECTOS = {cls: (0, 0, 255) for cls in self.CLASES}
+        self.GRANO_MIN_PX   = getattr(constants_module, "GRANO_MIN_PX", 8)
+        self.GRANO_MAX_PX   = getattr(constants_module, "GRANO_MAX_PX", 200)
+        self.GRUPOS_DISPLAY = getattr(constants_module, "GRUPOS_DISPLAY", {})
 
     def procesar_frame(self, frame) -> bytes | None:
         """
@@ -110,13 +116,14 @@ class CoffeeRenTracker:
             results = self.model.track(
                 source=frame,
                 conf=self.conf,
-                imgsz=1280,  # Mayor resolución para detectar granos pequeños
+                imgsz=640,
+                device=self._device,
                 tracker="bytetrack.yaml",
                 persist=True,
                 verbose=False
             )
         except Exception as e:
-            print(f"⚠️  Error en tracking: {e}")
+            print(f" Error en tracking: {e}")
             return None
 
         result = results[0]
@@ -134,6 +141,11 @@ class CoffeeRenTracker:
                     conf_score = float(box.conf[0])
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
 
+                    # Filtro de tamaño: descarta objetos fuera del rango de un grano
+                    w, h = x2 - x1, y2 - y1
+                    if not (self.GRANO_MIN_PX <= w <= self.GRANO_MAX_PX and self.GRANO_MIN_PX <= h <= self.GRANO_MAX_PX):
+                        continue
+
                     # Guardar detección y programar servo para IDs nuevos
                     with self.lock:
                         self.conteo_ids_confianza[track_id].append((clase, conf_score))
@@ -144,8 +156,7 @@ class CoffeeRenTracker:
                                 equivalencias=self.EQUIVALENCIAS_DEFECTO,
                             )
 
-                    # Color: ROJO para defectos (todos los detectados son defectos)
-                    color = self.COLORES_DEFECTOS.get(clase, (0, 0, 255))
+                    color = self.COLORES.get(clase, (0, 0, 255))
 
                     # Dibujar bounding box
                     cv2.rectangle(frame_anotado, (x1, y1), (x2, y2), color, 3)
@@ -182,12 +193,15 @@ class CoffeeRenTracker:
             (0, 255, 255), 2
         )
 
+        if detecciones_count > 0:
+            self.ultima_deteccion_frame_ts = time.time()
+
         # Log de debug - mostrar siempre si no hay detecciones
         if total_granos > 0 and detecciones_count > 0:
             conteo_final = self._calcular_conteo_final()
-            print(f"🎯 Detecciones: {detecciones_count} | Total únicos: {total_granos} | {conteo_final}")
+            print(f"Detecciones: {detecciones_count} | Total únicos: {total_granos} | {conteo_final}")
         elif detecciones_count == 0:
-            print(f"⚠️  Frame procesado sin detecciones (boxes: {len(result.boxes) if result.boxes is not None else 0})")
+            print(f"Frame procesado sin detecciones (boxes: {len(result.boxes) if result.boxes is not None else 0})")
 
         # Codificar frame anotado a JPEG
         try:
@@ -196,7 +210,7 @@ class CoffeeRenTracker:
             ])
             return buffer.tobytes()
         except Exception as e:
-            print(f"⚠️  Error codificando JPEG: {e}")
+            print(f"Error codificando JPEG: {e}")
             return None
 
     def resetear_conteo(self) -> None:
@@ -204,6 +218,7 @@ class CoffeeRenTracker:
         with self.lock:
             self.conteo_ids_confianza = defaultdict(list)
             self._ids_servados = set()
+        self.ultima_deteccion_frame_ts = None
         servo_controller.limpiar_cola()
 
     def obtener_conteo(self) -> dict[str, int]:

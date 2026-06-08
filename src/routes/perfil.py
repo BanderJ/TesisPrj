@@ -3,7 +3,7 @@ import os
 from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.templating import Jinja2Templates
 
-from src.utilities.jwt_required import obtener_usuario_actual
+from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente
 from src.schemas.perfil import (
     ActualizarDatosPersonales,
     ActualizarUsuario,
@@ -18,11 +18,6 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), ".
 
 perfil = APIRouter()
 perfil_service = PerfilService()
-
-
-def verificar_admin_o_gerente(user: dict) -> None:
-    if user.get("tipo_personal_id") not in [2, 3]:
-        raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta sección")
 
 
 @perfil.get("/")
@@ -80,26 +75,20 @@ async def cambiar_contrasena(
 
 @perfil.get("/usuarios/personas-disponibles")
 async def obtener_personas_sin_usuario(
-    user: dict = Depends(obtener_usuario_actual),
+    user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        verificar_admin_o_gerente(user)
         return {"personas": perfil_service.obtener_personas_sin_usuario()}
-    except HTTPException:
-        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail="Error al obtener personas disponibles") from exc
 
 
 @perfil.get("/usuarios")
 async def listar_usuarios(
-    user: dict = Depends(obtener_usuario_actual),
+    user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        verificar_admin_o_gerente(user)
         return {"usuarios": perfil_service.listar_usuarios()}
-    except HTTPException:
-        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail="Error al listar usuarios") from exc
 
@@ -107,10 +96,9 @@ async def listar_usuarios(
 @perfil.get("/usuarios/{personal_id}")
 async def obtener_usuario(
     personal_id: str,
-    user: dict = Depends(obtener_usuario_actual),
+    user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        verificar_admin_o_gerente(user)
         usuario = perfil_service.obtener_usuario(personal_id)
         if not usuario:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -125,13 +113,10 @@ async def obtener_usuario(
 async def cambiar_estado_usuario(
     personal_id: str,
     body: CambiarEstadoUsuario,
-    user: dict = Depends(obtener_usuario_actual),
+    user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        verificar_admin_o_gerente(user)
         return perfil_service.cambiar_estado_usuario(personal_id, body.estado)
-    except HTTPException:
-        raise
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -142,16 +127,13 @@ async def cambiar_estado_usuario(
 async def cambiar_contrasena_usuario(
     personal_id: str,
     body: CambiarContraseñaUsuario,
-    user: dict = Depends(obtener_usuario_actual),
+    user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        verificar_admin_o_gerente(user)
         return perfil_service.cambiar_contrasena_usuario(
             personal_id=personal_id,
             clave_nueva=body.clave_nueva,
         )
-    except HTTPException:
-        raise
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -162,10 +144,9 @@ async def cambiar_contrasena_usuario(
 async def actualizar_usuario(
     personal_id: str,
     body: ActualizarUsuario,
-    user: dict = Depends(obtener_usuario_actual),
+    user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        verificar_admin_o_gerente(user)
         return perfil_service.actualizar_usuario(
             personal_id=personal_id,
             nombre=body.nombre,
@@ -179,8 +160,6 @@ async def actualizar_usuario(
             tipo_personal_id=body.tipo_personal_id,
             clave_nueva=body.clave_nueva,
         )
-    except HTTPException:
-        raise
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -190,10 +169,9 @@ async def actualizar_usuario(
 @perfil.post("/usuarios/crear")
 async def crear_usuario(
     body: CrearUsuario,
-    user: dict = Depends(obtener_usuario_actual),
+    user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        verificar_admin_o_gerente(user)
         return perfil_service.crear_usuario(
             nombre=body.nombre,
             ape_paterno=body.ape_paterno,
@@ -208,8 +186,6 @@ async def crear_usuario(
             tipo_personal_id=body.tipo_personal_id,
             clave=body.clave,
         )
-    except HTTPException:
-        raise
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

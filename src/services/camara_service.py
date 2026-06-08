@@ -1,4 +1,5 @@
 import threading
+import numpy as np
 import cv2
 
 
@@ -13,11 +14,11 @@ class CamaraService:
         self._cap: cv2.VideoCapture | None = None
         self._cap_lock = threading.Lock()
         self._latest_jpeg: bytes | None = None
+        self._latest_frame: np.ndarray | None = None
         self._frame_lock = threading.Lock()
         self._new_frame = threading.Event()
         self._running = False
         self._thread: threading.Thread | None = None
-        self._passthrough = False
 
     # ── Ciclo de captura (hilo dedicado) ──────────────────────────────
 
@@ -37,13 +38,10 @@ class CamaraService:
                     break
                 continue
             errores_consecutivos = 0
-            if self._passthrough:
-                jpeg = frame.tobytes()
-            else:
-                _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
-                jpeg = buf.tobytes()
+            _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
             with self._frame_lock:
-                self._latest_jpeg = jpeg
+                self._latest_jpeg = buf.tobytes()
+                self._latest_frame = frame
             self._new_frame.set()
 
     # ── API pública ────────────────────────────────────────────────────
@@ -78,18 +76,9 @@ class CamaraService:
                     # Leer frame de prueba para verificar que funciona
                     ret, test = cap.read()
                     if not ret or test is None:
-                        print(f"⚠️  Cámara índice {idx} no devuelve frames")
+                        print(f"Cámara índice {idx} no devuelve frames")
                         cap.release()
                         continue
-
-                    # Detectar si passthrough MJPEG funciona
-                    cap.set(cv2.CAP_PROP_CONVERT_RGB, 0)
-                    ret, test2 = cap.read()
-                    if ret and test2 is not None and test2.ndim == 1 and test2.nbytes > 1000:
-                        self._passthrough = True
-                    else:
-                        cap.set(cv2.CAP_PROP_CONVERT_RGB, 1)
-                        self._passthrough = False
 
                     # Iniciar captura
                     self._cap = cap
@@ -99,14 +88,14 @@ class CamaraService:
                     )
                     self._thread.start()
 
-                    print(f"✅ Cámara iniciada (índice {idx}, {w}x{h} @ {fps}fps, passthrough={self._passthrough})")
+                    print(f"Cámara iniciada (índice {idx}, {w}x{h} @ {fps}fps)")
                     return True
 
                 except Exception as e:
-                    print(f"❌ Error inicializando cámara índice {idx}: {e}")
+                    print(f"Error inicializando cámara índice {idx}: {e}")
                     continue
 
-            print("❌ No se encontró cámara disponible en índices 0-1")
+            print("No se encontró cámara disponible en índices 0-2")
             return False
 
     def cerrar(self) -> None:
@@ -129,6 +118,11 @@ class CamaraService:
         self._new_frame.clear()
         with self._frame_lock:
             return self._latest_jpeg
+
+    def obtener_frame_bgr(self) -> np.ndarray | None:
+        """Retorna el último frame BGR crudo (sin pasar por JPEG). Para YOLO."""
+        with self._frame_lock:
+            return self._latest_frame
 
 
 camara_service = CamaraService()

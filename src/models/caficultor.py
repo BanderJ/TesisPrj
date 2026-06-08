@@ -21,6 +21,7 @@ class Caficultor:
                     p.ape_paterno,
                     p.ape_materno,
                     tc.nombre AS tipo_caficultor,
+                    c.tipo_caficultor_id,
                     p.sexo,
                     p.fecha_nacimiento,
                     p.telefono

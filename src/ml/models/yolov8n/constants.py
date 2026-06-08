@@ -2,6 +2,17 @@
 Constantes del modelo YOLOv8n — 17 clases
 """
 
+# Filtro de tamaño de bounding box (píxeles) — calibrar según distancia real de la cámara
+GRANO_MIN_PX = 8
+GRANO_MAX_PX = 200
+
+# Agrupaciones para mostrar en barras del frontend (backend computa, frontend solo pinta)
+GRUPOS_DISPLAY = {
+    "negro":   ["negro"],
+    "brocado": ["broca_severo", "broca_ligero"],
+    "partido": ["partido_maquina", "partido_mitad"],
+}
+
 CLASES = [
     "agrio_ligero", "agrio_severo", "averanado", "blanco",
     "broca_ligero", "broca_severo", "cascarilla_cereza_seca",

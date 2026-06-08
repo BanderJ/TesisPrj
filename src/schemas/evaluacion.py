@@ -73,6 +73,11 @@ class CompletarEvaluacionResponse(BaseModel):
     categoria: str | None = None
 
 
+class KpisEvaluacionResponse(BaseModel):
+    total_lotes: int
+    total_defectos: int
+
+
 class ResumenEvaluacionResponse(BaseModel):
     evaluacion_id: str
     codigo: str | None = None

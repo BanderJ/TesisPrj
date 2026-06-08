@@ -16,7 +16,8 @@
       "Edit(/.claude/skills/frontend-coffeeren/**)",
       "Bash(where psql *)",
       "Read(//c/Program Files/PostgreSQL/**)",
-      "PowerShell($env:PGPASSWORD = 'And1150'; & 'C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe' -U postgres -h localhost -p 5432 -d tesis_prj -c \"SELECT table_name, column_name, data_type FROM information_schema.columns WHERE table_name = 'cooperativa' ORDER BY ordinal_position;\" 2>&1)"
+      "PowerShell($env:PGPASSWORD = 'And1150'; & 'C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe' -U postgres -h localhost -p 5432 -d tesis_prj -c \"SELECT table_name, column_name, data_type FROM information_schema.columns WHERE table_name = 'cooperativa' ORDER BY ordinal_position;\" 2>&1)",
+      "Bash(Get-ChildItem -Path \"d:\\\\TesisPrj\\\\src\\\\models\" -Force)"
     ]
   }
 }

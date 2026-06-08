@@ -415,8 +415,8 @@
 </div>
 
 <script>
+    const isAdmin = '{{ user.is_admin | tojson }}' === 'true';
     let cooperativaId = null;
-    let tipoPersonalId = null;
     let tiposPersonal = [];
     let tiposDocumento = [];
 
@@ -460,7 +460,6 @@
 
             const data = await res.json();
             cooperativaId = data.cooperativa_id;
-            tipoPersonalId = data.tipo_personal_id;
 
             // Llenar formulario básico
             document.getElementById('nombre').value = data.nombre || '';
@@ -477,7 +476,7 @@
             }
 
             // Mostrar secciones de admin
-            if (tipoPersonalId === 2 || tipoPersonalId === 3) {
+            if (isAdmin) {
                 document.getElementById('navTiposGrano').hidden = false;
                 document.getElementById('navUsuarios').hidden = false;
                 document.getElementById('navCaficultores').hidden = false;
@@ -1135,7 +1134,7 @@
         tbody.innerHTML = lista.map(c => {
             const nombre = `${c.nombre} ${c.ape_paterno} ${c.ape_materno}`;
             const ubicacion = [c.provincia, c.departamento].filter(Boolean).join(', ') || '—';
-            const esSocio = c.tipo_caficultor_id === 1;
+            const esSocio = c.es_socio;
             const badgeStyle = esSocio
                 ? 'background:color-mix(in oklab,var(--primary) 15%,transparent);color:var(--primary);'
                 : 'background:color-mix(in oklab,#f59e0b 15%,transparent);color:#b45309;';

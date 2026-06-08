@@ -101,6 +101,54 @@ Si ves en el código:
 * ✋ **Validación fuera de schemas** → Mover a Pydantic.
 * ✋ **try...finally sin db.close()** → Rechazar y corregir.
 * ✋ **Métodos sin type hints** → Exigir claridad.
+* ✋ **API retorna datos crudos que obligan al frontend a tomar decisiones de negocio** → El service debe calcular y devolver valores derivados listos para mostrar.
+
+---
+
+# 📡 REGLA: CONTRATOS DE API RICOS (Frontend nunca decide reglas de negocio)
+
+El frontend es capa de presentación. **Nunca** debe contener listas de nombres de clases, umbrales, pesos ni ninguna regla que viva en el backend.
+
+**Señales de alarma en el frontend — si ves esto, el endpoint está mal diseñado:**
+```javascript
+// ❌ MAL: el frontend conoce los nombres de las clases del modelo ML
+const CLASES_SANAS = new Set(['verde', 'sano', 'bueno']);
+const totalDefectos = Object.entries(conteo)
+    .filter(([cls]) => !CLASES_SANAS.has(cls))
+    .reduce((sum, [, v]) => sum + v, 0);
+
+// ❌ MAL: el frontend suma clases específicas del modelo
+const negro = (conteo['negro'] || 0) + (conteo['defecto'] || 0);
+
+// ❌ MAL: el frontend aplica umbrales de negocio
+const esEspecialty = totalDefectos <= 15;
+```
+
+**El service debe calcular y exponer valores listos:**
+```python
+# ✅ BIEN: service calcula total_defectos y total_sanos usando EQUIVALENCIAS
+def obtener_conteo_enriquecido(self) -> dict:
+    conteo = self.obtener_conteo_actual()
+    eq = self.tracker.EQUIVALENCIAS_DEFECTO
+    total_defectos = sum(v for k, v in conteo.items() if eq.get(k, 0.0) > 0.0)
+    total_sanos    = sum(v for k, v in conteo.items() if eq.get(k, 0.0) == 0.0)
+    return {
+        "conteo":           conteo,
+        "total_granos":     total_defectos + total_sanos,
+        "total_defectos":   total_defectos,
+        "total_sanos":      total_sanos,
+        "clases_detectadas": len(conteo),
+    }
+```
+
+```javascript
+// ✅ BIEN: frontend solo muestra
+const data = await fetch('/video/lote/conteo').then(r => r.json());
+totalDefectsEl.textContent = data.total_defectos;
+totalSanosEl.textContent   = data.total_sanos;
+```
+
+**Regla práctica:** Si cambiar el nombre de una clase del modelo ML requiere tocar un template HTML → el contrato de API está mal diseñado. Corrígelo en el service.
 
 ---
 

@@ -6,6 +6,7 @@ from src.schemas.evaluacion import (
     CompletarEvaluacionRequest,
     CompletarEvaluacionResponse,
     FinalizarEvaluacionResponse,
+    KpisEvaluacionResponse,
     RegistrarEvaluacionRequest,
     RegistrarEvaluacionResponse,
     ResumenEvaluacionResponse,
@@ -34,6 +35,20 @@ async def registrar_evaluacion(
         return evaluacion_service.registrar_evaluacion(personal_id, payload)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Error interno: {exc}") from exc
+
+
+@evaluacion_router.get(
+    "/kpis",
+    response_model=KpisEvaluacionResponse,
+)
+async def obtener_kpis(
+    _: dict[str, Any] = Depends(obtener_usuario_actual),
+) -> KpisEvaluacionResponse:
+    try:
+        data = evaluacion_service.obtener_kpis()
+        return KpisEvaluacionResponse(**data)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Error interno: {exc}") from exc
 

@@ -8,6 +8,7 @@ class CaficultorData(BaseModel):
     num_documento: str
     nombre_completo: str
     tipo_caficultor: str
+    es_socio: bool
 
 
 class ObtenerDatosResponse(BaseModel):
