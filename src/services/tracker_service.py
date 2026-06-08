@@ -5,8 +5,6 @@ Coordina CamaraService (captura de frames) con CoffeeRenTracker (procesamiento Y
 
 import threading
 import time
-import cv2
-import numpy as np
 
 from src.services.camara_service import camara_service
 from src.ml.tracker import CoffeeRenTracker
@@ -15,7 +13,6 @@ from src.utilities.arduino_serial import arduino_serial
 from src.utilities.servo_controller import servo_controller
 
 # Umbral de confianza global para todas las detecciones YOLO
-# Bajado a 0.20 para production: mejor recall en agrio (0.61) y partido (0.50)
 # Preferir falsos positivos sobre granos defectuosos no detectados
 CONF_THRESHOLD = 0.50
 
@@ -39,6 +36,7 @@ class TrackerService:
         self.activo = False
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
+        self._inicio_sesion_ts: float = 0.0
 
         # Último frame anotado (JPEG)
         self._frame_anotado: bytes | None = None
@@ -62,9 +60,10 @@ class TrackerService:
             self._camara_desconectada = False
             self._error_camara = None
             servo_controller.desbloquear()
+            self.tracker.ultima_deteccion_frame_ts = None  # timer arranca desde primera detección
 
             # Iniciar captura desde cámara
-            print(f"📷 Iniciando CamaraService...")
+            print(f"Iniciando CamaraService...")
             if not camara_service.iniciar():
                 print("No se pudo iniciar la cámara")
                 return False
@@ -99,7 +98,7 @@ class TrackerService:
 
         camara_service.cerrar()
         self.tracker.resetear_conteo()
-        print("⏹️  TrackerService detenido - cámara liberada")
+        print("TrackerService detenido - cámara liberada")
 
     def _on_camara_desconectada(self) -> None:
         """Reacción de emergencia ante pérdida de cámara."""
@@ -108,7 +107,7 @@ class TrackerService:
         self._error_camara = "Desconexión con cámara. La clasificación se ha detenido."
         servo_controller.bloquear()
         arduino_serial.enviar_comando("SERVO:DEFECTO")
-        print("⚠️  Cámara desconectada — servo fijado en posición DEFECTO")
+        print("Cámara desconectada — servo fijado en posición DEFECTO")
 
     def _loop_procesamiento(self) -> None:
         """Loop principal de procesamiento (corre en hilo separado)."""
@@ -121,13 +120,9 @@ class TrackerService:
                 self._on_camara_desconectada()
                 break
 
-            # Obtener frame desde CamaraService
-            jpeg_bytes = camara_service.esperar_frame(timeout=1.0)
-            if jpeg_bytes is None:
-                continue
-
-            # Decodificar JPEG a frame OpenCV
-            frame = self._jpeg_a_frame(jpeg_bytes)
+            # Esperar nuevo frame y obtener BGR directo (sin ciclo JPEG)
+            camara_service.esperar_frame(timeout=1.0)
+            frame = camara_service.obtener_frame_bgr()
             if frame is None:
                 continue
 
@@ -169,13 +164,16 @@ class TrackerService:
             grupo: sum(conteo.get(c, 0) for c in clases)
             for grupo, clases in self.tracker.GRUPOS_DISPLAY.items()
         }
+        ts = self.tracker.ultima_deteccion_frame_ts
+        segundos_sin_deteccion = round(time.time() - ts, 1) if ts is not None else None
         return {
-            "conteo":           conteo,
-            "total_granos":     total_defectos + total_sanos,
-            "total_defectos":   total_defectos,
-            "total_sanos":      total_sanos,
-            "conteo_agrupado":  conteo_agrupado,
-            "clases_detectadas": len(conteo),
+            "conteo":                  conteo,
+            "total_granos":            total_defectos + total_sanos,
+            "total_defectos":          total_defectos,
+            "total_sanos":             total_sanos,
+            "conteo_agrupado":         conteo_agrupado,
+            "clases_detectadas":       len(conteo),
+            "segundos_sin_deteccion":  segundos_sin_deteccion,
         }
 
     def generar_reporte_lote(self) -> dict:
@@ -204,24 +202,6 @@ class TrackerService:
             "error": self._error_camara,
         }
 
-    @staticmethod
-    def _jpeg_a_frame(jpeg_bytes: bytes) -> np.ndarray | None:
-        """
-        Decodifica JPEG a frame OpenCV BGR.
-
-        Args:
-            jpeg_bytes: Bytes JPEG
-
-        Returns:
-            np.ndarray: Frame BGR, o None si error
-        """
-        try:
-            nparr = np.frombuffer(jpeg_bytes, np.uint8)
-            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            return frame
-        except Exception as e:
-            print(f"Error decodificando JPEG: {e}")
-            return None
 
 
 # Instancia global del servicio

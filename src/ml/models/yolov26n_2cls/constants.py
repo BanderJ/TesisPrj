@@ -5,7 +5,7 @@ Clasificación binaria: defecto vs. verde
 
 # Filtro de tamaño de bounding box (píxeles) — calibrar según distancia real de la cámara
 GRANO_MIN_PX = 8
-GRANO_MAX_PX = 200
+GRANO_MAX_PX = 500
 
 # Agrupaciones para mostrar en barras del frontend
 # Con 2 clases todos los defectos van a "negro" (barra principal)
@@ -30,7 +30,7 @@ EQUIVALENCIAS_DEFECTO = {
     # Basado en: (agrio_severo=1.0 + cereza_seca=1.0 + broca_severo=1.0 + agrio_ligero=0.333) / 4 ≈ 0.83
     "defecto": 0.83,
 
-    # Verde: no es defecto en SCA (grano inmaduro detectado)
+    # Verde: no es defecto en SCA
     # Se cuenta pero NO añade defectos equivalentes
     "verde": 0.0,
 }

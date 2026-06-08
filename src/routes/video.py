@@ -8,6 +8,8 @@ POST /lote/generar-reporte → Genera reporte final del lote
 POST /lote/resetear        → Resetea conteo para nuevo lote
 """
 
+import asyncio
+
 from fastapi import APIRouter, Depends, Response, HTTPException
 from fastapi.responses import StreamingResponse
 
@@ -31,6 +33,7 @@ async def stream_mjpeg():
         while tracker_service.esta_activo():
             frame_jpeg = tracker_service.obtener_frame_streaming()
             if frame_jpeg is None:
+                await asyncio.sleep(0.033)
                 continue
 
             # Boundary MJPEG
@@ -40,6 +43,7 @@ async def stream_mjpeg():
                 b"Content-Length: " + str(len(frame_jpeg)).encode() + b"\r\n\r\n"
                 + frame_jpeg + b"\r\n"
             )
+            await asyncio.sleep(0.033)  # ~30fps al cliente
 
     return StreamingResponse(
         frame_generator(),
@@ -102,15 +106,6 @@ async def generar_reporte_lote(_: dict = Depends(obtener_usuario_actual)):
     """
     Genera el reporte final del lote actual.
 
-    Calcula:
-    - Total de granos analizados
-    - Total de defectos equivalentes (SCA)
-    - Grado (1, 2 o 3)
-    - Apto para Specialty (bool)
-    - Detalle por clase de defecto
-
-    Returns:
-        dict: {grado, defectos, apto_specialty, detalle_por_clase, resumen}
     """
     try:
         reporte = tracker_service.generar_reporte_lote()

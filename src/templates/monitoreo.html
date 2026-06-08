@@ -62,7 +62,7 @@
 				</div>
 
 				<!-- Stream MJPEG en vivo: YOLO + Defectos en ROJO -->
-				<img id="cameraStream" class="camera-stream" src="/video/stream" alt="Feed YOLO en tiempo real">
+				<img id="cameraStream" class="camera-stream" alt="Feed YOLO en tiempo real">
 
 				<!-- Error: cámara no disponible o timeout -->
 				<div class="camera-error" id="cameraError" style="display:none;">
@@ -203,7 +203,7 @@
 <script>
 	(() => {
 		const EVALUACION_ID          = '{{ evaluacion_id }}';
-		const TIMEOUT_INACTIVIDAD_MS = 15_000; // 15 s sin nuevas detecciones → auto-finalizar
+		const TIMEOUT_INACTIVIDAD_MS = 10_000; // 10 s sin nuevas detecciones a auto-finalizar
 
 		// ── Datos de la muestra ───────────────────────────────────────────────
 		const storedEval = sessionStorage.getItem('coffeeren.evaluacion');
@@ -308,7 +308,7 @@
 				if (!res.ok) throw new Error();
 				const { activo } = await res.json();
 				if (activo) {
-					// YOLO ya corriendo (ej. recarga de página): reconectar sin POST
+					// YOLO
 					capturandoYOLO        = true;
 					elapsedSeconds        = 0;
 					tiempoUltimaDeteccion = Date.now();
@@ -333,12 +333,6 @@
 							conteoActual = data.conteo;
 							gruposActual = data.conteo_agrupado ?? {};
 							actualizarUIdesdeConteo(data.total_defectos, data.total_sanos, gruposActual);
-							const totalActual = data.total_granos;
-							if (totalActual > totalGranosUltimo) { totalGranosUltimo = totalActual; tiempoUltimaDeteccion = Date.now(); }
-							if (Date.now() - tiempoUltimaDeteccion >= TIMEOUT_INACTIVIDAD_MS) {
-								appendLog('Sin detecciones por 10 s. Finalizando clasificación automática...');
-								await finalizarMonitoreo(true);
-							}
 						} catch (e) { console.error('Error obteniendo conteo:', e); }
 					}, 1500);
 					appendLog('Cámara conectada. Monitoreo en curso.');
@@ -423,7 +417,9 @@
 		async function detenerFaja() {
 			try {
 				await fetch('/arduino/motor/detener', { method: 'POST' });
-			} catch { /* silencioso al salir o si Arduino desconectado */ }
+			} catch {
+				appendLog('No se pudo detener la faja. Verifique la conexión Arduino.');
+			}
 		}
 
 		// ── Esperar primer frame ──────────────────────────────────────────────
@@ -484,7 +480,6 @@
 							fetch('/video/status'),
 						]);
 
-						// Verificar desconexión de cámara primero
 						if (rStatus.ok) {
 							const status = await rStatus.json();
 							if (status.camara_desconectada) {
@@ -495,20 +490,8 @@
 
 						const data = await rConteo.json();
 						conteoActual = data.conteo;
-						actualizarUIdesdeConteo(data.total_defectos, data.total_sanos);
-
-						// Detectar actividad nueva
-						const totalActual = data.total_granos;
-						if (totalActual > totalGranosUltimo) {
-							totalGranosUltimo     = totalActual;
-							tiempoUltimaDeteccion = Date.now();
-						}
-
-						// Auto-finalizar si 10 s sin nuevas detecciones
-						if (Date.now() - tiempoUltimaDeteccion >= TIMEOUT_INACTIVIDAD_MS) {
-							appendLog('Sin detecciones por 10 s. Finalizando clasificación automática...');
-							await finalizarMonitoreo(true);
-						}
+						gruposActual = data.conteo_agrupado ?? {};
+						actualizarUIdesdeConteo(data.total_defectos, data.total_sanos, gruposActual);
 					} catch (e) {
 						console.error('Error obteniendo conteo:', e);
 					}
@@ -653,7 +636,10 @@
 			finDescripcion.textContent = 'Calculando resumen...';
 			let pesoCapturado = 0;
 			try {
-				const pesoRes  = await fetch('/arduino/peso');
+				const ac = new AbortController();
+				const pesoTimer = setTimeout(() => ac.abort(), 3000);
+				const pesoRes  = await fetch('/arduino/peso', { signal: ac.signal });
+				clearTimeout(pesoTimer);
 				if (pesoRes.ok) {
 					const pesoData = await pesoRes.json();
 					pesoCapturado  = pesoData.peso ?? 0;

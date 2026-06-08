@@ -56,8 +56,10 @@ class CoffeeRenTracker:
                     f"Descarga best.pt desde Google Drive a models/yolov8n/"
                 )
 
+        import torch
+        self._device = 0 if torch.cuda.is_available() else "cpu"
         self.model = YOLO(model_path)
-        print(f"Modelo YOLO cargado: {self.model_name} (conf={conf})")
+        print(f"Modelo YOLO cargado: {self.model_name} (conf={conf}, device={self._device})")
 
         # Cargar constantes (CLASES, COLORES, EQUIVALENCIAS) específicas del modelo
         self._cargar_constantes_modelo()
@@ -69,6 +71,7 @@ class CoffeeRenTracker:
 
         # Estadísticas
         self.fps_actual = 0.0
+        self.ultima_deteccion_frame_ts: float | None = None  # None hasta la primera detección real
 
     def _cargar_constantes_modelo(self) -> None:
         """Carga dinámicamente las constantes (CLASES, COLORES, etc) del modelo."""
@@ -113,7 +116,8 @@ class CoffeeRenTracker:
             results = self.model.track(
                 source=frame,
                 conf=self.conf,
-                imgsz=1280,  # Mayor resolución para detectar granos pequeños
+                imgsz=640,
+                device=self._device,
                 tracker="bytetrack.yaml",
                 persist=True,
                 verbose=False
@@ -189,6 +193,9 @@ class CoffeeRenTracker:
             (0, 255, 255), 2
         )
 
+        if detecciones_count > 0:
+            self.ultima_deteccion_frame_ts = time.time()
+
         # Log de debug - mostrar siempre si no hay detecciones
         if total_granos > 0 and detecciones_count > 0:
             conteo_final = self._calcular_conteo_final()
@@ -211,6 +218,7 @@ class CoffeeRenTracker:
         with self.lock:
             self.conteo_ids_confianza = defaultdict(list)
             self._ids_servados = set()
+        self.ultima_deteccion_frame_ts = None
         servo_controller.limpiar_cola()
 
     def obtener_conteo(self) -> dict[str, int]:

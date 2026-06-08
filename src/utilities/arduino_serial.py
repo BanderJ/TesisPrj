@@ -3,8 +3,8 @@ Utilidad de comunicación serial con Arduino.
 
 Protocolo (9600 baud):
   Arduino → backend (lecturas continuas):
-    LISTO:15.34    → tapa cerrada, muestra detectada (distancia < umbral)
-    NO_LISTO:45.21 → sin muestra o tapa abierta
+    LISTO:4.34    → tapa cerrada, muestra detectada (distancia < umbral)
+    NO_LISTO:5.21 → sin muestra o tapa abierta
     PESO:1234.56   → lectura de la celda de carga en gramos (promedio deslizante)
     TARE:OK        → confirmación de tara completada
     SISTEMA:LISTO  → Arduino inicializado
@@ -21,6 +21,7 @@ estado cacheado. obtener_estado() y obtener_peso() retornan siempre los
 últimos valores recibidos, sin bloquear la solicitud HTTP.
 """
 import threading
+import time
 from dataclasses import dataclass
 
 try:
@@ -49,6 +50,7 @@ class ArduinoSerial:
         self._peso: float | None = None
         self._reader_thread: threading.Thread | None = None
         self._activo = False
+        self._ultimo_intento_reconexion: float = 0.0  # throttle: no reintentar antes de 10 s
 
     # ── Conexión ──────────────────────────────────────────────────────────────
 
@@ -82,10 +84,15 @@ class ArduinoSerial:
             return False
 
     def _asegurar_conexion(self) -> bool:
-        """Reconecta si el hilo lector está muerto. Retorna True si conectado."""
+        """Reconecta si el hilo lector está muerto. Retorna True si conectado.
+        Throttlea reintentos a uno cada 10 s para no bloquear requests HTTP."""
         if self._activo and self._puerto and self._puerto.is_open:
             return True
-        # Hilo muerto o puerto cerrado → intentar reconexión
+        # Throttle: no reintentar si el último intento fue hace menos de 10 s
+        ahora = time.time()
+        if ahora - self._ultimo_intento_reconexion < 10.0:
+            return False
+        self._ultimo_intento_reconexion = ahora
         if self._puerto:
             try:
                 self._puerto.close()
