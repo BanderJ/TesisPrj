@@ -29,12 +29,14 @@ class CamaraService:
             cap = self._cap
             if cap is None or not cap.isOpened():
                 self._running = False
+                print("[CamaraService] cap cerrado inesperadamente — loop terminado")
                 break
             ret, frame = cap.read()
             if not ret or frame is None:
                 errores_consecutivos += 1
                 if errores_consecutivos >= MAX_ERRORES:
                     self._running = False  # señal de desconexión
+                    print(f"[CamaraService] {MAX_ERRORES} errores consecutivos — cámara desconectada")
                     break
                 continue
             errores_consecutivos = 0

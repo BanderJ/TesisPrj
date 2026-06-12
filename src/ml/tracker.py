@@ -57,12 +57,20 @@ class CoffeeRenTracker:
                 )
 
         import torch
+        import numpy as np
         self._device = 0 if torch.cuda.is_available() else "cpu"
         self.model = YOLO(model_path)
         print(f"Modelo YOLO cargado: {self.model_name} (conf={conf}, device={self._device})")
 
         # Cargar constantes (CLASES, COLORES, EQUIVALENCIAS) específicas del modelo
         self._cargar_constantes_modelo()
+
+        # Warmup: usa model.track() con persist=False para inicializar ByteTrack + JIT
+        print("Calentando modelo YOLO (ByteTrack + JIT)...")
+        dummy = np.zeros((640, 640, 3), dtype=np.uint8)
+        self.model.track(dummy, imgsz=640, device=self._device,
+                         tracker="bytetrack.yaml", persist=False, verbose=False)
+        print("Modelo listo.")
 
         # Estado del tracking
         self.conteo_ids_confianza = defaultdict(list)  # {track_id: [(clase, conf), ...]}

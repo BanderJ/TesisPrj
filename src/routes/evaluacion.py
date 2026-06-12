@@ -100,6 +100,14 @@ async def completar_evaluacion(
         raise HTTPException(status_code=500, detail=f"Error interno: {exc}") from exc
 
 
+@evaluacion_router.get("/{evaluacion_id}/estado")
+async def obtener_estado_evaluacion(
+    evaluacion_id: str = Path(..., pattern=_UUID_PATTERN),
+    _: dict[str, Any] = Depends(obtener_usuario_actual),
+) -> dict[str, str | None]:
+    return {"estado": evaluacion_service.verificar_estado(evaluacion_id)}
+
+
 @evaluacion_router.patch(
     "/{evaluacion_id}/finalizar",
     response_model=FinalizarEvaluacionResponse,
