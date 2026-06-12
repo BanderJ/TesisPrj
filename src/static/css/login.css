@@ -122,8 +122,9 @@ body.dark::before {
     border-radius: 11px;
     display: grid;
     place-items: center;
-    background: color-mix(in oklab, var(--primary) 24%, transparent 76%);
+    background: transparent;
     margin-bottom: 12px;
+    margin-inline: auto;
 }
 
 .login-logo {

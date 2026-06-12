@@ -47,7 +47,7 @@ class TrackerService:
 
     def iniciar(self) -> bool:
         """
-        Inicia la captura y procesamiento.
+        Inicia el procesamiento YOLO. La cámara ya debe estar conectada desde el arranque.
 
         Returns:
             bool: True si inició exitosamente, False si error
@@ -60,19 +60,14 @@ class TrackerService:
             self._camara_desconectada = False
             self._error_camara = None
             servo_controller.desbloquear()
-            self.tracker.ultima_deteccion_frame_ts = None  # timer arranca desde primera detección
+            self.tracker.ultima_deteccion_frame_ts = None
 
-            # Iniciar captura desde cámara
-            print(f"Iniciando CamaraService...")
-            if not camara_service.iniciar():
-                print("No se pudo iniciar la cámara")
-                return False
-
-            # Esperar a que la cámara esté lista
-            time.sleep(1)
+            # La cámara se pre-conecta en el lifespan; reconectar solo si falló
             if not camara_service.esta_disponible():
-                print("Cámara no está disponible después de esperar")
-                return False
+                print("Cámara no disponible, intentando reconectar...")
+                if not camara_service.iniciar():
+                    print("No se pudo conectar la cámara")
+                    return False
 
             print("Cámara disponible")
 
@@ -88,7 +83,7 @@ class TrackerService:
             return True
 
     def detener(self) -> None:
-        """Detiene la captura y procesamiento."""
+        """Detiene el procesamiento YOLO. La cámara permanece conectada."""
         with self._lock:
             self.activo = False
 
@@ -96,9 +91,10 @@ class TrackerService:
             self._thread.join(timeout=2.0)
             self._thread = None
 
-        camara_service.cerrar()
         self.tracker.resetear_conteo()
-        print("TrackerService detenido - cámara liberada")
+        with self._lock:
+            self._frame_anotado = None  # limpiar frame viejo para próxima sesión
+        print("TrackerService detenido — cámara permanece conectada")
 
     def _on_camara_desconectada(self) -> None:
         """Reacción de emergencia ante pérdida de cámara."""

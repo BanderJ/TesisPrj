@@ -42,9 +42,11 @@ _evaluacion_service = EvaluacionService()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
     del app  # required by the lifespan protocol; unused at runtime
+    camara_service.iniciar()  # pre-conectar cámara al arrancar
     print("Application has started successfully!")
     yield
     tracker_service.detener()
+    arduino_serial.enviar_comando("OFF")  # asegurar faja apagada al cerrar app
     camara_service.cerrar()
     servo_controller.cerrar()
     arduino_serial.cerrar()
@@ -132,11 +134,13 @@ async def analisis(
         return RedirectResponse(
             url=f"/monitoreo/{evaluacion_id}", status_code=status.HTTP_303_SEE_OTHER
         )
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request=request,
         name="analisis.html",
         context={"request": request, "user": user, "evaluacion_id": evaluacion_id},
     )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/monitoreo/{evaluacion_id}")
@@ -158,11 +162,13 @@ async def monitoreo(
         return RedirectResponse(
             url=f"/analisis/{evaluacion_id}", status_code=status.HTTP_303_SEE_OTHER
         )
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request=request,
         name="monitoreo.html",
         context={"request": request, "user": user, "evaluacion_id": evaluacion_id},
     )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/nuevo-caficultor")

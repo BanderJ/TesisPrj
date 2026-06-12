@@ -695,6 +695,22 @@
 		}
 
 		// ── Guarda de navegación ──────────────────────────────────────────────
+
+		// Al entrar por back/forward (bfcache), verificar si la evaluación ya fue
+		// finalizada en el servidor y redirigir si es así.
+		window.addEventListener('pageshow', async (e) => {
+			if (!e.persisted) return; // solo interesa la restauración desde bfcache
+			try {
+				const res = await fetch(`/evaluacion/${EVALUACION_ID}/estado`);
+				if (res.ok) {
+					const { estado } = await res.json();
+					if (estado === 'finalizada') {
+						window.location.replace(`/analisis/${EVALUACION_ID}`);
+					}
+				}
+			} catch { /* si falla, el backend redirigirá en el siguiente request */ }
+		});
+
 		window.addEventListener('beforeunload', (e) => {
 			if (!monitoreoActivo && !finalizando) return;
 			e.preventDefault();
@@ -712,11 +728,11 @@
 			clearInterval(conteoInterval);
 			if (capturandoYOLO) {
 				capturandoYOLO = false;
-				fetch('/video/detener', { method: 'POST' }).catch(() => {});
+				await fetch('/video/detener', { method: 'POST' }).catch(() => {});
 			}
 			detenerStream();
 			await detenerFaja();
-			window.location.href = '/registro';
+			window.location.replace('/registro');
 		});
 
 		// ── Botones ───────────────────────────────────────────────────────────
