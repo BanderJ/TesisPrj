@@ -16,21 +16,11 @@ from src.schemas.valor_cafe import (
     ValorCafeResumenRangosResponse,
 )
 from src.services.valor_cafe_service import ValorCafeService
-from src.utilities.jwt_required import obtener_usuario_actual
+from src.utilities.jwt_required import require_admin_o_gerente
 
 
 valor_cafe_router = APIRouter()
 valor_cafe_service = ValorCafeService()
-ROLES_PERMITIDOS = {2, 3}
-
-
-def validar_permiso_creacion(token_payload: dict) -> None:
-    tipo_personal_id = token_payload.get("tipo_personal_id")
-    if tipo_personal_id not in ROLES_PERMITIDOS:
-        raise HTTPException(
-            status_code=403,
-            detail="No tienes permiso. Solo Gerente o Administrador pueden crear precios.",
-        )
 
 
 @valor_cafe_router.get("/historial", response_model=ValorCafeHistorialResponse)
@@ -81,14 +71,8 @@ async def resumen_rangos(
 @valor_cafe_router.post("/crear", response_model=ValorCafeCrearResponse)
 async def crear_valor_cafe(
     data: ValorCafeCrearRequest,
-    token_payload: dict = Depends(obtener_usuario_actual),
+    _: dict = Depends(require_admin_o_gerente),
 ) -> ValorCafeCrearResponse:
-    """
-    Crea un nuevo registro de valor de café.
-    Solo Gerente (tipo_personal_id=2) y Administrador (tipo_personal_id=3) pueden acceder.
-    """
-    validar_permiso_creacion(token_payload)
-    
     try:
         return valor_cafe_service.crear_precio(data)
     except ValueError as exc:
@@ -100,10 +84,8 @@ async def crear_valor_cafe(
 @valor_cafe_router.patch("/actualizar-precio", response_model=ValorCafeActualizarPrecioResponse)
 async def actualizar_precio_rango(
     data: ValorCafeActualizarPrecioRequest,
-    token_payload: dict = Depends(obtener_usuario_actual),
+    _: dict = Depends(require_admin_o_gerente),
 ) -> ValorCafeActualizarPrecioResponse:
-    """Reemplaza el precio de un rango del día actual (elimina registros anteriores e inserta uno nuevo)."""
-    validar_permiso_creacion(token_payload)
     try:
         return valor_cafe_service.actualizar_precio_rango(data.rango, data.precio)
     except Exception as exc:
@@ -113,10 +95,8 @@ async def actualizar_precio_rango(
 @valor_cafe_router.delete("/eliminar-rango", response_model=ValorCafeEliminarRangoResponse)
 async def eliminar_rango(
     rango: str = Query(..., min_length=1, max_length=10, description="Rango a eliminar del día actual"),
-    token_payload: dict = Depends(obtener_usuario_actual),
+    _: dict = Depends(require_admin_o_gerente),
 ) -> ValorCafeEliminarRangoResponse:
-    """Elimina todos los registros de un rango en el día actual."""
-    validar_permiso_creacion(token_payload)
     try:
         return valor_cafe_service.eliminar_rango_hoy(rango)
     except Exception as exc:
@@ -126,11 +106,8 @@ async def eliminar_rango(
 @valor_cafe_router.post("/crear-bloque", response_model=ValorCafeCrearBloqueResponse)
 async def crear_valor_cafe_bloque(
     data: ValorCafeCrearBloqueRequest,
-    token_payload: dict = Depends(obtener_usuario_actual),
+    _: dict = Depends(require_admin_o_gerente),
 ) -> ValorCafeCrearBloqueResponse:
-    """Crea registros en bloque para multiples rangos de café."""
-    validar_permiso_creacion(token_payload)
-
     try:
         return valor_cafe_service.crear_precios_bloque(data)
     except ValueError as exc:

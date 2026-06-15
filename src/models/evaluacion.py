@@ -83,23 +83,25 @@ class Evaluacion:
 
     def obtener_resumen(
         self,
-        evaluacion_id: str,
+        evaluacion_id: str | None = None,
+        codigo: str | None = None,
         db: Connection | None = None,
     ) -> dict[str, Any] | None:
+        """Retorna resumen por evaluacion_id o por codigo. Exactamente uno debe especificarse."""
         owns_db = db is None
         db = db or Connection()
         try:
             sql = """
                 SELECT
                     e.id::text                                              AS evaluacion_id,
-                    COALESCE(TRIM(e.codigo), '')                            AS codigo,
+                    COALESCE(TRIM(e.codigo), '')                           AS codigo,
                     p.num_documento,
                     TRIM(p.nombre) || ' ' || TRIM(p.ape_paterno)
-                        || ' ' || TRIM(p.ape_materno)                       AS caficultor_nombre,
+                        || ' ' || TRIM(p.ape_materno)                      AS caficultor_nombre,
                     tc.nombre                                               AS tipo_caficultor,
                     tg.nombre                                               AS tipo_grano,
                     TRIM(pe.nombre) || ' ' || TRIM(pe.ape_paterno)
-                        || ' ' || TRIM(p.ape_materno)                       AS registrado_por,
+                        || ' ' || TRIM(pe.ape_materno)                     AS registrado_por,
                     e.num_sacos,
                     e.peso_bruto,
                     e.humedad,
@@ -107,16 +109,19 @@ class Evaluacion:
                     e.peso_trillado,
                     e.num_tamiz,
                     e.peso_tamizado,
-                    TO_CHAR(e.fecha, 'DD/MM/YYYY HH24:MI')                           AS fecha
+                    TO_CHAR(e.fecha, 'DD/MM/YYYY HH24:MI')                AS fecha
                 FROM evaluacion e
                 JOIN persona          p   ON p.id              = e.caficultor_id
                 JOIN tipo_caficultor  tc  ON tc.id             = e.tipo_caficultor_id
                 JOIN tipo_grano       tg  ON tg.id             = e.tipo_grano_id
                 JOIN personal         per ON per.personal_id   = e.personal_id
                 JOIN persona          pe  ON pe.id             = per.personal_id
-                WHERE e.id = %s
             """
-            return db.obtener_uno(sql, (evaluacion_id,))
+            if evaluacion_id is not None:
+                sql += " WHERE e.id = %s"
+                return db.obtener_uno(sql, (evaluacion_id,))
+            sql += " WHERE TRIM(e.codigo) = %s"
+            return db.obtener_uno(sql, (codigo.upper(),))
         finally:
             if owns_db:
                 db.close()
@@ -237,45 +242,6 @@ class Evaluacion:
             if owns_db:
                 db.rollback()
             raise
-        finally:
-            if owns_db:
-                db.close()
-
-    def obtener_resumen_por_codigo(
-        self,
-        codigo: str,
-        db: Connection | None = None,
-    ) -> dict[str, Any] | None:
-        owns_db = db is None
-        db = db or Connection()
-        try:
-            sql = """
-                SELECT
-                    e.id::text                                                        AS evaluacion_id,
-                    COALESCE(TRIM(e.codigo), '')                                     AS codigo,
-                    p.num_documento,
-                    TRIM(p.nombre) || ' ' || TRIM(p.ape_paterno)
-                        || ' ' || TRIM(p.ape_materno)                                AS caficultor_nombre,
-                    tc.nombre                                                         AS tipo_caficultor,
-                    tg.nombre                                                         AS tipo_grano,
-                    TRIM(pe.nombre) || ' ' || TRIM(pe.ape_paterno)                   AS registrado_por,
-                    e.num_sacos,
-                    e.peso_bruto,
-                    e.humedad,
-                    e.peso_muestra,
-                    e.peso_trillado,
-                    e.num_tamiz,
-                    e.peso_tamizado,
-                    TO_CHAR(e.fecha, 'DD/MM/YYYY HH24:MI')                           AS fecha
-                FROM evaluacion e
-                JOIN persona          p   ON p.id              = e.caficultor_id
-                JOIN tipo_caficultor  tc  ON tc.id             = e.tipo_caficultor_id
-                JOIN tipo_grano       tg  ON tg.id             = e.tipo_grano_id
-                JOIN personal         per ON per.personal_id   = e.personal_id
-                JOIN persona          pe  ON pe.id             = per.personal_id
-                WHERE TRIM(e.codigo) = %s
-            """
-            return db.obtener_uno(sql, (codigo.upper(),))
         finally:
             if owns_db:
                 db.close()
