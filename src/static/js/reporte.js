@@ -118,31 +118,33 @@
     });
 
     document.getElementById('btnExcel').addEventListener('click', () => {
+        const g = (id) => document.getElementById(id)?.textContent ?? '—';
+
         const rows = [
             ['RESUMEN DE EVALUACIÓN DE CAFÉ - CoffeeRen', ''],
             [],
             ['DATOS DE LA MUESTRA', ''],
-            ['Código evaluación',  document.getElementById('tdCodigo').textContent],
-            ['Caficultor',         document.getElementById('caficultorNombre').textContent],
-            ['Documento',          document.getElementById('metaDoc').textContent],
-            ['Tipo caficultor',    document.getElementById('metaTipoCaf').textContent],
-            ['Tipo de grano',      document.getElementById('metaGrano').textContent],
-            ['Registrado por',     document.getElementById('metaRegistradoPor').textContent],
-            ['Fecha',              document.getElementById('tdFecha').textContent],
-            ['N° sacos',           document.getElementById('tdSacos').textContent],
-            ['Peso bruto',         document.getElementById('tdPeso').textContent],
-            ['Humedad',            document.getElementById('tdHumedad').textContent],
-            ['Peso muestra',       document.getElementById('tdPesoMuestra').textContent],
-            ['Peso trillado',      document.getElementById('tdTrillado').textContent],
-            ['N° tamiz',           document.getElementById('tdTamiz').textContent],
-            ['Peso tamizado',      document.getElementById('tdTamizado').textContent],
+            ['Código evaluación',  g('tdCodigo')],
+            ['Caficultor',         g('caficultorNombre')],
+            ['Documento',          g('metaDoc')],
+            ['Tipo caficultor',    g('metaTipoCaf')],
+            ['Tipo de grano',      g('metaGrano')],
+            ['Registrado por',     g('metaRegistradoPor')],
+            ['Fecha',              g('tdFecha')],
+            ['N° sacos',           g('tdSacos')],
+            ['Peso bruto',         g('tdPeso')],
+            ['Humedad',            g('tdHumedad')],
+            ['Peso muestra',       g('tdPesoMuestra')],
+            ['Peso trillado',      g('tdTrillado')],
+            ['N° tamiz',           g('tdTamiz')],
+            ['Peso tamizado',      g('tdTamizado')],
         ];
 
         const ws = XLSX.utils.aoa_to_sheet(rows);
         ws['!cols'] = [{ wch: 26 }, { wch: 32 }];
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Resumen');
-        const codigo = document.getElementById('tdCodigo').textContent.replace(/[^A-Za-z0-9]/g, '') || 'evaluacion';
+        const codigo = g('tdCodigo').replace(/[^A-Za-z0-9]/g, '') || 'evaluacion';
         XLSX.writeFile(wb, `${codigo}_resumen.xlsx`);
     });
 })();

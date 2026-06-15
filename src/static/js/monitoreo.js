@@ -14,16 +14,15 @@
 		const samplePeso           = document.getElementById('samplePeso');
 		const timerEl              = document.getElementById('sessionTimer');
 
-		const totalGrainsEl     = document.getElementById('totalGrains');
-		const totalDefectsEl    = document.getElementById('totalDefects');
-		const iaPerformanceEl   = document.getElementById('iaPerformance');
-		const negroValueEl      = document.getElementById('defectNegroValue');
-		const brocadoValueEl    = document.getElementById('defectBrocadoValue');
-		const fermentadoValueEl = document.getElementById('defectFermentadoValue');
-		const negroBarEl        = document.getElementById('defectNegroBar');
-		const brocadoBarEl      = document.getElementById('defectBrocadoBar');
-		const fermentadoBarEl   = document.getElementById('defectFermentadoBar');
-		const eventLog          = document.getElementById('eventLog');
+		const totalGrainsEl   = document.getElementById('totalGrains');
+		const totalDefectsEl  = document.getElementById('totalDefects');
+		const totalSanosEl    = document.getElementById('totalSanos');
+		const iaPerformanceEl = document.getElementById('iaPerformance');
+		const negroValueEl    = document.getElementById('defectNegroValue');
+		const negroBarEl      = document.getElementById('defectNegroBar');
+		const sanoValueEl     = document.getElementById('defectBrocadoValue');
+		const sanoBarEl       = document.getElementById('defectBrocadoBar');
+		const eventLog        = document.getElementById('eventLog');
 		const finishBtn         = document.getElementById('finishBtn');
 		const startBtn          = document.getElementById('startBtn');
 
@@ -36,7 +35,7 @@
 			sampleSacos.textContent          = sample.num_sacos ?? '-';
 			samplePeso.textContent           = sample.peso_bruto != null ? `${sample.peso_bruto} kg` : '-';
 		} else {
-			document.querySelectorAll('.hero-meta strong').forEach(el => { el.textContent = 'No disponible'; });
+			document.querySelectorAll('.strip-field strong').forEach(el => { el.textContent = '—'; });
 		}
 
 		// ── Cámara ────────────────────────────────────────────────────────────
@@ -165,23 +164,17 @@
 
 		function actualizarUIdesdeConteo(totalDefectos = 0, totalSanos = 0, grupos = {}) {
 			const totalGranos = totalDefectos + totalSanos;
+			const pct = totalGranos > 0 ? Math.round((totalDefectos / totalGranos) * 100) : 0;
 
 			totalGrainsEl.textContent   = totalGranos;
 			totalDefectsEl.textContent  = totalDefectos;
-			iaPerformanceEl.textContent = '100%';
+			totalSanosEl.textContent    = totalSanos;
+			iaPerformanceEl.textContent = pct + '%';
 
-			// Barras por grupo — valores pre-calculados por el backend según el modelo activo
-			const negro   = grupos.negro   ?? 0;
-			const brocado = grupos.brocado ?? 0;
-			const partido = grupos.partido ?? 0;
-			const maxBar  = Math.max(negro, brocado, partido, 1);
-
-			negroValueEl.textContent      = negro;
-			brocadoValueEl.textContent    = brocado;
-			fermentadoValueEl.textContent = partido;
-			negroBarEl.style.width        = Math.round((negro   / maxBar) * 100) + '%';
-			brocadoBarEl.style.width      = Math.round((brocado / maxBar) * 100) + '%';
-			fermentadoBarEl.style.width   = Math.round((partido / maxBar) * 100) + '%';
+			negroValueEl.textContent  = totalDefectos;
+			sanoValueEl.textContent   = totalSanos;
+			negroBarEl.style.width    = pct + '%';
+			sanoBarEl.style.width     = (100 - pct) + '%';
 		}
 
 		// ── Desconexión de cámara ─────────────────────────────────────────────

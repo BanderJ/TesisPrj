@@ -1,37 +1,46 @@
+/* ── Buscar muestras ─────────────────────────────────────────────── */
 .reporte-page {
     display: grid;
-    gap: 14px;
+    gap: 12px;
 }
 
+/* ── Search card — compact horizontal ───────────────────────────── */
 .reporte-search-card {
-    border-radius: 16px;
+    border-radius: 14px;
     border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
     background: var(--card);
-    padding: 22px 24px;
+    padding: 14px 18px;
 }
 
-.reporte-search-title {
-    margin: 8px 0 6px;
-    font-family: var(--font-serif);
-    font-size: clamp(1.1rem, 1.4vw, 1.35rem);
-    font-weight: 700;
+.reporte-search-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.reporte-search-desc {
-    margin: 0 0 18px;
+.reporte-search-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.reporte-search-hint {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted-foreground);
 }
 
 .reporte-search-form {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
 }
 
 .reporte-input {
-    width: min(100%, 260px);
-    height: 40px;
-    padding: 0 14px;
-    border-radius: 10px;
+    width: min(100%, 220px);
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 9px;
     border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
     background: color-mix(in oklab, var(--input) 94%, transparent 6%);
     color: var(--foreground);
@@ -44,24 +53,19 @@
 .reporte-input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%);
-}
-
-.reporte-input::placeholder {
-    color: var(--muted-foreground);
-    opacity: 0.55;
-    letter-spacing: 0.05em;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 22%, transparent 78%);
 }
 
 .reporte-btn-buscar {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    height: 40px;
-    padding: 0 18px;
+    height: 38px;
+    padding: 0 16px;
     white-space: nowrap;
 }
 
+/* ── States (empty / not found) ──────────────────────────────────── */
 .reporte-state {
     display: flex;
     flex-direction: column;
@@ -69,7 +73,7 @@
     justify-content: center;
     gap: 12px;
     padding: 52px 20px;
-    border-radius: 16px;
+    border-radius: 14px;
     border: 1px dashed color-mix(in oklab, var(--border) 66%, transparent 34%);
 }
 
@@ -80,11 +84,13 @@
     text-align: center;
 }
 
+/* ── Results grid ────────────────────────────────────────────────── */
 .reporte-results {
     display: grid;
-    gap: 14px;
+    gap: 12px;
 }
 
+/* ── Print ───────────────────────────────────────────────────────── */
 @media print {
     .reporte-search-card,
     .analisis-actions,
@@ -93,13 +99,14 @@
     }
 }
 
+/* ── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 640px) {
     .reporte-search-form {
-        flex-direction: column;
-        align-items: stretch;
+        width: 100%;
     }
 
     .reporte-input {
+        flex: 1;
         width: 100%;
     }
 

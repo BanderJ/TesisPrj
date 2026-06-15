@@ -19,7 +19,6 @@
 		const pesoTrilladoInput     = document.getElementById('pesoTrillado');
 		const pesoTrilladoHint      = document.getElementById('pesoTrilladoHint');
 		const numTamizInput         = document.getElementById('numTamiz');
-		const numTamizHint          = document.getElementById('numTamizHint');
 		const pesoTamizadoInput     = document.getElementById('pesoTamizado');
 		const pesoTamizadoHint      = document.getElementById('pesoTamizadoHint');
 
@@ -66,6 +65,16 @@
 			input.addEventListener('blur', () => {
 				const n = parseFloat(input.value);
 				if (input.value && !isNaN(n)) input.value = redondear2(n).toFixed(2);
+			});
+		}
+
+		// Bloquea e/E/+/- (notación científica y signos que permite <input type="number">).
+		// soloEntero=true también bloquea el punto decimal.
+		function bloquearCaracteresNumericos(input, soloEntero = false) {
+			const bloqueados = new Set(['e', 'E', '+', '-']);
+			if (soloEntero) { bloqueados.add('.'); bloqueados.add(','); }
+			input.addEventListener('keydown', (e) => {
+				if (bloqueados.has(e.key)) e.preventDefault();
 			});
 		}
 
@@ -312,7 +321,7 @@
 			ultimaClaveBusqueda = '';
 			aplicarReglaDocumento();
 			for (const h of [numSacosHint, pesoTotalHint, humedadHint, pesoMuestraHint,
-			                  pesoTrilladoHint, numTamizHint, pesoTamizadoHint]) setHint(h, '');
+			                  pesoTrilladoHint, pesoTamizadoHint]) setHint(h, '');
 		}
 
 		function validateForm() {
@@ -379,9 +388,6 @@
 			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput, pesoTrilladoHint, 'el peso de muestra');
 		});
 
-		numTamizInput.addEventListener('input', () =>
-			validarInline(numTamizInput, esEnteroPositivo, numTamizHint, 'Debe ser un entero positivo (mínimo 1).'));
-
 		pesoTrilladoInput.addEventListener('input', () => {
 			if (!pesoTrilladoInput.value) {
 				setHint(pesoTrilladoHint, '');
@@ -407,9 +413,12 @@
 			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint, 'el peso trillado'));
 
 		forzarEntero(numSacosInput);
-		forzarEntero(numTamizInput);
 		[pesoTotalInput, humedadInput, pesoMuestraInput, pesoTrilladoInput, pesoTamizadoInput]
 			.forEach(forzar2Decimales);
+
+		bloquearCaracteresNumericos(numSacosInput, true);
+		[pesoTotalInput, humedadInput, pesoMuestraInput, pesoTrilladoInput, pesoTamizadoInput]
+			.forEach(i => bloquearCaracteresNumericos(i));
 
 		startBtn.addEventListener('click', async () => {
 			if (!validateForm()) return;
