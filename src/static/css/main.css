@@ -332,32 +332,211 @@ main {
     color: var(--destructive);
 }
 
+/* ── Modal Términos y condiciones ────────────────────────────────── */
+.tc-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.52);
+    backdrop-filter: blur(4px);
+    overflow-y: auto;
+}
+
+.tc-box {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    margin: 2rem auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 26px 26px 22px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+    opacity: 0;
+    transform: scale(0.92) translateY(14px);
+}
+
+.tc-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+}
+
+.tc-close:hover {
+    background: color-mix(in oklab, var(--muted) 60%, transparent 40%);
+    color: var(--foreground);
+}
+
+.tc-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.tc-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--primary) 12%, transparent 88%);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.tc-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--foreground);
+    font-family: var(--font-serif);
+}
+
+.tc-body {
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--muted-foreground);
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-bottom: 18px;
+}
+
+.tc-body p {
+    margin: 0 0 10px;
+}
+
+.tc-heading {
+    font-weight: 600;
+    color: var(--foreground) !important;
+    margin-bottom: 4px !important;
+}
+
+.tc-ok {
+    width: 100%;
+    height: 40px;
+}
+
 /* Footer */
 .footer-glass {
-    margin-top: 0;
-    padding: 14px 12px;
-    text-align: center;
     background: var(--card);
     border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
-    backdrop-filter: none;
 }
 
-.footer-icon-wrapper {
+.footer-inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 18px clamp(10px, 2vw, 24px);
+    gap: 24px;
+}
+
+/* Col 1 — brand */
+.footer-brand {
     display: flex;
-    justify-content: center;
-    margin-bottom: 8px;
-}
-
-.footer-icon {
-    width: 44px;
-    height: 44px;
-    opacity: 0.94;
-}
-
-.footer-text {
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 600;
     color: var(--muted-foreground);
-    font-size: 14px;
-    margin: 2px 0;
+}
+
+.footer-brand-icon {
+    width: 18px;
+    height: 18px;
+    opacity: 0.6;
+}
+
+/* Col 2 — legal + location (centered) */
+.footer-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.footer-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.15s;
+}
+
+.footer-link:hover {
+    color: var(--foreground);
+}
+
+.footer-location {
+    margin: 0;
+    font-size: 11px;
+    color: color-mix(in oklab, var(--muted-foreground) 70%, transparent 30%);
+}
+
+/* Col 3 — social icons (right-aligned) */
+.footer-social {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-self: end;
+}
+
+.footer-social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--muted) 50%, transparent 50%);
+    color: var(--muted-foreground);
+    text-decoration: none;
+    transition: background 0.18s, color 0.18s;
+}
+
+.footer-social-btn:hover {
+    background: color-mix(in oklab, #1877f2 18%, var(--muted) 82%);
+    color: #1877f2;
+}
+
+.footer-social-btn.footer-social-wa:hover {
+    background: color-mix(in oklab, #25d366 18%, var(--muted) 82%);
+    color: #25d366;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .footer-inner {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 8px;
+        padding: 12px;
+    }
 }
 
 .kicker {
@@ -414,7 +593,7 @@ main {
 .field-group select {
     width: 100%;
     height: 40px;
-    padding: 10px 12px;
+    padding: 8px 12px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--input);

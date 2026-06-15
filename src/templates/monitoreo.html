@@ -1,138 +1,147 @@
 {% extends "main.html" %}
 
 {% block style %}
-	<link rel="stylesheet" href="/static/css/monitoreo.css?v=7">
+	<link rel="stylesheet" href="/static/css/monitoreo.css?v=8">
 {% endblock %}
 
 {% block content %}
 <section class="monitor-page" aria-label="Monitoreo en tiempo real">
-	<header class="page-hero monitor-hero">
-		<!-- <p class="kicker info-text">Clasificacion en curso</p> -->
-		<h1 class="hero-title">Monitoreo en tiempo real</h1>
-		<p class="hero-description">Supervisa deteccion de granos y defectos mientras el lote avanza en la banda.</p>
 
-		<div class="hero-meta">
-			<article>
-				<span>Documento</span>
-				<strong id="sampleDni">-</strong>
-			</article>
-			<article>
+	<!-- ── Compact info strip ────────────────────────────────────────────── -->
+	<header class="monitor-strip">
+		<div class="strip-title">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+			<span>Monitoreo en tiempo real</span>
+		</div>
+		<div class="strip-sep" aria-hidden="true"></div>
+		<div class="strip-fields">
+			<div class="strip-field">
 				<span>Caficultor</span>
 				<strong id="sampleName">-</strong>
-			</article>
-			<article>
-				<span>Tipo caficultor</span>
+			</div>
+			<div class="strip-sep-sm" aria-hidden="true"></div>
+			<div class="strip-field">
+				<span>DNI</span>
+				<strong id="sampleDni">-</strong>
+			</div>
+			<div class="strip-sep-sm" aria-hidden="true"></div>
+			<div class="strip-field">
+				<span>Tipo</span>
 				<strong id="sampleTipoCaficultor">-</strong>
-			</article>
-			<article>
+			</div>
+			<div class="strip-sep-sm" aria-hidden="true"></div>
+			<div class="strip-field">
 				<span>Grano</span>
 				<strong id="sampleGrano">-</strong>
-			</article>
-			<article>
+			</div>
+			<div class="strip-sep-sm" aria-hidden="true"></div>
+			<div class="strip-field">
 				<span>Tamiz</span>
 				<strong id="sampleTamiz">-</strong>
-			</article>
-			<article>
+			</div>
+			<div class="strip-sep-sm" aria-hidden="true"></div>
+			<div class="strip-field">
 				<span>Sacos</span>
 				<strong id="sampleSacos">-</strong>
-			</article>
-			<article>
+			</div>
+			<div class="strip-sep-sm" aria-hidden="true"></div>
+			<div class="strip-field">
 				<span>Peso bruto</span>
 				<strong id="samplePeso">-</strong>
-			</article>
+			</div>
 		</div>
 	</header>
 
+	<!-- ── Main grid ─────────────────────────────────────────────────────── -->
 	<div class="monitor-grid">
+
+		<!-- LEFT: Video feed -->
 		<article class="card feed-card">
 			<div class="feed-header">
 				<div class="live-indicator" role="status" aria-live="polite">
 					<span class="blink-dot" aria-hidden="true"></span>
 					En vivo
 				</div>
-				<div class="feed-timer"><span>Tiempo análisis:</span><span id="sessionTimer">00:00</span></div>
-				<button id="startBtn" type="button" class="btn btn-primary" style="margin-left: auto; display:none;">Reintentar captura</button>
+				<div class="feed-timer">
+					<span>Análisis:</span>
+					<span id="sessionTimer">00:00</span>
+				</div>
+				<button id="startBtn" type="button" class="btn btn-primary" style="display:none;">Reintentar captura</button>
 			</div>
 
 			<div class="feed-frame" aria-label="Feed de clasificación de granos">
-				<!-- Loading: visible mientras la cámara conecta -->
 				<div class="camera-loading" id="cameraLoading">
 					<div class="camera-spinner"></div>
 					<p>Conectando cámara...</p>
 				</div>
-
-				<!-- Stream MJPEG en vivo: YOLO + Defectos en ROJO -->
 				<img id="cameraStream" class="camera-stream" alt="Feed YOLO en tiempo real">
-
-				<!-- Error: cámara no disponible o timeout -->
 				<div class="camera-error" id="cameraError" style="display:none;">
 					<svg class="camera-error-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M12 18.75H4.5a2.25 2.25 0 01-2.25-2.25V9m12.841 9.091L16.5 19.5m-1.409-1.409c.407-.407.659-.97.659-1.591v-9a2.25 2.25 0 00-2.25-2.25h-9c-.621 0-1.184.252-1.591.659m12.182 12.182L2.909 5.909M1.5 4.5l1.409 1.409"/>
 					</svg>
 					<p id="cameraErrorMsg">Cámara no disponible</p>
 				</div>
-
 				<div class="feed-grid-overlay"></div>
-			</div>
-
-			<div class="feed-stats">
-				<article>
-					<span class="info-text">Granos evaluados</span>
-					<strong id="totalGrains">0</strong>
-				</article>
-				<article>
-					<span class="info-text">Defectos encontrados</span>
-					<strong id="totalDefects">0</strong>
-				</article>
-				<article>
-					<span class="info-text">Rendimiento IA</span>
-					<strong id="iaPerformance">0%</strong>
-				</article>
 			</div>
 		</article>
 
+		<!-- RIGHT: Analytics panel -->
 		<article class="card analytics-card">
-			<h2>Mapa de defectos detectados</h2>
-			<p class="info-text">Indicadores dinamicos por tipo de defecto para control de calidad.</p>
+			<p class="analytics-title">Análisis del lote</p>
 
-			<div class="defect-list">
-				<div class="defect-item">
-					<header>
-						<span>Defectos  detectados</span>
-						<strong id="defectNegroValue">0</strong>
-					</header>
-					<div class="defect-track">
-						<div id="defectNegroBar" class="defect-fill negro"></div>
-					</div>
+			<!-- KPI 2×2 grid -->
+			<div class="kpi-grid">
+				<div class="kpi-card">
+					<span>Total granos</span>
+					<strong id="totalGrains">0</strong>
 				</div>
-
-				<!-- <div class="defect-item">
-					<header>
-						<span>Brocado</span>
-						<strong id="defectBrocadoValue">0</strong>
-					</header>
-					<div class="defect-track">
-						<div id="defectBrocadoBar" class="defect-fill brocado"></div>
-					</div>
+				<div class="kpi-card kpi-defecto">
+					<span>Defectos</span>
+					<strong id="totalDefects">0</strong>
 				</div>
-
-				<div class="defect-item">
-					<header>
-						<span>Fermentado</span>
-						<strong id="defectFermentadoValue">0</strong>
-					</header>
-					<div class="defect-track">
-						<div id="defectFermentadoBar" class="defect-fill fermentado"></div>
-					</div>
-				</div> -->
+				<div class="kpi-card kpi-sano">
+					<span>Sanos</span>
+					<strong id="totalSanos">0</strong>
+				</div>
+				<div class="kpi-card">
+					<span>% Defecto</span>
+					<strong id="iaPerformance">0%</strong>
+				</div>
 			</div>
 
+			<!-- Defect distribution bars -->
+			<div>
+				<p class="section-label">Distribución de granos</p>
+				<div class="defect-list">
+					<div class="defect-item">
+						<header>
+							<span>Defectos</span>
+							<strong id="defectNegroValue">0</strong>
+						</header>
+						<div class="defect-track">
+							<div id="defectNegroBar" class="defect-fill negro"></div>
+						</div>
+					</div>
+					<div class="defect-item">
+						<header>
+							<span>Sanos</span>
+							<strong id="defectBrocadoValue">0</strong>
+						</header>
+						<div class="defect-track">
+							<div id="defectBrocadoBar" class="defect-fill sano"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Event log -->
 			<div class="event-log" id="eventLog" aria-live="polite">
 				<p class="log-item">Esperando lectura inicial del lote...</p>
 			</div>
 		</article>
 	</div>
 
+	<!-- ── Actions ───────────────────────────────────────────────────────── -->
 	<div class="monitor-actions">
 		<button id="btnVolver" type="button" class="btn btn-secondary">Volver a registro</button>
 		<button id="finishBtn" type="button" class="btn btn-primary">Finalizar monitoreo</button>
@@ -145,13 +154,10 @@
 <div id="finalizacionOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:1.5rem;">
 	<div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:36px 32px;max-width:480px;width:100%;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,0.45);">
 
-		<!-- Icono dinámico -->
 		<div id="finIcono" style="width:64px;height:64px;margin:0 auto 20px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in oklab,var(--primary) 12%,transparent);">
-			<!-- spinner -->
 			<svg id="finSpinner" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" style="animation:spin 1s linear infinite;">
 				<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
 			</svg>
-			<!-- check (oculto hasta completar) -->
 			<svg id="finCheck" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
 				<path d="M5 13l4 4L19 7"/>
 			</svg>
@@ -160,7 +166,6 @@
 		<h2 id="finTitulo" style="margin:0 0 8px;font-size:20px;font-weight:700;color:var(--foreground);">Procesando clasificación...</h2>
 		<p  id="finDescripcion" style="margin:0 0 20px;font-size:14px;color:var(--muted-foreground);line-height:1.5;"></p>
 
-		<!-- Pasos de progreso -->
 		<div id="finPasos" style="text-align:left;background:color-mix(in oklab,var(--muted) 40%,transparent);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:13px;display:flex;flex-direction:column;gap:6px;">
 			<div id="paso1" style="display:flex;align-items:center;gap:8px;color:var(--muted-foreground);">
 				<span id="paso1ico">⏳</span><span>Deteniendo faja y captura YOLO</span>
@@ -173,7 +178,6 @@
 			</div>
 		</div>
 
-		<!-- Resultado (oculto hasta completar) -->
 		<div id="finResultado" style="display:none;background:color-mix(in oklab,var(--primary) 8%,transparent);border:1px solid color-mix(in oklab,var(--primary) 25%,transparent);border-radius:10px;padding:14px 16px;margin-bottom:20px;text-align:left;">
 			<p style="margin:0 0 6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-foreground);">Resultado</p>
 			<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -192,7 +196,6 @@
 			style="width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:not-allowed;background:color-mix(in oklab,var(--primary) 40%,transparent);color:var(--primary);transition:all .2s;">
 			Procesando...
 		</button>
-
 	</div>
 </div>
 

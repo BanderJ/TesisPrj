@@ -1,149 +1,142 @@
 {% extends "main.html" %}
 
 {% block style %}
-<link rel="stylesheet" href="/static/css/analisis.css?v=3">
-<link rel="stylesheet" href="/static/css/reporte.css?v=3">
+<link rel="stylesheet" href="/static/css/analisis.css?v=7">
+<link rel="stylesheet" href="/static/css/reporte.css?v=4">
 {% endblock %}
 
 {% block content %}
 <section class="reporte-page" id="reportePage">
 
-    <!-- Toolbar -->
-    <div class="analisis-toolbar">
-        <div class="analisis-toolbar-title">
-            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--primary);flex-shrink:0">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-            </svg>
-            <h1>Buscar muestras</h1>
-        </div>
-    </div>
+	<!-- Toolbar -->
+	<div class="analisis-toolbar">
+		<div class="analisis-toolbar-title">
+			<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--primary);flex-shrink:0">
+				<circle cx="11" cy="11" r="8"/>
+				<path d="m21 21-4.35-4.35"/>
+			</svg>
+			<h1>Buscar muestras</h1>
+		</div>
+	</div>
 
-    <!-- Search card -->
-    <div class="reporte-search-card">
-        <h2 class="reporte-search-title">Búsqueda por código de evaluación</h2>
-        <p class="reporte-search-desc info-text">Ingrese los dígitos del código — el prefijo <strong>EVA</strong> está fijo, solo escriba números.</p>
-        <form id="formBuscar" class="reporte-search-form" autocomplete="off">
-            <input
-                type="text"
-                id="inputCodigo"
-                class="reporte-input"
-                maxlength="10"
-                inputmode="numeric"
-                spellcheck="false"
-                autocomplete="off"
-                aria-label="Código de evaluación"
-            />
-            <button type="submit" id="btnBuscar" class="btn btn-primary reporte-btn-buscar">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                    <circle cx="11" cy="11" r="8"/>
-                    <path d="m21 21-4.35-4.35"/>
-                </svg>
-                Buscar
-            </button>
-        </form>
-    </div>
+	<!-- Search card — compact horizontal -->
+	<div class="reporte-search-card">
+		<div class="reporte-search-inner">
+			<div class="reporte-search-label">
+				<p class="kicker" style="margin:0 0 2px;">Búsqueda por código de evaluación</p>
+				<p class="reporte-search-hint">Prefijo <strong>EVA</strong> fijo — escribe solo los números</p>
+			</div>
+			<form id="formBuscar" class="reporte-search-form" autocomplete="off">
+				<input
+					type="text"
+					id="inputCodigo"
+					class="reporte-input"
+					maxlength="10"
+					inputmode="numeric"
+					spellcheck="false"
+					autocomplete="off"
+					aria-label="Código de evaluación"
+				/>
+				<button type="submit" id="btnBuscar" class="btn btn-primary reporte-btn-buscar">
+					<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+						<circle cx="11" cy="11" r="8"/>
+						<path d="m21 21-4.35-4.35"/>
+					</svg>
+					Buscar
+				</button>
+			</form>
+		</div>
+	</div>
 
-    <!-- Empty state -->
-    <div class="reporte-state" id="emptyState">
-        <svg width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--muted-foreground);opacity:0.45">
-            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-            <rect x="9" y="3" width="6" height="4" rx="1"/>
-            <path d="M9 12h6M9 16h4"/>
-        </svg>
-        <p>Ingrese un código de evaluación para ver el resumen de la muestra</p>
-    </div>
+	<!-- Empty state -->
+	<div class="reporte-state" id="emptyState">
+		<svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--muted-foreground);opacity:0.4">
+			<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+			<rect x="9" y="3" width="6" height="4" rx="1"/>
+			<path d="M9 12h6M9 16h4"/>
+		</svg>
+		<p>Ingrese un código de evaluación para ver el resumen de la muestra</p>
+	</div>
 
-    <!-- Not found state -->
-    <div class="reporte-state" id="notFoundState" hidden>
-        <svg width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:#dc2626;opacity:0.65">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="m21 21-4.35-4.35"/>
-            <path d="M8.5 11h5"/>
-        </svg>
-        <p>No se encontró ninguna evaluación con ese código</p>
-    </div>
+	<!-- Not found state -->
+	<div class="reporte-state" id="notFoundState" hidden>
+		<svg width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:#dc2626;opacity:0.6">
+			<circle cx="11" cy="11" r="8"/>
+			<path d="m21 21-4.35-4.35"/>
+			<path d="M8.5 11h5"/>
+		</svg>
+		<p>No se encontró ninguna evaluación con ese código</p>
+	</div>
 
-    <!-- Results -->
-    <div id="resultados" class="reporte-results" hidden>
+	<!-- Results -->
+	<div id="resultados" class="reporte-results" hidden>
 
-        <!-- Header card -->
-        <div class="analisis-header-card">
-            <div class="analisis-header-left">
-                <p class="kicker">Evaluación de café</p>
-                <h2 id="codEval">—</h2>
-                <p id="caficultorNombre" style="font-size:15px;font-weight:600;color:var(--foreground);margin:2px 0 0;">—</p>
-                <div class="analisis-header-meta">
-                    <div class="analisis-meta-item">
-                        <span>Documento</span>
-                        <strong id="metaDoc">—</strong>
-                    </div>
-                    <div class="analisis-meta-item">
-                        <span>Tipo caficultor</span>
-                        <strong id="metaTipoCaf">—</strong>
-                    </div>
-                    <div class="analisis-meta-item">
-                        <span>Tipo de grano</span>
-                        <strong id="metaGrano">—</strong>
-                    </div>
-                    <div class="analisis-meta-item">
-                        <span>Registrado por</span>
-                        <strong id="metaRegistradoPor">—</strong>
-                    </div>
-                </div>
-            </div>
-            <span class="status-badge finalizado">
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
-                Finalizado
-            </span>
-        </div>
+		<!-- Header card — same compact pattern as analisis.html -->
+		<div class="analisis-header-card">
+			<div class="analisis-header-main">
+				<p class="kicker" style="margin:0 0 2px;">Evaluación de café</p>
+				<div class="analisis-title-row">
+					<h2 id="codEval">—</h2>
+					<span class="status-badge finalizado">
+						<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+						Finalizado
+					</span>
+				</div>
+				<p id="caficultorNombre" class="analisis-caficultor">—</p>
+			</div>
+			<div class="analisis-chips">
+				<div class="analisis-chip">
+					<span>DNI</span>
+					<strong id="metaDoc">—</strong>
+				</div>
+				<div class="analisis-chip">
+					<span>Tipo caficultor</span>
+					<strong id="metaTipoCaf">—</strong>
+				</div>
+				<div class="analisis-chip">
+					<span>Tipo de grano</span>
+					<strong id="metaGrano">—</strong>
+				</div>
+				<div class="analisis-chip">
+					<span>Registrado por</span>
+					<strong id="metaRegistradoPor">—</strong>
+				</div>
+			</div>
+		</div>
 
-        <!-- Sample data -->
-        <div class="analisis-section">
-            <h3>Datos de la muestra</h3>
-            <table class="data-table">
-                <tbody>
-                    <tr><td>Código evaluación</td><td id="tdCodigo">—</td></tr>
-                    <tr><td>Fecha</td><td id="tdFecha">—</td></tr>
-                    <tr><td>N° de sacos</td><td id="tdSacos">—</td></tr>
-                    <tr><td>Peso bruto</td><td id="tdPeso">—</td></tr>
-                    <tr><td>Humedad</td><td id="tdHumedad">—</td></tr>
-                    <tr><td>Peso de muestra</td><td id="tdPesoMuestra">—</td></tr>
-                    <tr><td>Peso trillado</td><td id="tdTrillado">—</td></tr>
-                    <tr><td>N° de tamiz</td><td id="tdTamiz">—</td></tr>
-                    <tr><td>Peso tamizado</td><td id="tdTamizado">—</td></tr>
-                </tbody>
-            </table>
-        </div>
+		<!-- Sample data -->
+		<div class="analisis-section">
+			<h3>Datos de la muestra</h3>
+			<table class="data-table">
+				<tbody>
+					<tr><td>Código evaluación</td><td id="tdCodigo">—</td></tr>
+					<tr><td>Fecha</td><td id="tdFecha">—</td></tr>
+					<tr><td>N° de sacos</td><td id="tdSacos">—</td></tr>
+					<tr><td>Peso bruto</td><td id="tdPeso">—</td></tr>
+					<tr><td>Humedad</td><td id="tdHumedad">—</td></tr>
+					<tr><td>Peso de muestra</td><td id="tdPesoMuestra">—</td></tr>
+					<tr><td>Peso trillado</td><td id="tdTrillado">—</td></tr>
+					<tr><td>N° de tamiz</td><td id="tdTamiz">—</td></tr>
+					<tr><td>Peso tamizado</td><td id="tdTamizado">—</td></tr>
+				</tbody>
+			</table>
+		</div>
 
-        <!-- Actions -->
-        <div class="analisis-actions">
-            <button class="btn-export pdf" onclick="window.print()">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                </svg>
-                Exportar PDF
-            </button>
-            <button class="btn-export excel" id="btnExcel">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                    <line x1="12" y1="9" x2="12" y2="21"/>
-                </svg>
-                Exportar Excel
-            </button>
-        </div>
+		<!-- Actions -->
+		<div class="analisis-actions">
+			<button class="btn-export pdf" onclick="window.print()">
+				<img src="/static/icon/pdf.png" alt="PDF">
+				Exportar PDF
+			</button>
+			<button class="btn-export excel" id="btnExcel">
+				<img src="/static/icon/excel.png" alt="Excel">
+				Exportar Excel
+			</button>
+		</div>
 
-    </div>
+	</div>
 
 </section>
-
-
 {% endblock %}
 
 {% block script %}
