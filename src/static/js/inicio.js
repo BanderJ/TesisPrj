@@ -1,0 +1,395 @@
+    // Cargar información de cooperativa
+    async function cargarCooperativaInfo() {
+        try {
+            const res = await fetch('/cooperativas/mi-cooperativa');
+            if (!res.ok) return;
+
+            const data = await res.json();
+            const section = document.getElementById('cooperativaSection');
+
+            document.getElementById('cooperativaNombreTitulo').textContent = data.nombre || 'Tu Cooperativa';
+            document.getElementById('cooperativaDescripcionTexto').textContent = data.descripcion || 'Cooperativa registrada en el sistema';
+
+            if (data.imagen_url) {
+                const imgEl = document.getElementById('cooperativaImagenBanner');
+                imgEl.src = data.imagen_url;
+                imgEl.hidden = false;
+            }
+
+            section.hidden = false;
+        } catch (error) {
+            console.error('Error cargando cooperativa:', error);
+        }
+    }
+
+    cargarCooperativaInfo();
+
+    async function cargarKpis() {
+        try {
+            const res = await fetch('/evaluacion/kpis');
+            if (!res.ok) return;
+            const data = await res.json();
+            const kpiLotesEl    = document.getElementById('kpiLotes');
+            const kpiDefectosEl = document.getElementById('kpiDefectos');
+            if (kpiLotesEl)    kpiLotesEl.textContent    = data.total_lotes.toLocaleString('es-PE');
+            if (kpiDefectosEl) kpiDefectosEl.textContent = data.total_defectos.toLocaleString('es-PE');
+        } catch { /* sin datos: los elementos mantienen "—" */ }
+    }
+
+    cargarKpis();
+
+    (() => {
+        const RANGO_COLORS = ['#22c55e', '#f59e0b', '#818cf8', '#f472b6', '#2dd4bf'];
+
+        const priceValueEl   = document.getElementById('coffeePriceValue');
+        const priceChangeEl  = document.getElementById('coffeePriceChange');
+        const priceDateEl    = document.getElementById('coffeePriceDate');
+        const rangoListEl    = document.getElementById('rangoList');
+        const rangoLegendEl  = document.getElementById('rangoLegend');
+        const chartSvgEl     = document.getElementById('priceChartSvg');
+        const chartTipEl     = document.getElementById('chartTip');
+        const chartEmptyEl   = document.getElementById('chartEmpty');
+        const periodTabsEl   = document.getElementById('periodTabs');
+        const kpiRangosEl    = document.getElementById('kpiRangos');
+        const kpiPrecioMinEl = document.getElementById('kpiPrecioMin');
+
+        let activePeriod    = 'dia';
+        let activeRango     = '';
+        const rangoColorMap = {};
+
+        /* ── Date helpers ── */
+        function fechaLocal(offsetDias = 0) {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDias);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function hoy()          { return fechaLocal(0); }
+        function ayer()         { return fechaLocal(-1); }
+        function primerDiaMes() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; }
+        function primerDiaAnio(){ return `${new Date().getFullYear()}-01-01`; }
+        function fmtDia(iso)    {
+            const [year, month, day] = iso.split('-').map(Number);
+            return new Date(year, month - 1, day).toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'});
+        }
+
+        function agruparPorHora(items) {
+            const byHour = {};
+            for (const item of items) {
+                const h = new Date(item.fecha).getHours();
+                if (!byHour[h] || item.precio > byHour[h].precio)
+                    byHour[h] = { etiqueta: `${String(h).padStart(2,'0')}:00`, precio: item.precio };
+            }
+            return Object.entries(byHour)
+                .sort(([a],[b]) => Number(a)-Number(b))
+                .map(([,v]) => v);
+        }
+
+        /* ── SVG chart constants ── */
+        const VB_W=800, VB_H=210, ML=10, MR=60, MT=14, MB=30;
+        const CW=VB_W-ML-MR, CH=VB_H-MT-MB;
+
+        function niceAxisY(minP, maxP) {
+            const range = maxP - minP || 1;
+            const rough = range / 4;
+            const mag   = Math.pow(10, Math.floor(Math.log10(rough)));
+            const step  = [1,2,2.5,5,10].map(f=>f*mag).find(n=>n>=rough) || rough;
+            const lo    = Math.floor(minP/step)*step;
+            const hi    = Math.ceil(maxP/step)*step;
+            const labels = [];
+            for (let v=lo; v<=hi+step*0.01; v+=step)
+                labels.push(Math.round(v*100)/100);
+            return { lo, hi, labels };
+        }
+
+        function bezierD(pts, close, btmY) {
+            if (!pts.length) return '';
+            if (pts.length === 1) {
+                const {x,y} = pts[0];
+                return close ? `M${x-1} ${y} L${x+1} ${y} L${x+1} ${btmY} L${x-1} ${btmY}Z`
+                             : `M${x-1} ${y} L${x+1} ${y}`;
+            }
+            let d = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+            for (let i=1; i<pts.length; i++) {
+                const p0=pts[i-1], p1=pts[i];
+                const cpx = ((p0.x+p1.x)/2).toFixed(1);
+                d += ` C${cpx} ${p0.y.toFixed(1)},${cpx} ${p1.y.toFixed(1)},${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+            }
+            if (close) {
+                const l=pts[pts.length-1], f=pts[0];
+                d += ` L${l.x.toFixed(1)} ${btmY} L${f.x.toFixed(1)} ${btmY}Z`;
+            }
+            return d;
+        }
+
+        function xAxisLabels(puntos, period) {
+            const n = puntos.length;
+            if (n === 0) return [];
+            if (n <= 8)  return puntos.map((p,i) => ({i, text: p.etiqueta}));
+            if (period === 'año') {
+                const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                const out = []; let lastM = -1;
+                puntos.forEach((p,i) => {
+                    const parts = p.etiqueta.split('/');
+                    const m = parts.length===2 ? Number(parts[1])-1 : -1;
+                    if (m !== lastM && m >= 0) { out.push({i, text: MESES[m]||p.etiqueta}); lastM = m; }
+                });
+                return out;
+            }
+            const maxL = 6, step = Math.max(1, Math.floor((n-1)/(maxL-1)));
+            const out = [];
+            for (let i=0; i<n; i+=step) { if (out.length < maxL) out.push({i, text: puntos[i].etiqueta}); }
+            if (out[out.length-1]?.i !== n-1) out.push({i: n-1, text: puntos[n-1].etiqueta});
+            return out;
+        }
+
+        function renderSvgChart(puntos, colorIdx, period) {
+            if (!puntos.length) {
+                chartSvgEl.innerHTML = '';
+                chartEmptyEl.hidden  = false;
+                return;
+            }
+            chartEmptyEl.hidden = true;
+
+            const color  = RANGO_COLORS[colorIdx % RANGO_COLORS.length];
+            const gradId = `cg${colorIdx}`;
+            const clipId = `cc${colorIdx}`;
+            const btmY   = MT + CH;
+
+            const precios = puntos.map(p => p.precio);
+            const rawMin  = Math.min(...precios);
+            const rawMax  = Math.max(...precios);
+            const { lo, hi, labels } = niceAxisY(rawMin, rawMax);
+
+            function xOf(i) { return ML + (puntos.length > 1 ? (i/(puntos.length-1))*CW : CW/2); }
+            function yOf(p) { return MT + CH - ((p-lo)/(hi-lo))*CH; }
+
+            const coords = puntos.map((p,i) => ({ x: xOf(i), y: yOf(p.precio) }));
+            const areaD  = bezierD(coords, true,  btmY);
+            const lineD  = bezierD(coords, false, btmY);
+
+            /* Y grid + labels */
+            let gridHtml = '';
+            for (const v of labels) {
+                const y = yOf(v);
+                if (y < MT-2 || y > btmY+2) continue;
+                const lbl = v >= 1000 ? `${(v/1000).toFixed(1)}k` : v.toFixed(0);
+                gridHtml += `<line class="chart-grid" x1="${ML}" y1="${y.toFixed(1)}" x2="${(ML+CW).toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+                gridHtml += `<text class="chart-ylabel" x="${(ML+CW+8).toFixed(1)}" y="${y.toFixed(1)}">${lbl}</text>`;
+            }
+
+            /* X labels */
+            let xHtml = '';
+            for (const {i, text} of xAxisLabels(puntos, period))
+                xHtml += `<text class="chart-xlabel" x="${xOf(i).toFixed(1)}" y="${(btmY+18).toFixed(1)}">${text}</text>`;
+
+            /* Hit areas */
+            const hitW = CW / puntos.length;
+            let hitHtml = '';
+            for (let i=0; i<puntos.length; i++)
+                hitHtml += `<rect class="chart-hit" data-i="${i}" x="${(xOf(i)-hitW/2).toFixed(1)}" y="${MT}" width="${hitW.toFixed(1)}" height="${CH}" fill="transparent"/>`;
+
+            const last = coords[coords.length-1];
+
+            chartSvgEl.innerHTML = `
+<defs>
+  <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${color}" stop-opacity="0.38"/>
+    <stop offset="88%" stop-color="${color}" stop-opacity="0.02"/>
+  </linearGradient>
+  <clipPath id="${clipId}">
+    <rect x="${ML}" y="${MT-2}" width="${CW}" height="${CH+4}"/>
+  </clipPath>
+</defs>
+${gridHtml}
+<g clip-path="url(#${clipId})">
+  <path d="${areaD}" fill="url(#${gradId})"/>
+  <path d="${lineD}" stroke="${color}" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="5" fill="${color}" stroke="var(--card)" stroke-width="2.5"/>
+</g>
+${xHtml}
+<line id="hLine" x1="0" y1="${MT}" x2="0" y2="${btmY}" class="chart-hover-line" visibility="hidden" pointer-events="none"/>
+<circle id="hDot" cx="0" cy="0" r="5" fill="${color}" stroke="var(--card)" stroke-width="2.5" visibility="hidden" pointer-events="none"/>
+${hitHtml}`;
+
+            /* Hover interactions */
+            const hLine = chartSvgEl.querySelector('#hLine');
+            const hDot  = chartSvgEl.querySelector('#hDot');
+
+            function svgToWrapper(x, y) {
+                const pt = chartSvgEl.createSVGPoint();
+                pt.x = x; pt.y = y;
+                const screen = pt.matrixTransform(chartSvgEl.getScreenCTM());
+                const rect   = chartSvgEl.parentElement.getBoundingClientRect();
+                return { x: screen.x - rect.left, y: screen.y - rect.top };
+            }
+
+            chartSvgEl.querySelectorAll('.chart-hit').forEach(r => {
+                r.addEventListener('mouseenter', () => {
+                    const i  = Number(r.dataset.i);
+                    const cx = xOf(i), cy = coords[i].y;
+
+                    hLine.setAttribute('x1', cx); hLine.setAttribute('x2', cx);
+                    hLine.setAttribute('visibility', 'visible');
+                    hDot.setAttribute('cx', cx); hDot.setAttribute('cy', cy);
+                    hDot.setAttribute('visibility', 'visible');
+
+                    chartTipEl.innerHTML = `<span class="chart-tip-price">S/ ${puntos[i].precio.toFixed(2)}</span><span class="chart-tip-label">${puntos[i].etiqueta}</span>`;
+                    chartTipEl.hidden = false;
+
+                    const tipW = chartTipEl.offsetWidth;
+                    const tipH = chartTipEl.offsetHeight;
+                    const pos  = svgToWrapper(cx, cy);
+                    const wrapW = chartSvgEl.parentElement.offsetWidth;
+                    let left = pos.x + 14;
+                    if (left + tipW > wrapW - 4) left = pos.x - tipW - 14;
+                    const top = Math.max(0, pos.y - tipH - 8);
+                    chartTipEl.style.left = left + 'px';
+                    chartTipEl.style.top  = top  + 'px';
+                });
+                r.addEventListener('mouseleave', () => {
+                    hLine.setAttribute('visibility', 'hidden');
+                    hDot.setAttribute('visibility',  'hidden');
+                    chartTipEl.hidden = true;
+                });
+            });
+        }
+
+        /* ── Price card / resumen rangos ── */
+        async function cargarResumenRangos() {
+            try {
+                const res = await fetch('/valor-cafe/resumen-rangos');
+                if (!res.ok) throw new Error();
+                const payload = await res.json();
+
+                payload.data.forEach((item, i) => {
+                    rangoColorMap[item.rango] = i % RANGO_COLORS.length;
+                });
+
+                if (payload.data.length) {
+                    const precios  = payload.data.map(d => d.precio);
+                    const maxPrecio = Math.max(...precios);
+                    const minPrecio = Math.min(...precios);
+                    const itemMax   = payload.data.find(d => d.precio === maxPrecio);
+
+                    priceValueEl.textContent = `S/ ${maxPrecio.toFixed(2)}`;
+                    const dt = new Date(itemMax.registrado_en);
+                    priceDateEl.textContent = `Actualizado al ${dt.toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'})}`;
+
+                    if (kpiPrecioMinEl) kpiPrecioMinEl.textContent = `S/ ${minPrecio.toFixed(2)}`;
+                } else {
+                    priceValueEl.textContent = '—';
+                    priceDateEl.textContent  = 'Sin datos hoy';
+                    if (kpiPrecioMinEl) kpiPrecioMinEl.textContent = '—';
+                }
+
+                try {
+                    const resAyer = await fetch(`/valor-cafe/maximo-dia?fecha=${ayer()}`);
+                    if (resAyer.ok) {
+                        const pa = await resAyer.json();
+                        if (pa.data && payload.data.length) {
+                            const maxHoy = Math.max(...payload.data.map(d => d.precio));
+                            const pct = ((maxHoy - pa.data.precio) / pa.data.precio) * 100;
+                            priceChangeEl.textContent = `${pct>=0?'+':''}${pct.toFixed(1)}% respecto al dia anterior`;
+                            priceChangeEl.classList.toggle('negative', pct < 0);
+                        } else {
+                            priceChangeEl.textContent = 'Sin comparativo de ayer';
+                        }
+                    }
+                } catch { priceChangeEl.textContent = '—'; }
+
+                rangoListEl.innerHTML = '';
+                if (!payload.data.length) {
+                    rangoListEl.innerHTML = '<li class="rango-item"><span class="rango-name" style="color:var(--muted-foreground)">Sin datos hoy</span></li>';
+                } else {
+                    payload.data.forEach((item, i) => {
+                        const li = document.createElement('li');
+                        li.className = 'rango-item';
+                        li.innerHTML = `
+                            <span class="rango-dot" style="background:${RANGO_COLORS[i%RANGO_COLORS.length]}"></span>
+                            <span class="rango-name">${item.rango}</span>
+                            <span class="rango-precio">S/ ${item.precio.toFixed(2)}</span>`;
+                        rangoListEl.appendChild(li);
+                    });
+                }
+
+                rangoLegendEl.querySelectorAll('[data-rango]:not([data-rango=""])').forEach(c => c.remove());
+                payload.data.forEach((item, i) => {
+                    const btn = document.createElement('button');
+                    btn.className     = 'legend-chip';
+                    btn.dataset.rango = item.rango;
+                    btn.innerHTML     = `<span class="legend-dot" style="background:${RANGO_COLORS[i%RANGO_COLORS.length]}"></span>${item.rango}`;
+                    rangoLegendEl.appendChild(btn);
+                });
+
+                if (kpiRangosEl) kpiRangosEl.textContent = payload.data.length || '—';
+
+            } catch {
+                priceValueEl.textContent = '—';
+                rangoListEl.innerHTML = '<li class="rango-item"><span class="rango-name" style="color:var(--muted-foreground)">Error al cargar</span></li>';
+            }
+        }
+
+        /* ── Chart loading ── */
+        async function cargarGrafico() {
+            chartSvgEl.innerHTML = '';
+            chartEmptyEl.hidden  = true;
+
+            const rp       = activeRango ? `&rango=${encodeURIComponent(activeRango)}` : '';
+            const colorIdx = activeRango ? (rangoColorMap[activeRango] ?? 0) : 0;
+
+            try {
+                let puntos = [];
+
+                if (activePeriod === 'dia') {
+                    const res = await fetch(`/valor-cafe/historial?fecha=${hoy()}${rp}`);
+                    if (!res.ok) throw new Error();
+                    const data = await res.json();
+                    puntos = agruparPorHora(data.data);
+
+                } else if (activePeriod === 'mes') {
+                    const res = await fetch(`/valor-cafe/cambios-diarios?desde=${primerDiaMes()}&hasta=${hoy()}${rp}`);
+                    if (!res.ok) throw new Error();
+                    const data = await res.json();
+                    puntos = data.data.map(d => ({ etiqueta: fmtDia(d.fecha), precio: d.precio_maximo }));
+
+                } else {
+                    const res = await fetch(`/valor-cafe/cambios-diarios?desde=${primerDiaAnio()}&hasta=${hoy()}${rp}`);
+                    if (!res.ok) throw new Error();
+                    const data = await res.json();
+                    puntos = data.data.map(d => ({ etiqueta: fmtDia(d.fecha), precio: d.precio_maximo }));
+                }
+
+                renderSvgChart(puntos, colorIdx, activePeriod);
+
+            } catch {
+                chartEmptyEl.hidden      = false;
+                chartEmptyEl.textContent = 'Error al cargar los datos del grafico';
+            }
+        }
+
+        /* ── Events ── */
+        periodTabsEl.addEventListener('click', e => {
+            const btn = e.target.closest('[data-period]');
+            if (!btn) return;
+            periodTabsEl.querySelectorAll('.period-tab').forEach(b => b.classList.remove('is-active'));
+            btn.classList.add('is-active');
+            activePeriod = btn.dataset.period;
+            cargarGrafico();
+        });
+
+        rangoLegendEl.addEventListener('click', e => {
+            const chip = e.target.closest('[data-rango]');
+            if (!chip) return;
+            rangoLegendEl.querySelectorAll('.legend-chip').forEach(c => c.classList.remove('is-active'));
+            chip.classList.add('is-active');
+            activeRango = chip.dataset.rango;
+            cargarGrafico();
+        });
+
+        /* ── Init ── */
+        cargarResumenRangos().then(() => cargarGrafico());
+    })();

@@ -1,60 +1,62 @@
 # ============================================================
 # COFFEEREN - DEPENDENCIAS DEL PROYECTO
 # Backend: FastAPI + PostgreSQL + ML (YOLO + ByteTrack + Arduino)
+# Última actualización: junio 2026
 # ============================================================
 
 # ============================================================
 # FRAMEWORK WEB
 # ============================================================
-fastapi>=0.104.0          # Framework web asincrónico
-uvicorn>=0.24.0           # Servidor ASGI para FastAPI
-python-multipart>=0.0.6   # Soporte para multipart/form-data en formularios
-aiofiles>=23.2.1          # I/O asincrónico para archivos
-pydantic>=2.0.0           # Validación de datos (incluido en FastAPI)
+fastapi>=0.115.0          # Framework web asincrónico
+uvicorn>=0.30.0           # Servidor ASGI para FastAPI
+python-multipart>=0.0.9   # Soporte multipart/form-data en formularios
+aiofiles>=23.2.1          # I/O asincrónico para archivos estáticos
+pydantic>=2.7.0           # Validación de datos (usado via FastAPI y schemas propios)
 
 # ============================================================
 # FRONTEND (Jinja2 + plantillas)
 # ============================================================
-jinja2>=3.1.2             # Motor de plantillas HTML para renderizado del servidor
+jinja2>=3.1.4             # Motor de plantillas HTML para renderizado del servidor
 
 # ============================================================
 # BASE DE DATOS
 # ============================================================
-psycopg2>=2.9.9           # Driver PostgreSQL para Python (con psycopg2-binary como alternativa)
+psycopg2>=2.9.9           # Driver PostgreSQL — psycopg2-binary como alternativa en dev
 
 # ============================================================
 # AUTENTICACIÓN & SEGURIDAD
 # ============================================================
-PyJWT>=2.8.0              # Generación y validación de tokens JWT para httponly cookies
+PyJWT>=2.8.0              # Generación y validación de tokens JWT (httponly cookies)
 argon2-cffi>=23.1.0       # Hashing seguro de contraseñas con Argon2
 
 # ============================================================
 # VISIÓN ARTIFICIAL & ML
 # ============================================================
-# YOLO (YOLOv8n, YOLO11n, YOLO26n) - Detección de defectos de café
-ultralytics>=8.0.0        # YOLO v8+ framework (incluye torch)
-torch>=2.0.0              # PyTorch para inferencia de modelos YOLO
+# YOLO (YOLOv8n, YOLO11n, YOLO26n) — detección y tracking de granos
+ultralytics>=8.4.0        # YOLO v8+ framework — incluye ByteTrack y utilidades de tracking
+torch>=2.0.0              # PyTorch para inferencia (CPU y CUDA)
 torchvision>=0.15.0       # Utilidades de visión para torch
 
-# Tracking & ByteTrack (ID único de granos entre frames)
-# ByteTrack viene incluido en ultralytics, pero si se necesita explícito:
-# bytetrack>=1.0.0
-
 # Procesamiento de video & frames
-opencv-python-headless>=4.8.0  # Captura USB (ELP AR0234), MJPEG streaming (sin GUI)
-numpy>=1.24.0             # Arrays numéricos para frames YOLO
-pillow>=10.0.0            # Procesamiento de imágenes
+opencv-python-headless>=4.8.0  # Captura USB (ELP AR0234), MJPEG streaming — sin GUI
+numpy>=1.24.0             # Arrays numéricos para frames y resultados YOLO
+pillow>=10.0.0            # Procesamiento de imágenes (dependencia de ultralytics)
+
+# ============================================================
+# INFERENCIA ONNX
+# Requerido desde que tracker.py prefiere best.onnx sobre best.pt
+# Exportar modelos con: YOLO("best.pt").export(format="onnx", imgsz=640)
+# ============================================================
+onnx>=1.21.0              # Formato de modelo ONNX — requerido para cargar best.onnx
+onnxruntime>=1.20.1       # Runtime de inferencia ONNX (CPU + GPU vía DML en Windows)
+onnxslim>=0.1.71          # Optimizador de grafos ONNX — usado en la exportación
+
+# ============================================================
+# ARDUINO & SERIAL
+# ============================================================
+pyserial>=3.5             # Comunicación serial con Arduino (servo + sensor ultrasónico)
 
 # ============================================================
 # UTILIDADES
 # ============================================================
-python-dotenv>=1.0.0      # Cargar variables de entorno desde .env
-requests>=2.31.0          # HTTP client para APIs externas
-pyserial>=3.5             # Comunicación serial con Arduino (sensor ultrasónico)
-
-# ============================================================
-# DESARROLLO & DEBUGGING (opcional, descomentar si es necesario)
-# ============================================================
-# pytest>=7.4.0            # Testing framework
-# black>=23.7.0            # Code formatter
-# pylint>=2.17.0           # Code linting
+requests>=2.31.0          # HTTP client para APIs externas (Factiliza DNI)
