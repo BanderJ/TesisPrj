@@ -60,7 +60,6 @@ class TrackerService:
             self._camara_desconectada = False
             self._error_camara = None
             servo_controller.desbloquear()
-            self.tracker.ultima_deteccion_frame_ts = None
 
             # La cámara se pre-conecta en el lifespan; reconectar solo si falló
             if not camara_service.esta_disponible():
@@ -70,6 +69,9 @@ class TrackerService:
                     return False
 
             print("Cámara disponible")
+
+            # Resetear conteo y ByteTrack para nueva sesión (IDs empezarán desde 1)
+            self.tracker.resetear_conteo()
 
             # Iniciar hilo de procesamiento
             self.activo = True
@@ -91,7 +93,6 @@ class TrackerService:
             self._thread.join(timeout=2.0)
             self._thread = None
 
-        self.tracker.resetear_conteo()
         with self._lock:
             self._frame_anotado = None  # limpiar frame viejo para próxima sesión
         print("TrackerService detenido — cámara permanece conectada")
