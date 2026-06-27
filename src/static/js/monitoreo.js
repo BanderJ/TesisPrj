@@ -43,14 +43,18 @@
 		const cameraStreamEl  = document.getElementById('cameraStream');
 		const cameraErrorEl   = document.getElementById('cameraError');
 		const cameraErrorMsg  = document.getElementById('cameraErrorMsg');
+		const fpsBadgeEl      = document.getElementById('fpsBadge');
 
 		let connectTimeout = null;
+		let _fpsCount = 0;
+		let _fpsWindowStart = 0;
 
 		function mostrarErrorCamara(msg) {
 			clearTimeout(connectTimeout);
 			cameraLoadingEl.style.display = 'none';
 			cameraStreamEl.style.display  = 'none';
 			cameraErrorEl.style.display   = 'flex';
+			if (fpsBadgeEl) fpsBadgeEl.style.display = 'none';
 			if (msg) cameraErrorMsg.textContent = msg;
 		}
 
@@ -74,6 +78,15 @@
 						clearTimeout(connectTimeout);
 						cameraLoadingEl.style.display = 'none';
 						cameraStreamEl.style.display  = 'block';
+						if (fpsBadgeEl) { fpsBadgeEl.style.display = 'block'; _fpsWindowStart = performance.now(); _fpsCount = 0; }
+					}
+					_fpsCount++;
+					const _now = performance.now();
+					if (_now - _fpsWindowStart >= 1000) {
+						const fps = Math.round(_fpsCount * 1000 / (_now - _fpsWindowStart));
+						if (fpsBadgeEl) fpsBadgeEl.textContent = fps + ' FPS';
+						_fpsCount = 0;
+						_fpsWindowStart = _now;
 					}
 					frameTimeout = setTimeout(refrescarFrame, 33);
 				} catch {
@@ -94,6 +107,7 @@
 			cameraStreamEl.style.display  = 'none';
 			cameraLoadingEl.style.display = 'none';
 			cameraErrorEl.style.display   = 'none';
+			if (fpsBadgeEl) fpsBadgeEl.style.display = 'none';
 		}
 
 		// ── Arranque automático al cargar ────────────────────────────────────

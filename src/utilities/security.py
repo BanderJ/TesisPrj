@@ -15,16 +15,16 @@ def verify_password(hash_stored: str, password_plain: str) -> bool:
     except VerifyMismatchError:
         return False
 
-def password_validate(password: str):
+def password_validate(password: str) -> tuple[bool, str]:
     rules = [
         (len(password) >= 8, "al menos 8 caracteres"),
-        (re.search(r'[A-Z]', password), "letras mayúsculas"),
-        (re.search(r'\d', password), "números"),
-        (re.search(r'[!@#%^&*(),.=?":{}$¿?¡]', password), "caracteres especiales")
+        (re.search(r"[A-Z]", password) is not None, "al menos una letra mayúscula"),
+        (re.search(r"\d", password) is not None, "al menos un número"),
+        (re.search(r"[^A-Za-z0-9]", password) is not None, "al menos un carácter especial"),
     ]
-    
+
     for passed, message in rules:
         if not passed:
             return False, f"La contraseña debe contener {message}"
-            
-    return True, 'Contraseña válida'
+
+    return True, "Contraseña válida"
