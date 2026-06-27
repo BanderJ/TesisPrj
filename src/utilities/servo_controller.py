@@ -91,12 +91,9 @@ class ServoController:
                 if es_defecto:
                     arduino_serial.enviar_comando("SERVO:DEFECTO")
                     time.sleep(Config.SERVO_HOLD_S)
-                    # Solo volver a BUENO si no estamos en modo emergencia
                     with self._lock:
                         if not self._bloqueado:
                             arduino_serial.enviar_comando("SERVO:BUENO")
-                else:
-                    arduino_serial.enviar_comando("SERVO:BUENO")
             else:
                 time.sleep(0.01)
 

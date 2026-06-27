@@ -1,8 +1,8 @@
-{% extends "main.html" %}
+﻿{% extends "main.html" %}
 
 {% block style %}
-    <link rel="stylesheet" href="/static/css/perfil.css?v=10">
-    <link rel="stylesheet" href="/static/css/configuracion_cooperativa.css?v=23">
+    <link rel="stylesheet" href="/static/css/perfil.css">
+    <link rel="stylesheet" href="/static/css/configuracion_cooperativa.css">
 {% endblock %}
 
 {% block content %}
@@ -41,6 +41,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
                     </svg>
                     Caficultores
+                </a>
+                <a href="#auditoria" class="perfil-nav-link" data-section="auditoria" id="navAuditoria" hidden>
+                    <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    Auditoría
                 </a>
             </nav>
         </aside>
@@ -213,7 +219,91 @@
                 </div>
             </section>
 
+            <!-- SECCIÓN 5: Auditoría -->
+            <section id="auditoria" class="perfil-section" hidden>
+                <div class="audit-header">
+                    <div>
+                        <h2 class="perfil-section-title" style="border-bottom:none;padding-bottom:0;margin-bottom:4px;">Registro de auditoría</h2>
+                        <p class="perfil-section-description" id="auditTotal" style="margin:0;"></p>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="audit-filters">
+                    <div class="field-group">
+                        <label for="filtroUsuario">Usuario</label>
+                        <input type="text" id="filtroUsuario" placeholder="Buscar por usuario...">
+                    </div>
+                    <div class="field-group">
+                        <label for="filtroTipoPersonal">Tipo de usuario</label>
+                        <select id="filtroTipoPersonal">
+                            <option value="">Todos</option>
+                            <option value="1">Evaluador</option>
+                            <option value="2">Gerente</option>
+                            <option value="3">Administrador</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="filtroAccion">Acción</label>
+                        <select id="filtroAccion">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="filtroFechaDesde">Desde</label>
+                        <input type="date" id="filtroFechaDesde">
+                    </div>
+                    <div class="field-group">
+                        <label for="filtroFechaHasta">Hasta</label>
+                        <input type="date" id="filtroFechaHasta">
+                    </div>
+                    <div class="audit-filters-actions">
+                        <button type="button" class="btn btn-primary" id="btnFiltrarAudit">Filtrar</button>
+                        <button type="button" class="btn btn-secondary" id="btnLimpiarFiltros">Limpiar</button>
+                    </div>
+                </div>
+
+                <!-- Tabla -->
+                <div class="tabla-usuarios-wrapper" id="auditTableWrapper">
+                    <table class="tabla-usuarios" id="auditTable">
+                        <thead>
+                            <tr>
+                                <th>Fecha / Hora</th>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Acción</th>
+                                <th>Tabla</th>
+                                <th>Descripción</th>
+                                <th>IP</th>
+                                <th>Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody">
+                            <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted-foreground);">Selecciona filtros y presiona Filtrar para cargar registros.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación -->
+                <div class="audit-pagination" id="auditPaginacion" hidden>
+                    <button type="button" class="btn btn-secondary" id="btnPrevPage" disabled>Anterior</button>
+                    <span id="auditPaginaInfo" style="font-size:13px;color:var(--muted-foreground);font-family:'JetBrains Mono';"></span>
+                    <button type="button" class="btn btn-secondary" id="btnNextPage" disabled>Siguiente</button>
+                </div>
+            </section>
+
         </main>
+    </div>
+</div>
+
+<!-- MODAL: Detalle de Auditoría -->
+<div id="modalAudit" style="display:none;position:fixed;inset:0;z-index:9000;align-items:flex-start;justify-content:center;padding:1.5rem;background:rgba(0,0,0,0.48);backdrop-filter:blur(3px);overflow-y:auto;">
+    <div style="position:relative;width:100%;max-width:700px;margin:2rem auto;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 28px;box-shadow:0 24px 64px rgba(0,0,0,0.25);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--primary);">
+            <h2 style="margin:0;font-size:18px;font-weight:700;color:var(--foreground);">Detalle del registro</h2>
+            <button type="button" id="btnCerrarModalAudit" style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;color:var(--muted-foreground);font-size:20px;display:flex;align-items:center;justify-content:center;border-radius:6px;" aria-label="Cerrar">&#x2715;</button>
+        </div>
+        <div id="auditModalContent" style="display:flex;flex-direction:column;gap:16px;"></div>
     </div>
 </div>
 

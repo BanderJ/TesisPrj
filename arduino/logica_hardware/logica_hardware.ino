@@ -13,8 +13,8 @@
 // === AJUSTES ===
 const float DISTANCIA_UMBRAL       = 20.0;   // cm — verificación de tapa
 const int   VELOCIDAD              = 220;    // velocidad faja (0-255)
-const int   ANGULO_BUENO           = 150;    // servo: canal granos buenos
-const int   ANGULO_DEFECTO         = 30;     // servo: canal granos defectuosos
+const int   ANGULO_BUENO           = 110;    // servo: canal granos buenos
+const int   ANGULO_DEFECTO         = 70;     // servo: canal granos defectuosos
 const float FACTOR_CALIBRACION     = 2280.0; // ajustar tras calibración real (ver abajo)
 const int   BUFFER_PESO            = 5;      // muestras para promedio deslizante
 const unsigned long MS_DISTANCIA   = 100;    // reporte sensor cada 100 ms
@@ -46,7 +46,7 @@ unsigned long tPeso      = 0;
 String lineaSerial = "";
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   pinMode(MOTOR_IN1, OUTPUT);
   pinMode(MOTOR_IN2, OUTPUT);

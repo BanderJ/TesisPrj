@@ -73,3 +73,118 @@
     .perfil-sidebar { border-right: none !important; border-bottom: 2px solid var(--primary); width: 100% !important; }
     .perfil-form-row--3 { grid-template-columns: 1fr; }
 }
+
+/* ── Auditoría ─────────────────────────────────── */
+
+.audit-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
+.audit-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: color-mix(in oklab, var(--muted) 20%, transparent 80%);
+    margin-bottom: 1.25rem;
+}
+
+.audit-filters .field-group { margin: 0; }
+
+.audit-filters-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.audit-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+}
+
+.audit-badge--login        { background: color-mix(in oklab, #16a34a 15%, transparent); color: #15803d; }
+.audit-badge--logout       { background: color-mix(in oklab, #6b7280 15%, transparent); color: #4b5563; }
+.audit-badge--login-fail   { background: color-mix(in oklab, #dc2626 15%, transparent); color: #dc2626; }
+.audit-badge--crear        { background: color-mix(in oklab, var(--primary) 15%, transparent); color: var(--primary); }
+.audit-badge--actualizar   { background: color-mix(in oklab, #2563eb 15%, transparent); color: #1d4ed8; }
+.audit-badge--desactivar   { background: color-mix(in oklab, #dc2626 12%, transparent); color: #b91c1c; }
+.audit-badge--eliminar     { background: color-mix(in oklab, #dc2626 12%, transparent); color: #b91c1c; }
+.audit-badge--completar    { background: color-mix(in oklab, #7c3aed 15%, transparent); color: #6d28d9; }
+.audit-badge--default      { background: color-mix(in oklab, var(--border) 40%, transparent); color: var(--muted-foreground); }
+
+.audit-btn-detail {
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--muted-foreground);
+    transition: color 0.2s, border-color 0.2s;
+}
+.audit-btn-detail:hover { color: var(--foreground); border-color: var(--foreground); }
+
+.audit-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.audit-detail-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.audit-detail-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.audit-detail-value {
+    font-size: 13px;
+    color: var(--foreground);
+}
+
+.audit-json-block {
+    background: color-mix(in oklab, var(--background) 80%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--foreground);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .audit-filters { grid-template-columns: 1fr 1fr; }
+    .audit-filters-actions { grid-column: 1 / -1; }
+}
+
+@media (max-width: 480px) {
+    .audit-filters { grid-template-columns: 1fr; }
+}

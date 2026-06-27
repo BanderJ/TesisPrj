@@ -30,6 +30,13 @@ DROP TABLE IF EXISTS TIPO_GRANO CASCADE;
 DROP TABLE IF EXISTS TIPO_PERSONAL CASCADE;
 DROP TABLE IF EXISTS UBIGEO CASCADE;
 DROP TABLE IF EXISTS VALOR_CAFE CASCADE;
+DROP TABLE IF EXISTS AUDITORIA CASCADE;
+
+CREATE TABLE AUDITORIA (id uuid DEFAULT uuidv7() NOT NULL, personal_id uuid, usuario varchar(30), tipo_personal_id int2, rol varchar(50), accion varchar(60) NOT NULL, tabla_afectada varchar(50), registro_id varchar(100), descripcion text, datos_anteriores jsonb, datos_nuevos jsonb, ip_cliente varchar(45), fecha_hora timestamp NOT NULL DEFAULT NOW(), PRIMARY KEY (id));
+CREATE INDEX idx_auditoria_fecha_hora ON AUDITORIA (fecha_hora DESC);
+CREATE INDEX idx_auditoria_personal_id ON AUDITORIA (personal_id);
+CREATE INDEX idx_auditoria_accion ON AUDITORIA (accion);
+CREATE INDEX idx_auditoria_tipo_personal ON AUDITORIA (tipo_personal_id);
 
 CREATE TABLE CAFICULTOR (caficultor_id uuid DEFAULT uuidv7(), tipo_caficultor_id int2 NOT NULL, fecha_registro timestamp NOT NULL, cacerio varchar(50), PRIMARY KEY (caficultor_id));
 CREATE TABLE CATEGORIA (id SERIAL NOT NULL, nombre varchar(10) NOT NULL, cantidad_defectos int4 NOT NULL, PRIMARY KEY (id));

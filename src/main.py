@@ -7,8 +7,11 @@ from fastapi import Depends, FastAPI, Request, status
 from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.responses import Response
+from starlette.types import Scope
 
 from src.routes.arduino import arduino_router
+from src.routes.auditoria import auditoria_router
 from src.routes.auth_login import auth as auth_router
 from src.routes.caficultor import caficultor_router
 from src.routes.camara import camara_router
@@ -53,12 +56,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
     print("Application is shutting down...")
 
 
+class _NoCacheStaticFiles(StaticFiles):
+    """StaticFiles con Cache-Control: no-cache para que el browser siempre revalide.
+    Cada request comprueba si el archivo cambió (304 si no cambió → sin descarga).
+    Elimina la necesidad de incrementar ?v=N en templates manualmente."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 # ==================== APLICACIÓN ====================
 
 app = FastAPI(lifespan=lifespan)
 
-app.mount("/static", StaticFiles(directory="src/static"), name="static")
-app.mount("/resources", StaticFiles(directory="src/resources"), name="resources")
+app.mount("/static", _NoCacheStaticFiles(directory="src/static"), name="static")
+app.mount("/resources", _NoCacheStaticFiles(directory="src/resources"), name="resources")
 
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
 templates = Jinja2Templates(directory=templates_dir)
@@ -78,6 +92,7 @@ async def auth_exception_handler(request: Request, exc: RequerirLoginException) 
 # ==================== RUTAS ====================
 
 app.include_router(arduino_router)
+app.include_router(auditoria_router)
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
 app.include_router(camara_router, prefix="/camara", tags=["camara"])
