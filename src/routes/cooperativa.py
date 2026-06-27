@@ -2,7 +2,7 @@ import os
 import uuid
 from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
 from src.schemas.cooperativa import CooperativaCreate, CooperativaUpdate, CooperativaResponse
-from src.services import cooperativa_service
+from src.services.cooperativa_service import cooperativa_service
 from src.utilities.jwt_required import obtener_usuario_actual
 
 router = APIRouter(prefix="/cooperativas", tags=["cooperativas"])
@@ -13,8 +13,7 @@ async def obtener_mi_cooperativa(usuario_actual: dict = Depends(obtener_usuario_
     cooperativa = cooperativa_service.obtener_por_usuario(usuario_actual.get("personal_id"))
     if not cooperativa:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no tiene cooperativa asociada")
-    cooperativa["tipo_personal_id"] = usuario_actual.get("tipo_personal_id")
-    return cooperativa
+    return {**cooperativa, "tipo_personal_id": usuario_actual.get("tipo_personal_id")}
 
 
 @router.get("", response_model=list[CooperativaResponse])
@@ -61,10 +60,9 @@ async def actualizar_cooperativa(
 
 @router.delete("/{cooperativa_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def desactivar_cooperativa(cooperativa_id: str, usuario_actual: dict = Depends(obtener_usuario_actual)):
-    cooperativa = cooperativa_service.obtener_por_id(cooperativa_id)
-    if not cooperativa:
+    result = cooperativa_service.desactivar(cooperativa_id)
+    if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cooperativa no encontrada")
-    cooperativa_service.desactivar(cooperativa_id)
 
 
 @router.post("/upload-imagen")

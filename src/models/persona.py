@@ -37,6 +37,7 @@ class Persona:
         tipo_documento_id: int,
         num_documento: str,
         telefono: str | None,
+        correo: str | None = None,
         ubigeo: str | None = None,
         cooperativa_id: str | None = None,
         db: Connection | None = None,
@@ -55,11 +56,12 @@ class Persona:
                     tipo_documento_id,
                     num_documento,
                     telefono,
+                    correo,
                     ubigeo,
                     cooperativa_id,
                     estado
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """
             resultado = db.obtener_uno(
@@ -73,6 +75,7 @@ class Persona:
                     tipo_documento_id,
                     num_documento,
                     telefono,
+                    correo,
                     ubigeo,
                     cooperativa_id,
                     "A",

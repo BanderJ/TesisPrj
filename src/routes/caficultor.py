@@ -26,7 +26,8 @@ async def listar_caficultores(
 
 @caficultor_router.get("/consultar/{num_documento}", response_model=ObtenerDatosResponse)
 async def consultar_caficultor(
-	num_documento: str = Path(..., pattern=r"^[A-Za-z0-9]{8,12}$")
+	num_documento: str = Path(..., pattern=r"^[A-Za-z0-9]{8,12}$"),
+	_: dict = Depends(obtener_usuario_actual),
 ) -> ObtenerDatosResponse:
 	"""Consulta un caficultor por numero de documento (8 o 12 digitos)."""
 	try:
@@ -60,6 +61,7 @@ async def consultar_caficultor(
 )
 async def registrar_caficultor(
 	payload: RegistrarCaficultorRequest,
+	_: dict = Depends(obtener_usuario_actual),
 ) -> RegistrarCaficultorResponse:
 	"""Registra un caficultor creando primero la persona y luego el registro en caficultor."""
 	try:
@@ -75,7 +77,8 @@ async def registrar_caficultor(
 	response_model=ConvertirSocioResponse,
 )
 async def convertir_caficultor_a_socio(
-	num_documento: str = Path(..., pattern=r"^[A-Za-z0-9]{8,12}$")
+	num_documento: str = Path(..., pattern=r"^[A-Za-z0-9]{8,12}$"),
+	_: dict = Depends(obtener_usuario_actual),
 ) -> ConvertirSocioResponse:
 	"""Convierte un caficultor existente, activo y no socio al tipo socio."""
 	try:

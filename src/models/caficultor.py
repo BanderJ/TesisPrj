@@ -89,7 +89,7 @@ class Caficultor:
         num_documento: str,
         db: Connection | None = None,
     ) -> dict[str, Any] | None:
-        """Obtiene estado de persona y tipo_caficultor_id por numero de documento."""
+        """Obtiene estado, tipo y nombre completo del caficultor por numero de documento."""
         owns_db = db is None
         db = db or Connection()
 
@@ -98,9 +98,14 @@ class Caficultor:
                 SELECT
                     p.id AS persona_id,
                     p.estado,
-                    c.tipo_caficultor_id
+                    p.nombre,
+                    p.ape_paterno,
+                    p.ape_materno,
+                    c.tipo_caficultor_id,
+                    tc.nombre AS tipo_caficultor
                 FROM caficultor c
                 INNER JOIN persona p ON c.caficultor_id = p.id
+                INNER JOIN tipo_caficultor tc ON tc.id = c.tipo_caficultor_id
                 WHERE p.num_documento = %s
                 LIMIT 1
             """

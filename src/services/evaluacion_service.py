@@ -47,18 +47,15 @@ class EvaluacionService:
             if not tipo_grano:
                 raise ValueError("El tipo de grano seleccionado no existe.")
 
-            caficultor_completo = self.caficultor_model.obtener_por_num_documento(
-                payload.num_documento, db=db
-            )
             nombre_completo = " ".join(
                 p for p in [
-                    caficultor_completo.get("nombre"),
-                    caficultor_completo.get("ape_paterno"),
-                    caficultor_completo.get("ape_materno"),
+                    caficultor.get("nombre"),
+                    caficultor.get("ape_paterno"),
+                    caficultor.get("ape_materno"),
                 ] if p
-            ) if caficultor_completo else payload.num_documento
+            ) or payload.num_documento
 
-            tipo_caficultor_nombre = str(caficultor_completo.get("tipo_caficultor", "")) if caficultor_completo else ""
+            tipo_caficultor_nombre = str(caficultor.get("tipo_caficultor", ""))
 
             fila = self.evaluacion_model.registrar(
                 personal_id=personal_id,
@@ -102,7 +99,7 @@ class EvaluacionService:
             db.close()
 
     def obtener_resumen_evaluacion(self, evaluacion_id: str) -> ResumenEvaluacionResponse:
-        fila = self.evaluacion_model.obtener_resumen(evaluacion_id)
+        fila = self.evaluacion_model.obtener_resumen(evaluacion_id=evaluacion_id)
         if not fila:
             raise ValueError("Evaluacion no encontrada.")
         return ResumenEvaluacionResponse(**fila)
@@ -197,7 +194,7 @@ class EvaluacionService:
             db.close()
 
     def buscar_evaluacion_por_codigo(self, codigo: str) -> ResumenEvaluacionResponse | None:
-        fila = self.evaluacion_model.obtener_resumen_por_codigo(codigo)
+        fila = self.evaluacion_model.obtener_resumen(codigo=codigo)
         if not fila:
             return None
         return ResumenEvaluacionResponse(**fila)

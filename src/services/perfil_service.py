@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import Any
 
+from src.database.bd import Connection
 from src.models.persona import Persona
 from src.models.personal import Personal
-from src.database.bd import Connection
 from src.utilities.security import hash_password, verify_password, password_validate
 
 
@@ -133,7 +134,6 @@ class PerfilService:
         tipo_personal_id: int,
         clave_nueva: str | None,
     ) -> dict[str, Any]:
-        from datetime import datetime
         db = Connection()
         try:
             fecha_nac = datetime.strptime(fecha_nacimiento, "%Y-%m-%d").date()
@@ -178,8 +178,6 @@ class PerfilService:
         tipo_personal_id: int,
         clave: str,
     ) -> dict[str, Any]:
-        from datetime import datetime
-
         usuario = self.generar_nombre_usuario(nombre, ape_paterno, ape_materno)
 
         is_valid, validation_msg = password_validate(clave)
@@ -200,20 +198,10 @@ class PerfilService:
                 tipo_documento_id=tipo_documento_id,
                 num_documento=num_documento,
                 telefono=telefono,
+                correo=correo,
                 ubigeo=ubigeo,
                 db=db,
             )
-
-            if correo:
-                self.persona_model.actualizar_datos_personales(
-                    persona_id=persona_id,
-                    nombre=nombre,
-                    ape_paterno=ape_paterno,
-                    ape_materno=ape_materno,
-                    telefono=telefono,
-                    correo=correo,
-                    db=db,
-                )
 
             personal_id = self.personal_model.crear_usuario(
                 persona_id=persona_id,
