@@ -1,8 +1,8 @@
-﻿{% extends "main.html" %}
+{% extends "main.html" %}
 
 {% block style %}
     <link rel="stylesheet" href="/static/css/perfil.css">
-    <link rel="stylesheet" href="/static/css/configuracion_cooperativa.css">
+    <link rel="stylesheet" href="/static/css/cooperativa.css">
 {% endblock %}
 
 {% block content %}
@@ -66,37 +66,39 @@
                     <div class="perfil-form-row single">
                         <div class="field-group">
                             <label for="nombre">Nombre de la cooperativa</label>
-                            <input id="nombre" type="text" maxlength="100" required placeholder="Ej: Cooperativa Line Coffee">
+                            <input id="nombre" type="text" maxlength="100" required placeholder="Ej: Cooperativa Line Coffee" readonly>
                         </div>
                     </div>
 
                     <div class="perfil-form-row">
                         <div class="field-group">
                             <label for="codigo">Código</label>
-                            <input id="codigo" type="text" maxlength="20" placeholder="Ej: COOPE001">
+                            <input id="codigo" type="text" maxlength="20" required placeholder="Ej: COOPE001">
                         </div>
                         <div class="field-group">
                             <label for="direccion">Dirección</label>
-                            <input id="direccion" type="text" maxlength="100" placeholder="Ej: Av. Principal 123">
+                            <input id="direccion" type="text" maxlength="255" required placeholder="Ej: Av. Principal 123">
                         </div>
                     </div>
 
                     <div class="perfil-form-row">
                         <div class="field-group">
                             <label for="telefono">Teléfono</label>
-                            <input id="telefono" type="tel" maxlength="9" placeholder="Ej: 987654321">
+                            <input id="telefono" type="tel" maxlength="9" required placeholder="Ej: 987654321">
                         </div>
                         <div class="field-group">
                             <label for="correo">Correo</label>
-                            <input id="correo" type="email" maxlength="100" placeholder="Ej: info@cooperativa.com">
+                            <input id="correo" type="email" maxlength="255" required placeholder="Ej: info@cooperativa.com">
                         </div>
                     </div>
 
                     <div class="perfil-form-row single">
                         <div class="field-group">
-                            <label for="descripcion">Descripción de la cooperativa</label>
-                            <textarea id="descripcion" maxlength="1000" placeholder="Información sobre tu cooperativa..."></textarea>
-                            <p class="perfil-hint">Máximo 1000 caracteres</p>
+                            <label for="descripcion" style="display:flex;justify-content:space-between;align-items:center;">
+                                <span>Descripción de la cooperativa</span>
+                                <span id="contadorDescripcion" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/255</span>
+                            </label>
+                            <textarea id="descripcion" maxlength="255" required placeholder="Información sobre tu cooperativa..." style="resize:none;height:65px;"></textarea>
                         </div>
                     </div>
 
@@ -205,8 +207,8 @@
                         <thead>
                             <tr>
                                 <th>Nombre</th>
+                                <th>Tipo usuario</th>
                                 <th>Documento</th>
-                                <th>Tipo</th>
                                 <th>Ubicación</th>
                                 <th>Teléfono</th>
                                 <th>Acción</th>
@@ -507,5 +509,5 @@
 
 {% block script %}
 <script>const isAdmin = '{{ user.is_admin | tojson }}' === 'true';</script>
-<script src="/static/js/configuracion_cooperativa.js"></script>
+<script src="/static/js/cooperativa.js"></script>
 {% endblock %}

@@ -93,9 +93,9 @@
             }
 
             CoffeeModal.success('Datos actualizados correctamente.', 'Cambios guardados');
+            setTimeout(() => window.location.reload(), 1500);
         } catch (error) {
             CoffeeModal.error(error.message || 'No se pudo actualizar los datos.');
-        } finally {
             btnGuardarDatos.disabled = false;
             btnGuardarDatos.innerHTML = btnOriginal;
         }

@@ -192,7 +192,7 @@ async def nuevo_caficultor(request: Request, user: dict[str, Any] = Depends(obte
     """Pantalla de registro y conversion de caficultores."""
     return templates.TemplateResponse(
         request=request,
-        name="nuevo_caficultor.html",
+        name="caficultor.html",
         context={"request": request, "user": user},
     )
 
@@ -222,6 +222,6 @@ async def configuracion_cooperativa(request: Request, user: dict[str, Any] = Dep
     """Pantalla de configuración de cooperativa."""
     return templates.TemplateResponse(
         request=request,
-        name="configuracion_cooperativa.html",
+        name="cooperativa.html",
         context={"request": request, "user": user},
     )

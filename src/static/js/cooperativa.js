@@ -2,6 +2,11 @@
     let tiposPersonal = [];
     let tiposDocumento = [];
 
+    // === Contador descripción ===
+    document.getElementById('descripcion').addEventListener('input', function () {
+        document.getElementById('contadorDescripcion').textContent = `${this.value.length}/255`;
+    });
+
     // === Navegación entre secciones ===
     document.querySelectorAll('.perfil-nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -51,7 +56,9 @@
             document.getElementById('direccion').value = data.direccion || '';
             document.getElementById('telefono').value = data.telefono || '';
             document.getElementById('correo').value = data.correo || '';
-            document.getElementById('descripcion').value = data.descripcion || '';
+            const descEl = document.getElementById('descripcion');
+            descEl.value = data.descripcion || '';
+            document.getElementById('contadorDescripcion').textContent = `${descEl.value.length}/255`;
             document.getElementById('imagen_url').value = data.imagen_url || '';
 
             if (data.imagen_url) {
@@ -726,8 +733,8 @@
             return `
                 <tr style="cursor:pointer;" onclick="verDetalleCaficultor('${c.persona_id}')">
                     <td><strong>${nombre}</strong></td>
-                    <td>${c.num_documento}</td>
                     <td><span style="padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;${badgeStyle}">${c.tipo_caficultor}</span></td>
+                    <td>${c.num_documento}</td>
                     <td style="color:var(--muted-foreground);font-size:13px;">${ubicacion}</td>
                     <td>${c.telefono || '—'}</td>
                     <td class="acciones-celda">

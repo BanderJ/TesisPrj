@@ -1,5 +1,4 @@
 import os
-import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 
@@ -7,6 +6,7 @@ from src.schemas.cooperativa import CooperativaCreate, CooperativaUpdate, Cooper
 from src.services.auditoria_service import auditoria_service
 from src.services.cooperativa_service import cooperativa_service
 from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente
+from src.utilities.uuid_utils import uuid7
 
 router = APIRouter(prefix="/cooperativas", tags=["cooperativas"])
 
@@ -130,7 +130,7 @@ async def upload_imagen_cooperativa(
         upload_dir = "src/resources/cooperativa"
         os.makedirs(upload_dir, exist_ok=True)
         ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
-        filename = f"{uuid.uuid4()}.{ext}"
+        filename = f"{uuid7()}.{ext}"
         filepath = os.path.join(upload_dir, filename)
         contents = await file.read()
         with open(filepath, "wb") as f:

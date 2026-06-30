@@ -1,11 +1,13 @@
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from fastapi.templating import Jinja2Templates
 
 from src.services.auditoria_service import auditoria_service
 from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente
+from src.utilities.jwt_utils import generar_token
 from src.schemas.perfil import (
     ActualizarDatosPersonales,
     ActualizarUsuario,
@@ -68,7 +70,17 @@ async def actualizar_datos_personales(
             descripcion="Actualización de datos personales propios",
             ip_cliente=_ip(request),
         )
-        return result
+        nuevo_token = generar_token({
+            "personal_id": user["personal_id"],
+            "usuario": user["usuario"],
+            "tipo_personal_id": user["tipo_personal_id"],
+            "rol": user["rol"],
+            "nombre": f"{body.nombre} {body.ape_paterno} {body.ape_materno}",
+            "is_admin": user.get("is_admin", False),
+        })
+        response = JSONResponse(content=result)
+        response.set_cookie(key="access_token", value=f"Bearer {nuevo_token}", httponly=True)
+        return response
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
