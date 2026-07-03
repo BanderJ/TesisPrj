@@ -2,6 +2,7 @@ from typing import Any
 import re
 import unicodedata
 
+from src.config import Config
 from src.database.bd import Connection
 from src.models.caficultor import Caficultor
 from src.models.cooperativa import Cooperativa
@@ -20,7 +21,6 @@ class CaficultorService:
     """Servicio para casos de uso relacionados con caficultores."""
 
     TIPO_SOCIO_ID = 1
-    COOPERATIVA_DEFAULT_CODIGO = "LCM001"  # Line Coffee Marañón
 
     def __init__(self) -> None:
         self.caficultor_model: Caficultor = Caficultor()
@@ -90,7 +90,7 @@ class CaficultorService:
 
     def _obtener_cooperativa_default(self, db: Connection) -> str | None:
         """Obtiene el ID de la cooperativa por defecto."""
-        return self.cooperativa_model.obtener_id_por_codigo(self.COOPERATIVA_DEFAULT_CODIGO, db)
+        return self.cooperativa_model.obtener_id_por_codigo(Config.COOPERATIVA_DEFAULT_CODIGO, db)
 
     def _obtener_estado_caficultor(self, num_documento: str, db: Connection) -> dict[str, Any] | None:
         """Obtiene estado/tipo del caficultor por documento para conversion a socio."""

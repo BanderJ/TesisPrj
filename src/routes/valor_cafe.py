@@ -18,14 +18,11 @@ from src.schemas.valor_cafe import (
 from src.services.auditoria_service import auditoria_service
 from src.services.valor_cafe_service import ValorCafeService
 from src.utilities.jwt_required import require_admin_o_gerente
+from src.utilities.request_utils import get_client_ip
 
 
 valor_cafe_router = APIRouter()
 valor_cafe_service = ValorCafeService()
-
-
-def _ip(request: Request) -> str | None:
-    return request.client.host if request.client else None
 
 
 @valor_cafe_router.get("/historial", response_model=ValorCafeHistorialResponse)
@@ -89,7 +86,7 @@ async def crear_valor_cafe(
             rol=user.get("rol"),
             tabla_afectada="VALOR_CAFE",
             descripcion=f"Precio café registrado: rango={data.rango}, precio={data.precio}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:
@@ -114,7 +111,7 @@ async def actualizar_precio_rango(
             rol=user.get("rol"),
             tabla_afectada="VALOR_CAFE",
             descripcion=f"Precio actualizado: rango={data.rango}, nuevo precio={data.precio}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except Exception as exc:
@@ -137,7 +134,7 @@ async def eliminar_rango(
             rol=user.get("rol"),
             tabla_afectada="VALOR_CAFE",
             descripcion=f"Rango de precio eliminado: {rango}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except Exception as exc:
@@ -160,7 +157,7 @@ async def crear_valor_cafe_bloque(
             rol=user.get("rol"),
             tabla_afectada="VALOR_CAFE",
             descripcion=f"Precios en bloque registrados ({len(getattr(data, 'precios', []))} rangos)",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:

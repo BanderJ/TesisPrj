@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from src.services.auditoria_service import auditoria_service
 from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente
 from src.utilities.jwt_utils import generar_token
+from src.utilities.request_utils import get_client_ip
 from src.schemas.perfil import (
     ActualizarDatosPersonales,
     ActualizarUsuario,
@@ -23,9 +24,6 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), ".
 perfil = APIRouter()
 perfil_service = PerfilService()
 
-
-def _ip(request: Request) -> str | None:
-    return request.client.host if request.client else None
 
 
 @perfil.get("/")
@@ -68,7 +66,7 @@ async def actualizar_datos_personales(
             tabla_afectada="PERSONA",
             registro_id=user.get("personal_id"),
             descripcion="Actualización de datos personales propios",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         nuevo_token = generar_token({
             "personal_id": user["personal_id"],
@@ -108,7 +106,7 @@ async def cambiar_contrasena(
             tabla_afectada="PERSONAL",
             registro_id=user.get("personal_id"),
             descripcion="Cambio de contraseña propio",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:
@@ -172,7 +170,7 @@ async def cambiar_estado_usuario(
             tabla_afectada="PERSONAL",
             registro_id=personal_id,
             descripcion=f"{'Activación' if body.estado == 'A' else 'Desactivación'} de usuario ID {personal_id}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:
@@ -202,7 +200,7 @@ async def cambiar_contrasena_usuario(
             tabla_afectada="PERSONAL",
             registro_id=personal_id,
             descripcion=f"Cambio de contraseña del usuario ID {personal_id} por {user.get('usuario')}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:
@@ -241,7 +239,7 @@ async def actualizar_usuario(
             tabla_afectada="PERSONAL",
             registro_id=personal_id,
             descripcion=f"Actualización de datos del usuario ID {personal_id} por {user.get('usuario')}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:
@@ -280,7 +278,7 @@ async def crear_usuario(
             tabla_afectada="PERSONAL",
             registro_id=str(result.get("personal_id", "")),
             descripcion=f"Nuevo usuario creado: {body.nombre} {body.ape_paterno} por {user.get('usuario')}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:

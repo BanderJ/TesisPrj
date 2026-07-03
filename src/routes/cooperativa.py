@@ -6,13 +6,10 @@ from src.schemas.cooperativa import CooperativaCreate, CooperativaUpdate, Cooper
 from src.services.auditoria_service import auditoria_service
 from src.services.cooperativa_service import cooperativa_service
 from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente
+from src.utilities.request_utils import get_client_ip
 from src.utilities.uuid_utils import uuid7
 
 router = APIRouter(prefix="/cooperativas", tags=["cooperativas"])
-
-
-def _ip(request: Request) -> str | None:
-    return request.client.host if request.client else None
 
 
 @router.get("/mi-cooperativa", response_model=CooperativaResponse)
@@ -54,7 +51,7 @@ async def crear_cooperativa(
             registro_id=str(result.get("id", "")),
             descripcion=f"Cooperativa creada: {result.get('nombre')}",
             datos_nuevos={k: str(v) for k, v in result.items() if k != "imagen_url"},
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:
@@ -86,7 +83,7 @@ async def actualizar_cooperativa(
             descripcion=f"Cooperativa actualizada: {updated.get('nombre')}",
             datos_anteriores={k: str(v) for k, v in datos_anteriores.items()} if datos_anteriores else None,
             datos_nuevos={k: str(v) for k, v in updated.items()},
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return updated
     except HTTPException:
@@ -115,7 +112,7 @@ async def desactivar_cooperativa(
         tabla_afectada="COOPERATIVA",
         registro_id=cooperativa_id,
         descripcion=f"Cooperativa desactivada: {result.get('nombre')}",
-        ip_cliente=_ip(request),
+        ip_cliente=get_client_ip(request),
     )
 
 

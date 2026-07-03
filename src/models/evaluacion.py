@@ -268,6 +268,8 @@ class Evaluacion:
     def asignar_codigo(
         self,
         evaluacion_id: str,
+        total_defectos: int | None = None,
+        total_buenos: int | None = None,
         db: Connection | None = None,
     ) -> dict[str, Any]:
         """Genera el codigo EVA correlativo y lo asigna a la evaluacion. Retorna id y codigo."""
@@ -277,12 +279,14 @@ class Evaluacion:
             codigo = self._generar_codigo(db)
             sql = """
                 UPDATE evaluacion
-                SET codigo = %s,
-                    fecha  = NOW()
+                SET codigo         = %s,
+                    fecha          = NOW(),
+                    total_defectos = %s,
+                    total_buenos   = %s
                 WHERE id = %s
                 RETURNING id::text, codigo
             """
-            cursor = db.ejecutar(sql, (codigo, evaluacion_id))
+            cursor = db.ejecutar(sql, (codigo, total_defectos, total_buenos, evaluacion_id))
             row = cursor.fetchone()
             if not row:
                 raise ValueError("Evaluacion no encontrada.")

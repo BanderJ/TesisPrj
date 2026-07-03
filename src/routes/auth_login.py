@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from src.schemas.auth import LoginRequest, LoginResponse
 from src.services.auth_service import AuthService
 from src.services.auditoria_service import auditoria_service
+from src.utilities.request_utils import get_client_ip
 import os
 
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "../templates"))
@@ -11,9 +12,6 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), ".
 auth = APIRouter()
 auth_service = AuthService()
 
-
-def _ip(request: Request) -> str | None:
-    return request.client.host if request.client else None
 
 
 @auth.get("/login")
@@ -40,7 +38,7 @@ async def login_post(request: Request, usuario: str = Form(...), clave: str = Fo
             tipo_personal_id=None,
             rol=login_response.rol,
             descripcion=f"Inicio de sesión exitoso: {login_response.usuario}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         response = RedirectResponse(url="/", status_code=303)
         response.set_cookie(key="access_token", value=login_response.token, httponly=True)
@@ -49,7 +47,7 @@ async def login_post(request: Request, usuario: str = Form(...), clave: str = Fo
     auditoria_service.registrar(
         accion="LOGIN_FALLIDO",
         descripcion=f"Intento de login fallido para usuario: {usuario}",
-        ip_cliente=_ip(request),
+        ip_cliente=get_client_ip(request),
     )
     return templates.TemplateResponse(
         request=request,
@@ -73,7 +71,7 @@ async def logout(request: Request):
                 tipo_personal_id=payload.get("tipo_personal_id"),
                 rol=payload.get("rol"),
                 descripcion=f"Cierre de sesión: {payload.get('usuario')}",
-                ip_cliente=_ip(request),
+                ip_cliente=get_client_ip(request),
             )
     response = RedirectResponse(url="/auth/login", status_code=303)
     response.delete_cookie("access_token")

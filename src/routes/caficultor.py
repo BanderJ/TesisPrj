@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
 
 from src.services.auditoria_service import auditoria_service
 from src.utilities.jwt_required import obtener_usuario_actual
+from src.utilities.request_utils import get_client_ip
 
 from src.schemas.caficultor import (
     ConvertirSocioResponse,
@@ -14,10 +15,6 @@ from src.services.caficultor_service import CaficultorService
 
 caficultor_router = APIRouter()
 caficultor_service = CaficultorService()
-
-
-def _ip(request: Request) -> str | None:
-    return request.client.host if request.client else None
 
 
 @caficultor_router.get("/listar")
@@ -73,7 +70,7 @@ async def registrar_caficultor(
             rol=usuario.get("rol"),
             tabla_afectada="CAFICULTOR",
             descripcion=f"Caficultor registrado: {payload.nombre} {payload.ape_paterno} por {usuario.get('usuario')}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:
@@ -101,7 +98,7 @@ async def convertir_caficultor_a_socio(
             rol=usuario.get("rol"),
             tabla_afectada="CAFICULTOR",
             descripcion=f"Caficultor convertido a socio: documento {num_documento} por {usuario.get('usuario')}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:

@@ -50,6 +50,11 @@ class RegistrarEvaluacionResponse(BaseModel):
     data: EvaluacionData
 
 
+class FinalizarEvaluacionRequest(BaseModel):
+    total_defectos: int | None = Field(None, ge=0)
+    total_buenos: int | None = Field(None, ge=0)
+
+
 class FinalizarEvaluacionResponse(BaseModel):
     finalizado: bool
     mensaje: str

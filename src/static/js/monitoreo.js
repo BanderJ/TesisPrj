@@ -323,7 +323,7 @@
 				if (!res.ok) throw new Error('Error generando reporte');
 				reporteActual = await res.json();
 				const { grado, total_defectos, apto_specialty } = reporteActual;
-				appendLog(`Reporte: Grado ${grado} | ${total_defectos} defectos | Specialty: ${apto_specialty ? 'Apto' : 'No apto'}`);
+				appendLog(`Reporte: ${grado} | ${total_defectos} defectos equiv. | Specialty: ${apto_specialty ? 'Apto' : 'No apto'}`);
 			} catch (err) {
 				appendLog('Error al generar reporte: ' + err.message);
 			}
@@ -382,7 +382,7 @@
 
 			document.getElementById('resCode').textContent     = codigo || '—';
 			document.getElementById('resGranos').textContent   = Object.values(conteoActual).reduce((a,b)=>a+b,0);
-			document.getElementById('resGrado').textContent    = reporteActual?.grado ? `Grado ${reporteActual.grado}` : '—';
+			document.getElementById('resGrado').textContent    = reporteActual?.grado || '—';
 			document.getElementById('resSpecialty').textContent= reporteActual?.apto_specialty ? 'Apto ✓' : 'No apto';
 			document.getElementById('resPeso').textContent     = `${Number(pesoGramos).toFixed(2)} g`;
 			finResultado.style.display = 'block';
@@ -459,13 +459,15 @@
 			const _negro   = gruposActual.negro   ?? 0;
 			const _brocado = gruposActual.brocado ?? 0;
 			const _partido = gruposActual.partido ?? 0;
+			const _totalDefectoGranos = _negro + _brocado + _partido;
+			const _totalGranos = reporteActual?.total_granos_analizados || 0;
 			const stats = {
-				totalGrains:      reporteActual?.total_granos_analizados || 0,
+				totalGrains:      _totalGranos,
 				defectNegro:      _negro,
 				defectBrocado:    _brocado,
 				defectFermentado: _partido,
-				totalDefectos:    reporteActual?.total_defectos || 0,
-				grado:            reporteActual?.grado          || 'Sin clasificar',
+				totalDefectos:    _totalDefectoGranos,
+				grado:            reporteActual?.grado || 'Sin clasificar',
 				aptEspecialty:    reporteActual?.apto_specialty || false,
 				peso_capturado:   pesoCapturado,
 				elapsedSeconds,
@@ -477,7 +479,7 @@
 				const res = await fetch(`/evaluacion/${EVALUACION_ID}/finalizar`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ reporte_yolo: reporteActual }),
+					body: JSON.stringify({ total_defectos: _totalDefectoGranos, total_buenos: _totalGranos - _totalDefectoGranos }),
 				});
 				if (!res.ok) {
 					const err = await res.json();

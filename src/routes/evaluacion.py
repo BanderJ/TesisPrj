@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, sta
 from src.schemas.evaluacion import (
     CompletarEvaluacionRequest,
     CompletarEvaluacionResponse,
+    FinalizarEvaluacionRequest,
     FinalizarEvaluacionResponse,
     KpisEvaluacionResponse,
     RegistrarEvaluacionRequest,
@@ -14,14 +15,11 @@ from src.schemas.evaluacion import (
 from src.services.auditoria_service import auditoria_service
 from src.services.evaluacion_service import EvaluacionService
 from src.utilities.jwt_required import obtener_usuario_actual
+from src.utilities.request_utils import get_client_ip
 
 
 evaluacion_router = APIRouter()
 evaluacion_service = EvaluacionService()
-
-
-def _ip(request: Request) -> str | None:
-    return request.client.host if request.client else None
 
 _UUID_PATTERN = r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 
@@ -48,13 +46,13 @@ async def registrar_evaluacion(
             tabla_afectada="EVALUACION",
             registro_id=str(result.evaluacion_id) if hasattr(result, "evaluacion_id") else None,
             descripcion=f"Nueva evaluación registrada por {usuario.get('usuario')}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Error interno: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Error interno al procesar la solicitud") from exc
 
 
 @evaluacion_router.get(
@@ -68,7 +66,7 @@ async def obtener_kpis(
         data = evaluacion_service.obtener_kpis()
         return KpisEvaluacionResponse(**data)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Error interno: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Error interno al procesar la solicitud") from exc
 
 
 @evaluacion_router.get(
@@ -98,7 +96,7 @@ async def obtener_resumen_evaluacion(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Error interno: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Error interno al procesar la solicitud") from exc
 
 
 @evaluacion_router.patch(
@@ -122,13 +120,13 @@ async def completar_evaluacion(
             tabla_afectada="EVALUACION",
             registro_id=evaluacion_id,
             descripcion=f"Evaluación completada: {result.codigo if hasattr(result, 'codigo') else evaluacion_id}",
-            ip_cliente=_ip(request),
+            ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Error interno: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Error interno al procesar la solicitud") from exc
 
 
 @evaluacion_router.get("/{evaluacion_id}/estado")
@@ -144,11 +142,16 @@ async def obtener_estado_evaluacion(
     response_model=FinalizarEvaluacionResponse,
 )
 async def finalizar_evaluacion(
+    payload: FinalizarEvaluacionRequest,
     evaluacion_id: str = Path(..., pattern=_UUID_PATTERN),
     _: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> FinalizarEvaluacionResponse:
     try:
-        return evaluacion_service.finalizar_evaluacion(evaluacion_id)
+        return evaluacion_service.finalizar_evaluacion(
+            evaluacion_id,
+            total_defectos=payload.total_defectos,
+            total_buenos=payload.total_buenos,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:

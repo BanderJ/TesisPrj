@@ -213,9 +213,14 @@ class EvaluacionService:
             "total_defectos": int(fila["total_defectos"]) if fila else 0,
         }
 
-    def finalizar_evaluacion(self, evaluacion_id: str) -> FinalizarEvaluacionResponse:
+    def finalizar_evaluacion(
+        self,
+        evaluacion_id: str,
+        total_defectos: int | None = None,
+        total_buenos: int | None = None,
+    ) -> FinalizarEvaluacionResponse:
         """Genera y asigna el codigo EVA a la evaluacion al finalizar el monitoreo."""
-        fila = self.evaluacion_model.asignar_codigo(evaluacion_id)
+        fila = self.evaluacion_model.asignar_codigo(evaluacion_id, total_defectos, total_buenos)
         return FinalizarEvaluacionResponse(
             finalizado=True,
             mensaje="Evaluacion finalizada correctamente.",

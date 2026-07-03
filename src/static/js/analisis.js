@@ -75,7 +75,7 @@
 
 		// Classification panel
 		if (grado != null) {
-			document.getElementById('gradoSCA').textContent = `Grado ${grado}`;
+			document.getElementById('gradoSCA').textContent = grado;
 		}
 
 		if (aptEspecialty != null) {
@@ -118,7 +118,7 @@
 			['ESTADÍSTICAS DE MONITOREO', ''],
 			['Granos evaluados',   g('statGranos')],
 			['Defectos totales',   g('statDefectos')],
-			['Granos sanos',       g('statSanos')],
+			['Granos buenos',      g('statSanos')],
 			['% Defecto',          g('statPctDefecto')],
 			['Tiempo de análisis', g('statTiempo')],
 			[],

@@ -79,9 +79,6 @@ class PerfilService:
 
     def cambiar_estado_usuario(self, personal_id: str, nuevo_estado: str) -> dict[str, Any]:
         """Cambia el estado de un usuario (A=Activo, I=Inactivo)."""
-        if nuevo_estado not in ["A", "I"]:
-            raise ValueError("Estado inválido. Debe ser 'A' (Activo) o 'I' (Inactivo)")
-
         actualizado = self.personal_model.cambiar_estado(personal_id, nuevo_estado)
 
         if not actualizado:
