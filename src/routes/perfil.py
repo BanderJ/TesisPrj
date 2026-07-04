@@ -190,6 +190,7 @@ async def cambiar_contrasena_usuario(
         result = perfil_service.cambiar_contrasena_usuario(
             personal_id=personal_id,
             clave_nueva=body.clave_nueva,
+            usuario_solicitante=user.get("usuario"),
         )
         auditoria_service.registrar(
             accion="CAMBIAR_CLAVE_USUARIO",
@@ -229,6 +230,7 @@ async def actualizar_usuario(
             ubigeo=body.ubigeo,
             tipo_personal_id=body.tipo_personal_id,
             clave_nueva=body.clave_nueva,
+            usuario_solicitante=user.get("usuario"),
         )
         auditoria_service.registrar(
             accion="ACTUALIZAR_USUARIO",

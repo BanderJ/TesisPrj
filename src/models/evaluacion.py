@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from typing import Any
 
@@ -109,13 +110,25 @@ class Evaluacion:
                     e.peso_trillado,
                     e.num_tamiz,
                     e.peso_tamizado,
-                    TO_CHAR(e.fecha, 'DD/MM/YYYY HH24:MI')                AS fecha
+                    TO_CHAR(e.fecha, 'DD/MM/YYYY HH24:MI')                AS fecha,
+                    e.incidencias,
+                    e.total_defectos,
+                    e.total_buenos,
+                    e.peso_bueno,
+                    e.factor_rendimiento,
+                    e.peso_por_qq,
+                    e.pago,
+                    vc.precio,
+                    vc.rango,
+                    c.nombre                                                AS categoria
                 FROM evaluacion e
                 JOIN persona          p   ON p.id              = e.caficultor_id
                 JOIN tipo_caficultor  tc  ON tc.id             = e.tipo_caficultor_id
                 JOIN tipo_grano       tg  ON tg.id             = e.tipo_grano_id
                 JOIN personal         per ON per.personal_id   = e.personal_id
                 JOIN persona          pe  ON pe.id             = per.personal_id
+                LEFT JOIN categoria   c   ON c.id              = e.categoria_id
+                LEFT JOIN valor_cafe  vc  ON vc.id             = e.valor_cafe_id
             """
             if evaluacion_id is not None:
                 sql += " WHERE e.id = %s"
@@ -270,6 +283,7 @@ class Evaluacion:
         evaluacion_id: str,
         total_defectos: int | None = None,
         total_buenos: int | None = None,
+        incidencias: list | None = None,
         db: Connection | None = None,
     ) -> dict[str, Any]:
         """Genera el codigo EVA correlativo y lo asigna a la evaluacion. Retorna id y codigo."""
@@ -277,16 +291,18 @@ class Evaluacion:
         db = db or Connection()
         try:
             codigo = self._generar_codigo(db)
+            incidencias_json = json.dumps(incidencias) if incidencias else None
             sql = """
                 UPDATE evaluacion
                 SET codigo         = %s,
                     fecha          = NOW(),
                     total_defectos = %s,
-                    total_buenos   = %s
+                    total_buenos   = %s,
+                    incidencias    = %s::jsonb
                 WHERE id = %s
                 RETURNING id::text, codigo
             """
-            cursor = db.ejecutar(sql, (codigo, total_defectos, total_buenos, evaluacion_id))
+            cursor = db.ejecutar(sql, (codigo, total_defectos, total_buenos, incidencias_json, evaluacion_id))
             row = cursor.fetchone()
             if not row:
                 raise ValueError("Evaluacion no encontrada.")

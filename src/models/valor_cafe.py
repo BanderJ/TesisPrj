@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from typing import Any
 
 from src.database.bd import Connection
@@ -75,6 +76,25 @@ class ValorCafe:
                 LIMIT 1
             """
             return db.obtener_uno(sql)
+        finally:
+            if owns_db:
+                db.close()
+
+    def obtener_por_factor(self, factor: Decimal, db: Connection | None = None) -> dict[str, Any] | None:
+        """Retorna el precio más reciente cuyo rango contiene el factor de rendimiento.
+        El rango puede ser 'X-Y' (ej: 70-75) o un número simple 'X' (ej: 70)."""
+        owns_db = db is None
+        db = db or Connection()
+        try:
+            sql = """
+                SELECT id::text, rango, precio, fecha
+                FROM valor_cafe
+                WHERE CAST(SPLIT_PART(rango, '-', 1) AS numeric) <= %s
+                  AND CAST(COALESCE(NULLIF(SPLIT_PART(rango, '-', 2), ''), SPLIT_PART(rango, '-', 1)) AS numeric) >= %s
+                ORDER BY fecha DESC
+                LIMIT 1
+            """
+            return db.obtener_uno(sql, (factor, factor))
         finally:
             if owns_db:
                 db.close()

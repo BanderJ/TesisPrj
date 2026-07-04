@@ -142,16 +142,43 @@ async def obtener_estado_evaluacion(
     response_model=FinalizarEvaluacionResponse,
 )
 async def finalizar_evaluacion(
+    request: Request,
     payload: FinalizarEvaluacionRequest,
     evaluacion_id: str = Path(..., pattern=_UUID_PATTERN),
-    _: dict[str, Any] = Depends(obtener_usuario_actual),
+    usuario: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> FinalizarEvaluacionResponse:
     try:
-        return evaluacion_service.finalizar_evaluacion(
+        incidencias = [inc.model_dump() for inc in payload.incidencias] if payload.incidencias else None
+        result = evaluacion_service.finalizar_evaluacion(
             evaluacion_id,
             total_defectos=payload.total_defectos,
             total_buenos=payload.total_buenos,
+            incidencias=incidencias,
         )
+        n = len(incidencias) if incidencias else 0
+        descripcion = (
+            f"Evaluación {result.codigo} finalizada con {n} incidencia(s) de tapa abierta."
+            if n > 0
+            else f"Evaluación {result.codigo} finalizada sin incidencias."
+        )
+        auditoria_service.registrar(
+            accion="FINALIZAR_EVALUACION",
+            personal_id=str(usuario.get("personal_id", "")),
+            usuario=usuario.get("usuario"),
+            tipo_personal_id=usuario.get("tipo_personal_id"),
+            rol=usuario.get("rol"),
+            tabla_afectada="EVALUACION",
+            registro_id=evaluacion_id,
+            descripcion=descripcion,
+            datos_nuevos={
+                "codigo": result.codigo,
+                "total_defectos": payload.total_defectos,
+                "total_buenos": payload.total_buenos,
+                "incidencias": incidencias,
+            },
+            ip_cliente=get_client_ip(request),
+        )
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
