@@ -38,6 +38,26 @@
 
     cargarKpis();
 
+    // Aviso al ingresar: sin precios de café registrados hoy.
+    // Se muestra una vez por sesión y por día (clave con fecha en sessionStorage).
+    async function avisarSinPreciosHoy() {
+        try {
+            const res = await fetch('/valor-cafe/historial');
+            if (!res.ok) return;
+            const { total, fecha_consultada } = await res.json();
+            if (total > 0) return;
+            const clave = `coffeeren.avisoPrecios.${fecha_consultada}`;
+            if (sessionStorage.getItem(clave)) return;
+            sessionStorage.setItem(clave, '1');
+            CoffeeModal.info(
+                "No hay rangos de precios de café registrados hoy. Regístralos en 'Valor de café' para poder completar las evaluaciones.",
+                'Precios de café pendientes'
+            );
+        } catch { /* sin respuesta: no interrumpir el inicio */ }
+    }
+
+    avisarSinPreciosHoy();
+
     (() => {
         const RANGO_COLORS = ['#22c55e', '#f59e0b', '#818cf8', '#f472b6', '#2dd4bf'];
 

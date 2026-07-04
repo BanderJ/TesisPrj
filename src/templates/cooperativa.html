@@ -48,6 +48,13 @@
                     </svg>
                     Auditoría
                 </a>
+                <a href="#reportes" class="perfil-nav-link" data-section="reportes" id="navReportes" hidden>
+                    <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
+                    </svg>
+                    Reportes
+                </a>
             </nav>
         </aside>
 
@@ -73,7 +80,7 @@
                     <div class="perfil-form-row">
                         <div class="field-group">
                             <label for="codigo">Código</label>
-                            <input id="codigo" type="text" maxlength="20" required placeholder="Ej: COOPE001">
+                            <input id="codigo" type="text" maxlength="20" required placeholder="Ej: COOPE001" readonly>
                         </div>
                         <div class="field-group">
                             <label for="direccion">Dirección</label>
@@ -294,6 +301,24 @@
                 </div>
             </section>
 
+            <!-- SECCIÓN 6: Reportes -->
+            <section id="reportes" class="perfil-section" hidden>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">
+                    <div>
+                        <h2 class="perfil-section-title" style="border-bottom:none;padding-bottom:0;margin-bottom:4px;">Reportes</h2>
+                        <p class="perfil-section-description" id="reporteDescripcion" style="margin:0;"></p>
+                    </div>
+                    <div class="field-group" style="min-width:260px;">
+                        <label for="selectReporte">Reporte</label>
+                        <select id="selectReporte"></select>
+                    </div>
+                </div>
+
+                <div id="reporteContainer">
+                    <p style="text-align:center;padding:2rem;color:var(--muted-foreground);">Cargando reporte...</p>
+                </div>
+            </section>
+
         </main>
     </div>
 </div>
@@ -427,7 +452,12 @@
                         <span id="labelClave">Contraseña *</span>
                         <span id="contadorCrearClave" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/30</span>
                     </label>
-                    <input id="crearContrasena" type="password" placeholder="Mínimo 8 caracteres" maxlength="30">
+                    <div class="password-wrapper">
+                        <input id="crearContrasena" type="password" placeholder="Mínimo 8 caracteres" maxlength="30">
+                        <button type="button" class="password-toggle-btn" aria-label="Mostrar contraseña" aria-controls="crearContrasena" aria-pressed="false">
+                            <img src="/static/icon/visibility_off.svg" alt="" class="password-toggle-icon">
+                        </button>
+                    </div>
                     <div class="password-requirements" style="margin-top:6px;">
                         <div class="requirement" id="crear-req-length"><svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Al menos 8 caracteres</span></div>
                         <div class="requirement" id="crear-req-uppercase"><svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Al menos una letra mayúscula</span></div>
@@ -440,7 +470,12 @@
                         <span id="labelConfirmarClave">Confirmar Contraseña *</span>
                         <span id="contadorCrearConfirmar" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/30</span>
                     </label>
-                    <input id="crearConfirmarContrasena" type="password" placeholder="Repite la contraseña" maxlength="30">
+                    <div class="password-wrapper">
+                        <input id="crearConfirmarContrasena" type="password" placeholder="Repite la contraseña" maxlength="30">
+                        <button type="button" class="password-toggle-btn" aria-label="Mostrar contraseña" aria-controls="crearConfirmarContrasena" aria-pressed="false">
+                            <img src="/static/icon/visibility_off.svg" alt="" class="password-toggle-icon">
+                        </button>
+                    </div>
                     <div class="password-match" id="crearPasswordMatch">
                         <svg class="match-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         <span id="crearPasswordMatchText">Las contraseñas coinciden</span>
@@ -509,5 +544,7 @@
 
 {% block script %}
 <script>const isAdmin = '{{ user.is_admin | tojson }}' === 'true';</script>
+<script src="/static/js/lib/echarts.min.js"></script>
+<script src="/static/js/coffee-report.js"></script>
 <script src="/static/js/cooperativa.js"></script>
 {% endblock %}

@@ -34,6 +34,8 @@
                     cargarCaficultores();
                 } else if (section === 'auditoria') {
                     inicializarAuditoria();
+                } else if (section === 'reportes') {
+                    inicializarReportes();
                 }
             }
         });
@@ -72,6 +74,7 @@
                 document.getElementById('navUsuarios').hidden = false;
                 document.getElementById('navCaficultores').hidden = false;
                 document.getElementById('navAuditoria').hidden = false;
+                document.getElementById('navReportes').hidden = false;
                 await cargarCatalogos();
             }
 
@@ -547,7 +550,7 @@
         usuariosTableBody.innerHTML = usuarios.map(u => `
             <tr>
                 <td><strong>${u.nombre} ${u.ape_paterno} ${u.ape_materno}</strong></td>
-                <td>@${u.usuario}</td>
+                <td>${u.usuario}</td>
                 <td>${u.num_documento}</td>
                 <td>${u.tipo_personal}</td>
                 <td>
@@ -596,11 +599,14 @@
                 body: JSON.stringify({ estado: nuevoEstado }),
             });
 
-            if (!res.ok) throw new Error('Error');
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(typeof err.detail === 'string' ? err.detail : `No se pudo ${accion} el usuario`);
+            }
             CoffeeModal.success(`Usuario ${accion}do correctamente`);
             cargarUsuarios();
         } catch (error) {
-            CoffeeModal.error(error.message);
+            CoffeeModal.error(error.message, 'Usuario restringido');
         }
     };
 
@@ -1037,6 +1043,50 @@
             document.body.style.overflow = '';
         }
     });
+
+    // === Reportes ===
+    let reportesIniciados = false;
+
+    async function inicializarReportes() {
+        const select = document.getElementById('selectReporte');
+
+        if (!reportesIniciados) {
+            reportesIniciados = true;
+            try {
+                const res = await fetch('/reportes');
+                if (!res.ok) throw new Error('No se pudo cargar el catálogo de reportes');
+                const catalogo = await res.json();
+                catalogo.forEach(r => {
+                    const option = document.createElement('option');
+                    option.value = r.codigo;
+                    option.textContent = r.titulo;
+                    select.appendChild(option);
+                });
+                select.addEventListener('change', () => cargarReporte(select.value));
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('reporteContainer').innerHTML =
+                    `<p style="text-align:center;padding:2rem;color:var(--destructive);">${error.message}</p>`;
+                return;
+            }
+        }
+
+        if (select.value) cargarReporte(select.value);
+    }
+
+    async function cargarReporte(codigo) {
+        const container = document.getElementById('reporteContainer');
+        try {
+            const res = await fetch(`/reportes/${encodeURIComponent(codigo)}`);
+            if (!res.ok) throw new Error('No se pudo cargar el reporte');
+            const reporte = await res.json();
+            document.getElementById('reporteDescripcion').textContent = reporte.descripcion || '';
+            CoffeeReport.render(container, reporte);
+        } catch (error) {
+            console.error('Error:', error);
+            container.innerHTML = `<p style="text-align:center;padding:2rem;color:var(--destructive);">${error.message}</p>`;
+        }
+    }
 
     // Inicializar
     async function inicializarCrearUsuario() {

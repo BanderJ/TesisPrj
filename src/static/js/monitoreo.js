@@ -1,6 +1,4 @@
 	(() => {
-		const TIMEOUT_INACTIVIDAD_MS = 10_000; // 10 s sin nuevas detecciones a auto-finalizar
-
 		// ── Datos de la muestra ───────────────────────────────────────────────
 		const storedEval = sessionStorage.getItem('coffeeren.evaluacion');
 		const sample     = storedEval ? JSON.parse(storedEval) : null;
@@ -18,10 +16,10 @@
 		const totalDefectsEl  = document.getElementById('totalDefects');
 		const totalSanosEl    = document.getElementById('totalSanos');
 		const iaPerformanceEl = document.getElementById('iaPerformance');
-		const negroValueEl    = document.getElementById('defectNegroValue');
-		const negroBarEl      = document.getElementById('defectNegroBar');
-		const sanoValueEl     = document.getElementById('defectBrocadoValue');
-		const sanoBarEl       = document.getElementById('defectBrocadoBar');
+		const negroValueEl    = document.getElementById('defectosValue');
+		const negroBarEl      = document.getElementById('defectosBar');
+		const sanoValueEl     = document.getElementById('sanosValue');
+		const sanoBarEl       = document.getElementById('sanosBar');
 		const eventLog        = document.getElementById('eventLog');
 		const finishBtn         = document.getElementById('finishBtn');
 		const startBtn          = document.getElementById('startBtn');
@@ -46,6 +44,9 @@
 		const fpsBadgeEl      = document.getElementById('fpsBadge');
 
 		let connectTimeout = null;
+		let frameTimeout   = null;   // reintento del bucle de frames — debe poder cancelarse desde detenerStream()
+		let streamActivo   = false;
+		let _ultimoBlobUrl = null;
 		let _fpsCount = 0;
 		let _fpsWindowStart = 0;
 
@@ -63,15 +64,19 @@
 			cameraStreamEl.style.display  = 'none';
 			cameraErrorEl.style.display   = 'none';
 
-			let frameTimeout;
+			streamActivo = true;
 			let isFirstFrame = true;
 
 			const refrescarFrame = async () => {
+				if (!streamActivo) return;
 				try {
 					const res = await fetch('/video/frame');
+					if (!streamActivo) return;
 					if (res.status === 503) { frameTimeout = setTimeout(refrescarFrame, 33); return; }
 					if (!res.ok) throw new Error('Error obteniendo frame');
 					const url = URL.createObjectURL(await res.blob());
+					if (_ultimoBlobUrl) URL.revokeObjectURL(_ultimoBlobUrl);   // liberar el frame anterior
+					_ultimoBlobUrl = url;
 					cameraStreamEl.src = url;
 					if (isFirstFrame) {
 						isFirstFrame = false;
@@ -102,7 +107,10 @@
 		}
 
 		function detenerStream() {
+			streamActivo = false;
 			clearTimeout(connectTimeout);
+			clearTimeout(frameTimeout);
+			if (_ultimoBlobUrl) { URL.revokeObjectURL(_ultimoBlobUrl); _ultimoBlobUrl = null; }
 			cameraStreamEl.src            = '';
 			cameraStreamEl.style.display  = 'none';
 			cameraLoadingEl.style.display = 'none';
@@ -120,8 +128,6 @@
 					// YOLO
 					capturandoYOLO        = true;
 					elapsedSeconds        = 0;
-					tiempoUltimaDeteccion = Date.now();
-					totalGranosUltimo     = 0;
 					iniciarStream();
 					timerInterval = setInterval(() => {
 						elapsedSeconds += 1;
@@ -141,7 +147,10 @@
 							const data = await rConteo.json();
 							conteoActual = data.conteo;
 							gruposActual = data.conteo_agrupado ?? {};
-							actualizarUIdesdeConteo(data.total_defectos, data.total_sanos, gruposActual);
+							totalDefectosActual = data.total_defectos ?? 0;
+							totalSanosActual    = data.total_sanos ?? 0;
+							actualizarUIdesdeConteo(totalDefectosActual, totalSanosActual, gruposActual);
+							await _verificarTapa();
 						} catch (e) { console.error('Error obteniendo conteo:', e); }
 					}, 1500);
 					appendLog('Cámara conectada. Monitoreo en curso.');
@@ -161,11 +170,17 @@
 		let elapsedSeconds        = 0;
 		let conteoActual          = {};
 		let gruposActual          = {};
+		let totalDefectosActual   = 0;
+		let totalSanosActual      = 0;
 		let reporteActual         = null;
-		let tiempoUltimaDeteccion = 0;
-		let totalGranosUltimo     = 0;
 		let timerInterval         = null;
 		let conteoInterval        = null;
+
+		// ── Estado de tapa ────────────────────────────────────────────────────
+		let tapaCerrada     = true;  // ya fue validada antes de iniciar monitoreo
+		let msAperturaTapa  = 0;     // Date.now() cuando se abrió
+		let segAperturaTapa = 0;     // elapsedSeconds cuando se abrió
+		let incidencias     = [];    // [{seg_apertura, seg_cierre, duracion_s}]
 
 		// ── UI helpers ────────────────────────────────────────────────────────
 		function appendLog(message) {
@@ -204,6 +219,31 @@
 			appendLog(mensaje);
 
 			if (startBtn) { startBtn.style.display = 'inline-flex'; startBtn.textContent = 'Reintentar captura'; }
+		}
+
+		// ── Verificación de tapa durante monitoreo ───────────────────────────
+		// Solo REGISTRA las aperturas como incidencias — nunca detiene la faja.
+		// La faja corre hasta que el evaluador presiona Regresar o Finalizar;
+		// él decide qué hacer con el lote según las incidencias registradas.
+		async function _verificarTapa() {
+			try {
+				const rTapa = await fetch('/arduino/estado');
+				if (!rTapa.ok) return;
+				const tapa = await rTapa.json();
+				if (!tapa.conectado) return;
+
+				if (tapaCerrada && !tapa.listo) {
+					tapaCerrada     = false;
+					msAperturaTapa  = Date.now();
+					segAperturaTapa = elapsedSeconds;
+					appendLog('Tapa abierta — se registrará como incidencia.');
+				} else if (!tapaCerrada && tapa.listo) {
+					tapaCerrada = true;
+					const segsAbierta = Math.round((Date.now() - msAperturaTapa) / 1000);
+					incidencias.push({ seg_apertura: segAperturaTapa, seg_cierre: elapsedSeconds, duracion_s: segsAbierta });
+					appendLog(`Tapa cerrada — estuvo abierta ${segsAbierta}s.`);
+				}
+			} catch { /* ignorar error de tapa */ }
 		}
 
 		// ── Faja (Arduino) ────────────────────────────────────────────────────
@@ -262,8 +302,6 @@
 
 				capturandoYOLO        = true;
 				elapsedSeconds        = 0;
-				tiempoUltimaDeteccion = Date.now();
-				totalGranosUltimo     = 0;
 
 				appendLog('Faja en marcha. Captura YOLO activa.');
 				iniciarStream();
@@ -294,7 +332,10 @@
 						const data = await rConteo.json();
 						conteoActual = data.conteo;
 						gruposActual = data.conteo_agrupado ?? {};
-						actualizarUIdesdeConteo(data.total_defectos, data.total_sanos, gruposActual);
+						totalDefectosActual = data.total_defectos ?? 0;
+						totalSanosActual    = data.total_sanos ?? 0;
+						actualizarUIdesdeConteo(totalDefectosActual, totalSanosActual, gruposActual);
+						await _verificarTapa();
 					} catch (e) {
 						console.error('Error obteniendo conteo:', e);
 					}
@@ -378,21 +419,99 @@
 			finSpinner.style.display = 'none';
 			finCheck.style.display   = 'block';
 			finTitulo.textContent    = 'Evaluación completada';
-			finDescripcion.textContent = 'El proceso finalizó correctamente. Revisa el resumen antes de continuar al análisis.';
+			finDescripcion.textContent = 'Pesa el grano bueno separado e ingresa el valor para calcular el factor de rendimiento.';
 
 			document.getElementById('resCode').textContent     = codigo || '—';
 			document.getElementById('resGranos').textContent   = Object.values(conteoActual).reduce((a,b)=>a+b,0);
 			document.getElementById('resGrado').textContent    = reporteActual?.grado || '—';
 			document.getElementById('resSpecialty').textContent= reporteActual?.apto_specialty ? 'Apto ✓' : 'No apto';
 			document.getElementById('resPeso').textContent     = `${Number(pesoGramos).toFixed(2)} g`;
+			// Sin celda de carga no hay lectura: ocultar la fila de báscula
+			document.getElementById('resPesoRow').style.display = pesoGramos > 0 ? '' : 'none';
 			finResultado.style.display = 'block';
 
+			mostrarFormPesoBueno();
+			btnIrAnalisis.textContent = 'Registra el peso bueno para continuar';
+		}
+
+		// ── Peso de grano bueno (ingreso manual) + factor de rendimiento ──────
+		let pesoTamizadoMax   = null;
+		let totalDefectosFinal = 0;
+
+		async function mostrarFormPesoBueno() {
+			document.getElementById('finPesoForm').style.display = 'block';
+			document.getElementById('inputPesoBueno').focus();
+			try {
+				const res = await fetch(`/evaluacion/${EVALUACION_ID}/resumen`);
+				if (res.ok) {
+					const data = await res.json();
+					pesoTamizadoMax = Number(data.peso_tamizado);
+					document.getElementById('inputPesoBueno').max = Math.floor(pesoTamizadoMax);
+					document.getElementById('pesoBuenoHint').textContent =
+						`Gramos enteros. Máximo: ${pesoTamizadoMax} g (peso tamizado).`;
+				}
+			} catch { /* sin resumen, el backend valida igual */ }
+		}
+
+		function _habilitarIrAnalisis() {
 			btnIrAnalisis.disabled = false;
 			btnIrAnalisis.style.cursor = 'pointer';
 			btnIrAnalisis.style.background = 'var(--primary)';
 			btnIrAnalisis.style.color = 'var(--primary-foreground, #fff)';
 			btnIrAnalisis.textContent = 'Ir al análisis →';
 		}
+
+		async function guardarPesoBueno() {
+			const input   = document.getElementById('inputPesoBueno');
+			const errorEl = document.getElementById('pesoBuenoError');
+			const btn     = document.getElementById('btnGuardarPesoBueno');
+			errorEl.style.display = 'none';
+
+			const validacion = CoffeeValidators.pesoBueno(input.value, pesoTrilladoMax);
+			if (!validacion.valido) {
+				errorEl.textContent = validacion.mensaje;
+				errorEl.style.display = 'block';
+				return;
+			}
+			const peso = validacion.peso;
+
+			btn.disabled = true;
+			btn.textContent = 'Calculando...';
+			try {
+				const res = await fetch(`/evaluacion/${EVALUACION_ID}/completar`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ total_defectos: totalDefectosFinal, peso_bueno: peso }),
+				});
+				if (!res.ok) {
+					const err = await res.json().catch(() => ({}));
+					throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo calcular el rendimiento.');
+				}
+				const data = await res.json();
+				document.getElementById('resFactor').textContent    = Number(data.factor_rendimiento).toFixed(2);
+				document.getElementById('resPago').textContent      = Number(data.pago).toFixed(2);
+				document.getElementById('resCategoria').textContent = data.categoria || '—';
+				document.getElementById('finRendimiento').style.display = 'block';
+				document.getElementById('finPesoForm').style.display = 'none';
+				finDescripcion.textContent = 'Rendimiento calculado. Revisa el resumen antes de continuar al análisis.';
+				appendLog(`Peso bueno: ${peso} g — factor de rendimiento ${Number(data.factor_rendimiento).toFixed(2)}`);
+				_habilitarIrAnalisis();
+			} catch (err) {
+				errorEl.textContent = err.message;
+				errorEl.style.display = 'block';
+				btn.disabled = false;
+				btn.textContent = 'Calcular rendimiento';
+				// Si el cálculo falla por configuración (ej. sin precios de café),
+				// no bloquear al evaluador: permitir continuar sin rendimiento.
+				_habilitarIrAnalisis();
+				btnIrAnalisis.textContent = 'Continuar sin rendimiento →';
+			}
+		}
+
+		document.getElementById('btnGuardarPesoBueno').addEventListener('click', guardarPesoBueno);
+		document.getElementById('inputPesoBueno').addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') { e.preventDefault(); guardarPesoBueno(); }
+		});
 
 		function errorOverlay(msg) {
 			finSpinner.style.display = 'none';
@@ -456,21 +575,19 @@
 			monitoreoActivo = false;
 			detenerStream();
 
-			const _negro   = gruposActual.negro   ?? 0;
-			const _brocado = gruposActual.brocado ?? 0;
-			const _partido = gruposActual.partido ?? 0;
-			const _totalDefectoGranos = _negro + _brocado + _partido;
+			// Totales calculados por el backend en /video/lote/conteo — el frontend no
+			// conoce nombres de clases ni decide qué cuenta como defecto.
+			const _totalDefectoGranos = totalDefectosActual;
+			totalDefectosFinal = _totalDefectoGranos;
 			const _totalGranos = reporteActual?.total_granos_analizados || 0;
 			const stats = {
 				totalGrains:      _totalGranos,
-				defectNegro:      _negro,
-				defectBrocado:    _brocado,
-				defectFermentado: _partido,
 				totalDefectos:    _totalDefectoGranos,
 				grado:            reporteActual?.grado || 'Sin clasificar',
 				aptEspecialty:    reporteActual?.apto_specialty || false,
 				peso_capturado:   pesoCapturado,
 				elapsedSeconds,
+				incidencias:      [...incidencias],
 			};
 			sessionStorage.setItem('coffeeren.stats', JSON.stringify(stats));
 
@@ -479,7 +596,7 @@
 				const res = await fetch(`/evaluacion/${EVALUACION_ID}/finalizar`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ total_defectos: _totalDefectoGranos, total_buenos: _totalGranos - _totalDefectoGranos }),
+					body: JSON.stringify({ total_defectos: _totalDefectoGranos, total_buenos: _totalGranos - _totalDefectoGranos, incidencias }),
 				});
 				if (!res.ok) {
 					const err = await res.json();

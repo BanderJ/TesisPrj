@@ -262,6 +262,8 @@
 
 			if (!esEnteroPositivo(numSacosInput.value))   return rechazar('El número de sacos debe ser un entero positivo (mínimo 1).', numSacosInput);
 			if (!esFloatPositivo(pesoTotalInput.value))   return rechazar('El peso total debe ser un número positivo (en kg).', pesoTotalInput);
+			const maxPesoTotal = parseInt(numSacosInput.value, 10) * 70;
+			if (parseFloat(pesoTotalInput.value) > maxPesoTotal) return rechazar(`El peso total no puede superar ${maxPesoTotal} kg (${numSacosInput.value} sacos × 70 kg).`, pesoTotalInput);
 			if (!esFloatPositivo(humedadInput.value))     return rechazar('La humedad debe ser un número positivo.', humedadInput);
 			if (parseFloat(humedadInput.value) > 100)     return rechazar('La humedad no puede superar 100%.', humedadInput);
 			if (!esFloatPositivo(pm))                     return rechazar('El peso de muestra debe ser un número positivo (en gr.).', pesoMuestraInput);
@@ -269,6 +271,7 @@
 			if (!esFloatPositivo(pt))                     return rechazar('El peso trillado debe ser un número positivo (en gr.).', pesoTrilladoInput);
 			if (pt === pm)                                return rechazar('El peso trillado debe ser diferente al peso de muestra.', pesoTrilladoInput);
 			if (pt > pm)                                  return rechazar('El peso trillado no puede ser mayor al peso de muestra.', pesoTrilladoInput);
+			if (pt > 0.83 * pm)                           return rechazar('El peso trillado no puede superar el 83% del peso de muestra.', pesoTrilladoInput);
 			if (!esEnteroPositivo(numTamizInput.value))   return rechazar('El número de tamiz debe ser un entero positivo (mínimo 1).', numTamizInput);
 			if (!esFloatPositivo(pz))                     return rechazar('El peso tamizado debe ser un número positivo (en gr.).', pesoTamizadoInput);
 			if (pz > pt)                                  return rechazar('El peso tamizado no puede ser mayor al peso trillado.', pesoTamizadoInput);
@@ -308,7 +311,12 @@
 				sessionStorage.setItem('coffeeren.evaluacion', JSON.stringify(data));
 				window.location.href = `/monitoreo/${encodeURIComponent(data.evaluacion_id)}`;
 			} catch (err) {
-				submitErrorEl.textContent = err.message || 'Error inesperado. Intente nuevamente.';
+				const msg = err.message || 'Error inesperado. Intente nuevamente.';
+				if (msg.includes('precios de café')) {
+					CoffeeModal.warning(msg, 'Precios de café no registrados hoy');
+				} else {
+					submitErrorEl.textContent = msg;
+				}
 				startBtn.disabled = false;
 				startBtn.textContent = 'Iniciar clasificacion y monitoreo';
 			}
@@ -354,11 +362,25 @@
 			intentarBusquedaAutomatica();
 		});
 
-		numSacosInput.addEventListener('input', () =>
-			validarInline(numSacosInput, esEnteroPositivo, numSacosHint, 'Debe ser un entero positivo (mínimo 1).'));
+		numSacosInput.addEventListener('input', () => {
+			validarInline(numSacosInput, esEnteroPositivo, numSacosHint, 'Debe ser un entero positivo (mínimo 1).');
+			pesoTotalInput.dispatchEvent(new Event('input'));
+		});
 
 		pesoTotalInput.addEventListener('input', () => {
-			validarInline(pesoTotalInput, esFloatPositivo, pesoTotalHint, 'Debe ser un número positivo (kg).');
+			if (!pesoTotalInput.value) { setHint(pesoTotalHint, ''); pesoMuestraInput.dispatchEvent(new Event('input')); return; }
+			if (!esFloatPositivo(pesoTotalInput.value)) {
+				setHint(pesoTotalHint, 'Debe ser un número positivo (kg).', true);
+			} else if (esEnteroPositivo(numSacosInput.value)) {
+				const maxKg = parseInt(numSacosInput.value, 10) * 70;
+				if (parseFloat(pesoTotalInput.value) > maxKg) {
+					setHint(pesoTotalHint, `No puede superar ${maxKg} kg (${numSacosInput.value} sacos × 70 kg).`, true);
+				} else {
+					setHint(pesoTotalHint, `Máximo: ${maxKg} kg.`);
+				}
+			} else {
+				setHint(pesoTotalHint, '');
+			}
 			pesoMuestraInput.dispatchEvent(new Event('input'));
 		});
 
@@ -381,7 +403,7 @@
 			if (esFloatPositivo(pesoTotalInput.value) && pm > pesoTotalGramos) {
 				setHint(pesoMuestraHint, `No puede superar peso total (${redondear2(pesoTotalGramos).toFixed(2)} gr.)`, true);
 			} else if (esFloatPositivo(pesoTotalInput.value)) {
-				setHint(pesoMuestraHint, `Máximo: ${redondear2(pesoTotalGramos).toFixed(2)} gr.`);
+				setHint(pesoMuestraHint, `Máximo: ${redondear2(pesoTotalGramos * 0.83).toFixed(2)} gr.`);
 			} else {
 				setHint(pesoMuestraHint, '');
 			}
@@ -401,8 +423,11 @@
 						setHint(pesoTrilladoHint, 'Debe ser diferente al peso de muestra.', true);
 					} else if (pt > pm) {
 						setHint(pesoTrilladoHint, 'No puede superar peso de muestra.', true);
-					} else {
-						setHint(pesoTrilladoHint, `Máximo: ${redondear2(pm).toFixed(2)} gr.`);
+					} else if (pt > 0.83 * pm) {
+						setHint(pesoTrilladoHint, 'No puede superar el 83% del peso de muestra.', true);
+					} 
+					else {
+						setHint(pesoTrilladoHint, `Máximo: ${redondear2(pm).toFixed(2)*0.83} gr.`);
 					}
 				}
 			}

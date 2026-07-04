@@ -117,19 +117,19 @@
 					<div class="defect-item">
 						<header>
 							<span>Defectos</span>
-							<strong id="defectNegroValue">0</strong>
+							<strong id="defectosValue">0</strong>
 						</header>
 						<div class="defect-track">
-							<div id="defectNegroBar" class="defect-fill negro"></div>
+							<div id="defectosBar" class="defect-fill negro"></div>
 						</div>
 					</div>
 					<div class="defect-item">
 						<header>
 							<span>Buenos</span>
-							<strong id="defectBrocadoValue">0</strong>
+							<strong id="sanosValue">0</strong>
 						</header>
 						<div class="defect-track">
-							<div id="defectBrocadoBar" class="defect-fill sano"></div>
+							<div id="sanosBar" class="defect-fill sano"></div>
 						</div>
 					</div>
 				</div>
@@ -186,11 +186,33 @@
 				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Granos</p><p id="resGranos" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
 				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Grado</p><p id="resGrado" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
 				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Specialty</p><p id="resSpecialty" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
-				<div style="grid-column:1/-1;border-top:1px solid color-mix(in oklab,var(--border) 60%,transparent);padding-top:8px;margin-top:2px;">
+				<div id="resPesoRow" style="grid-column:1/-1;border-top:1px solid color-mix(in oklab,var(--border) 60%,transparent);padding-top:8px;margin-top:2px;">
 					<p style="margin:0;font-size:11px;color:var(--muted-foreground);">Peso capturado (báscula)</p>
 					<p id="resPeso" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p>
 				</div>
+				<div id="finRendimiento" style="display:none;grid-column:1/-1;border-top:1px solid color-mix(in oklab,var(--border) 60%,transparent);padding-top:8px;margin-top:2px;">
+					<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+						<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Factor rendimiento</p><p id="resFactor" style="margin:0;font-weight:700;font-size:15px;color:var(--primary);"></p></div>
+						<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Pago (S/)</p><p id="resPago" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
+						<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Categoría</p><p id="resCategoria" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
+					</div>
+				</div>
 			</div>
+		</div>
+
+		<!-- Peso de grano bueno — ingreso manual (sin celda de carga) -->
+		<div id="finPesoForm" style="display:none;background:color-mix(in oklab,var(--muted) 40%,transparent);border-radius:10px;padding:14px 16px;margin-bottom:20px;text-align:left;">
+			<label for="inputPesoBueno" style="display:block;font-size:13px;font-weight:600;color:var(--foreground);margin-bottom:2px;">Peso de grano bueno (g)</label>
+			<p id="pesoBuenoHint" style="margin:0 0 10px;font-size:12px;color:var(--muted-foreground);">Pesa el grano bueno separado e ingresa el valor en gramos enteros.</p>
+			<div style="display:flex;gap:10px;">
+				<input id="inputPesoBueno" type="number" min="0" step="1" inputmode="numeric" placeholder="Ej: 420"
+					style="flex:1;min-width:0;height:42px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--input);color:var(--foreground);font-size:15px;font-weight:600;">
+				<button type="button" id="btnGuardarPesoBueno"
+					style="padding:0 18px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;background:var(--primary);color:var(--primary-foreground,#fff);white-space:nowrap;">
+					Calcular rendimiento
+				</button>
+			</div>
+			<p id="pesoBuenoError" style="display:none;margin:10px 0 0;font-size:13px;color:var(--destructive,#dc2626);"></p>
 		</div>
 
 		<button id="btnIrAnalisis" disabled

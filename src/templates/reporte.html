@@ -104,6 +104,30 @@
 			</div>
 		</div>
 
+		<!-- Stats row (desde BD: totales guardados al finalizar el monitoreo) -->
+		<div class="analisis-stats" id="statsRow">
+			<div class="stat-card">
+				<div class="stat-card-label">Granos evaluados</div>
+				<div class="stat-card-value accent-blue" id="rStatGranos">—</div>
+				<div class="stat-card-sub">Total en banda</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-card-label">Defectos</div>
+				<div class="stat-card-value accent-red" id="rStatDefectos">—</div>
+				<div class="stat-card-sub">Detectados por IA</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-card-label">Buenos</div>
+				<div class="stat-card-value accent-green" id="rStatSanos">—</div>
+				<div class="stat-card-sub">Sin defecto</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-card-label">% Defecto</div>
+				<div class="stat-card-value accent-amber" id="rStatPct">—</div>
+				<div class="stat-card-sub">Del total evaluado</div>
+			</div>
+		</div>
+
 		<!-- Sample data -->
 		<div class="analisis-section">
 			<h3>Datos de la muestra</h3>
@@ -119,6 +143,56 @@
 					<tr><td>N° de tamiz</td><td id="tdTamiz">—</td></tr>
 					<tr><td>Peso tamizado</td><td id="tdTamizado">—</td></tr>
 				</tbody>
+			</table>
+		</div>
+
+		<!-- Factor de rendimiento -->
+		<div class="analisis-section">
+			<h3>Factor de rendimiento</h3>
+			<p class="analisis-note" id="rendimientoPendienteNota" style="display:none;">
+				Esta evaluación aún no tiene el peso de grano bueno registrado — el rendimiento se calcula desde la página de análisis.
+			</p>
+			<div id="rRendimiento" class="clasificacion-row" style="display:none;">
+				<div class="clasificacion-card grado">
+					<span>Factor rendimiento</span>
+					<strong id="rFactor">—</strong>
+				</div>
+				<div class="clasificacion-card">
+					<span>Peso bueno</span>
+					<strong id="rPesoBueno">—</strong>
+				</div>
+				<div class="clasificacion-card">
+					<span>Peso por quintal</span>
+					<strong id="rPesoQq">—</strong>
+				</div>
+				<div class="clasificacion-card">
+					<span id="rPrecioLabel">Precio quintal (S/)</span>
+					<strong id="rPrecio">—</strong>
+				</div>
+				<div class="clasificacion-card">
+					<span>Pago (S/)</span>
+					<strong id="rPago">—</strong>
+				</div>
+				<div class="clasificacion-card">
+					<span>Categoría</span>
+					<strong id="rCategoria">—</strong>
+				</div>
+			</div>
+		</div>
+
+		<!-- Incidencias de tapa (visible solo si las hay) -->
+		<div id="incidenciasSection" style="display:none;" class="analisis-section analisis-incidencias">
+			<h3>Incidencias durante el monitoreo</h3>
+			<p class="analisis-note" style="margin-bottom:10px;">Se registró cada apertura de tapa durante el monitoreo (la faja no se detiene).</p>
+			<table class="data-table">
+				<thead>
+					<tr>
+						<th>Apertura (s)</th>
+						<th>Cierre (s)</th>
+						<th>Duración abierta</th>
+					</tr>
+				</thead>
+				<tbody id="incidenciasTbody"></tbody>
 			</table>
 		</div>
 
