@@ -182,6 +182,11 @@ class CoffeeRenTracker:
                     w, h = x2 - x1, y2 - y1
                     if not (self.GRANO_MIN_PX <= w <= self.GRANO_MAX_PX
                             and self.GRANO_MIN_PX <= h <= self.GRANO_MAX_PX):
+                        # Calibración: dibujar el descartado en gris con sus dimensiones
+                        # para ajustar GRANO_MIN_PX / GRANO_MAX_PX en constants.py
+                        cv2.rectangle(frame_anotado, (x1, y1), (x2, y2), (128, 128, 128), 1)
+                        cv2.putText(frame_anotado, f"{w}x{h}px", (x1, max(y1 - 4, 12)),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (128, 128, 128), 1)
                         continue
 
                     with self.lock:
@@ -203,7 +208,7 @@ class CoffeeRenTracker:
                     color = self.COLORES.get(clase, (0, 0, 255))
                     cv2.rectangle(frame_anotado, (x1, y1), (x2, y2), color, 3)
 
-                    label = f"#{track_id} {clase} {conf_score:.2%}"
+                    label = f"#{track_id} {clase} {conf_score:.2%} {w}x{h}px"
                     (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
                     cv2.rectangle(frame_anotado, (x1, y1 - th - 8), (x1 + tw + 4, y1 - 2), color, -1)
                     cv2.putText(frame_anotado, label, (x1 + 2, y1 - 4),

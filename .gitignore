@@ -9,7 +9,7 @@ __pycache__/
 *.exe
 
 #Excluir archivos de configuración
-config.py
+#config.py
 
 #Excluir modelos entrenados
 src/ml/models/*.pt

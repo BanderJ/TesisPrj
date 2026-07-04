@@ -4,8 +4,8 @@ Clasificación binaria: defecto vs. verde
 """
 
 # Filtro de tamaño de bounding box (píxeles) — calibrar según distancia real de la cámara
-GRANO_MIN_PX = 8
-GRANO_MAX_PX = 300
+GRANO_MIN_PX = 50
+GRANO_MAX_PX = 400
 
 # Agrupaciones para mostrar en barras del frontend
 # Con 2 clases todos los defectos van a "negro" (barra principal)
