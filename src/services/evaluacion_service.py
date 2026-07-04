@@ -47,6 +47,14 @@ class EvaluacionService:
             if not tipo_grano:
                 raise ValueError("El tipo de grano seleccionado no existe.")
 
+            # Sin precios de café el factor de rendimiento no puede calcularse al
+            # finalizar el monitoreo — bloquear aquí, antes de iniciar la fase.
+            if not self.valor_cafe_model.obtener_mas_reciente(db):
+                raise ValueError(
+                    "No hay rangos de precios de café registrados hoy. "
+                    "Registra los precios en 'Valor de café' antes de iniciar un monitoreo."
+                )
+
             nombre_completo = " ".join(
                 p for p in [
                     caficultor.get("nombre"),
@@ -119,26 +127,35 @@ class EvaluacionService:
             if not grano:
                 raise ValueError("Tipo de grano no encontrado.")
 
-            valor_cafe = self.valor_cafe_model.obtener_mas_reciente(db)
-            if not valor_cafe:
-                raise ValueError("No hay precios de café registrados.")
-
             peso_muestra   = Decimal(str(eva["peso_muestra"]))
             peso_trillado  = Decimal(str(eva["peso_trillado"]))
             peso_bruto     = Decimal(str(eva["peso_bruto"]))
             num_sacos      = int(eva["num_sacos"])
             peso_qq_ref    = Decimal(str(grano["peso_qq"]))
-            precio         = Decimal(str(valor_cafe["precio"]))
             tara_saco      = Decimal("0.25")
             humedad        = Decimal(str(eva["humedad"]))
 
             divisor = peso_muestra / 100
 
+            peso_bueno = Decimal(payload.peso_bueno).quantize(Decimal("0.01"))
+            if peso_bueno > peso_trillado:
+                raise ValueError(
+                    f"El peso de grano bueno ({payload.peso_bueno} g) no puede superar el peso trillado ({peso_trillado} g)."
+                )
+
             peso_cascara       = (peso_muestra - peso_trillado).quantize(Decimal("0.01"))
             peso_cascara_total = (peso_cascara / divisor).quantize(Decimal("0.01"))
-            peso_bueno         = payload.peso_bueno.quantize(Decimal("0.01"))
             factor_rendimiento = (peso_bueno / divisor).quantize(Decimal("0.01"))
             peso_malo          = (peso_trillado - peso_bueno).quantize(Decimal("0.01"))
+
+            # El precio se elige según el rango que contiene el factor de rendimiento
+            valor_cafe = self.valor_cafe_model.obtener_por_factor(factor_rendimiento, db)
+            if not valor_cafe:
+                raise ValueError(
+                    f"No hay precio de café registrado para el rango del factor de rendimiento "
+                    f"({factor_rendimiento}). Registra ese rango en 'Valor de café'."
+                )
+            precio = Decimal(str(valor_cafe["precio"]))
             tara_total         = int(round(num_sacos * float(tara_saco)))
             peso_neto          = (peso_bruto - Decimal(tara_total)).quantize(Decimal("0.01"))
 
@@ -185,6 +202,8 @@ class EvaluacionService:
                 factor_rendimiento=Decimal(str(fila["factor_rendimiento"])),
                 peso_por_qq=Decimal(str(fila["peso_por_qq"])),
                 pago=Decimal(str(fila["pago"])),
+                precio=precio,
+                rango=str(valor_cafe["rango"]),
                 categoria=str(categoria["nombre"]) if categoria else None,
             )
         except Exception:
@@ -218,9 +237,12 @@ class EvaluacionService:
         evaluacion_id: str,
         total_defectos: int | None = None,
         total_buenos: int | None = None,
+        incidencias: list | None = None,
     ) -> FinalizarEvaluacionResponse:
         """Genera y asigna el codigo EVA a la evaluacion al finalizar el monitoreo."""
-        fila = self.evaluacion_model.asignar_codigo(evaluacion_id, total_defectos, total_buenos)
+        fila = self.evaluacion_model.asignar_codigo(
+            evaluacion_id, total_defectos, total_buenos, incidencias
+        )
         return FinalizarEvaluacionResponse(
             finalizado=True,
             mensaje="Evaluacion finalizada correctamente.",

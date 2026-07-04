@@ -188,3 +188,29 @@
 @media (max-width: 480px) {
     .audit-filters { grid-template-columns: 1fr; }
 }
+
+/* ==================== Reportes ==================== */
+
+.reporte-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+    margin-top: 0.5rem;
+}
+
+.reporte-grid--solo-tabla {
+    grid-template-columns: 1fr;
+}
+
+.reporte-grafico {
+    height: 360px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px;
+}
+
+@media (max-width: 900px) {
+    .reporte-grid { grid-template-columns: 1fr; }
+}

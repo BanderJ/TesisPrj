@@ -614,6 +614,51 @@ main {
     opacity: 0.6;
 }
 
+/* Toggle ver/ocultar contraseña — envolver el input en .password-wrapper
+   con un botón .password-toggle-btn; main.js lo conecta automáticamente */
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper input {
+    padding-right: 44px;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.password-toggle-btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.password-toggle-icon {
+    width: 20px;
+    height: 20px;
+    opacity: 0.7;
+}
+
+.password-toggle-btn:hover .password-toggle-icon {
+    opacity: 1;
+}
+
+body.dark .password-toggle-icon {
+    filter: invert(1);
+}
+
 .form-row {
     display: grid;
     gap: 10px;
