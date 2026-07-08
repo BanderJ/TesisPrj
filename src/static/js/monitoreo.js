@@ -448,7 +448,7 @@
 					pesoTamizadoMax = Number(data.peso_tamizado);
 					document.getElementById('inputPesoBueno').max = Math.floor(pesoTamizadoMax);
 					document.getElementById('pesoBuenoHint').textContent =
-						`Gramos enteros. Máximo: ${pesoTamizadoMax} g (peso tamizado).`;
+						`Gramos enteros. El peso de grano bueno no puede superar los ${Math.floor(pesoTamizadoMax)} g (peso tamizado).`;
 				}
 			} catch { /* sin resumen, el backend valida igual */ }
 		}
@@ -467,7 +467,7 @@
 			const btn     = document.getElementById('btnGuardarPesoBueno');
 			errorEl.style.display = 'none';
 
-			const validacion = CoffeeValidators.pesoBueno(input.value, pesoTrilladoMax);
+			const validacion = CoffeeValidators.pesoBueno(input.value, pesoTamizadoMax);
 			if (!validacion.valido) {
 				errorEl.textContent = validacion.mensaje;
 				errorEl.style.display = 'block';

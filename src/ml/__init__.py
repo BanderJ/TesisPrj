@@ -1,4 +1,4 @@
 """
 CoffeeRen ML Module
-YOLO inference, ByteTrack tracker, and SCA classification.
+YOLO detection + ByteTrack tracker, and SCA classification.
 """

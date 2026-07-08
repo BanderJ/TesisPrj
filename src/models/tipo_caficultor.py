@@ -11,16 +11,6 @@ class TipoCaficultor:
         finally:
             db.close()
     
-    def obtener_por_nombre(self, nombre: str) -> int | None:
-        """Obtiene el ID de un tipo de caficultor por su nombre."""
-        db = Connection()
-        try:
-            sql = "SELECT id from tipo_caficultor WHERE nombre = %s"
-            resultado = db.obtener_uno(sql, (nombre,))
-            return int(resultado["id"]) if resultado else None
-        finally:
-            db.close()
-
     def obtener_por_id(self, tipo_caficultor_id: int) -> dict[str, Any] | None:
         """Obtiene un tipo de caficultor por su ID."""
         db = Connection()

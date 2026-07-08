@@ -2,6 +2,8 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
+import psycopg2
+
 from src.database.bd import Connection
 
 
@@ -113,6 +115,13 @@ class ValorCafe:
             if owns_db:
                 db.commit()
             return cursor.rowcount
+        except psycopg2.errors.ForeignKeyViolation as exc:
+            if owns_db:
+                db.rollback()
+            raise ValueError(
+                "No se puede eliminar este rango: una o más evaluaciones ya fueron pagadas "
+                "con uno de sus precios. Registra un precio nuevo en su lugar."
+            ) from exc
         except Exception:
             if owns_db:
                 db.rollback()

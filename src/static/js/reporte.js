@@ -19,6 +19,7 @@
         document.getElementById('metaDoc').textContent           = d.num_documento     || '—';
         document.getElementById('metaTipoCaf').textContent       = d.tipo_caficultor   || '—';
         document.getElementById('metaGrano').textContent         = d.tipo_grano        || '—';
+        document.getElementById('metaPesoQqGrano').textContent   = d.peso_qq_grano != null ? `${d.peso_qq_grano} kg` : '—';
         document.getElementById('metaRegistradoPor').textContent = d.registrado_por    || '—';
 
         document.getElementById('tdCodigo').textContent      = d.codigo                                             || '—';
@@ -179,6 +180,7 @@
             ['Documento',          g('metaDoc')],
             ['Tipo caficultor',    g('metaTipoCaf')],
             ['Tipo de grano',      g('metaGrano')],
+            ['Peso por quintal (grano)', g('metaPesoQqGrano')],
             ['Registrado por',     g('metaRegistradoPor')],
             ['Fecha',              g('tdFecha')],
             ['N° sacos',           g('tdSacos')],

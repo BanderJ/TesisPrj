@@ -12,16 +12,6 @@ class TipoDocumento:
         finally:
             db.close()
     
-    def obtener_por_nombre(self, nombre: str) -> int | None:
-        """Obtiene el ID de un tipo de documento por su nombre."""
-        db = Connection()
-        try:
-            sql = "SELECT id from tipo_documento WHERE nombre = %s"
-            resultado = db.obtener_uno(sql, (nombre,))
-            return int(resultado["id"]) if resultado else None
-        finally:
-            db.close()
-
     def obtener_por_id(self, tipo_documento_id: int) -> dict[str, Any] | None:
         """Obtiene un tipo de documento por su ID."""
         db = Connection()

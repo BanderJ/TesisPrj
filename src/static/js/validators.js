@@ -315,7 +315,7 @@ const CoffeeValidators = (() => {
         if (texto === '' || !Number.isFinite(peso)) return { valido: false, mensaje: 'Ingresa el peso de grano bueno.' };
         if (!Number.isInteger(peso))                return { valido: false, mensaje: 'El peso debe ser un número entero (gramos, sin decimales).' };
         if (peso < 0)                               return { valido: false, mensaje: 'El peso no puede ser negativo.' };
-        if (maxGramos !== null && peso > maxGramos) return { valido: false, mensaje: `El peso no puede superar el peso trillado (${maxGramos} g).` };
+        if (maxGramos !== null && peso > maxGramos) return { valido: false, mensaje: `El peso no puede superar el máximo permitido (${maxGramos} g).` };
         return { valido: true, peso };
     }
 

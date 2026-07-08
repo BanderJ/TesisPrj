@@ -13,23 +13,17 @@ from ultralytics import YOLO
 import os
 import sys
 
-from src.config import Config
 from src.utilities.servo_controller import servo_controller
-
-# Configuración de cámara
-CAMARA_WIDTH  = 1280
-CAMARA_HEIGHT = 720
-CAMARA_FPS    = 60
 
 
 class CoffeeRenTracker:
-    def __init__(self, conf: float, model_name: str = "yolov8n"):
+    def __init__(self, conf: float, model_name: str = "yolov26n_2cls"):
         """
         Inicializa el tracker de granos de café.
 
         Args:
             conf: Umbral de confianza para detecciones (0.0 - 1.0) — requerido
-            model_name: Nombre del modelo YOLO a usar (yolov8n, yolov26n, yolov26n_2cls)
+            model_name: Nombre del modelo YOLO a usar (yolov26n_2cls — único modelo activo)
         """
         self.conf = conf
         self.model_name = model_name
@@ -40,16 +34,11 @@ class CoffeeRenTracker:
         # Modelo principal — prefiere ONNX si existe, fallback a .pt
         model_path = self._resolver_modelo(BASE_DIR, model_name)
         if model_path is None:
-            fallback = "yolov8n"
-            model_path = self._resolver_modelo(BASE_DIR, fallback)
-            if model_path is None:
-                raise FileNotFoundError(
-                    f"Ningún modelo disponible:\n"
-                    f"  - Primario: {model_name} → no encontrado\n"
-                    f"  - Fallback: {fallback} → no encontrado\n"
-                    f"Descarga best.pt desde Google Drive a models/yolov8n/"
-                )
-            self.model_name = fallback
+            raise FileNotFoundError(
+                f"Modelo '{model_name}' no encontrado en models/{model_name}/ "
+                f"(se buscó best.onnx y best.pt). "
+                f"Descarga best.pt desde Google Drive a models/{model_name}/"
+            )
 
         import torch
         import numpy as np
@@ -57,7 +46,7 @@ class CoffeeRenTracker:
         self.model = YOLO(model_path)
         print(f"Modelo YOLO cargado: {self.model_name} ({os.path.basename(model_path)}, conf={conf}, device={self._device})")
 
-        self._cargar_constantes(BASE_DIR, self.model_name, secondary=False)
+        self._cargar_constantes(BASE_DIR, self.model_name)
 
         # Warmup: inicializa CUDA/ONNX con predict() — NO usar track(persist=False) aquí.
         # track(persist=False) registra un callback permanent que recrea ByteTrack
@@ -67,24 +56,10 @@ class CoffeeRenTracker:
         self.model.predict(dummy, imgsz=640, device=self._device, verbose=False)
         print("Modelo listo.")
 
-        # Modelo cascada para clasificación fina de defectos (activable via Config)
-        self.model2: YOLO | None = None
-        if Config.USE_MODELO_DEFECTOS:
-            cascada_path = self._resolver_modelo(BASE_DIR, Config.MODELO_DEFECTOS_NAME)
-            if cascada_path is not None:
-                self.model2 = YOLO(cascada_path)
-                self._cargar_constantes(BASE_DIR, Config.MODELO_DEFECTOS_NAME, secondary=True)
-                # Enriquecer equivalencias SCA con las del modelo de defectos específicos
-                self.EQUIVALENCIAS_DEFECTO = {**self.EQUIVALENCIAS_DEFECTO, **self.EQUIVALENCIAS_DEFECTO2}
-                print(f"Modelo cascada cargado: {Config.MODELO_DEFECTOS_NAME} ({os.path.basename(cascada_path)})")
-            else:
-                print(f"[WARN] Cascada desactivada — modelo no encontrado: {Config.MODELO_DEFECTOS_NAME}")
-
         # Estado del tracking
         # deque(maxlen=30): evita acumulación ilimitada si la faja se pausa
         self.conteo_ids_confianza: defaultdict[int, deque] = defaultdict(lambda: deque(maxlen=30))
         self._ids_servados: set[int] = set()
-        self._cache_tipo_defecto: dict[int, tuple[str, float]] = {}
         self.lock = threading.Lock()
 
         # Mapping ByteTrack → ID global: garantiza que el contador nunca retrocede
@@ -95,7 +70,6 @@ class CoffeeRenTracker:
         # Estadísticas y debug
         self.fps_actual = 0.0
         self.ultima_deteccion_frame_ts: float | None = None
-        self._frame_count = 0   # throttle del modelo cascada
 
     # ── Helpers de inicialización ─────────────────────────────────────────────
 
@@ -108,7 +82,7 @@ class CoffeeRenTracker:
                 return ruta
         return None
 
-    def _cargar_constantes(self, base_dir: str, model_name: str, secondary: bool) -> None:
+    def _cargar_constantes(self, base_dir: str, model_name: str) -> None:
         """Carga dinámicamente las constantes del modelo desde su constants.py."""
         constants_path = os.path.join(base_dir, "models", model_name, "constants.py")
         if not os.path.exists(constants_path):
@@ -122,16 +96,12 @@ class CoffeeRenTracker:
         sys.modules[spec.name] = mod
         spec.loader.exec_module(mod)
 
-        if secondary:
-            self.CLASES2 = mod.CLASES
-            self.EQUIVALENCIAS_DEFECTO2 = mod.EQUIVALENCIAS_DEFECTO
-        else:
-            self.CLASES                = mod.CLASES
-            self.COLORES               = mod.COLORES
-            self.EQUIVALENCIAS_DEFECTO = mod.EQUIVALENCIAS_DEFECTO
-            self.GRANO_MIN_PX          = getattr(mod, "GRANO_MIN_PX", 8)
-            self.GRANO_MAX_PX          = getattr(mod, "GRANO_MAX_PX", 200)
-            self.GRUPOS_DISPLAY        = getattr(mod, "GRUPOS_DISPLAY", {})
+        self.CLASES                = mod.CLASES
+        self.COLORES               = mod.COLORES
+        self.EQUIVALENCIAS_DEFECTO = mod.EQUIVALENCIAS_DEFECTO
+        self.GRANO_MIN_PX          = getattr(mod, "GRANO_MIN_PX", 8)
+        self.GRANO_MAX_PX          = getattr(mod, "GRANO_MAX_PX", 200)
+        self.GRUPOS_DISPLAY        = getattr(mod, "GRUPOS_DISPLAY", {})
 
     # ── Pipeline principal ────────────────────────────────────────────────────
 
@@ -147,8 +117,6 @@ class CoffeeRenTracker:
         """
         if frame is None:
             return None
-
-        self._frame_count += 1
 
         try:
             results = self.model.track(
@@ -214,10 +182,6 @@ class CoffeeRenTracker:
                     cv2.putText(frame_anotado, label, (x1 + 2, y1 - 4),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
-                # Cascada: clasificación fina de defectos genéricos cada N frames
-                if self.model2 is not None and self._frame_count % Config.MODELO_DEFECTOS_EVERY_N == 0:
-                    self._aplicar_cascada(frame, result)
-
         # Overlay de estadísticas
         total_granos = len(self.conteo_ids_confianza)
         stats_text = f"Granos: {total_granos} | FPS: {self.fps_actual:.1f} | Detecciones: {detecciones_count}"
@@ -245,7 +209,6 @@ class CoffeeRenTracker:
             ids_a_limpiar = set(self.conteo_ids_confianza.keys()) - ids_global_activos - self._ids_servados
             for tid in ids_a_limpiar:
                 del self.conteo_ids_confianza[tid]
-                self._cache_tipo_defecto.pop(tid, None)
 
         try:
             _, buffer = cv2.imencode(".jpg", frame_anotado, [cv2.IMWRITE_JPEG_QUALITY, 85])
@@ -253,50 +216,6 @@ class CoffeeRenTracker:
         except Exception as e:
             print(f"Error codificando JPEG: {e}")
             return None
-
-    def _aplicar_cascada(self, frame, result) -> None:
-        """Clasifica el tipo específico de defecto usando el modelo secundario sobre crops."""
-        h_frame, w_frame = frame.shape[:2]
-        for box in result.boxes:
-            if box.id is None:
-                continue
-            bytetrack_id = int(box.id[0])
-            with self.lock:
-                track_id = self._bytetrack_a_global.get(bytetrack_id)
-            if track_id is None:
-                continue
-
-            clase_idx = int(box.cls[0])
-            clase     = self.CLASES[clase_idx] if clase_idx < len(self.CLASES) else "desconocido"
-
-            if clase != "defecto":
-                continue
-
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            crop = frame[max(0, y1 - 4):min(h_frame, y2 + 4),
-                         max(0, x1 - 4):min(w_frame, x2 + 4)]
-            if crop.size == 0:
-                continue
-
-            try:
-                res2 = self.model2.predict(
-                    source=crop,
-                    imgsz=640,
-                    conf=Config.MODELO_DEFECTOS_CONF,
-                    verbose=False,
-                    device=self._device,
-                )
-                if res2[0].boxes is not None and len(res2[0].boxes) > 0:
-                    b2     = res2[0].boxes[0]
-                    idx2   = int(b2.cls[0])
-                    clase2 = self.CLASES2[idx2] if idx2 < len(self.CLASES2) else "desconocido"
-                    conf2  = float(b2.conf[0])
-                    # No sobreescribir con "verde" — puede ser falso positivo en el crop
-                    if clase2 != "verde":
-                        with self.lock:
-                            self._cache_tipo_defecto[track_id] = (clase2, conf2)
-            except Exception as e:
-                print(f"[CASCADE] Error: {e}")
 
     # ── API pública ───────────────────────────────────────────────────────────
 
@@ -306,7 +225,6 @@ class CoffeeRenTracker:
         with self.lock:
             self.conteo_ids_confianza = defaultdict(lambda: deque(maxlen=30))
             self._ids_servados = set()
-            self._cache_tipo_defecto = {}
             self._bytetrack_a_global = {}
             self._id_global = 0
         self.ultima_deteccion_frame_ts = None
@@ -347,7 +265,6 @@ class CoffeeRenTracker:
     def _calcular_conteo_final(self) -> dict[str, int]:
         """
         Calcula conteo final por clase usando votación por mayoría por ID.
-        Enriquece con el tipo específico del modelo cascada si está activo.
         Debe llamarse con self.lock adquirido.
         """
         conteo_por_clase: defaultdict[str, set] = defaultdict(set)
@@ -369,12 +286,6 @@ class CoffeeRenTracker:
                 )
             else:
                 clase_final = max(detecciones, key=lambda x: x[1])[0]
-
-            # Enriquecer con tipo específico de defecto (cascada)
-            if (Config.USE_MODELO_DEFECTOS
-                    and clase_final == "defecto"
-                    and track_id in self._cache_tipo_defecto):
-                clase_final = self._cache_tipo_defecto[track_id][0]
 
             conteo_por_clase[clase_final].add(track_id)
 

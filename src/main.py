@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
 from fastapi import Depends, FastAPI, Request, status
-from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.responses import Response
@@ -88,6 +89,19 @@ async def favicon():
 @app.exception_handler(RequerirLoginException)
 async def auth_exception_handler(request: Request, exc: RequerirLoginException) -> RedirectResponse:
     return RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> Response:
+    """404 en navegación del browser → página HTML; para fetch/API se mantiene el JSON."""
+    if exc.status_code == status.HTTP_404_NOT_FOUND and "text/html" in request.headers.get("accept", ""):
+        return templates.TemplateResponse(
+            request=request,
+            name="404.html",
+            context={"request": request},
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
 
 
 # ==================== RUTAS ====================

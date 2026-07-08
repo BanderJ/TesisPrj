@@ -22,6 +22,11 @@ class ReporteService:
                 "descripcion": "Distribución de usuarios activos por rol y caficultores registrados",
                 "builder": self._reporte_usuarios,
             },
+            "caficultores_tipo": {
+                "titulo": "Caficultores por tipo",
+                "descripcion": "Distribución de caficultores activos entre socios y no socios",
+                "builder": self._reporte_caficultores_tipo,
+            },
         }
 
     def listar_catalogo(self) -> list[dict[str, str]]:
@@ -54,6 +59,16 @@ class ReporteService:
             ],
             "filas": filas,
             "grafico": {"tipo": "pie", "campo_etiqueta": "categoria", "campo_valor": "cantidad"},
+        }
+
+    def _reporte_caficultores_tipo(self) -> dict[str, Any]:
+        return {
+            "columnas": [
+                {"campo": "categoria", "titulo": "Tipo de caficultor"},
+                {"campo": "cantidad", "titulo": "Cantidad"},
+            ],
+            "filas": self.reporte_model.conteo_caficultores_por_tipo(),
+            "grafico": {"tipo": "bar", "campo_etiqueta": "categoria", "campo_valor": "cantidad"},
         }
 
 

@@ -10,7 +10,6 @@
 fastapi>=0.115.0          # Framework web asincrónico
 uvicorn>=0.30.0           # Servidor ASGI para FastAPI
 python-multipart>=0.0.9   # Soporte multipart/form-data en formularios
-aiofiles>=23.2.1          # I/O asincrónico para archivos estáticos
 pydantic>=2.7.0           # Validación de datos (usado via FastAPI y schemas propios)
 
 # ============================================================
@@ -55,8 +54,3 @@ onnxslim>=0.1.71          # Optimizador de grafos ONNX — usado en la exportaci
 # ARDUINO & SERIAL
 # ============================================================
 pyserial>=3.5             # Comunicación serial con Arduino (servo + sensor ultrasónico)
-
-# ============================================================
-# UTILIDADES
-# ============================================================
-requests>=2.31.0          # HTTP client para APIs externas (Factiliza DNI)

@@ -29,10 +29,13 @@
             const res = await fetch('/evaluacion/kpis');
             if (!res.ok) return;
             const data = await res.json();
-            const kpiLotesEl    = document.getElementById('kpiLotes');
-            const kpiDefectosEl = document.getElementById('kpiDefectos');
+            const kpiLotesEl       = document.getElementById('kpiLotes');
+            const kpiDefectosEl    = document.getElementById('kpiDefectos');
+            const kpiRendimientoEl = document.getElementById('kpiRendimiento');
             if (kpiLotesEl)    kpiLotesEl.textContent    = data.total_lotes.toLocaleString('es-PE');
             if (kpiDefectosEl) kpiDefectosEl.textContent = data.total_defectos.toLocaleString('es-PE');
+            if (kpiRendimientoEl) kpiRendimientoEl.textContent =
+                data.rendimiento_promedio != null ? Number(data.rendimiento_promedio).toFixed(2) : '—';
         } catch { /* sin datos: los elementos mantienen "—" */ }
     }
 

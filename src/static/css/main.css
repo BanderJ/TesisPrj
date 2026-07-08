@@ -944,19 +944,16 @@ body.dark .password-toggle-icon {
 }
 
 .perfil-sidebar {
-    position: static;
-    height: auto;
-    min-height: 100%;
+    /* Sticky el propio sidebar (align-self: start evita que se estire con el
+       contenido) — así el menú queda fijo y no se despega en secciones largas. */
+    position: sticky;
+    top: 76px;
+    align-self: start;
+    max-height: calc(100vh - 92px);
+    overflow-y: auto;
     width: 200px;
     padding: 16px 0;
-    border-right: 2px solid var(--primary);
     background: transparent;
-    align-self: stretch;
-}
-
-.perfil-sidebar .perfil-nav {
-    position: sticky;
-    top: 140px;
 }
 
 .perfil-nav {
@@ -1009,6 +1006,9 @@ body.dark .password-toggle-icon {
     min-width: 0;
     margin: 0;
     background: transparent;
+    /* La línea divisoria va aquí (no en el sidebar sticky) porque esta columna
+       siempre ocupa toda la altura del card → divisor de altura completa. */
+    border-left: 2px solid var(--primary);
 }
 
 .perfil-section {
@@ -1049,6 +1049,9 @@ body.dark .password-toggle-icon {
     }
 
     .perfil-sidebar {
+        position: static;
+        max-height: none;
+        overflow-y: visible;
         width: 100%;
         min-height: auto;
         border-right: none;
@@ -1056,8 +1059,11 @@ body.dark .password-toggle-icon {
         padding: 12px 0;
     }
 
-    .perfil-sidebar .perfil-nav {
-        position: static;
+    .perfil-content {
+        border-left: none;
+    }
+
+    .perfil-nav {
         flex-direction: row;
         flex-wrap: wrap;
         gap: 4px;

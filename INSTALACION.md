@@ -122,8 +122,7 @@ TesisPrj/
 │   ├── models/                    # Queries SQL
 │   ├── schemas/                   # Validación Pydantic
 │   ├── ml/
-│   │   ├── inference.py           # Carga del modelo YOLO
-│   │   ├── tracker.py             # Captura USB + ByteTrack
+│   │   ├── tracker.py             # Captura USB + ByteTrack + carga del modelo YOLO
 │   │   ├── classifier.py          # Cálculo de grados (SCA)
 │   │   └── models/                # Pesos entrenados (.pt)
 │   ├── utilities/

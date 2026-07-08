@@ -94,7 +94,6 @@ TesisPrj/
 │   │   └── script.sql          # Schema PostgreSQL (personas, caficultores, evaluaciones, etc.)
 │   ├── ml/
 │   │   ├── classifier.py        # Cálculo de defectos equivalentes y grado SCA (17 clases)
-│   │   ├── inference.py         # Legacy: inferencia YOLO sin tracking
 │   │   ├── tracker.py           # ByteTrack + YOLO + carga dinámica de constantes por modelo
 │   │   └── models/
 │   │       ├── yolov8n/

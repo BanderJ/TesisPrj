@@ -59,12 +59,9 @@ When a service needs to write to multiple tables atomically, it creates one `Con
 
 ## ML Module Architecture (`src/ml/`)
 
-### `inference.py` — YOLO Model Inference
-Loads trained YOLO model (`best.pt`) and performs inference on individual frames.
-- **Class**: `CoffeeRenInference`
-- **Key method**: `predecir(frame)` → returns YOLO result object
-- **Key method**: `dibujar_detecciones(frame, result)` → returns annotated frame with bounding boxes
-- **Models location**: `src/ml/models/{model_name}/best.pt` (NOT in Git — download from Google Drive)
+### Models
+Trained YOLO weights are loaded once inside `tracker.py` (there is no separate inference module — detection happens in the tracking loop).
+- **Models location**: `src/ml/models/{model_name}/best.onnx` (fallback `best.pt`) — NOT in Git, download from Google Drive
 - **Available models**:
   - `yolov8n/best.pt` — trained unseed, batch=16, mAP50: 0.767, mAP50-95: 0.757 (75 epochs)
   - `yolo26n/best.pt` — trained seed=42, batch=16 (in progress)
@@ -143,7 +140,7 @@ Arduino → physical separation actuator
 
 - **Model loading**: Always load once at startup, cache in memory — never reload per-request
 - **Threading**: Tracker runs in background thread; routes poll `obtener_frame()` and `obtener_conteo()` (non-blocking)
-- **Frame pipeline**: inference.py → tracker.py → web streaming; never skip steps
+- **Frame pipeline**: tracker.py (detection + ByteTrack) → web streaming; never skip steps
 - **Type hints**: All ML functions use type hints (`ndarray`, `dict[str, int]`, etc.)
 - **Defect equivalents**: Must match Line Coffee Marañón's official SCA table — always verify against [docs/documentacion/](docs/documentacion/) before deploying
 - **Arduino communication**: `src/utilities/` handles serial protocol — ML modules call don't send directly

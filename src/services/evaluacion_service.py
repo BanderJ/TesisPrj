@@ -225,11 +225,13 @@ class EvaluacionService:
             return None
         return "finalizada" if fila.get("codigo") else "activa"
 
-    def obtener_kpis(self) -> dict[str, int]:
+    def obtener_kpis(self) -> dict[str, int | float | None]:
         fila = self.evaluacion_model.obtener_kpis()
+        rendimiento = fila.get("rendimiento_promedio") if fila else None
         return {
             "total_lotes": int(fila["total_lotes"]) if fila else 0,
             "total_defectos": int(fila["total_defectos"]) if fila else 0,
+            "rendimiento_promedio": float(rendimiento) if rendimiento is not None else None,
         }
 
     def finalizar_evaluacion(

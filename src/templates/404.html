@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 — CoffeeRen</title>
+    <link rel="icon" href="/static/icon/coffee-bean_icon.png">
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Pantalla completa: cubre cualquier fondo/decoración que main.css ponga en el body */
+        .error-page {
+            position: fixed;
+            inset: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--background);
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .error-card {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+            max-width: 960px;
+            width: 100%;
+        }
+
+        .error-codigo {
+            margin: 0 0 4px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .error-titulo {
+            margin: 0 0 12px;
+            font-family: var(--font-serif);
+            font-size: clamp(1.6rem, 3vw, 2.4rem);
+            line-height: 1.2;
+            color: var(--foreground);
+        }
+
+        .error-desc {
+            margin: 0 0 24px;
+            font-size: 14px;
+            color: var(--muted-foreground);
+        }
+
+        .error-imagen {
+            width: 100%;
+            max-width: 420px;
+            height: auto;
+            justify-self: end;
+        }
+
+        @media (max-width: 768px) {
+            .error-card { grid-template-columns: 1fr; text-align: center; gap: 1.5rem; }
+            .error-imagen { justify-self: center; max-width: 280px; order: -1; }
+        }
+    </style>
+</head>
+<body>
+<script>if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');</script>
+
+<main class="error-page">
+    <div class="error-card">
+        <div>
+            <p class="error-codigo" style="font-size: 40px;">Error 404</p>
+            <h1 class="error-titulo">Parece que llegaste lejos, no hay nada de café por acá</h1>
+            <p class="error-desc">La página que buscas no existe o fue movida.</p>
+            <a href="/inicio" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+                </svg>
+                Ir al inicio
+            </a>
+        </div>
+        <img src="/static/icon/error_404.png" alt="Página no encontrada" class="error-imagen">
+    </div>
+</main>
+
+</body>
+</html>

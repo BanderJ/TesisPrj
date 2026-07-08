@@ -101,6 +101,7 @@ class Evaluacion:
                         || ' ' || TRIM(p.ape_materno)                      AS caficultor_nombre,
                     tc.nombre                                               AS tipo_caficultor,
                     tg.nombre                                               AS tipo_grano,
+                    tg.peso_qq                                              AS peso_qq_grano,
                     TRIM(pe.nombre) || ' ' || TRIM(pe.ape_paterno)
                         || ' ' || TRIM(pe.ape_materno)                     AS registrado_por,
                     e.num_sacos,
@@ -268,10 +269,11 @@ class Evaluacion:
         try:
             sql = """
                 SELECT
-                    COUNT(*)                          AS total_lotes,
-                    COALESCE(SUM(total_defectos), 0)  AS total_defectos
+                    COUNT(*)                            AS total_lotes,
+                    COALESCE(SUM(total_defectos), 0)    AS total_defectos,
+                    ROUND(AVG(factor_rendimiento), 2)   AS rendimiento_promedio
                 FROM evaluacion
-                WHERE codigo IS NOT NULL
+                WHERE codigo IS NOT NULL and factor_rendimiento is NOT NULL
             """
             return db.obtener_uno(sql)
         finally:

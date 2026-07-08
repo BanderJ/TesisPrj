@@ -23,14 +23,6 @@ class Connection:
             print(f"Error al conectar a PostgreSQL: {e}")
             raise
 
-    def get_connection(self):
-        """Retorna la conexión actual"""
-        return self.conn
-
-    def get_cursor(self):
-        """Retorna el cursor actual"""
-        return self.cursor
-
     def ejecutar(self, query, params=None):
         """
         Ejecuta INSERT, UPDATE, DELETE.
@@ -94,9 +86,4 @@ class Connection:
                 self.conn.close()
         except Exception as e:
             print(f"Error al cerrar conexión: {e}")
-
-
-def obtener_conexion():
-    """Retorna una nueva instancia de Connection"""
-    return Connection()
 

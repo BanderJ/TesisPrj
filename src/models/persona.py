@@ -227,15 +227,3 @@ class Persona:
         finally:
             if owns_db:
                 db.close()
-
-    def obtener_con_cooperativa(self, persona_id: str, db: Connection | None = None) -> dict[str, Any] | None:
-        """Obtiene persona con su cooperativa_id."""
-        owns_db = db is None
-        db = db or Connection()
-
-        try:
-            sql = "SELECT id, nombre, cooperativa_id FROM PERSONA WHERE id = %s"
-            return db.obtener_uno(sql, [persona_id])
-        finally:
-            if owns_db:
-                db.close()

@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import ClassVar
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -14,6 +15,10 @@ class RegistrarEvaluacionRequest(BaseModel):
     peso_tamizado: Decimal = Field(..., gt=0)
     tipo_grano_id: int = Field(..., ge=1)
 
+    PESOS_MUESTRA_VALIDOS: ClassVar[set[Decimal]] = {
+        Decimal("100"), Decimal("150"), Decimal("200"), Decimal("250"), Decimal("300")
+    }
+
     @model_validator(mode="after")
     def validar_pesos(self):
         max_peso_bruto = self.num_sacos * Decimal("70")
@@ -21,9 +26,8 @@ class RegistrarEvaluacionRequest(BaseModel):
             raise ValueError(
                 f"El peso total no puede superar {max_peso_bruto} kg ({self.num_sacos} sacos × 70 kg)"
             )
-        peso_bruto_gramos = self.peso_bruto * Decimal("1000")
-        if self.peso_muestra > peso_bruto_gramos:
-            raise ValueError(f"El peso de muestra no puede superar el peso total ({float(peso_bruto_gramos):.2f} gr.)")
+        if self.peso_muestra not in self.PESOS_MUESTRA_VALIDOS:
+            raise ValueError("El peso de muestra debe ser 100, 150, 200, 250 o 300 gr.")
         if self.peso_trillado == self.peso_muestra:
             raise ValueError("El peso trillado debe ser diferente al peso de muestra")
         if self.peso_trillado > self.peso_muestra:
@@ -98,6 +102,8 @@ class CompletarEvaluacionResponse(BaseModel):
 class KpisEvaluacionResponse(BaseModel):
     total_lotes: int
     total_defectos: int
+    # Promedio del factor de rendimiento — None si no hay evaluaciones completadas
+    rendimiento_promedio: float | None = None
 
 
 class ResumenEvaluacionResponse(BaseModel):
@@ -107,6 +113,7 @@ class ResumenEvaluacionResponse(BaseModel):
     caficultor_nombre: str
     tipo_caficultor: str
     tipo_grano: str
+    peso_qq_grano: Decimal | None = None
     registrado_por: str
     num_sacos: int
     peso_bruto: Decimal

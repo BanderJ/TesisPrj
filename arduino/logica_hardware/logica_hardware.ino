@@ -9,7 +9,7 @@
 
 // === AJUSTES ===
 const float DISTANCIA_UMBRAL       = 5.30;   // cm — verificación de tapa
-const int   VELOCIDAD              = 220;    // velocidad faja (0-255)
+const int   VELOCIDAD              = 150;    // velocidad faja (0-255). ¡SINCRONIZAR con FAJA_VELOCIDAD_PWM en src/config.py! El delay del servo depende de este valor.
 const int   ANGULO_BUENO           = 0;      // servo: posición reposo — granos buenos/verdes
 const int   ANGULO_DEFECTO         = 15;     // servo: separador — granos defectuosos
 const unsigned long MS_DISTANCIA   = 100;    // reporte sensor cada 100 ms

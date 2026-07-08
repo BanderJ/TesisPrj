@@ -20,6 +20,26 @@ class Reporte:
         finally:
             db.close()
 
+    def conteo_caficultores_por_tipo(self) -> list[dict[str, Any]]:
+        """Cuenta caficultores activos agrupados por tipo (Socio / No socio).
+
+        LEFT JOIN desde tipo_caficultor: los tipos sin caficultores aparecen con 0.
+        """
+        db = Connection()
+        try:
+            sql = """
+                SELECT tc.nombre AS categoria,
+                       COUNT(pe.id)::int AS cantidad
+                FROM tipo_caficultor tc
+                LEFT JOIN caficultor c ON c.tipo_caficultor_id = tc.id
+                LEFT JOIN persona pe ON pe.id = c.caficultor_id AND pe.estado = 'A'
+                GROUP BY tc.nombre
+                ORDER BY cantidad DESC
+            """
+            return db.obtener(sql)
+        finally:
+            db.close()
+
     def conteo_caficultores(self) -> int:
         """Cuenta caficultores cuya persona está activa."""
         db = Connection()

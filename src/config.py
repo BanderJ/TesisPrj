@@ -31,14 +31,24 @@ class Config:
     COOPERATIVA_DEFAULT_CODIGO: str = "LCM001"
     ARDUINO_PORT: str = os.environ.get('ARDUINO_PORT') or 'COM5'
     ARDUINO_BAUDRATE: int = int(os.environ.get('ARDUINO_BAUDRATE') or '9600')
-    # Tiempo (s) entre detección por cámara y llegada del grano al servo.
-    # Ajustar según velocidad de la faja y distancia física cámara → servo.
-    SERVO_DELAY_S: float = float(os.environ.get('SERVO_DELAY_S') or '0.5')
+
+    # Velocidad PWM de la faja — DEBE coincidir con VELOCIDAD en
+    # arduino/logica_hardware/logica_hardware.ino. El tiempo de viaje del grano
+    # de la cámara al servo depende de ella, por eso se declara también aquí.
+    FAJA_VELOCIDAD_PWM: int = int(os.environ.get('FAJA_VELOCIDAD_PWM') or '150')
+
+    # Calibración de referencia: a PWM=220 el grano tarda 0.5 s en llegar al servo.
+    # El tiempo de viaje es inversamente proporcional a la velocidad de la faja,
+    # así que SERVO_DELAY_S se recalcula solo al cambiar FAJA_VELOCIDAD_PWM y el
+    # servo no vuelve a separar el grano equivocado por un delay desactualizado.
+    # (Modelo de 1er orden — verificar en banco y, si hace falta, fijar el valor
+    #  medido con SERVO_DELAY_S=<segundos> en .env, que tiene prioridad.)
+    _FAJA_PWM_REF: float = 220.0
+    _SERVO_DELAY_REF_S: float = 0.5
+    _env_servo_delay = os.environ.get('SERVO_DELAY_S')
+    SERVO_DELAY_S: float = (
+        float(_env_servo_delay) if _env_servo_delay
+        else round(_SERVO_DELAY_REF_S * _FAJA_PWM_REF / FAJA_VELOCIDAD_PWM, 3)
+    )
     # Tiempo (s) que el servo permanece en posición DEFECTO antes de volver a BUENO.
     SERVO_HOLD_S: float = float(os.environ.get('SERVO_HOLD_S') or '0.3')
-    # Cascada: clasificación fina de defectos con un segundo modelo YOLO.
-    # Activar con USE_MODELO_DEFECTOS=true en .env cuando yolov26n esté disponible.
-    USE_MODELO_DEFECTOS: bool = os.environ.get('USE_MODELO_DEFECTOS', 'false').lower() == 'true'
-    MODELO_DEFECTOS_NAME: str = os.environ.get('MODELO_DEFECTOS_NAME') or 'yolov26n'
-    MODELO_DEFECTOS_EVERY_N: int = int(os.environ.get('MODELO_DEFECTOS_EVERY_N') or '5')
-    MODELO_DEFECTOS_CONF: float = float(os.environ.get('MODELO_DEFECTOS_CONF') or '0.35')

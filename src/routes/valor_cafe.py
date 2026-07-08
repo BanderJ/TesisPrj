@@ -10,8 +10,6 @@ from src.schemas.valor_cafe import (
     ValorCafeCrearBloqueResponse,
     ValorCafeEliminarRangoResponse,
     ValorCafeHistorialResponse,
-    ValorCafeCrearRequest,
-    ValorCafeCrearResponse,
     ValorCafeMaximoResponse,
     ValorCafeResumenRangosResponse,
 )
@@ -70,31 +68,6 @@ async def resumen_rangos(
         raise HTTPException(status_code=500, detail="No se pudo obtener el resumen por rangos") from exc
 
 
-@valor_cafe_router.post("/crear", response_model=ValorCafeCrearResponse)
-async def crear_valor_cafe(
-    request: Request,
-    data: ValorCafeCrearRequest,
-    user: dict = Depends(require_admin_o_gerente),
-) -> ValorCafeCrearResponse:
-    try:
-        result = valor_cafe_service.crear_precio(data)
-        auditoria_service.registrar(
-            accion="CREAR_VALOR_CAFE",
-            personal_id=user.get("personal_id"),
-            usuario=user.get("usuario"),
-            tipo_personal_id=user.get("tipo_personal_id"),
-            rol=user.get("rol"),
-            tabla_afectada="VALOR_CAFE",
-            descripcion=f"Precio café registrado: rango={data.rango}, precio={data.precio}",
-            ip_cliente=get_client_ip(request),
-        )
-        return result
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al crear el registro") from exc
-
-
 @valor_cafe_router.patch("/actualizar-precio", response_model=ValorCafeActualizarPrecioResponse)
 async def actualizar_precio_rango(
     request: Request,
@@ -137,6 +110,8 @@ async def eliminar_rango(
             ip_cliente=get_client_ip(request),
         )
         return result
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail="Error al eliminar el rango") from exc
 

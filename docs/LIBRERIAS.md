@@ -52,8 +52,8 @@ Motor de plantillas HTML. El servidor rellena variables `{{ }}` y bloques `{% %}
 {% block script %} <script>const EVALUACION_ID = '{{ evaluacion_id }}';</script> {% endblock %}
 ```
 
-### python-multipart / aiofiles
-Soporte de formularios con archivos (`multipart/form-data`) y lectura/escritura async. Se usan al subir la imagen de la cooperativa:
+### python-multipart
+Soporte de formularios con archivos (`multipart/form-data`). Se usa al subir la imagen de la cooperativa:
 ```python
 @router.post("/upload-imagen")
 async def upload(file: UploadFile = File(...)):   # multipart hace esto posible
@@ -270,7 +270,7 @@ req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
 with urllib.request.urlopen(req, timeout=8) as resp:
     data = json.loads(resp.read())
 ```
-> Nota: `requests` figura en `requirements.txt` pero el código usa `urllib` (estándar, sin instalar nada). Se puede quitar `requests` del requirements.
+> Nota: se usa `urllib` (estándar, sin instalar nada) en vez de `requests`, por eso `requests` no está en `requirements.txt`.
 
 ### Otros de uso puntual
 | Módulo | Uso en el proyecto |
@@ -293,7 +293,7 @@ chart.setOption({ series: [{ type: 'pie', data: [{name: 'Admin', value: 4}] }] }
 chart.resize();   // al cambiar el tamaño de la ventana
 ```
 
-### SheetJS / xlsx (CDN en analisis.html)
+### SheetJS / xlsx (CDN en reporte.html y analisis.html)
 Genera archivos Excel en el navegador, sin backend.
 ```javascript
 const ws = XLSX.utils.aoa_to_sheet([['Código', 'EVA0000001'], ['Granos', 200]]);
