@@ -64,6 +64,7 @@
             const cancelBtn  = document.getElementById('cm-cancel');
             const progress   = document.getElementById('cm-progress');
             let _timer           = null;
+            let _hideTimer       = null;
             let _confirmResolve  = null;
 
             function _resetButtons() {
@@ -83,13 +84,14 @@
                 box.style.opacity        = '0';
                 box.style.transform      = 'scale(0.88) translateY(14px)';
                 progress.style.animation = 'none';
-                setTimeout(() => {
+                _hideTimer = setTimeout(() => {
                     overlay.style.display = 'none';
                     overlay.setAttribute('aria-hidden', 'true');
                 }, 260);
             }
 
             function _animate() {
+                clearTimeout(_hideTimer);  // cancela el ocultado pendiente de un close() reciente
                 overlay.style.display = 'flex';
                 overlay.setAttribute('aria-hidden', 'false');
                 box.style.transition = 'none';
@@ -238,3 +240,20 @@
                 console.error('Error cargando cooperativa:', error);
             }
         })();
+
+        // === Toggle ver/ocultar contraseña (delegado, reutilizable) ===
+        // Cualquier página: envolver el input en .password-wrapper y agregar
+        // un botón .password-toggle-btn con img .password-toggle-icon
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.password-toggle-btn');
+            if (!btn) return;
+            const input = btn.closest('.password-wrapper')?.querySelector('input');
+            const icon = btn.querySelector('.password-toggle-icon');
+            if (!input || !icon) return;
+
+            const mostrar = input.type === 'password';
+            input.type = mostrar ? 'text' : 'password';
+            icon.src = mostrar ? '/static/icon/visibility_on.svg' : '/static/icon/visibility_off.svg';
+            btn.setAttribute('aria-label', mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña');
+            btn.setAttribute('aria-pressed', String(mostrar));
+        });

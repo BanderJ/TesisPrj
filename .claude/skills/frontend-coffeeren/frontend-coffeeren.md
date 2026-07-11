@@ -127,7 +127,7 @@ Toda página usa `{% extends "main.html" %}` y dos bloques:
 {% extends "main.html" %}
 
 {% block style %}
-<link rel="stylesheet" href="/static/css/<pagina>.css?v=1">
+<link rel="stylesheet" href="/static/css/<pagina>.css">
 {% endblock %}
 
 {% block content %}
@@ -136,7 +136,7 @@ Toda página usa `{% extends "main.html" %}` y dos bloques:
 ```
 
 **Nunca** repetir nav, header, footer, modales ni scripts de main.html.  
-**Siempre** incrementar `?v=N` en el link CSS al modificar el archivo CSS.
+**Nota:** ya NO se usa `?v=N` — `main.py` sirve los estáticos con `Cache-Control: no-cache` (`_NoCacheStaticFiles`), el navegador revalida solo (304 si no cambió).
 
 ## Excepción: login.html
 Es la única página sin `{% extends %}` — tiene su propio `<html>` completo y carga `login.css` directamente.
@@ -396,26 +396,30 @@ Documentación completa: [`docs/API_VIDEO_STREAMING.md`](../../docs/API_VIDEO_ST
 
 # INTEGRACIÓN ARDUINO / SERIAL
 
-El Arduino (`arduino/coffe_ren/logica_hardware.ino`) comunica por serial a 9600 baud.
+El Arduino (`arduino/logica_hardware/logica_hardware.ino`) comunica por serial a **9600 baud** (los clones con resonador cerámico no sostienen 115200). El puerto lo gestiona **solo el backend** (`src/utilities/arduino_serial.py`, hilo lector + estado cacheado) — el frontend **nunca** habla serial directo, consume endpoints HTTP.
 
-**Comando clave para capturar `peso_bueno`:**
-- Enviar: `PF\n`
-- Respuesta JSON: `{"tipo":"peso_final","g":142.50,"kg":0.143}`
+**Protocolo real (Arduino → backend):**
+- `LISTO:4.32` / `NO_LISTO:8.50` — distancia (cm) del sensor de tapa, cada 100 ms
+- `SISTEMA:LISTO` — el Arduino terminó su arranque
+- `PESO:142.50` — báscula HX711 (**retirada temporalmente** — no se emite)
 
-**Patrón de lectura en el frontend** (vía Web Serial API o backend proxy):
+**Comandos (backend → Arduino):** `ON`, `OFF`, `SERVO:BUENO`, `SERVO:DEFECTO`, `TARE` (ignorado sin báscula)
+
+**Endpoints que consume el frontend:**
 ```javascript
-// Al finalizar evaluación — extraer kg del JSON de Arduino
-const line = /* línea recibida del serial */;
-if (line.includes('"tipo":"peso_final"')) {
-    const parsed = JSON.parse(line);
-    pesoBuenoKg = parsed.kg;  // → enviar a PATCH /evaluacion/{id}/completar
-}
+// GET  /arduino/estado        → { listo, distancia, conectado, mensaje }
+// GET  /arduino/peso          → { peso, conectado, mensaje }  (peso=null sin báscula)
+// POST /arduino/tare          → { ok, mensaje }
+// POST /arduino/motor/iniciar → { activo, mensaje }   (faja)
+// POST /arduino/motor/detener → { activo, mensaje }
 ```
 
+**`peso_bueno` es INGRESO MANUAL:** sin celda de carga, el evaluador pesa el grano bueno en una balanza externa y lo ingresa como **entero en gramos** — en el modal de finalización de monitoreo, o en `/analisis` como respaldo si la evaluación quedó sin factor. Validación compartida en `CoffeeValidators.pesoBueno(valor, maxTrillado)` (entero, ≥ 0, ≤ peso trillado).
+
 **Flujo completo de finalización:**
-1. Enviar `PF` al Arduino → esperar `{"tipo":"peso_final",...}`
-2. `PATCH /evaluacion/{id}/completar` con `{ total_defectos, peso_bueno: kg }`
-3. Respuesta incluye `codigo`, `pago`, `peso_por_qq`, `categoria`
+1. `PATCH /evaluacion/{id}/finalizar` → asigna código EVA (usa `total_defectos` de `/video/lote/conteo`)
+2. El evaluador ingresa el peso bueno (g, entero) en el modal
+3. `PATCH /evaluacion/{id}/completar` con `{ total_defectos, peso_bueno }` → responde `codigo`, `factor_rendimiento`, `pago`, `peso_por_qq`, `categoria`
 4. Navegar a `/analisis/{evaluacion_id}`
 
 ---

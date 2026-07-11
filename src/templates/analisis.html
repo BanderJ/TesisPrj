@@ -1,7 +1,7 @@
-{% extends "main.html" %}
+﻿{% extends "main.html" %}
 
 {% block style %}
-<link rel="stylesheet" href="/static/css/analisis.css?v=7">
+<link rel="stylesheet" href="/static/css/analisis.css">
 {% endblock %}
 
 {% block content %}
@@ -55,6 +55,10 @@
 				<strong id="metaGrano">—</strong>
 			</div>
 			<div class="analisis-chip">
+				<span>Peso por quintal</span>
+				<strong id="metaPesoQqGrano">—</strong>
+			</div>
+			<div class="analisis-chip">
 				<span>Registrado por</span>
 				<strong id="metaRegistradoPor">—</strong>
 			</div>
@@ -74,7 +78,7 @@
 			<div class="stat-card-sub">Detectados por IA</div>
 		</div>
 		<div class="stat-card">
-			<div class="stat-card-label">Sanos</div>
+			<div class="stat-card-label">Buenos</div>
 			<div class="stat-card-value accent-green" id="statSanos">—</div>
 			<div class="stat-card-sub">Sin defecto</div>
 		</div>
@@ -113,7 +117,7 @@
 
 		<!-- RIGHT: classification + defect breakdown -->
 		<div class="analisis-section">
-			<h3>Defectos detectados</h3>
+			<h3>Granos detectados</h3>
 
 			<!-- Classification badges -->
 			<div class="clasificacion-row">
@@ -144,7 +148,7 @@
 			</div>
 			<div class="defect-stat">
 				<div class="defect-stat-header">
-					<span>Sanos</span>
+					<span>Buenos</span>
 					<strong id="dSanoVal">0</strong>
 				</div>
 				<div class="defect-track">
@@ -156,6 +160,70 @@
 				Los defectos son detectados automáticamente por visión artificial en tiempo real.
 			</p>
 		</div>
+	</div>
+
+	<!-- Factor de rendimiento: pendiente (input manual) o calculado -->
+	<div class="analisis-section" id="rendimientoSection">
+		<h3>Factor de rendimiento</h3>
+
+		<div id="rendimientoPendiente" style="display:none;">
+			<p class="analisis-note" style="margin-bottom:10px;">
+				Esta evaluación aún no tiene el peso de grano bueno registrado.
+				Pesa el grano bueno separado e ingresa el valor para calcular el rendimiento.
+			</p>
+			<div style="display:flex;gap:10px;max-width:480px;">
+				<input id="inputPesoBuenoAnalisis" type="number" min="0" step="1" inputmode="numeric" placeholder="Peso de grano bueno (g)"
+					style="flex:1;min-width:0;height:42px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--input);color:var(--foreground);font-size:15px;font-weight:600;">
+				<button type="button" id="btnGuardarPesoBuenoAnalisis" class="btn-export btn-primary-soft" style="white-space:nowrap;">
+					Calcular rendimiento
+				</button>
+			</div>
+			<p id="pesoBuenoHintAnalisis" style="margin:8px 0 0;font-size:12px;color:var(--muted-foreground);">Gramos enteros.</p>
+			<p id="pesoBuenoErrorAnalisis" style="display:none;margin:8px 0 0;font-size:13px;color:var(--destructive,#dc2626);"></p>
+		</div>
+
+		<div id="rendimientoCalculado" style="display:none;" class="clasificacion-row">
+			<div class="clasificacion-card grado">
+				<span>Factor rendimiento</span>
+				<strong id="rendFactor">—</strong>
+			</div>
+			<div class="clasificacion-card">
+				<span>Peso bueno</span>
+				<strong id="rendPesoBueno">—</strong>
+			</div>
+			<div class="clasificacion-card">
+				<span>Peso por quintal</span>
+				<strong id="rendPesoQq">—</strong>
+			</div>
+			<div class="clasificacion-card">
+				<span id="rendPrecioLabel">Precio quintal (S/)</span>
+				<strong id="rendPrecio">—</strong>
+			</div>
+			<div class="clasificacion-card">
+				<span>Pago (S/)</span>
+				<strong id="rendPago">—</strong>
+			</div>
+			<div class="clasificacion-card">
+				<span>Categoría</span>
+				<strong id="rendCategoria">—</strong>
+			</div>
+		</div>
+	</div>
+
+	<!-- Incidencias de tapa (visible solo si las hay) -->
+	<div id="incidenciasSection" style="display:none;" class="analisis-section analisis-incidencias">
+		<h3>Incidencias durante el monitoreo</h3>
+		<p class="analisis-note" style="margin-bottom:10px;">Se registró cada apertura de tapa durante el monitoreo (la faja no se detiene). El evaluador debe validar si el lote sigue siendo confiable.</p>
+		<table class="data-table">
+			<thead>
+				<tr>
+					<th>Apertura (s)</th>
+					<th>Cierre (s)</th>
+					<th>Duración abierta</th>
+				</tr>
+			</thead>
+			<tbody id="incidenciasTbody"></tbody>
+		</table>
 	</div>
 
 	<!-- Actions -->

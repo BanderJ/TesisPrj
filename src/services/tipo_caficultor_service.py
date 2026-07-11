@@ -23,7 +23,3 @@ class TipoCaficultorService:
             )
             for item in resultados
         ]
-
-    def obtener_id_por_nombre(self, nombre: str) -> int | None:
-        """Retorna el ID del tipo de caficultor por nombre."""
-        return self.tipo_caficultor_model.obtener_por_nombre(nombre)

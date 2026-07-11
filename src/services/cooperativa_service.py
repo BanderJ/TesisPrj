@@ -1,8 +1,7 @@
+from src.config import Config
 from src.database.bd import Connection
 from src.models.cooperativa import Cooperativa
 from src.schemas.cooperativa import CooperativaCreate, CooperativaUpdate
-
-_COOPERATIVA_DEFAULT_CODIGO = "LCM001"
 
 
 class CooperativaService:
@@ -10,25 +9,13 @@ class CooperativaService:
         self.model = Cooperativa()
 
     def obtener_todas(self) -> list[dict]:
-        db = Connection()
-        try:
-            return self.model.obtener_todas(db)
-        finally:
-            db.close()
+        return self.model.obtener_todas()
 
     def obtener_por_id(self, cooperativa_id: str) -> dict | None:
-        db = Connection()
-        try:
-            return self.model.obtener_por_id(cooperativa_id, db)
-        finally:
-            db.close()
+        return self.model.obtener_por_id(cooperativa_id)
 
     def obtener_por_codigo(self, codigo: str) -> dict | None:
-        db = Connection()
-        try:
-            return self.model.obtener_por_codigo(codigo, db)
-        finally:
-            db.close()
+        return self.model.obtener_por_codigo(codigo)
 
     def crear(self, data: CooperativaCreate) -> dict:
         db = Connection()
@@ -100,7 +87,7 @@ class CooperativaService:
             if cooperativa:
                 return cooperativa
 
-            default_id = self.model.obtener_id_por_codigo(_COOPERATIVA_DEFAULT_CODIGO, db)
+            default_id = self.model.obtener_id_por_codigo(Config.COOPERATIVA_DEFAULT_CODIGO, db)
             if not default_id:
                 return None
 

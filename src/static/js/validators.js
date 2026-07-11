@@ -302,8 +302,25 @@ const CoffeeValidators = (() => {
         return { cargarDepartamentos, seleccionar, getUbigeo: () => $dist.value || null };
     }
 
+    // ── 6. Peso de grano bueno (gramos enteros, tope = peso trillado) ──
+
+    /**
+     * @param {string|number} valor      — valor ingresado por el usuario
+     * @param {number|null}   maxGramos  — peso trillado (tope), o null si no se conoce
+     * @returns {{valido: boolean, peso?: number, mensaje?: string}}
+     */
+    function pesoBueno(valor, maxGramos = null) {
+        const texto = String(valor ?? '').trim();
+        const peso  = Number(texto);
+        if (texto === '' || !Number.isFinite(peso)) return { valido: false, mensaje: 'Ingresa el peso de grano bueno.' };
+        if (!Number.isInteger(peso))                return { valido: false, mensaje: 'El peso debe ser un número entero (gramos, sin decimales).' };
+        if (peso < 0)                               return { valido: false, mensaje: 'El peso no puede ser negativo.' };
+        if (maxGramos !== null && peso > maxGramos) return { valido: false, mensaje: `El peso no puede superar el máximo permitido (${maxGramos} g).` };
+        return { valido: true, peso };
+    }
+
     // ── API pública ────────────────────────────────────────────────────
 
-    return { documento, contrasena, confirmar, telefono, ubigeo };
+    return { documento, contrasena, confirmar, telefono, ubigeo, pesoBueno };
 
 })();

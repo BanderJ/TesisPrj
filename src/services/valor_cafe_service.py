@@ -1,7 +1,6 @@
 from datetime import date, timedelta
 from typing import Any
 
-from src.database.bd import Connection
 from src.models.valor_cafe import ValorCafe
 from src.schemas.valor_cafe import (
     CambioDiario,
@@ -10,7 +9,6 @@ from src.schemas.valor_cafe import (
     ValorCafeCrearBloqueRequest,
     ValorCafeCrearBloqueResponse,
     ValorCafeCambiosDiariosResponse,
-    ValorCafeCrearRequest,
     ValorCafeCrearResponse,
     ValorCafeEliminarRangoResponse,
     ValorCafeHistorialResponse,
@@ -91,15 +89,6 @@ class ValorCafeService:
             data=items,
         )
 
-    def crear_precio(self, data: ValorCafeCrearRequest) -> ValorCafeCrearResponse:
-        fila = self.model.crear(data.rango, data.precio)
-        return ValorCafeCrearResponse(
-            id=str(fila["id"]),
-            rango=fila["rango"],
-            precio=float(fila["precio"]),
-            fecha=fila["fecha"],
-        )
-
     def crear_precios_bloque(self, data: ValorCafeCrearBloqueRequest) -> ValorCafeCrearBloqueResponse:
         filas = self.model.crear_bloque([(item.rango, item.precio) for item in data.precios])
         items = [
@@ -115,23 +104,17 @@ class ValorCafeService:
         return ValorCafeCrearBloqueResponse(total=len(items), data=items)
 
     def actualizar_precio_rango(self, rango: str, precio: float) -> ValorCafeActualizarPrecioResponse:
-        """Elimina los registros del rango en el día actual e inserta uno nuevo con el precio dado."""
-        db = Connection()
-        try:
-            self.model.eliminar_por_rango_fecha(rango, date.today(), db=db)
-            fila = self.model.crear(rango, precio, db=db)
-            db.commit()
-            return ValorCafeActualizarPrecioResponse(
-                id=str(fila["id"]),
-                rango=fila["rango"],
-                precio=float(fila["precio"]),
-                fecha=fila["fecha"],
-            )
-        except Exception:
-            db.rollback()
-            raise
-        finally:
-            db.close()
+        """Registra un NUEVO precio para el rango — nunca borra ni modifica los anteriores.
+        Los registros previos son históricos (las evaluaciones completadas los referencian)
+        y permiten ver la variación del precio durante el día. Las consultas de precio
+        vigente siempre toman el registro más reciente por fecha."""
+        fila = self.model.crear(rango, precio)
+        return ValorCafeActualizarPrecioResponse(
+            id=str(fila["id"]),
+            rango=fila["rango"],
+            precio=float(fila["precio"]),
+            fecha=fila["fecha"],
+        )
 
     def eliminar_rango_hoy(self, rango: str) -> ValorCafeEliminarRangoResponse:
         """Elimina todos los registros del rango en el día actual."""

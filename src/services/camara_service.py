@@ -1,4 +1,5 @@
 import threading
+import time
 import numpy as np
 import cv2
 
@@ -15,6 +16,7 @@ class CamaraService:
         self._cap_lock = threading.Lock()
         self._latest_jpeg: bytes | None = None
         self._latest_frame: np.ndarray | None = None
+        self._latest_ts: float | None = None  # time.monotonic() de captura del frame
         self._frame_lock = threading.Lock()
         self._new_frame = threading.Event()
         self._running = False
@@ -44,6 +46,7 @@ class CamaraService:
             with self._frame_lock:
                 self._latest_jpeg = buf.tobytes()
                 self._latest_frame = frame
+                self._latest_ts = time.monotonic()
             self._new_frame.set()
 
     # ── API pública ────────────────────────────────────────────────────
@@ -121,10 +124,12 @@ class CamaraService:
         with self._frame_lock:
             return self._latest_jpeg
 
-    def obtener_frame_bgr(self) -> np.ndarray | None:
-        """Retorna el último frame BGR crudo (sin pasar por JPEG). Para YOLO."""
+    def obtener_frame_bgr(self) -> tuple[np.ndarray | None, float | None]:
+        """Retorna el último frame BGR crudo y su timestamp de captura
+        (time.monotonic()). El timestamp permite programar el servo desde el
+        momento real de captura, sin el sesgo de la latencia de inferencia."""
         with self._frame_lock:
-            return self._latest_frame
+            return self._latest_frame, self._latest_ts
 
 
 camara_service = CamaraService()

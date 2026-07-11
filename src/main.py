@@ -4,11 +4,15 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
 from fastapi import Depends, FastAPI, Request, status
-from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.responses import Response
+from starlette.types import Scope
 
 from src.routes.arduino import arduino_router
+from src.routes.auditoria import auditoria_router
 from src.routes.auth_login import auth as auth_router
 from src.routes.caficultor import caficultor_router
 from src.routes.camara import camara_router
@@ -17,6 +21,7 @@ from src.routes.evaluacion import evaluacion_router
 from src.routes.dni import dni_router
 from src.routes.perfil import perfil
 from src.routes.persona import persona_router
+from src.routes.reporte import reporte_router
 from src.routes.tipo_caficultor import tipo_caficultor_router
 from src.routes.tipo_documento import tipo_documento_router
 from src.routes.tipo_grano import tipo_grano_router
@@ -53,12 +58,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
     print("Application is shutting down...")
 
 
+class _NoCacheStaticFiles(StaticFiles):
+    """StaticFiles con Cache-Control: no-cache para que el browser siempre revalide.
+    Cada request comprueba si el archivo cambió (304 si no cambió → sin descarga).
+    Elimina la necesidad de incrementar ?v=N en templates manualmente."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 # ==================== APLICACIÓN ====================
 
 app = FastAPI(lifespan=lifespan)
 
-app.mount("/static", StaticFiles(directory="src/static"), name="static")
-app.mount("/resources", StaticFiles(directory="src/resources"), name="resources")
+app.mount("/static", _NoCacheStaticFiles(directory="src/static"), name="static")
+app.mount("/resources", _NoCacheStaticFiles(directory="src/resources"), name="resources")
 
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
 templates = Jinja2Templates(directory=templates_dir)
@@ -75,9 +91,23 @@ async def auth_exception_handler(request: Request, exc: RequerirLoginException) 
     return RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> Response:
+    """404 en navegación del browser → página HTML; para fetch/API se mantiene el JSON."""
+    if exc.status_code == status.HTTP_404_NOT_FOUND and "text/html" in request.headers.get("accept", ""):
+        return templates.TemplateResponse(
+            request=request,
+            name="404.html",
+            context={"request": request},
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
+
+
 # ==================== RUTAS ====================
 
 app.include_router(arduino_router)
+app.include_router(auditoria_router)
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
 app.include_router(camara_router, prefix="/camara", tags=["camara"])
@@ -86,6 +116,7 @@ app.include_router(evaluacion_router, prefix="/evaluacion", tags=["evaluacion"])
 app.include_router(dni_router, prefix="/dni", tags=["dni"])
 app.include_router(perfil, prefix="/perfil", tags=["perfil"])
 app.include_router(persona_router, prefix="/persona", tags=["persona"])
+app.include_router(reporte_router)
 app.include_router(tipo_caficultor_router, prefix="/tipo-caficultor", tags=["tipo-caficultor"])
 app.include_router(tipo_documento_router, prefix="/tipo-documento", tags=["tipo-documento"])
 app.include_router(tipo_grano_router, prefix="/tipo-grano", tags=["tipo-grano"])
@@ -177,7 +208,7 @@ async def nuevo_caficultor(request: Request, user: dict[str, Any] = Depends(obte
     """Pantalla de registro y conversion de caficultores."""
     return templates.TemplateResponse(
         request=request,
-        name="nuevo_caficultor.html",
+        name="caficultor.html",
         context={"request": request, "user": user},
     )
 
@@ -207,6 +238,6 @@ async def configuracion_cooperativa(request: Request, user: dict[str, Any] = Dep
     """Pantalla de configuración de cooperativa."""
     return templates.TemplateResponse(
         request=request,
-        name="configuracion_cooperativa.html",
+        name="cooperativa.html",
         context={"request": request, "user": user},
     )

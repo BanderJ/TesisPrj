@@ -93,20 +93,9 @@
             }
 
             CoffeeModal.success('Datos actualizados correctamente.', 'Cambios guardados');
-
-            setTimeout(() => {
-                CoffeeModal.info(
-                    'Los cambios se reflejarán al reiniciar sesión. Se cerrará la sesión ahora.',
-                    'Por favor reinicie sesión'
-                );
-
-                setTimeout(() => {
-                    window.location.href = '/auth/logout';
-                }, 2500);
-            }, 1500);
+            setTimeout(() => window.location.reload(), 1500);
         } catch (error) {
             CoffeeModal.error(error.message || 'No se pudo actualizar los datos.');
-        } finally {
             btnGuardarDatos.disabled = false;
             btnGuardarDatos.innerHTML = btnOriginal;
         }

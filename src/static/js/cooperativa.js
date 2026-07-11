@@ -2,6 +2,11 @@
     let tiposPersonal = [];
     let tiposDocumento = [];
 
+    // === Contador descripción ===
+    document.getElementById('descripcion').addEventListener('input', function () {
+        document.getElementById('contadorDescripcion').textContent = `${this.value.length}/255`;
+    });
+
     // === Navegación entre secciones ===
     document.querySelectorAll('.perfil-nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -27,6 +32,10 @@
                     cargarUsuarios();
                 } else if (section === 'caficultores') {
                     cargarCaficultores();
+                } else if (section === 'auditoria') {
+                    inicializarAuditoria();
+                } else if (section === 'reportes') {
+                    inicializarReportes();
                 }
             }
         });
@@ -49,7 +58,9 @@
             document.getElementById('direccion').value = data.direccion || '';
             document.getElementById('telefono').value = data.telefono || '';
             document.getElementById('correo').value = data.correo || '';
-            document.getElementById('descripcion').value = data.descripcion || '';
+            const descEl = document.getElementById('descripcion');
+            descEl.value = data.descripcion || '';
+            document.getElementById('contadorDescripcion').textContent = `${descEl.value.length}/255`;
             document.getElementById('imagen_url').value = data.imagen_url || '';
 
             if (data.imagen_url) {
@@ -62,6 +73,8 @@
                 document.getElementById('navTiposGrano').hidden = false;
                 document.getElementById('navUsuarios').hidden = false;
                 document.getElementById('navCaficultores').hidden = false;
+                document.getElementById('navAuditoria').hidden = false;
+                document.getElementById('navReportes').hidden = false;
                 await cargarCatalogos();
             }
 
@@ -537,7 +550,7 @@
         usuariosTableBody.innerHTML = usuarios.map(u => `
             <tr>
                 <td><strong>${u.nombre} ${u.ape_paterno} ${u.ape_materno}</strong></td>
-                <td>@${u.usuario}</td>
+                <td>${u.usuario}</td>
                 <td>${u.num_documento}</td>
                 <td>${u.tipo_personal}</td>
                 <td>
@@ -586,11 +599,14 @@
                 body: JSON.stringify({ estado: nuevoEstado }),
             });
 
-            if (!res.ok) throw new Error('Error');
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(typeof err.detail === 'string' ? err.detail : `No se pudo ${accion} el usuario`);
+            }
             CoffeeModal.success(`Usuario ${accion}do correctamente`);
             cargarUsuarios();
         } catch (error) {
-            CoffeeModal.error(error.message);
+            CoffeeModal.error(error.message, 'Usuario restringido');
         }
     };
 
@@ -723,8 +739,8 @@
             return `
                 <tr style="cursor:pointer;" onclick="verDetalleCaficultor('${c.persona_id}')">
                     <td><strong>${nombre}</strong></td>
-                    <td>${c.num_documento}</td>
                     <td><span style="padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;${badgeStyle}">${c.tipo_caficultor}</span></td>
+                    <td>${c.num_documento}</td>
                     <td style="color:var(--muted-foreground);font-size:13px;">${ubicacion}</td>
                     <td>${c.telefono || '—'}</td>
                     <td class="acciones-celda">
@@ -782,6 +798,295 @@
             document.body.style.overflow = '';
         }
     });
+
+    // ════════════════════════════════════════════════════
+    // MÓDULO AUDITORÍA
+    // ════════════════════════════════════════════════════
+
+    let auditPagina = 1;
+    const AUDIT_LIMITE = 50;
+    let auditIniciada = false;
+
+    const ACCION_BADGE = {
+        LOGIN:                 'login',
+        LOGIN_FALLIDO:         'login-fail',
+        LOGOUT:                'logout',
+        CREAR_EVALUACION:      'crear',
+        COMPLETAR_EVALUACION:  'completar',
+        CREAR_CAFICULTOR:      'crear',
+        CONVERTIR_SOCIO:       'crear',
+        CREAR_USUARIO:         'crear',
+        ACTUALIZAR_USUARIO:    'actualizar',
+        ACTIVAR_USUARIO:       'crear',
+        DESACTIVAR_USUARIO:    'desactivar',
+        CAMBIAR_CLAVE:         'actualizar',
+        CAMBIAR_CLAVE_USUARIO: 'actualizar',
+        ACTUALIZAR_PERFIL:     'actualizar',
+        CREAR_COOPERATIVA:     'crear',
+        ACTUALIZAR_COOPERATIVA:'actualizar',
+        DESACTIVAR_COOPERATIVA:'desactivar',
+        CREAR_VALOR_CAFE:      'crear',
+        ACTUALIZAR_VALOR_CAFE: 'actualizar',
+        ELIMINAR_VALOR_CAFE:   'eliminar',
+    };
+
+    function auditBadgeClass(accion) {
+        return 'audit-badge audit-badge--' + (ACCION_BADGE[accion] || 'default');
+    }
+
+    function formatFecha(isoStr) {
+        if (!isoStr) return '—';
+        const d = new Date(isoStr);
+        const pad = n => String(n).padStart(2, '0');
+        return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    async function cargarAccionesDisponibles() {
+        try {
+            const res = await fetch('/auditoria/acciones');
+            if (!res.ok) return;
+            const { acciones } = await res.json();
+            const sel = document.getElementById('filtroAccion');
+            acciones.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a;
+                opt.textContent = a.replace(/_/g, ' ');
+                sel.appendChild(opt);
+            });
+        } catch (_) {}
+    }
+
+    async function cargarAuditoria(pagina = 1) {
+        const tbody = document.getElementById('auditTableBody');
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted-foreground);">Cargando...</td></tr>';
+
+        const params = new URLSearchParams();
+        const usuario = document.getElementById('filtroUsuario').value.trim();
+        const tipoP   = document.getElementById('filtroTipoPersonal').value;
+        const accion  = document.getElementById('filtroAccion').value;
+        const desde   = document.getElementById('filtroFechaDesde').value;
+        const hasta   = document.getElementById('filtroFechaHasta').value;
+
+        if (usuario) params.set('usuario', usuario);
+        if (tipoP)   params.set('tipo_personal_id', tipoP);
+        if (accion)  params.set('accion', accion);
+        if (desde)   params.set('fecha_desde', desde);
+        if (hasta)   params.set('fecha_hasta', hasta);
+        params.set('pagina', pagina);
+        params.set('limite', AUDIT_LIMITE);
+
+        try {
+            const res = await fetch('/auditoria?' + params.toString());
+            if (!res.ok) throw new Error('Error al cargar auditoría');
+            const data = await res.json();
+
+            document.getElementById('auditTotal').textContent =
+                `${data.total.toLocaleString()} registro${data.total !== 1 ? 's' : ''} encontrado${data.total !== 1 ? 's' : ''}`;
+
+            if (data.registros.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted-foreground);">No hay registros para los filtros seleccionados.</td></tr>';
+                document.getElementById('auditPaginacion').hidden = true;
+                return;
+            }
+
+            tbody.innerHTML = data.registros.map(r => `
+                <tr>
+                    <td style="font-family:'JetBrains Mono';font-size:12px;white-space:nowrap;">${formatFecha(r.fecha_hora)}</td>
+                    <td style="font-weight:600;">${r.usuario || '<span style="color:var(--muted-foreground);">—</span>'}</td>
+                    <td style="font-size:12px;color:var(--muted-foreground);">${r.rol || '—'}</td>
+                    <td><span class="${auditBadgeClass(r.accion)}">${r.accion.replace(/_/g,' ')}</span></td>
+                    <td style="font-size:12px;color:var(--muted-foreground);">${r.tabla_afectada || '—'}</td>
+                    <td style="font-size:13px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(r.descripcion||'').replace(/"/g,'&quot;')}">${r.descripcion || '—'}</td>
+                    <td style="font-family:'JetBrains Mono';font-size:12px;color:var(--muted-foreground);">${r.ip_cliente || '—'}</td>
+                    <td><button class="audit-btn-detail" data-id='${JSON.stringify(r)}'>Ver</button></td>
+                </tr>
+            `).join('');
+
+            // Bind detail buttons
+            tbody.querySelectorAll('.audit-btn-detail').forEach(btn => {
+                btn.addEventListener('click', () => abrirDetalleAudit(JSON.parse(btn.dataset.id)));
+            });
+
+            // Paginación
+            auditPagina = pagina;
+            const pag = document.getElementById('auditPaginacion');
+            pag.hidden = data.total_paginas <= 1;
+            document.getElementById('auditPaginaInfo').textContent = `Pág. ${pagina} / ${data.total_paginas}`;
+            document.getElementById('btnPrevPage').disabled = pagina <= 1;
+            document.getElementById('btnNextPage').disabled = pagina >= data.total_paginas;
+            document.getElementById('btnNextPage').dataset.total = data.total_paginas;
+
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--destructive);">${err.message}</td></tr>`;
+        }
+    }
+
+    function abrirDetalleAudit(r) {
+        const modal = document.getElementById('modalAudit');
+        const content = document.getElementById('auditModalContent');
+
+        const campo = (label, value) => `
+            <div class="audit-detail-block">
+                <span class="audit-detail-label">${label}</span>
+                <span class="audit-detail-value">${value || '—'}</span>
+            </div>`;
+
+        const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+        function renderCambios(ant, nue) {
+            // Si no hay ambos lados, mostrar el que existe como JSON completo
+            if (!ant && !nue) return '';
+            if (!ant) return `
+                <div class="audit-detail-block">
+                    <span class="audit-detail-label">Datos registrados</span>
+                    <pre class="audit-json-block">${esc(JSON.stringify(nue, null, 2))}</pre>
+                </div>`;
+            if (!nue) return `
+                <div class="audit-detail-block">
+                    <span class="audit-detail-label">Datos al momento</span>
+                    <pre class="audit-json-block">${esc(JSON.stringify(ant, null, 2))}</pre>
+                </div>`;
+
+            // Calcular diff: solo los campos que cambiaron
+            const camposIgnorar = new Set(['fecha_registro', 'cooperativa_id']);
+            const claves = new Set([...Object.keys(ant), ...Object.keys(nue)]);
+            const diff = [];
+            for (const k of claves) {
+                if (camposIgnorar.has(k)) continue;
+                const vAnt = JSON.stringify(ant[k]);
+                const vNue = JSON.stringify(nue[k]);
+                if (vAnt !== vNue) diff.push({ campo: k, antes: ant[k], despues: nue[k] });
+            }
+
+            if (diff.length === 0) return `
+                <div class="audit-detail-block">
+                    <span class="audit-detail-label">Cambios detectados</span>
+                    <span class="audit-detail-value" style="color:var(--muted-foreground);">Sin diferencias registradas</span>
+                </div>`;
+
+            const filas = diff.map(d => `
+                <tr>
+                    <td style="font-weight:600;font-size:13px;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;">${esc(d.campo)}</td>
+                    <td style="font-size:13px;padding:7px 10px;border-bottom:1px solid var(--border);color:#dc2626;font-family:'JetBrains Mono';word-break:break-all;">${esc(String(d.antes ?? '—'))}</td>
+                    <td style="font-size:13px;padding:7px 10px;border-bottom:1px solid var(--border);color:#16a34a;font-family:'JetBrains Mono';word-break:break-all;">${esc(String(d.despues ?? '—'))}</td>
+                </tr>`).join('');
+
+            return `
+                <div class="audit-detail-block">
+                    <span class="audit-detail-label">Cambios (${diff.length} campo${diff.length !== 1 ? 's' : ''})</span>
+                    <table style="width:100%;border-collapse:collapse;margin-top:6px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                        <thead>
+                            <tr style="background:color-mix(in oklab,var(--muted) 30%,transparent);">
+                                <th style="text-align:left;padding:6px 10px;font-size:11px;font-weight:600;color:var(--muted-foreground);">Campo</th>
+                                <th style="text-align:left;padding:6px 10px;font-size:11px;font-weight:600;color:#dc2626;">Antes</th>
+                                <th style="text-align:left;padding:6px 10px;font-size:11px;font-weight:600;color:#16a34a;">Despues</th>
+                            </tr>
+                        </thead>
+                        <tbody>${filas}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        content.innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                ${campo('Fecha / Hora', formatFecha(r.fecha_hora))}
+                ${campo('Usuario', r.usuario)}
+                ${campo('Rol', r.rol)}
+                ${campo('Tipo de usuario', r.tipo_personal_id ? ['','Evaluador','Gerente','Administrador'][r.tipo_personal_id] : null)}
+                ${campo('Acción', `<span class="${auditBadgeClass(r.accion)}">${r.accion.replace(/_/g,' ')}</span>`)}
+                ${campo('Tabla afectada', r.tabla_afectada)}
+                ${campo('Registro ID', r.registro_id)}
+                ${campo('IP', r.ip_cliente)}
+            </div>
+            ${campo('Descripción', r.descripcion)}
+            ${renderCambios(r.datos_anteriores, r.datos_nuevos)}
+        `;
+
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    async function inicializarAuditoria() {
+        if (!auditIniciada) {
+            auditIniciada = true;
+            await cargarAccionesDisponibles();
+        }
+        cargarAuditoria(1);
+    }
+
+    document.getElementById('btnFiltrarAudit').addEventListener('click', () => cargarAuditoria(1));
+
+    document.getElementById('btnLimpiarFiltros').addEventListener('click', () => {
+        document.getElementById('filtroUsuario').value = '';
+        document.getElementById('filtroTipoPersonal').value = '';
+        document.getElementById('filtroAccion').value = '';
+        document.getElementById('filtroFechaDesde').value = '';
+        document.getElementById('filtroFechaHasta').value = '';
+        cargarAuditoria(1);
+    });
+
+    document.getElementById('btnPrevPage').addEventListener('click', () => {
+        if (auditPagina > 1) cargarAuditoria(auditPagina - 1);
+    });
+    document.getElementById('btnNextPage').addEventListener('click', () => {
+        const total = parseInt(document.getElementById('btnNextPage').dataset.total || '1', 10);
+        if (auditPagina < total) cargarAuditoria(auditPagina + 1);
+    });
+
+    document.getElementById('btnCerrarModalAudit').addEventListener('click', () => {
+        document.getElementById('modalAudit').style.display = 'none';
+        document.body.style.overflow = '';
+    });
+    document.getElementById('modalAudit').addEventListener('click', e => {
+        if (e.target === document.getElementById('modalAudit')) {
+            document.getElementById('modalAudit').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    });
+
+    // === Reportes ===
+    let reportesIniciados = false;
+
+    async function inicializarReportes() {
+        const select = document.getElementById('selectReporte');
+
+        if (!reportesIniciados) {
+            reportesIniciados = true;
+            try {
+                const res = await fetch('/reportes');
+                if (!res.ok) throw new Error('No se pudo cargar el catálogo de reportes');
+                const catalogo = await res.json();
+                catalogo.forEach(r => {
+                    const option = document.createElement('option');
+                    option.value = r.codigo;
+                    option.textContent = r.titulo;
+                    select.appendChild(option);
+                });
+                select.addEventListener('change', () => cargarReporte(select.value));
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('reporteContainer').innerHTML =
+                    `<p style="text-align:center;padding:2rem;color:var(--destructive);">${error.message}</p>`;
+                return;
+            }
+        }
+
+        if (select.value) cargarReporte(select.value);
+    }
+
+    async function cargarReporte(codigo) {
+        const container = document.getElementById('reporteContainer');
+        try {
+            const res = await fetch(`/reportes/${encodeURIComponent(codigo)}`);
+            if (!res.ok) throw new Error('No se pudo cargar el reporte');
+            const reporte = await res.json();
+            document.getElementById('reporteDescripcion').textContent = reporte.descripcion || '';
+            CoffeeReport.render(container, reporte);
+        } catch (error) {
+            console.error('Error:', error);
+            container.innerHTML = `<p style="text-align:center;padding:2rem;color:var(--destructive);">${error.message}</p>`;
+        }
+    }
 
     // Inicializar
     async function inicializarCrearUsuario() {

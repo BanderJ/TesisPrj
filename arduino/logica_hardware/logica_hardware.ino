@@ -1,5 +1,4 @@
 #include <Servo.h>
-#include <HX711.h>
 
 // === PINES ===
 #define MOTOR_IN1    5
@@ -7,46 +6,25 @@
 #define TRIG_PIN     7
 #define ECHO_PIN     8
 #define SERVO_PIN    9
-#define HX711_DOUT   2
-#define HX711_SCK    3
 
 // === AJUSTES ===
-const float DISTANCIA_UMBRAL       = 20.0;   // cm — verificación de tapa
-const int   VELOCIDAD              = 220;    // velocidad faja (0-255)
-const int   ANGULO_BUENO           = 150;    // servo: canal granos buenos
-const int   ANGULO_DEFECTO         = 30;     // servo: canal granos defectuosos
-const float FACTOR_CALIBRACION     = 2280.0; // ajustar tras calibración real (ver abajo)
-const int   BUFFER_PESO            = 5;      // muestras para promedio deslizante
+const float DISTANCIA_UMBRAL       = 5.30;   // cm — verificación de tapa
+const int   VELOCIDAD              = 150;    // velocidad faja (0-255). ¡SINCRONIZAR con FAJA_VELOCIDAD_PWM en src/config.py! El delay del servo depende de este valor.
+const int   ANGULO_BUENO           = 0;      // servo: posición reposo — granos buenos/verdes
+const int   ANGULO_DEFECTO         = 15;     // servo: separador — granos defectuosos
 const unsigned long MS_DISTANCIA   = 100;    // reporte sensor cada 100 ms
-const unsigned long MS_PESO        = 500;    // reporte peso cada 500 ms
-
-/*
-  CALIBRACIÓN DE LA CELDA DE CARGA:
-  1. Cargar sketch con FACTOR_CALIBRACION = 1.0
-  2. Tara con plataforma vacía (comando TARE)
-  3. Colocar peso conocido (ej. 500 g)
-  4. Leer valor raw del Serial: bascula.read_average(20)
-  5. FACTOR_CALIBRACION = valor_raw / 500.0
-*/
 
 Servo  servoSeparador;
-HX711  bascula;
 bool   motorActivo = false;
-
-// Promedio deslizante de peso
-float  bufferPeso[BUFFER_PESO] = {0.0};
-int    idxPeso                 = 0;
-bool   bufferLleno             = false;
 
 // Temporizadores millis()
 unsigned long tDistancia = 0;
-unsigned long tPeso      = 0;
 
 // Buffer para leer líneas serial sin bloquear
 String lineaSerial = "";
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(9600);  // clones con resonador cerámico fallan a 115200
 
   pinMode(MOTOR_IN1, OUTPUT);
   pinMode(MOTOR_IN2, OUTPUT);
@@ -55,10 +33,6 @@ void setup() {
 
   servoSeparador.attach(SERVO_PIN);
   servoSeparador.write(ANGULO_BUENO);
-
-  bascula.begin(HX711_DOUT, HX711_SCK);
-  bascula.set_scale(FACTOR_CALIBRACION);
-  bascula.tare();
 
   Serial.println("SISTEMA:LISTO");
 }
@@ -100,26 +74,6 @@ void loop() {
     }
   }
 
-  // 4. Lectura y reporte de peso (celda de carga)
-  if (ahora - tPeso >= MS_PESO && bascula.is_ready()) {
-    tPeso = ahora;
-
-    // Leer 1 muestra (no bloquea ya que is_ready() fue true)
-    float lectura = bascula.get_units(1);
-
-    // Actualizar promedio deslizante
-    bufferPeso[idxPeso] = lectura;
-    idxPeso = (idxPeso + 1) % BUFFER_PESO;
-    if (idxPeso == 0) bufferLleno = true;
-
-    int n = bufferLleno ? BUFFER_PESO : idxPeso;
-    float suma = 0.0;
-    for (int i = 0; i < n; i++) suma += bufferPeso[i];
-    float promedio = suma / n;
-
-    Serial.print("PESO:");
-    Serial.println(promedio, 2);
-  }
 }
 
 void procesarComando(String cmd) {
@@ -136,21 +90,8 @@ void procesarComando(String cmd) {
   } else if (cmd == "SERVO:DEFECTO") {
     servoSeparador.write(ANGULO_DEFECTO);
 
-  } else if (cmd == "TARE") {
-    bascula.tare();
-    // Resetear buffer tras tara
-    for (int i = 0; i < BUFFER_PESO; i++) bufferPeso[i] = 0.0;
-    idxPeso    = 0;
-    bufferLleno = false;
-    Serial.println("TARE:OK");
-
-  } else if (cmd.startsWith("SCALE:")) {
-    float factor = cmd.substring(6).toFloat();
-    if (factor != 0.0) {
-      bascula.set_scale(factor);
-      Serial.println("SCALE:OK");
-    }
   }
+  // TARE y SCALE deshabilitados — báscula HX711 retirada temporalmente
 }
 
 // Retorna distancia en cm. Retorna -1.0 si no hay eco.

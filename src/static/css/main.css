@@ -614,6 +614,51 @@ main {
     opacity: 0.6;
 }
 
+/* Toggle ver/ocultar contraseña — envolver el input en .password-wrapper
+   con un botón .password-toggle-btn; main.js lo conecta automáticamente */
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper input {
+    padding-right: 44px;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.password-toggle-btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.password-toggle-icon {
+    width: 20px;
+    height: 20px;
+    opacity: 0.7;
+}
+
+.password-toggle-btn:hover .password-toggle-icon {
+    opacity: 1;
+}
+
+body.dark .password-toggle-icon {
+    filter: invert(1);
+}
+
 .form-row {
     display: grid;
     gap: 10px;
@@ -899,19 +944,16 @@ main {
 }
 
 .perfil-sidebar {
-    position: static;
-    height: auto;
-    min-height: 100%;
+    /* Sticky el propio sidebar (align-self: start evita que se estire con el
+       contenido) — así el menú queda fijo y no se despega en secciones largas. */
+    position: sticky;
+    top: 76px;
+    align-self: start;
+    max-height: calc(100vh - 92px);
+    overflow-y: auto;
     width: 200px;
     padding: 16px 0;
-    border-right: 2px solid var(--primary);
     background: transparent;
-    align-self: stretch;
-}
-
-.perfil-sidebar .perfil-nav {
-    position: sticky;
-    top: 140px;
 }
 
 .perfil-nav {
@@ -964,6 +1006,9 @@ main {
     min-width: 0;
     margin: 0;
     background: transparent;
+    /* La línea divisoria va aquí (no en el sidebar sticky) porque esta columna
+       siempre ocupa toda la altura del card → divisor de altura completa. */
+    border-left: 2px solid var(--primary);
 }
 
 .perfil-section {
@@ -1004,6 +1049,9 @@ main {
     }
 
     .perfil-sidebar {
+        position: static;
+        max-height: none;
+        overflow-y: visible;
         width: 100%;
         min-height: auto;
         border-right: none;
@@ -1011,8 +1059,11 @@ main {
         padding: 12px 0;
     }
 
-    .perfil-sidebar .perfil-nav {
-        position: static;
+    .perfil-content {
+        border-left: none;
+    }
+
+    .perfil-nav {
         flex-direction: row;
         flex-wrap: wrap;
         gap: 4px;

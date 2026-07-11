@@ -1,9 +1,14 @@
 import os
 
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
+
 from fastapi.templating import Jinja2Templates
 
+from src.services.auditoria_service import auditoria_service
 from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente
+from src.utilities.jwt_utils import generar_token
+from src.utilities.request_utils import get_client_ip
 from src.schemas.perfil import (
     ActualizarDatosPersonales,
     ActualizarUsuario,
@@ -18,6 +23,7 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), ".
 
 perfil = APIRouter()
 perfil_service = PerfilService()
+
 
 
 @perfil.get("/")
@@ -38,11 +44,12 @@ async def obtener_pagina_perfil(
 
 @perfil.patch("/datos-personales")
 async def actualizar_datos_personales(
+    request: Request,
     body: ActualizarDatosPersonales,
     user: dict = Depends(obtener_usuario_actual),
 ):
     try:
-        return perfil_service.actualizar_datos_personales(
+        result = perfil_service.actualizar_datos_personales(
             personal_id=user["personal_id"],
             nombre=body.nombre,
             ape_paterno=body.ape_paterno,
@@ -50,6 +57,28 @@ async def actualizar_datos_personales(
             telefono=body.telefono,
             correo=body.correo,
         )
+        auditoria_service.registrar(
+            accion="ACTUALIZAR_PERFIL",
+            personal_id=user.get("personal_id"),
+            usuario=user.get("usuario"),
+            tipo_personal_id=user.get("tipo_personal_id"),
+            rol=user.get("rol"),
+            tabla_afectada="PERSONA",
+            registro_id=user.get("personal_id"),
+            descripcion="Actualización de datos personales propios",
+            ip_cliente=get_client_ip(request),
+        )
+        nuevo_token = generar_token({
+            "personal_id": user["personal_id"],
+            "usuario": user["usuario"],
+            "tipo_personal_id": user["tipo_personal_id"],
+            "rol": user["rol"],
+            "nombre": f"{body.nombre} {body.ape_paterno} {body.ape_materno}",
+            "is_admin": user.get("is_admin", False),
+        })
+        response = JSONResponse(content=result)
+        response.set_cookie(key="access_token", value=f"Bearer {nuevo_token}", httponly=True)
+        return response
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -58,15 +87,28 @@ async def actualizar_datos_personales(
 
 @perfil.patch("/cambiar-contrasena")
 async def cambiar_contrasena(
+    request: Request,
     body: CambiarContrasena,
     user: dict = Depends(obtener_usuario_actual),
 ):
     try:
-        return perfil_service.cambiar_contrasena(
+        result = perfil_service.cambiar_contrasena(
             personal_id=user["personal_id"],
             clave_actual=body.clave_actual,
             clave_nueva=body.clave_nueva,
         )
+        auditoria_service.registrar(
+            accion="CAMBIAR_CLAVE",
+            personal_id=user.get("personal_id"),
+            usuario=user.get("usuario"),
+            tipo_personal_id=user.get("tipo_personal_id"),
+            rol=user.get("rol"),
+            tabla_afectada="PERSONAL",
+            registro_id=user.get("personal_id"),
+            descripcion="Cambio de contraseña propio",
+            ip_cliente=get_client_ip(request),
+        )
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -113,10 +155,24 @@ async def obtener_usuario(
 async def cambiar_estado_usuario(
     personal_id: str,
     body: CambiarEstadoUsuario,
+    request: Request,
     user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        return perfil_service.cambiar_estado_usuario(personal_id, body.estado)
+        result = perfil_service.cambiar_estado_usuario(personal_id, body.estado)
+        accion = "ACTIVAR_USUARIO" if body.estado == "A" else "DESACTIVAR_USUARIO"
+        auditoria_service.registrar(
+            accion=accion,
+            personal_id=user.get("personal_id"),
+            usuario=user.get("usuario"),
+            tipo_personal_id=user.get("tipo_personal_id"),
+            rol=user.get("rol"),
+            tabla_afectada="PERSONAL",
+            registro_id=personal_id,
+            descripcion=f"{'Activación' if body.estado == 'A' else 'Desactivación'} de usuario ID {personal_id}",
+            ip_cliente=get_client_ip(request),
+        )
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -127,13 +183,27 @@ async def cambiar_estado_usuario(
 async def cambiar_contrasena_usuario(
     personal_id: str,
     body: CambiarContraseñaUsuario,
+    request: Request,
     user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        return perfil_service.cambiar_contrasena_usuario(
+        result = perfil_service.cambiar_contrasena_usuario(
             personal_id=personal_id,
             clave_nueva=body.clave_nueva,
+            usuario_solicitante=user.get("usuario"),
         )
+        auditoria_service.registrar(
+            accion="CAMBIAR_CLAVE_USUARIO",
+            personal_id=user.get("personal_id"),
+            usuario=user.get("usuario"),
+            tipo_personal_id=user.get("tipo_personal_id"),
+            rol=user.get("rol"),
+            tabla_afectada="PERSONAL",
+            registro_id=personal_id,
+            descripcion=f"Cambio de contraseña del usuario ID {personal_id} por {user.get('usuario')}",
+            ip_cliente=get_client_ip(request),
+        )
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -144,10 +214,11 @@ async def cambiar_contrasena_usuario(
 async def actualizar_usuario(
     personal_id: str,
     body: ActualizarUsuario,
+    request: Request,
     user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        return perfil_service.actualizar_usuario(
+        result = perfil_service.actualizar_usuario(
             personal_id=personal_id,
             nombre=body.nombre,
             ape_paterno=body.ape_paterno,
@@ -159,7 +230,20 @@ async def actualizar_usuario(
             ubigeo=body.ubigeo,
             tipo_personal_id=body.tipo_personal_id,
             clave_nueva=body.clave_nueva,
+            usuario_solicitante=user.get("usuario"),
         )
+        auditoria_service.registrar(
+            accion="ACTUALIZAR_USUARIO",
+            personal_id=user.get("personal_id"),
+            usuario=user.get("usuario"),
+            tipo_personal_id=user.get("tipo_personal_id"),
+            rol=user.get("rol"),
+            tabla_afectada="PERSONAL",
+            registro_id=personal_id,
+            descripcion=f"Actualización de datos del usuario ID {personal_id} por {user.get('usuario')}",
+            ip_cliente=get_client_ip(request),
+        )
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -169,10 +253,11 @@ async def actualizar_usuario(
 @perfil.post("/usuarios/crear")
 async def crear_usuario(
     body: CrearUsuario,
+    request: Request,
     user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        return perfil_service.crear_usuario(
+        result = perfil_service.crear_usuario(
             nombre=body.nombre,
             ape_paterno=body.ape_paterno,
             ape_materno=body.ape_materno,
@@ -186,6 +271,18 @@ async def crear_usuario(
             tipo_personal_id=body.tipo_personal_id,
             clave=body.clave,
         )
+        auditoria_service.registrar(
+            accion="CREAR_USUARIO",
+            personal_id=user.get("personal_id"),
+            usuario=user.get("usuario"),
+            tipo_personal_id=user.get("tipo_personal_id"),
+            rol=user.get("rol"),
+            tabla_afectada="PERSONAL",
+            registro_id=str(result.get("personal_id", "")),
+            descripcion=f"Nuevo usuario creado: {body.nombre} {body.ape_paterno} por {user.get('usuario')}",
+            ip_cliente=get_client_ip(request),
+        )
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

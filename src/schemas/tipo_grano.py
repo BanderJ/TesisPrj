@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 class TipoGranoResponse(BaseModel):
     id: int
     nombre: str
-    peso_qq: Decimal | None = None
+    peso_qq: Decimal
 
 
 class TipoGranoCreate(BaseModel):

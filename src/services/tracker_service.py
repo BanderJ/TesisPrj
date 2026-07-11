@@ -13,7 +13,6 @@ from src.utilities.arduino_serial import arduino_serial
 from src.utilities.servo_controller import servo_controller
 
 # Umbral de confianza global para todas las detecciones YOLO
-# Preferir falsos positivos sobre granos defectuosos no detectados
 CONF_THRESHOLD = 0.50
 
 
@@ -25,7 +24,7 @@ class TrackerService:
     - Calcula grado con classifier.py (SCA)
     """
 
-    def __init__(self, model_name: str = "yolov8n"):
+    def __init__(self, model_name: str = "yolov26n_2cls"):
         self.model_name = model_name
         self.conf = CONF_THRESHOLD
 
@@ -36,7 +35,6 @@ class TrackerService:
         self.activo = False
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
-        self._inicio_sesion_ts: float = 0.0
 
         # Último frame anotado (JPEG)
         self._frame_anotado: bytes | None = None
@@ -95,6 +93,10 @@ class TrackerService:
 
         with self._lock:
             self._frame_anotado = None  # limpiar frame viejo para próxima sesión
+
+        # Fail-safe: al terminar monitoreo, forzar apagado de la faja desde backend.
+        # Esto cubre casos donde el frontend no alcanza a enviar OFF.
+        arduino_serial.enviar_comando("OFF")
         print("TrackerService detenido — cámara permanece conectada")
 
     def _on_camara_desconectada(self) -> None:
@@ -102,6 +104,9 @@ class TrackerService:
         self.activo = False
         self._camara_desconectada = True
         self._error_camara = "Desconexión con cámara. La clasificación se ha detenido."
+
+        # Seguridad: sin cámara no debe seguir corriendo la faja.
+        arduino_serial.enviar_comando("OFF")
         servo_controller.bloquear()
         arduino_serial.enviar_comando("SERVO:DEFECTO")
         print("Cámara desconectada — servo fijado en posición DEFECTO")
@@ -119,12 +124,12 @@ class TrackerService:
 
             # Esperar nuevo frame y obtener BGR directo (sin ciclo JPEG)
             camara_service.esperar_frame(timeout=1.0)
-            frame = camara_service.obtener_frame_bgr()
+            frame, ts_frame = camara_service.obtener_frame_bgr()
             if frame is None:
                 continue
 
             # Procesar con tracker
-            frame_anotado_jpeg = self.tracker.procesar_frame(frame)
+            frame_anotado_jpeg = self.tracker.procesar_frame(frame, ts_frame)
 
             if frame_anotado_jpeg is not None:
                 frame_count += 1

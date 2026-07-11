@@ -6,6 +6,9 @@ from src.models.persona import Persona
 from src.models.personal import Personal
 from src.utilities.security import hash_password, verify_password, password_validate
 
+# Usuario del gerente de la empresa — no puede ser desactivado
+USUARIO_PROTEGIDO = "jbecerrac"
+
 
 class PerfilService:
     """Servicio que centraliza la lógica de perfil de usuario."""
@@ -79,8 +82,12 @@ class PerfilService:
 
     def cambiar_estado_usuario(self, personal_id: str, nuevo_estado: str) -> dict[str, Any]:
         """Cambia el estado de un usuario (A=Activo, I=Inactivo)."""
-        if nuevo_estado not in ["A", "I"]:
-            raise ValueError("Estado inválido. Debe ser 'A' (Activo) o 'I' (Inactivo)")
+        if nuevo_estado != "A":
+            objetivo = self.personal_model.obtener_usuario_por_id(personal_id)
+            if objetivo and objetivo.get("usuario") == USUARIO_PROTEGIDO:
+                raise ValueError(
+                    f"El usuario {USUARIO_PROTEGIDO} corresponde a la gerente de la empresa y no se puede desactivar."
+                )
 
         actualizado = self.personal_model.cambiar_estado(personal_id, nuevo_estado)
 
@@ -89,12 +96,26 @@ class PerfilService:
 
         return {"mensaje": f"Usuario marcado como {'activo' if nuevo_estado == 'A' else 'inactivo'}"}
 
+    def _validar_clave_protegida(self, personal_id: str, usuario_solicitante: str | None) -> None:
+        """La contraseña del usuario protegido solo puede cambiarla él mismo."""
+        if usuario_solicitante == USUARIO_PROTEGIDO:
+            return
+        objetivo = self.personal_model.obtener_usuario_por_id(personal_id)
+        if objetivo and objetivo.get("usuario") == USUARIO_PROTEGIDO:
+            raise ValueError(
+                f"El usuario {USUARIO_PROTEGIDO} corresponde a la gerente de la empresa; "
+                "solo esa cuenta puede cambiar su propia contraseña."
+            )
+
     def cambiar_contrasena_usuario(
         self,
         personal_id: str,
         clave_nueva: str,
+        usuario_solicitante: str | None = None,
     ) -> dict[str, Any]:
         """Cambia la contraseña de un usuario (sin verificar contraseña actual)."""
+        self._validar_clave_protegida(personal_id, usuario_solicitante)
+
         is_valid, validation_msg = password_validate(clave_nueva)
         if not is_valid:
             raise ValueError(validation_msg)
@@ -133,7 +154,11 @@ class PerfilService:
         ubigeo: str | None,
         tipo_personal_id: int,
         clave_nueva: str | None,
+        usuario_solicitante: str | None = None,
     ) -> dict[str, Any]:
+        if clave_nueva:
+            self._validar_clave_protegida(personal_id, usuario_solicitante)
+
         db = Connection()
         try:
             fecha_nac = datetime.strptime(fecha_nacimiento, "%Y-%m-%d").date()

@@ -19,6 +19,7 @@
         document.getElementById('metaDoc').textContent           = d.num_documento     || '—';
         document.getElementById('metaTipoCaf').textContent       = d.tipo_caficultor   || '—';
         document.getElementById('metaGrano').textContent         = d.tipo_grano        || '—';
+        document.getElementById('metaPesoQqGrano').textContent   = d.peso_qq_grano != null ? `${d.peso_qq_grano} kg` : '—';
         document.getElementById('metaRegistradoPor').textContent = d.registrado_por    || '—';
 
         document.getElementById('tdCodigo').textContent      = d.codigo                                             || '—';
@@ -30,6 +31,56 @@
         document.getElementById('tdTrillado').textContent    = d.peso_trillado != null ? `${d.peso_trillado} gr`  : '—';
         document.getElementById('tdTamiz').textContent       = d.num_tamiz    != null ? `N° ${d.num_tamiz}`         : '—';
         document.getElementById('tdTamizado').textContent    = d.peso_tamizado != null ? `${d.peso_tamizado} gr`  : '—';
+
+        rellenarStats(d);
+        rellenarRendimiento(d);
+        rellenarIncidencias(d.incidencias);
+    }
+
+    function rellenarStats(d) {
+        const defectos = d.total_defectos;
+        const buenos   = d.total_buenos;
+        const total    = defectos != null && buenos != null ? defectos + buenos : null;
+        const pct      = total > 0 ? Math.round((defectos / total) * 100) : null;
+
+        document.getElementById('rStatGranos').textContent   = total    != null ? total.toLocaleString('es-PE')    : '—';
+        document.getElementById('rStatDefectos').textContent = defectos != null ? defectos.toLocaleString('es-PE') : '—';
+        document.getElementById('rStatSanos').textContent    = buenos   != null ? buenos.toLocaleString('es-PE')   : '—';
+        document.getElementById('rStatPct').textContent      = pct      != null ? pct + '%'                        : '—';
+    }
+
+    function rellenarRendimiento(d) {
+        const cards = document.getElementById('rRendimiento');
+        const nota  = document.getElementById('rendimientoPendienteNota');
+        const pendiente = d.factor_rendimiento == null;
+
+        cards.style.display = pendiente ? 'none' : '';
+        nota.style.display  = pendiente ? '' : 'none';
+        if (pendiente) return;
+
+        document.getElementById('rFactor').textContent    = Number(d.factor_rendimiento).toFixed(2);
+        document.getElementById('rPesoBueno').textContent = d.peso_bueno != null ? `${Math.round(Number(d.peso_bueno))} g` : '—';
+        document.getElementById('rPesoQq').textContent    = d.peso_por_qq != null ? Number(d.peso_por_qq).toFixed(2) : '—';
+        document.getElementById('rPrecio').textContent    = d.precio != null ? Number(d.precio).toFixed(2) : '—';
+        if (d.rango) document.getElementById('rPrecioLabel').textContent = `Precio quintal (S/) — rango ${d.rango}`;
+        document.getElementById('rPago').textContent      = d.pago != null ? Number(d.pago).toFixed(2) : '—';
+        document.getElementById('rCategoria').textContent = d.categoria || '—';
+    }
+
+    function rellenarIncidencias(arr) {
+        const section = document.getElementById('incidenciasSection');
+        const tbody   = document.getElementById('incidenciasTbody');
+        if (!arr || arr.length === 0) {
+            section.style.display = 'none';
+            tbody.innerHTML = '';
+            return;
+        }
+        section.style.display = '';
+        tbody.innerHTML = arr.map(inc => {
+            const dur = inc.duracion_s;
+            const durStr = dur >= 60 ? `${Math.floor(dur / 60)}m ${dur % 60}s` : `${dur}s`;
+            return `<tr><td>${inc.seg_apertura}s</td><td>${inc.seg_cierre}s</td><td>${durStr}</td></tr>`;
+        }).join('');
     }
 
     // ── Input mask: prefijo "EVA" fijo, solo dígitos después ──────────────
@@ -129,6 +180,7 @@
             ['Documento',          g('metaDoc')],
             ['Tipo caficultor',    g('metaTipoCaf')],
             ['Tipo de grano',      g('metaGrano')],
+            ['Peso por quintal (grano)', g('metaPesoQqGrano')],
             ['Registrado por',     g('metaRegistradoPor')],
             ['Fecha',              g('tdFecha')],
             ['N° sacos',           g('tdSacos')],
@@ -138,10 +190,34 @@
             ['Peso trillado',      g('tdTrillado')],
             ['N° tamiz',           g('tdTamiz')],
             ['Peso tamizado',      g('tdTamizado')],
+            [],
+            ['ESTADÍSTICAS DE MONITOREO', ''],
+            ['Granos evaluados',   g('rStatGranos')],
+            ['Defectos totales',   g('rStatDefectos')],
+            ['Granos buenos',      g('rStatSanos')],
+            ['% Defecto',          g('rStatPct')],
+            [],
+            ['RENDIMIENTO', ''],
+            ['Factor rendimiento', g('rFactor')],
+            ['Peso bueno',         g('rPesoBueno')],
+            ['Peso por quintal',   g('rPesoQq')],
+            [g('rPrecioLabel'),    g('rPrecio')],
+            ['Pago (S/)',          g('rPago')],
+            ['Categoría',          g('rCategoria')],
         ];
 
+        const tbody = document.getElementById('incidenciasTbody');
+        if (tbody && tbody.rows.length > 0) {
+            rows.push([]);
+            rows.push(['INCIDENCIAS DE TAPA', '', '']);
+            rows.push(['Apertura (s)', 'Cierre (s)', 'Duración abierta']);
+            for (const tr of tbody.rows) {
+                rows.push([tr.cells[0].textContent, tr.cells[1].textContent, tr.cells[2].textContent]);
+            }
+        }
+
         const ws = XLSX.utils.aoa_to_sheet(rows);
-        ws['!cols'] = [{ wch: 26 }, { wch: 32 }];
+        ws['!cols'] = [{ wch: 34 }, { wch: 32 }, { wch: 20 }];
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Resumen');
         const codigo = g('tdCodigo').replace(/[^A-Za-z0-9]/g, '') || 'evaluacion';

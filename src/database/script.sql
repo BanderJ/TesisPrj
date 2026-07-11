@@ -30,14 +30,21 @@ DROP TABLE IF EXISTS TIPO_GRANO CASCADE;
 DROP TABLE IF EXISTS TIPO_PERSONAL CASCADE;
 DROP TABLE IF EXISTS UBIGEO CASCADE;
 DROP TABLE IF EXISTS VALOR_CAFE CASCADE;
+DROP TABLE IF EXISTS AUDITORIA CASCADE;
+
+CREATE TABLE AUDITORIA (id uuid DEFAULT uuidv7() NOT NULL, personal_id uuid, usuario varchar(30), tipo_personal_id int2, rol varchar(50), accion varchar(60) NOT NULL, tabla_afectada varchar(50), registro_id varchar(100), descripcion text, datos_anteriores jsonb, datos_nuevos jsonb, ip_cliente varchar(45), fecha_hora timestamp NOT NULL DEFAULT NOW(), PRIMARY KEY (id));
+CREATE INDEX idx_auditoria_fecha_hora ON AUDITORIA (fecha_hora DESC);
+CREATE INDEX idx_auditoria_personal_id ON AUDITORIA (personal_id);
+CREATE INDEX idx_auditoria_accion ON AUDITORIA (accion);
+CREATE INDEX idx_auditoria_tipo_personal ON AUDITORIA (tipo_personal_id);
 
 CREATE TABLE CAFICULTOR (caficultor_id uuid DEFAULT uuidv7(), tipo_caficultor_id int2 NOT NULL, fecha_registro timestamp NOT NULL, cacerio varchar(50), PRIMARY KEY (caficultor_id));
 CREATE TABLE CATEGORIA (id SERIAL NOT NULL, nombre varchar(10) NOT NULL, cantidad_defectos int4 NOT NULL, PRIMARY KEY (id));
-CREATE TABLE COOPERATIVA (id uuid DEFAULT uuidv7(), nombre varchar(100) NOT NULL, codigo varchar(20) NOT NULL, direccion varchar(255) NOT NULL UNIQUE, telefono char(9) NOT NULL, correo varchar(255) NOT NULL, descripcion varchar(255) NOT NULL, imagen_url varchar(255), estado char(1) NOT NULL, fecha_registro timestamp NOT NULL, ubigeo_id char(6) NOT NULL, PRIMARY KEY (id));
+CREATE TABLE COOPERATIVA (id uuid DEFAULT uuidv7(), nombre varchar(100) NOT NULL, codigo varchar(20) NOT NULL, direccion varchar(255) NOT NULL UNIQUE, telefono char(9) NOT NULL, correo varchar(255) NOT NULL, descripcion varchar(255) NOT NULL, imagen_url varchar(255), estado char(1) NOT NULL, fecha_registro timestamp NOT NULL DEFAULT NOW(), ubigeo_id char(6), PRIMARY KEY (id));
 CREATE TABLE DETALLE_EVALUACION (id uuid DEFAULT uuidv7(), cantidad int4 NOT NULL, evaluacion_id uuid DEFAULT uuidv7(), tipo_defecto_id int2 NOT NULL, PRIMARY KEY (id));
-CREATE TABLE EVALUACION (id uuid DEFAULT uuidv7(), codigo char(10), personal_id uuid DEFAULT uuidv7(), caficultor_id uuid DEFAULT uuidv7(), tipo_caficultor_id int2 NOT NULL, valor_cafe_id uuid, num_sacos int2 NOT NULL, peso_bruto numeric(7, 2) NOT NULL, humedad int2 NOT NULL, peso_muestra numeric(7, 2) NOT NULL, peso_trillado numeric(7, 2) NOT NULL, peso_cascara numeric(7, 2), peso_cascara_total numeric(7, 2), num_tamiz int2 NOT NULL, peso_tamizado numeric(7, 2) NOT NULL, peso_bueno numeric(7, 2), peso_malo numeric(7, 2), factor_rendimiento numeric(7, 2), tara_saco numeric(3, 2), tara_total int2, peso_neto int4, peso_por_qq numeric(7, 2), pago numeric(7, 2), fecha timestamp, tipo_grano_id int4 NOT NULL, categoria_id int4, total_defectos int4, PRIMARY KEY (id));
+CREATE TABLE EVALUACION (id uuid DEFAULT uuidv7(), codigo char(10), personal_id uuid NOT NULL, caficultor_id uuid NOT NULL, tipo_caficultor_id int2 NOT NULL, valor_cafe_id uuid, num_sacos int2 NOT NULL, peso_bruto numeric(7, 2) NOT NULL, humedad int2 NOT NULL, peso_muestra numeric(7, 2) NOT NULL, peso_trillado numeric(7, 2) NOT NULL, peso_cascara numeric(7, 2), peso_cascara_total numeric(7, 2), num_tamiz int2 NOT NULL, peso_tamizado numeric(7, 2) NOT NULL, peso_bueno numeric(7, 2), peso_malo numeric(7, 2), factor_rendimiento numeric(7, 2), tara_saco numeric(3, 2), tara_total int2, peso_neto int4, peso_por_qq numeric(7, 2), pago numeric(7, 2), fecha timestamp, tipo_grano_id int4 NOT NULL, categoria_id int4, total_defectos int4, total_buenos int4, incidencias jsonb, PRIMARY KEY (id));
 CREATE TABLE PERSONA (id uuid DEFAULT uuidv7(), nombre varchar(50) NOT NULL, ape_paterno varchar(30) NOT NULL, ape_materno varchar(30) NOT NULL, sexo char(1) NOT NULL, fecha_nacimiento date NOT NULL, tipo_documento_id int2 NOT NULL, num_documento varchar(12) NOT NULL UNIQUE, telefono char(9), ubigeo char(6), estado char(1) NOT NULL, cooperativa_id uuid DEFAULT uuidv7(), correo varchar(100), PRIMARY KEY (id));
-CREATE TABLE PERSONAL (personal_id uuid DEFAULT uuidv7(), tipo_personal_id int2 NOT NULL, usuario varchar(30) NOT NULL UNIQUE, clave varchar(255) NOT NULL, estado char(1) NOT NULL, fecha_registro timestamp NOT NULL, PRIMARY KEY (personal_id));
+CREATE TABLE PERSONAL (personal_id uuid DEFAULT uuidv7(), tipo_personal_id int2 NOT NULL, usuario varchar(30) NOT NULL UNIQUE, clave varchar(255) NOT NULL, estado char(1) NOT NULL, fecha_registro timestamp NOT NULL DEFAULT NOW(), PRIMARY KEY (personal_id));
 CREATE TABLE TIPO_CAFICULTOR (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, PRIMARY KEY (id));
 CREATE TABLE TIPO_DEFECTO (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, descripcion text, PRIMARY KEY (id));
 CREATE TABLE TIPO_DOCUMENTO (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, PRIMARY KEY (id));
@@ -1953,24 +1960,44 @@ INSERT INTO COOPERATIVA (nombre, codigo, direccion, telefono, correo, descripcio
 VALUES ('Cooperativa Cafetalera Norte', 'CCN001', 'Bagua Grande, Amazonas', '942345678', 'contacto@ccnorte.pe', 'Cooperativa de café del norte', 'A', CURRENT_TIMESTAMP, '010102');
 
 --- INSERTS DE PRUEBA PARA CREDENCIALES
-INSERT INTO PERSONA (id, nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('019dd4e4-a1dc-7c0b-aeee-41ac8eeed405', 'Camilo', 'Super', 'Root', 'M', '1990-08-20', 1, '01010101', '926607008', 'A', (
+--- ADMIHNISTRADOR
+INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('Camilo', 'Super', 'Root', 'M', '1990-08-20', 1, '01010101', '926607008', 'A', (
     SELECT id FROM COOPERATIVA WHERE codigo = 'LCM001' LIMIT 1
 ));
-INSERT INTO PERSONA (id, nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('019dd4e4-a1de-727e-ba31-33676a62b83f', 'Juan', 'Perez', 'Gomez', 'M', '1980-05-15', 1, '12345678', '987654321', 'A', (
+--- EVALUADOR
+INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('Juan', 'Perez', 'Gomez', 'M', '1980-05-15', 1, '12345678', '987654321', 'A', (
+    SELECT id FROM COOPERATIVA WHERE codigo = 'LCM001' LIMIT 1
+));
+--- GERENTE
+INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('Judith Aracely', 'Becerra', 'Cayatopa', 'F', '1986-08-26', 3, '40111111', '987987987', 'A', (
     SELECT id FROM COOPERATIVA WHERE codigo = 'LCM001' LIMIT 1
 ));
 
 --- INSERTS PRUEBA PARA CAFICULTORES
-INSERT INTO PERSONA (id, nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('019dd4e4-b326-74c3-8042-4c540f995e40', 'Luis', 'Garcia', 'Ilimo', 'M', '1990-08-13', 1, '99988877', '987456456', 'A', (
+INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('Luis', 'Garcia', 'Ilimo', 'M', '1990-08-13', 1, '99988877', '987456456', 'A', (
     SELECT id FROM COOPERATIVA WHERE codigo = 'LCM001' LIMIT 1
 ));
-INSERT INTO PERSONA (id, nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('019dd4e4-b326-7859-8c01-b7ccc808524d', 'Maria', 'Cueva', 'Guerrero', 'F', '1986-08-26', 1, '99988866', '987987987', 'A', (
+INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('Maria', 'Cueva', 'Guerrero', 'F', '1986-08-26', 1, '99988866', '987987987', 'A', (
+    SELECT id FROM COOPERATIVA WHERE codigo = 'LCM001' LIMIT 1
+));
+INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('Jose', 'Vasquez', 'Chavez', 'M', '1978-03-11', 1, '99988855', '987111222', 'A', (
+    SELECT id FROM COOPERATIVA WHERE codigo = 'LCM001' LIMIT 1
+));
+INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('Rosa', 'Fernandez', 'Diaz', 'F', '1992-11-04', 1, '99988844', '987333444', 'A', (
+    SELECT id FROM COOPERATIVA WHERE codigo = 'LCM001' LIMIT 1
+));
+INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('Pedro', 'Tarrillo', 'Silva', 'M', '1983-07-22', 1, '99988833', '987555666', 'A', (
     SELECT id FROM COOPERATIVA WHERE codigo = 'LCM001' LIMIT 1
 ));
 
 
-INSERT INTO PERSONAL (personal_id, tipo_personal_id, usuario, clave, estado, fecha_registro) VALUES ('019dd4e4-a1dc-7c0b-aeee-41ac8eeed405',3, 'admin', '$argon2id$v=19$m=65536,t=3,p=4$z6D/NR7dxMYjqZzoFjnXvA$mIqszgfKRmtg+G6xRriSNJcNhq63EvCEEmOig4hUGmQ', 'A', NOW());
-INSERT INTO PERSONAL (personal_id, tipo_personal_id, usuario, clave, estado, fecha_registro) VALUES ('019dd4e4-a1de-727e-ba31-33676a62b83f',1, 'evaluador1', '$argon2id$v=19$m=65536,t=3,p=4$z6D/NR7dxMYjqZzoFjnXvA$mIqszgfKRmtg+G6xRriSNJcNhq63EvCEEmOig4hUGmQ', 'A', NOW());
+INSERT INTO PERSONAL (personal_id, tipo_personal_id, usuario, clave, estado, fecha_registro) VALUES ((SELECT id FROM PERSONA WHERE num_documento = '01010101' LIMIT 1), 3, 'admin', '$argon2id$v=19$m=65536,t=3,p=4$z6D/NR7dxMYjqZzoFjnXvA$mIqszgfKRmtg+G6xRriSNJcNhq63EvCEEmOig4hUGmQ', 'A', NOW());
+INSERT INTO PERSONAL (personal_id, tipo_personal_id, usuario, clave, estado, fecha_registro) VALUES ((SELECT id FROM PERSONA WHERE num_documento = '12345678' LIMIT 1), 1, 'evaluador1', '$argon2id$v=19$m=65536,t=3,p=4$z6D/NR7dxMYjqZzoFjnXvA$mIqszgfKRmtg+G6xRriSNJcNhq63EvCEEmOig4hUGmQ', 'A', NOW());
+INSERT INTO PERSONAL (personal_id, tipo_personal_id, usuario, clave, estado, fecha_registro) VALUES ((SELECT id FROM PERSONA WHERE num_documento = '40111111' LIMIT 1), 2, 'jbecerrac', '$argon2id$v=19$m=65536,t=3,p=4$z6D/NR7dxMYjqZzoFjnXvA$mIqszgfKRmtg+G6xRriSNJcNhq63EvCEEmOig4hUGmQ', 'A', NOW());
 
-INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ('019dd4e4-b326-74c3-8042-4c540f995e40', 1, NOW());
-INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ('019dd4e4-b326-7859-8c01-b7ccc808524d', 2, NOW());
+
+INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ((SELECT id FROM PERSONA WHERE num_documento = '99988877' LIMIT 1), 1, NOW());
+INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ((SELECT id FROM PERSONA WHERE num_documento = '99988866' LIMIT 1), 2, NOW());
+INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ((SELECT id FROM PERSONA WHERE num_documento = '99988855' LIMIT 1), 1, NOW());
+INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ((SELECT id FROM PERSONA WHERE num_documento = '99988844' LIMIT 1), 2, NOW());
+INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ((SELECT id FROM PERSONA WHERE num_documento = '99988833' LIMIT 1), 1, NOW());

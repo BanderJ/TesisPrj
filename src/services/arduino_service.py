@@ -33,12 +33,11 @@ class ArduinoService:
                 "mensaje": f"Muestra detectada a {dist_str}. Lista para iniciar.",
             }
 
-        # tapa check desactivado temporalmente
         return {
-            "listo": True,
+            "listo": False,
             "distancia": dist,
             "conectado": True,
-            "mensaje": f"Muestra detectada a {dist_str}. Lista para iniciar.",
+            "mensaje": f"Tapa abierta o sin muestra ({dist_str}). Cierre la tapa para continuar.",
         }
 
     def obtener_peso(self) -> dict:

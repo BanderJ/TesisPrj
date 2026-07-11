@@ -55,6 +55,7 @@ class ServoController:
         self,
         obtener_clase: Callable[[], str | None],
         equivalencias: dict[str, float],
+        t_referencia: float | None = None,
     ) -> None:
         """
         Programa la evaluación y separación de un grano.
@@ -63,8 +64,12 @@ class ServoController:
             obtener_clase: callable que retorna la mejor clase detectada para
                            este track_id en el momento de ejecución (o None).
             equivalencias: EQUIVALENCIAS_DEFECTO del modelo activo.
+            t_referencia: time.monotonic() de captura del frame donde se vio el
+                          grano por primera vez. Sin él, se usa el instante actual
+                          (incluye la latencia de inferencia como error).
         """
-        ejecutar_en = time.monotonic() + Config.SERVO_DELAY_S
+        base = t_referencia if t_referencia is not None else time.monotonic()
+        ejecutar_en = base + Config.SERVO_DELAY_S
         with self._lock:
             self._cola.append(
                 _Solicitud(
@@ -77,28 +82,61 @@ class ServoController:
     def _worker(self) -> None:
         """Procesa solicitudes pendientes cada 10 ms."""
         while self._activo:
-            ahora = time.monotonic()
-            pendiente: _Solicitud | None = None
-
-            with self._lock:
-                if not self._bloqueado and self._cola and self._cola[0].ejecutar_en <= ahora:
-                    pendiente = self._cola.pop(0)
+            pendiente = self._sacar_pendiente()
 
             if pendiente is not None:
-                clase = pendiente.obtener_clase()
-                es_defecto = clase is not None and pendiente.equivalencias.get(clase, 0.0) > 0.0
-
-                if es_defecto:
-                    arduino_serial.enviar_comando("SERVO:DEFECTO")
-                    time.sleep(Config.SERVO_HOLD_S)
-                    # Solo volver a BUENO si no estamos en modo emergencia
-                    with self._lock:
-                        if not self._bloqueado:
-                            arduino_serial.enviar_comando("SERVO:BUENO")
-                else:
-                    arduino_serial.enviar_comando("SERVO:BUENO")
+                if self._es_defecto(pendiente):
+                    self._separar_defecto()
             else:
                 time.sleep(0.01)
+
+    def _sacar_pendiente(self) -> _Solicitud | None:
+        """Extrae la solicitud más antigua ya vencida, o None."""
+        with self._lock:
+            if not self._bloqueado and self._cola and self._cola[0].ejecutar_en <= time.monotonic():
+                return self._cola.pop(0)
+        return None
+
+    @staticmethod
+    def _es_defecto(solicitud: _Solicitud) -> bool:
+        clase = solicitud.obtener_clase()
+        return clase is not None and solicitud.equivalencias.get(clase, 0.0) > 0.0
+
+    @staticmethod
+    def _enviar_con_reintento(cmd: str, intentos: int = 3) -> bool:
+        """Envía un comando reintentando ante fallas del puerto serial.
+        Sin esto, un SERVO:BUENO perdido deja el servo atascado en DEFECTO."""
+        for _ in range(intentos):
+            if arduino_serial.enviar_comando(cmd):
+                return True
+            time.sleep(0.05)
+        return False
+
+    def _separar_defecto(self) -> None:
+        """
+        Mueve el servo a DEFECTO y lo sostiene SERVO_HOLD_S. Si durante el hold
+        vence otra solicitud que también es defecto, extiende el hold en lugar de
+        volver a BUENO — evita el parpadeo DEFECTO→BUENO→DEFECTO que dejaba pasar
+        granos defectuosos consecutivos, y evalúa la cola sin retraso acumulado.
+        """
+        self._enviar_con_reintento("SERVO:DEFECTO")
+        fin_hold = time.monotonic() + Config.SERVO_HOLD_S
+
+        while self._activo and time.monotonic() < fin_hold:
+            siguiente = self._sacar_pendiente()
+            if siguiente is None:
+                time.sleep(0.005)
+                continue
+            if self._es_defecto(siguiente):
+                fin_hold = time.monotonic() + Config.SERVO_HOLD_S
+            # Si es bueno no hay acción posible: el servo ya está en DEFECTO
+            # sosteniendo al grano anterior; volverá a BUENO al terminar el hold.
+
+        # Mantener el lock durante el envío garantiza el orden frente a
+        # bloquear(): si la emergencia gana el lock primero, no se envía BUENO.
+        with self._lock:
+            if not self._bloqueado:
+                self._enviar_con_reintento("SERVO:BUENO")
 
     def bloquear(self) -> None:
         """

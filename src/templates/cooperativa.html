@@ -1,8 +1,8 @@
 {% extends "main.html" %}
 
 {% block style %}
-    <link rel="stylesheet" href="/static/css/perfil.css?v=10">
-    <link rel="stylesheet" href="/static/css/configuracion_cooperativa.css?v=23">
+    <link rel="stylesheet" href="/static/css/perfil.css">
+    <link rel="stylesheet" href="/static/css/cooperativa.css">
 {% endblock %}
 
 {% block content %}
@@ -42,6 +42,19 @@
                     </svg>
                     Caficultores
                 </a>
+                <a href="#auditoria" class="perfil-nav-link" data-section="auditoria" id="navAuditoria" hidden>
+                    <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    Auditoría
+                </a>
+                <a href="#reportes" class="perfil-nav-link" data-section="reportes" id="navReportes" hidden>
+                    <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
+                    </svg>
+                    Reportes
+                </a>
             </nav>
         </aside>
 
@@ -60,37 +73,39 @@
                     <div class="perfil-form-row single">
                         <div class="field-group">
                             <label for="nombre">Nombre de la cooperativa</label>
-                            <input id="nombre" type="text" maxlength="100" required placeholder="Ej: Cooperativa Line Coffee">
+                            <input id="nombre" type="text" maxlength="100" required placeholder="Ej: Cooperativa Line Coffee" readonly>
                         </div>
                     </div>
 
                     <div class="perfil-form-row">
                         <div class="field-group">
                             <label for="codigo">Código</label>
-                            <input id="codigo" type="text" maxlength="20" placeholder="Ej: COOPE001">
+                            <input id="codigo" type="text" maxlength="20" required placeholder="Ej: COOPE001" readonly>
                         </div>
                         <div class="field-group">
                             <label for="direccion">Dirección</label>
-                            <input id="direccion" type="text" maxlength="100" placeholder="Ej: Av. Principal 123">
+                            <input id="direccion" type="text" maxlength="255" required placeholder="Ej: Av. Principal 123">
                         </div>
                     </div>
 
                     <div class="perfil-form-row">
                         <div class="field-group">
                             <label for="telefono">Teléfono</label>
-                            <input id="telefono" type="tel" maxlength="9" placeholder="Ej: 987654321">
+                            <input id="telefono" type="tel" maxlength="9" required placeholder="Ej: 987654321">
                         </div>
                         <div class="field-group">
                             <label for="correo">Correo</label>
-                            <input id="correo" type="email" maxlength="100" placeholder="Ej: info@cooperativa.com">
+                            <input id="correo" type="email" maxlength="255" required placeholder="Ej: info@cooperativa.com">
                         </div>
                     </div>
 
                     <div class="perfil-form-row single">
                         <div class="field-group">
-                            <label for="descripcion">Descripción de la cooperativa</label>
-                            <textarea id="descripcion" maxlength="1000" placeholder="Información sobre tu cooperativa..."></textarea>
-                            <p class="perfil-hint">Máximo 1000 caracteres</p>
+                            <label for="descripcion" style="display:flex;justify-content:space-between;align-items:center;">
+                                <span>Descripción de la cooperativa</span>
+                                <span id="contadorDescripcion" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/255</span>
+                            </label>
+                            <textarea id="descripcion" maxlength="255" required placeholder="Información sobre tu cooperativa..." style="resize:none;height:65px;"></textarea>
                         </div>
                     </div>
 
@@ -199,8 +214,8 @@
                         <thead>
                             <tr>
                                 <th>Nombre</th>
+                                <th>Tipo usuario</th>
                                 <th>Documento</th>
-                                <th>Tipo</th>
                                 <th>Ubicación</th>
                                 <th>Teléfono</th>
                                 <th>Acción</th>
@@ -213,7 +228,109 @@
                 </div>
             </section>
 
+            <!-- SECCIÓN 5: Auditoría -->
+            <section id="auditoria" class="perfil-section" hidden>
+                <div class="audit-header">
+                    <div>
+                        <h2 class="perfil-section-title" style="border-bottom:none;padding-bottom:0;margin-bottom:4px;">Registro de auditoría</h2>
+                        <p class="perfil-section-description" id="auditTotal" style="margin:0;"></p>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="audit-filters">
+                    <div class="field-group">
+                        <label for="filtroUsuario">Usuario</label>
+                        <input type="text" id="filtroUsuario" placeholder="Buscar por usuario...">
+                    </div>
+                    <div class="field-group">
+                        <label for="filtroTipoPersonal">Tipo de usuario</label>
+                        <select id="filtroTipoPersonal">
+                            <option value="">Todos</option>
+                            <option value="1">Evaluador</option>
+                            <option value="2">Gerente</option>
+                            <option value="3">Administrador</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="filtroAccion">Acción</label>
+                        <select id="filtroAccion">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="filtroFechaDesde">Desde</label>
+                        <input type="date" id="filtroFechaDesde">
+                    </div>
+                    <div class="field-group">
+                        <label for="filtroFechaHasta">Hasta</label>
+                        <input type="date" id="filtroFechaHasta">
+                    </div>
+                    <div class="audit-filters-actions">
+                        <button type="button" class="btn btn-primary" id="btnFiltrarAudit">Filtrar</button>
+                        <button type="button" class="btn btn-secondary" id="btnLimpiarFiltros">Limpiar</button>
+                    </div>
+                </div>
+
+                <!-- Tabla -->
+                <div class="tabla-usuarios-wrapper" id="auditTableWrapper">
+                    <table class="tabla-usuarios" id="auditTable">
+                        <thead>
+                            <tr>
+                                <th>Fecha / Hora</th>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Acción</th>
+                                <th>Tabla</th>
+                                <th>Descripción</th>
+                                <th>IP</th>
+                                <th>Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody">
+                            <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted-foreground);">Selecciona filtros y presiona Filtrar para cargar registros.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación -->
+                <div class="audit-pagination" id="auditPaginacion" hidden>
+                    <button type="button" class="btn btn-secondary" id="btnPrevPage" disabled>Anterior</button>
+                    <span id="auditPaginaInfo" style="font-size:13px;color:var(--muted-foreground);font-family:'JetBrains Mono';"></span>
+                    <button type="button" class="btn btn-secondary" id="btnNextPage" disabled>Siguiente</button>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 6: Reportes -->
+            <section id="reportes" class="perfil-section" hidden>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">
+                    <div>
+                        <h2 class="perfil-section-title" style="border-bottom:none;padding-bottom:0;margin-bottom:4px;">Reportes</h2>
+                        <p class="perfil-section-description" id="reporteDescripcion" style="margin:0;"></p>
+                    </div>
+                    <div class="field-group" style="min-width:260px;">
+                        <label for="selectReporte">Reporte</label>
+                        <select id="selectReporte"></select>
+                    </div>
+                </div>
+
+                <div id="reporteContainer">
+                    <p style="text-align:center;padding:2rem;color:var(--muted-foreground);">Cargando reporte...</p>
+                </div>
+            </section>
+
         </main>
+    </div>
+</div>
+
+<!-- MODAL: Detalle de Auditoría -->
+<div id="modalAudit" style="display:none;position:fixed;inset:0;z-index:9000;align-items:flex-start;justify-content:center;padding:1.5rem;background:rgba(0,0,0,0.48);backdrop-filter:blur(3px);overflow-y:auto;">
+    <div style="position:relative;width:100%;max-width:700px;margin:2rem auto;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 28px;box-shadow:0 24px 64px rgba(0,0,0,0.25);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--primary);">
+            <h2 style="margin:0;font-size:18px;font-weight:700;color:var(--foreground);">Detalle del registro</h2>
+            <button type="button" id="btnCerrarModalAudit" style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;color:var(--muted-foreground);font-size:20px;display:flex;align-items:center;justify-content:center;border-radius:6px;" aria-label="Cerrar">&#x2715;</button>
+        </div>
+        <div id="auditModalContent" style="display:flex;flex-direction:column;gap:16px;"></div>
     </div>
 </div>
 
@@ -335,7 +452,12 @@
                         <span id="labelClave">Contraseña *</span>
                         <span id="contadorCrearClave" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/30</span>
                     </label>
-                    <input id="crearContrasena" type="password" placeholder="Mínimo 8 caracteres" maxlength="30">
+                    <div class="password-wrapper">
+                        <input id="crearContrasena" type="password" placeholder="Mínimo 8 caracteres" maxlength="30">
+                        <button type="button" class="password-toggle-btn" aria-label="Mostrar contraseña" aria-controls="crearContrasena" aria-pressed="false">
+                            <img src="/static/icon/visibility_off.svg" alt="" class="password-toggle-icon">
+                        </button>
+                    </div>
                     <div class="password-requirements" style="margin-top:6px;">
                         <div class="requirement" id="crear-req-length"><svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Al menos 8 caracteres</span></div>
                         <div class="requirement" id="crear-req-uppercase"><svg class="requirement-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Al menos una letra mayúscula</span></div>
@@ -348,7 +470,12 @@
                         <span id="labelConfirmarClave">Confirmar Contraseña *</span>
                         <span id="contadorCrearConfirmar" style="font-size:12px;color:var(--muted-foreground);font-weight:400;">0/30</span>
                     </label>
-                    <input id="crearConfirmarContrasena" type="password" placeholder="Repite la contraseña" maxlength="30">
+                    <div class="password-wrapper">
+                        <input id="crearConfirmarContrasena" type="password" placeholder="Repite la contraseña" maxlength="30">
+                        <button type="button" class="password-toggle-btn" aria-label="Mostrar contraseña" aria-controls="crearConfirmarContrasena" aria-pressed="false">
+                            <img src="/static/icon/visibility_off.svg" alt="" class="password-toggle-icon">
+                        </button>
+                    </div>
                     <div class="password-match" id="crearPasswordMatch">
                         <svg class="match-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         <span id="crearPasswordMatchText">Las contraseñas coinciden</span>
@@ -417,5 +544,7 @@
 
 {% block script %}
 <script>const isAdmin = '{{ user.is_admin | tojson }}' === 'true';</script>
-<script src="/static/js/configuracion_cooperativa.js"></script>
+<script src="/static/js/lib/echarts.min.js"></script>
+<script src="/static/js/coffee-report.js"></script>
+<script src="/static/js/cooperativa.js"></script>
 {% endblock %}
