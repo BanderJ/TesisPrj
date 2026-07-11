@@ -1,0 +1,216 @@
+/* Configuración de Cooperativa — overrides específicos sobre main.css */
+
+/* Full-width sin límites */
+.perfil-container { max-width: none !important; margin: 0 !important; padding: 0 !important; }
+.perfil-layout    { max-width: none !important; margin: 0 !important; min-height: 600px; }
+
+/* Visibilidad de secciones — esta página usa atributo [hidden], no :first-child */
+.perfil-section              { display: none !important; }
+.perfil-section:not([hidden]) { display: flex !important; }
+.perfil-section[hidden]       { display: none !important; }
+#loadingState[hidden]         { display: none !important; }
+#loadingState:not([hidden])   { display: flex !important; }
+
+/* Bloque de búsqueda automática de persona */
+.buscar-persona-block {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
+    background: color-mix(in oklab, var(--muted) 30%, transparent 70%);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.buscar-persona-block .field-group { margin: 0; }
+
+.buscar-estado {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--muted-foreground);
+    min-height: 40px;
+    grid-column: 1 / -1;
+}
+
+.buscar-estado.buscando  { color: var(--primary); border-color: color-mix(in oklab, var(--primary) 38%, var(--border) 62%); background: color-mix(in oklab, var(--primary) 8%, transparent 92%); }
+.buscar-estado.encontrado { border-color: #16a34a; background: color-mix(in oklab, #16a34a 8%, transparent 92%); color: #15803d; }
+.buscar-estado.no-encontrado { border-color: #dc2626; background: color-mix(in oklab, #dc2626 8%, transparent 92%); color: #dc2626; }
+
+.buscar-spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid color-mix(in oklab, var(--primary) 30%, transparent 70%);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Grid 3 columnas para campos de persona/ubicación */
+.perfil-form-row--3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .perfil-form-row--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .buscar-persona-block { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+    .perfil-layout { grid-template-columns: 1fr !important; }
+    .perfil-sidebar { border-right: none !important; border-bottom: 2px solid var(--primary); width: 100% !important; }
+    .perfil-form-row--3 { grid-template-columns: 1fr; }
+}
+
+/* ── Auditoría ─────────────────────────────────── */
+
+.audit-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
+.audit-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: color-mix(in oklab, var(--muted) 20%, transparent 80%);
+    margin-bottom: 1.25rem;
+}
+
+.audit-filters .field-group { margin: 0; }
+
+.audit-filters-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.audit-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+}
+
+.audit-badge--login        { background: color-mix(in oklab, #16a34a 15%, transparent); color: #15803d; }
+.audit-badge--logout       { background: color-mix(in oklab, #6b7280 15%, transparent); color: #4b5563; }
+.audit-badge--login-fail   { background: color-mix(in oklab, #dc2626 15%, transparent); color: #dc2626; }
+.audit-badge--crear        { background: color-mix(in oklab, var(--primary) 15%, transparent); color: var(--primary); }
+.audit-badge--actualizar   { background: color-mix(in oklab, #2563eb 15%, transparent); color: #1d4ed8; }
+.audit-badge--desactivar   { background: color-mix(in oklab, #dc2626 12%, transparent); color: #b91c1c; }
+.audit-badge--eliminar     { background: color-mix(in oklab, #dc2626 12%, transparent); color: #b91c1c; }
+.audit-badge--completar    { background: color-mix(in oklab, #7c3aed 15%, transparent); color: #6d28d9; }
+.audit-badge--default      { background: color-mix(in oklab, var(--border) 40%, transparent); color: var(--muted-foreground); }
+
+.audit-btn-detail {
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--muted-foreground);
+    transition: color 0.2s, border-color 0.2s;
+}
+.audit-btn-detail:hover { color: var(--foreground); border-color: var(--foreground); }
+
+.audit-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.audit-detail-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.audit-detail-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.audit-detail-value {
+    font-size: 13px;
+    color: var(--foreground);
+}
+
+.audit-json-block {
+    background: color-mix(in oklab, var(--background) 80%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--foreground);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .audit-filters { grid-template-columns: 1fr 1fr; }
+    .audit-filters-actions { grid-column: 1 / -1; }
+}
+
+@media (max-width: 480px) {
+    .audit-filters { grid-template-columns: 1fr; }
+}
+
+/* ==================== Reportes ==================== */
+
+.reporte-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+    margin-top: 0.5rem;
+}
+
+.reporte-grid--solo-tabla {
+    grid-template-columns: 1fr;
+}
+
+.reporte-grafico {
+    height: 360px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px;
+}
+
+@media (max-width: 900px) {
+    .reporte-grid { grid-template-columns: 1fr; }
+}

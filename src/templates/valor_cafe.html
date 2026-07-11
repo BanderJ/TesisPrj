@@ -1,0 +1,126 @@
+﻿{% extends "main.html" %}
+
+{% block style %}
+    <link rel="stylesheet" href="/static/css/valor_cafe.css">
+{% endblock %}
+
+{% block content %}
+<section class="valor-cafe-page grid gap-3" aria-label="Gestion de valores de cafe">
+    <header class="page-hero">
+        <h1 class="hero-title">Registro de Precios de Café</h1>
+        <p class="hero-description">
+            Registra y gestiona los precios del café según el rango de calidad. Define los rangos libremente (ej: <strong>60-65</strong>, <strong>70</strong>). Se almacenan con la fecha y hora actual.
+        </p>
+    </header>
+
+    <!-- Panel: rangos ya registrados hoy -->
+    <section id="panelRangosHoy" class="valor-cafe-content" aria-label="Rangos registrados hoy" style="display:none">
+        <article class="card valor-cafe-card" style="grid-column:1/-1">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+                <div>
+                    <h3>Rangos registrados hoy</h3>
+                    <p class="info-text" id="subtituloRangosHoy">—</p>
+                </div>
+                <button type="button" id="btnRefrescarRangos" class="btn btn-secondary" style="width:auto">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Actualizar
+                </button>
+            </div>
+            <div id="tablaRangosHoy" style="overflow-x:auto;margin-top:.75rem"></div>
+        </article>
+    </section>
+
+    <section class="valor-cafe-content" aria-label="Formulario de registro">
+        <article class="card valor-cafe-card">
+
+            <!-- Registro de precios (dinámico: uno o varios rangos) -->
+            <div class="bloque-header">
+                <div>
+                    <h2>Registro de Precios</h2>
+                    <p class="info-text">Define rangos y precios libremente — uno o varios. Agrégalos según el día.</p>
+                </div>
+                <span class="fila-counter" id="filaCounter">0 rangos</span>
+            </div>
+
+            <form id="formValorCafeBloque" class="valor-cafe-form" novalidate>
+                <div class="bloque-filas" id="bloqueFila"></div>
+
+                <button type="button" id="btnAgregarFila" class="btn-add-fila">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Agregar rango
+                </button>
+
+                <div class="form-actions">
+                    <button type="submit" id="btnRegistrarBloque" class="btn btn-primary">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Registrar Bloque
+                    </button>
+                    <button type="button" id="btnLimpiarBloque" class="btn btn-secondary">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Limpiar Todo
+                    </button>
+                </div>
+            </form>
+        </article>
+
+        <!-- Panel de información -->
+        <article class="card valor-cafe-info">
+            <div class="card-header">
+                <h3>Formato de Rangos</h3>
+            </div>
+
+            <p class="info-section-title">Formatos válidos</p>
+            <div class="formato-guia">
+                <div class="formato-guia-item">
+                    <span class="formato-guia-badge badge-ok">OK</span>
+                    <code>60-65</code>
+                    <span class="info-text">Rango X-Y (X &lt; Y)</span>
+                </div>
+                <div class="formato-guia-item">
+                    <span class="formato-guia-badge badge-ok">OK</span>
+                    <code>70</code>
+                    <span class="info-text">Número único</span>
+                </div>
+                <div class="formato-guia-item">
+                    <span class="formato-guia-badge badge-no">NO</span>
+                    <code>65-60</code>
+                    <span class="info-text">X debe ser menor a Y</span>
+                </div>
+                <div class="formato-guia-item">
+                    <span class="formato-guia-badge badge-no">NO</span>
+                    <code>60-60</code>
+                    <span class="info-text">X debe ser menor a Y</span>
+                </div>
+                <div class="formato-guia-item">
+                    <span class="formato-guia-badge badge-no">NO</span>
+                    <code>A-65</code>
+                    <span class="info-text">Solo números permitidos</span>
+                </div>
+            </div>
+
+            <p class="info-section-title" style="margin-top:1.25rem;">Ejemplo de precios por rango</p>
+            <div class="rangos-info">
+                <ul class="rangos-list">
+                    <li><strong>50-52</strong> → S/. 700</li>
+                    <li><strong>53-55</strong> → S/. 730</li>
+                    <li><strong>56</strong> → S/. 760</li>
+                    <li><strong>57-60</strong> → S/. 790</li>
+                </ul>
+                <p class="info-text" style="margin-top:0.75rem;">Los rangos no son fijos. Cada día puede tener distintos rangos.</p>
+            </div>
+        </article>
+    </section>
+</section>
+{% endblock %}
+
+{% block script %}
+<script src="/static/js/valor_cafe.js"></script>
+{% endblock %}

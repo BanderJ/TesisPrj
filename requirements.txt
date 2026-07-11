@@ -1,8 +1,56 @@
-fastapi
-jinja2
-aiofiles
-uvicorn
-psycopg2
-argon2-cffi
-PyJWT
-python-multipart
+# ============================================================
+# COFFEEREN - DEPENDENCIAS DEL PROYECTO
+# Backend: FastAPI + PostgreSQL + ML (YOLO + ByteTrack + Arduino)
+# Última actualización: junio 2026
+# ============================================================
+
+# ============================================================
+# FRAMEWORK WEB
+# ============================================================
+fastapi>=0.115.0          # Framework web asincrónico
+uvicorn>=0.30.0           # Servidor ASGI para FastAPI
+python-multipart>=0.0.9   # Soporte multipart/form-data en formularios
+pydantic>=2.7.0           # Validación de datos (usado via FastAPI y schemas propios)
+
+# ============================================================
+# FRONTEND (Jinja2 + plantillas)
+# ============================================================
+jinja2>=3.1.4             # Motor de plantillas HTML para renderizado del servidor
+
+# ============================================================
+# BASE DE DATOS
+# ============================================================
+psycopg2>=2.9.9           # Driver PostgreSQL — psycopg2-binary como alternativa en dev
+
+# ============================================================
+# AUTENTICACIÓN & SEGURIDAD
+# ============================================================
+PyJWT>=2.8.0              # Generación y validación de tokens JWT (httponly cookies)
+argon2-cffi>=23.1.0       # Hashing seguro de contraseñas con Argon2
+
+# ============================================================
+# VISIÓN ARTIFICIAL & ML
+# ============================================================
+# YOLO (YOLOv8n, YOLO11n, YOLO26n) — detección y tracking de granos
+ultralytics>=8.4.0        # YOLO v8+ framework — incluye ByteTrack y utilidades de tracking
+torch>=2.0.0              # PyTorch para inferencia (CPU y CUDA)
+torchvision>=0.15.0       # Utilidades de visión para torch
+
+# Procesamiento de video & frames
+opencv-python-headless>=4.8.0  # Captura USB (ELP AR0234), MJPEG streaming — sin GUI
+numpy>=1.24.0             # Arrays numéricos para frames y resultados YOLO
+pillow>=10.0.0            # Procesamiento de imágenes (dependencia de ultralytics)
+
+# ============================================================
+# INFERENCIA ONNX
+# Requerido desde que tracker.py prefiere best.onnx sobre best.pt
+# Exportar modelos con: YOLO("best.pt").export(format="onnx", imgsz=640)
+# ============================================================
+onnx>=1.21.0              # Formato de modelo ONNX — requerido para cargar best.onnx
+onnxruntime>=1.20.1       # Runtime de inferencia ONNX (CPU + GPU vía DML en Windows)
+onnxslim>=0.1.71          # Optimizador de grafos ONNX — usado en la exportación
+
+# ============================================================
+# ARDUINO & SERIAL
+# ============================================================
+pyserial>=3.5             # Comunicación serial con Arduino (servo + sensor ultrasónico)

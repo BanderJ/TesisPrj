@@ -1,0 +1,142 @@
+﻿{% extends "main.html" %}
+
+{% block style %}
+    <link rel="stylesheet" href="/static/css/inicio.css">
+{% endblock %}
+
+{% block content %}
+    <!-- Cooperativa Info Section -->
+    <section id="cooperativaSection" class="cooperativa-info-section" hidden>
+        <div class="cooperativa-banner-wrapper">
+            <img id="cooperativaImagenBanner" src="" alt="Banner de cooperativa" class="cooperativa-banner-img" hidden>
+        </div>
+        <div class="cooperativa-card">
+            <h2 id="cooperativaNombreTitulo" class="cooperativa-title">Tu Cooperativa</h2>
+            <p id="cooperativaDescripcionTexto" class="cooperativa-description"></p>
+        </div>
+    </section>
+
+    <section class="control-hero reveal-up" aria-label="Centro de control CoffeeRen">
+        <div class="socio-hero">
+            <!-- <p class="hero-kicker info-text">Centro de control academico</p> -->
+            <h1 class="hero-title">Clasificacion inteligente de cafe verde</h1>
+            <p class="hero-description">
+                Visualiza el estado de laboratorio, monitorea lotes en proceso y coordina el flujo de clasificacion
+                por vision artificial con una interfaz orientada a precision y trazabilidad.
+            </p>
+        </div>
+
+        <div class="hero-strip">
+            <article class="hero-strip-item">
+                <p class="info-text">Lotes procesados</p>
+                <strong id="kpiLotes">—</strong>
+            </article>
+            <article class="hero-strip-item">
+                <p class="info-text">Rendimiento promedio</p>
+                <strong id="kpiRendimiento">—</strong>
+            </article>
+            <article class="hero-strip-item">
+                <p class="info-text">Defectos detectados</p>
+                <strong id="kpiDefectos">—</strong>
+            </article>
+        </div>
+    </section>
+
+    <section class="dashboard-board reveal-up" aria-labelledby="board-title">
+        <div class="board-header">
+            <div class="board-header-copy">
+                <h2 id="board-title" class="section-title">Precio del café según rendimiento</h2>
+                <!-- <p class="section-subtitle info-text">Historial por rango de rendimiento del café verde</p> -->
+            </div>
+            <div class="period-tabs" id="periodTabs" role="group" aria-label="Periodo del grafico">
+                <button class="period-tab is-active" data-period="dia">Hoy</button>
+                <button class="period-tab" data-period="mes">Este mes</button>
+                <button class="period-tab" data-period="año">Este año</button>
+            </div>
+        </div>
+
+        <div class="board-grid">
+            <article class="price-card" aria-label="Precio referencial hoy">
+                <p class="price-label info-text">Precio máximo por quintal</p>
+                <p class="price-value" id="coffeePriceValue">—</p>
+                <p class="price-change" id="coffeePriceChange">—</p>
+                <p class="price-date info-text" id="coffeePriceDate">—</p>
+                <hr class="rango-divider">
+                <p class="price-label info-text" style="margin-top:10px">Rangos registrados hoy</p>
+                <ul class="rango-list" id="rangoList" aria-label="Precios por rango">
+                    <li class="rango-item"><span class="rango-dot" style="background:var(--muted-foreground)"></span><span class="rango-name" style="color:var(--muted-foreground)">Cargando…</span></li>
+                </ul>
+            </article>
+
+            <article class="curve-card" aria-label="Grafico de precios">
+                <div class="chart-top">
+                    <div class="rango-legend" id="rangoLegend">
+                        <button class="legend-chip is-active" data-rango="">Todos los rangos</button>
+                    </div>
+                </div>
+                <div class="chart-svg-wrapper">
+                    <svg id="priceChartSvg" class="price-chart-svg" viewBox="0 0 800 210" xmlns="http://www.w3.org/2000/svg"></svg>
+                    <div id="chartTip" class="chart-tip-overlay" aria-hidden="true" hidden></div>
+                </div>
+                <p class="chart-empty" id="chartEmpty" hidden>Sin registros para este período</p>
+            </article>
+        </div>
+
+        <div class="board-metrics">
+            <!-- <article class="board-metric-card">
+                <h3>Precision estimada IA</h3>
+                <p id="kpiPrecision">—</p>
+                <small class="info-text">Basado en lotes finalizados</small>
+            </article> -->
+            <article class="board-metric-card">
+                <h3>Rangos registrados hoy</h3>
+                <p id="kpiRangos">—</p>
+                <small class="info-text">Categorias de cafe activas</small>
+            </article>
+            <article class="board-metric-card">
+                <h3>Precio minimo hoy</h3>
+                <p id="kpiPrecioMin">—</p>
+                <small class="info-text">Rango de menor valor del dia</small>
+            </article>
+        </div>
+    </section>
+
+    <section class="workflow-section reveal-up" aria-labelledby="acciones-title">
+        <h2 id="acciones-title" class="section-title">Flujo operativo</h2>
+        <p class="section-subtitle info-text">Accesos directos a los modulos criticos del sistema</p>
+
+        <div class="workflow-grid">
+            <article class="workflow-card">
+                <div class="workflow-badge">01</div>
+                <h3>Registrar caficultor</h3>
+                <p>Registro de productor para trazabilidad territorial y analisis por procedencia.</p>
+                <a href="/nuevo-caficultor" class="btn btn-primary workflow-btn">Registrar</a>
+            </article>
+
+            <article class="workflow-card">
+                <div class="workflow-badge">02</div>
+                <h3>Registrar socio</h3>
+                <p>Gestion de socios y consolidacion de actores vinculados a cada lote.</p>
+                <a href="/nuevo-caficultor" class="btn btn-primary workflow-btn">Convertir a socio</a>
+            </article>
+
+            <article class="workflow-card">
+                <div class="workflow-badge">03</div>
+                <h3>Realizar muestra</h3>
+                <p>Captura tecnica de pesos y datos de productor para iniciar clasificacion.</p>
+                <a href="/registro" class="btn btn-primary workflow-btn">Ir a registro</a>
+            </article>
+
+            <article class="workflow-card">
+                <div class="workflow-badge">04</div>
+                <h3>Buscar muestras</h3>
+                <p>Consulta historica por documento, fecha, rendimiento y estado de lote.</p>
+                <a href="/reporte" class="btn btn-primary workflow-btn">Buscar muestra</a>
+            </article>
+        </div>
+    </section>
+{% endblock %}
+
+{% block script %}
+<script src="/static/js/inicio.js"></script>
+{% endblock %}

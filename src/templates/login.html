@@ -1,0 +1,148 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/login.css">
+    <title>CoffeeRen - Login</title>
+</head>
+<body>
+    <div class="login-container">
+        <div class="glassmorphism login-stage">
+            <aside class="login-context">
+                <!-- <p class="login-kicker info-text">Sistema de clasificación</p> -->
+                <h1 class="login-title">CoffeeRen</h1>
+                <p class="text-descr info-text">
+                    Plataforma para clasificacion automatica de granos de cafe verde mediante vision artificial
+                </p>
+
+                <div class="login-feature-list">
+                    <div class="login-feature-item">
+                        <strong>Precision asistida</strong>
+                        <p class="info-text">Analisis de defectos y calidad por lote</p>
+                    </div>
+                    <div class="login-feature-item">
+                        <strong>Monitoreo en vivo</strong>
+                        <p class="info-text">Seguimiento de clasificacion en tiempo real.</p>
+                    </div>
+                    <div class="login-feature-item">
+                        <strong>Trazabilidad</strong>
+                        <p class="info-text">Registro de muestras y resultados para analisis.</p>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="login-panel">
+                <div class="logo-placeholder">
+                    <img id="iconCoffee" class="login-logo" alt="Icono de CoffeeRen" src="/static/icon/coffee_icon.svg">
+                </div>
+                <h2 class="panel-title">
+                    Iniciar sesión
+                </h2>
+                <p class="text-descr info-text panel-subtitle">
+                    Ingrese sus credenciales para acceder al sistema
+                </p>
+            
+
+                {% if error %}
+                <div class="login-alert info-text">
+                    {{ error }}
+                </div>
+                {% endif %}
+
+                <hr class="divider" />
+
+                <form method="post" action="/auth/login" class="login-form">
+                    <div class="form-group">
+                        <label for="usuario" class="input-label">Usuario</label>
+                        <input
+                            type="text"
+                            id="usuario"
+                            name="usuario"
+                            placeholder="Ingrese su usuario"
+                            class="input-field"
+                            required
+                            aria-required="true"
+                            maxlength="30"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clave" class="input-label">Contraseña</label>
+                        <div class="password-field-wrapper">
+                            <input
+                                type="password"
+                                id="clave"
+                                name="clave"
+                                placeholder="Ingrese su contraseña"
+                                class="password-input-field"
+                                required
+                                aria-required="true"
+                                maxlength="20"
+                            />
+                            <button
+                                type="button"
+                                id="toggleClaveBtn"
+                                class="password-toggle-btn"
+                                aria-label="Mostrar contraseña"
+                                aria-controls="clave"
+                                aria-pressed="false"
+                            >
+                                <img
+                                    id="toggleClaveIcon"
+                                    src="/static/icon/visibility_off.svg"
+                                    alt="Mostrar contraseña"
+                                    class="password-toggle-icon"
+                                />
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        Iniciar Sesión
+                    </button>
+                </form>
+
+                <hr class="divider" />
+
+                <div class="panel-links info-text">
+                    <a href="#" class="link-text">¿Olvidó su contraseña?</a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        (() => {
+            const savedMode = localStorage.getItem('theme') || 'light';
+            document.body.classList.toggle('dark', savedMode === 'dark');
+
+            const passwordInput = document.getElementById('clave');
+            const toggleButton = document.getElementById('toggleClaveBtn');
+            const toggleIcon = document.getElementById('toggleClaveIcon');
+
+            if (!passwordInput || !toggleButton || !toggleIcon) {
+                return;
+            }
+
+            toggleButton.addEventListener('click', () => {
+                const isHidden = passwordInput.type === 'password';
+                passwordInput.type = isHidden ? 'text' : 'password';
+
+                if (isHidden) {
+                    toggleButton.setAttribute('aria-label', 'Ocultar contraseña');
+                    toggleButton.setAttribute('aria-pressed', 'true');
+                    toggleIcon.src = '/static/icon/visibility_on.svg';
+                    toggleIcon.alt = 'Ocultar contraseña';
+                } else {
+                    toggleButton.setAttribute('aria-label', 'Mostrar contraseña');
+                    toggleButton.setAttribute('aria-pressed', 'false');
+                    toggleIcon.src = '/static/icon/visibility_off.svg';
+                    toggleIcon.alt = 'Mostrar contraseña';
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

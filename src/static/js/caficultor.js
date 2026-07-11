@@ -1,0 +1,852 @@
+    (() => {
+
+        const cardNuevo = document.getElementById('cardNuevo');
+        const cardConversion = document.getElementById('cardConversion');
+        const btnSelectNuevo = document.getElementById('btnSelectNuevo');
+        const btnSelectConversion = document.getElementById('btnSelectConversion');
+        const panelNuevo = document.getElementById('panelNuevo');
+        const panelConversion = document.getElementById('panelConversion');
+
+        const formNuevo = document.getElementById('formNuevoCaficultor');
+        const tipoDocumentoId = document.getElementById('tipoDocumentoId');
+        const numDocumento = document.getElementById('numDocumento');
+        const nombre = document.getElementById('nombre');
+        const apePaterno = document.getElementById('apePaterno');
+        const apeMaterno = document.getElementById('apeMaterno');
+        const sexo = document.getElementById('sexo');
+        const fechaNacimiento = document.getElementById('fechaNacimiento');
+        const telefono = document.getElementById('telefono');
+        const tipoCaficultorId = document.getElementById('tipoCaficultorId');
+        const departamento = document.getElementById('departamento');
+        const provincia = document.getElementById('provincia');
+        const distrito = document.getElementById('distrito');
+        const docHint = document.getElementById('docHint');
+        const btnLimpiarNuevo = document.getElementById('btnLimpiarNuevo');
+        const btnGuardarNuevo = document.getElementById('btnGuardarNuevo');
+
+        const registroBanner = document.getElementById('registroBanner');
+        const registroBannerText = document.getElementById('registroBannerText');
+        const btnAccionConversion = document.getElementById('btnAccionConversion');
+
+        const tipoDocumentoConversionId = document.getElementById('tipoDocumentoConversionId');
+        const buscarDocumento = document.getElementById('buscarDocumento');
+        const conversionDocHint = document.getElementById('conversionDocHint');
+        const btnConvertirSocio = document.getElementById('btnConvertirSocio');
+        const conversionBanner = document.getElementById('conversionBanner');
+        const conversionBannerText = document.getElementById('conversionBannerText');
+        const conversionResumen = document.getElementById('conversionResumen');
+        const resNombre = document.getElementById('resNombre');
+        const resTipo = document.getElementById('resTipo');
+        const checkDocumentosValidados = document.getElementById('checkDocumentosValidados');
+
+        const tiposDocumento = new Map();
+        const tiposCaficultor = new Map();
+
+        let modoActivo = null;
+        let debounceDoc = null;
+        let timerBannerReniec = null;
+        let debounceDocConversion = null;
+        let documentoExiste = false;
+        let documentoExisteComoExterno = false;
+        let conversionEncontrado = false;
+        let ultimaClaveBusquedaConversion = '';
+        let caficultorValido = false;
+        let ultimoNumDocumentoConsultado = '';
+
+        function limpiarDatosCaficultor() {
+            nombre.value = '';
+            apePaterno.value = '';
+            apeMaterno.value = '';
+            sexo.value = '';
+            fechaNacimiento.value = '';
+            telefono.value = '';
+            tipoCaficultorId.value = '';
+            caficultorValido = false;
+        }
+
+        async function consultarCaficultor(documento) {
+            if(ultimoNumDocumentoConsultado === documento && caficultorValido) {
+                return;
+            }
+            
+            try {
+                setLookupMessage('Consultando datos del caficultor...');
+                const response = await fetch(`/caficultor/consultar/${documento}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'No se pudo consultar el caficultor');
+                }
+
+                const payload = await response.json();
+                ultimoNumDocumentoConsultado = documento;
+
+                if (!payload.encontrado || !payload.data) {
+                    limpiarDatosCaficultor();
+                    setLookupMessage(payload.mensaje, 'error');
+                    numDocumento.setCustomValidity(payload.mensaje);
+                    return;
+                }
+
+            } catch (error) {
+                setLookupMessage('Error al consultar el caficultor.');
+            }
+        }
+
+        function normalizarTexto(valor) {
+            return valor
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .trim();
+        }
+
+        function obtenerReglaDocumento(tipoDocumentoSeleccionadoId) {
+            const id = Number(tipoDocumentoSeleccionadoId || 0);
+            const nombreTipo = normalizarTexto(tiposDocumento.get(id) || '');
+
+            if (nombreTipo === 'dni') {
+                return {
+                    maxLength: 8,
+                    soloNumeros: true,
+                    hint: 'DNI: exactamente 8 digitos numericos.',
+                    placeholder: 'Ingrese 8 digitos de DNI',
+                    validationMessage: 'Para DNI se requieren 8 digitos numericos.',
+                    regex: /^\d{8}$/,
+                    longitudesAutoBusqueda: [8],
+                    autoSearchMessage: 'Complete los 8 digitos del DNI para iniciar la busqueda.',
+                };
+            }
+
+            if (nombreTipo === 'pasaporte' || nombreTipo === 'carnet de extranjeria') {
+                return {
+                    maxLength: 12,
+                    soloNumeros: false,
+                    hint: 'Pasaporte/Carnet: exactamente 12 caracteres alfanumericos.',
+                    placeholder: 'Ingrese 12 caracteres',
+                    validationMessage: 'Para Pasaporte/Carnet se requieren 12 caracteres alfanumericos.',
+                    regex: /^[A-Za-z0-9]{12}$/,
+                    longitudesAutoBusqueda: [12],
+                    autoSearchMessage: 'Complete los 12 caracteres para iniciar la busqueda.',
+                };
+            }
+
+            return {
+                maxLength: 12,
+                soloNumeros: false,
+                hint: 'Documento entre 8 y 12 caracteres alfanumericos.',
+                placeholder: 'Ingrese documento (8 a 12 caracteres)',
+                validationMessage: 'Documento invalido. Use de 8 a 12 caracteres alfanumericos.',
+                regex: /^[A-Za-z0-9]{8,12}$/,
+                longitudesAutoBusqueda: [8, 12],
+                autoSearchMessage: 'Complete 8 o 12 caracteres para iniciar la busqueda.',
+            };
+        }
+
+        function limpiarDocumentoSegunRegla(valor, regla) {
+            const texto = String(valor || '').trim();
+            if (regla.soloNumeros) {
+                return texto.replace(/\D/g, '').slice(0, regla.maxLength);
+            }
+
+            return texto.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, regla.maxLength);
+        }
+
+        function validarDocumentoPorTipoId(tipoDocumentoSeleccionadoId, documento) {
+            const id = Number(tipoDocumentoSeleccionadoId || 0);
+            if (!id) {
+                return { ok: false, mensaje: 'Selecciona primero el tipo de documento.' };
+            }
+
+            const regla = obtenerReglaDocumento(id);
+            if (!regla.regex.test(documento)) {
+                return { ok: false, mensaje: regla.validationMessage };
+            }
+
+            return { ok: true, mensaje: '' };
+        }
+
+        function setModo(modo) {
+            modoActivo = modo;
+
+            cardNuevo.classList.toggle('is-selected', modo === 'nuevo');
+            cardConversion.classList.toggle('is-selected', modo === 'conversion');
+
+            panelNuevo.classList.toggle('is-active', modo === 'nuevo');
+            panelConversion.classList.toggle('is-active', modo === 'conversion');
+
+            panelNuevo.setAttribute('aria-hidden', modo !== 'nuevo');
+            panelConversion.setAttribute('aria-hidden', modo !== 'conversion');
+
+            if (modo === 'nuevo') {
+                setTimeout(() => panelNuevo.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            } else if (modo === 'conversion') {
+                setTimeout(() => panelConversion.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            }
+        }
+
+        function setRegistroBanner(mensaje, tipo = 'neutral', mostrarAccion = false) {
+            registroBanner.classList.remove('is-hidden', 'is-accent', 'is-destructive', 'is-success');
+            registroBanner.classList.add(`is-${tipo}`);
+            registroBannerText.textContent = mensaje;
+            btnAccionConversion.classList.toggle('is-hidden', !mostrarAccion);
+        }
+
+        function clearRegistroBanner() {
+            if (timerBannerReniec) {
+                clearTimeout(timerBannerReniec);
+                timerBannerReniec = null;
+            }
+            registroBanner.classList.add('is-hidden');
+            registroBannerText.textContent = '';
+            btnAccionConversion.classList.add('is-hidden');
+        }
+
+        function setConversionBanner(mensaje, tipo = 'neutral') {
+            conversionBanner.classList.remove('is-hidden', 'is-accent', 'is-destructive', 'is-success');
+            conversionBanner.classList.add(`is-${tipo}`);
+            conversionBannerText.textContent = mensaje;
+        }
+
+        function clearConversionBanner() {
+            conversionBanner.classList.add('is-hidden');
+            conversionBannerText.textContent = '';
+        }
+
+        function setConversionResumenVisible(visible) {
+            conversionResumen.classList.toggle('is-hidden', !visible);
+        }
+
+        function limpiarEstadoRegistro() {
+            documentoExiste = false;
+            documentoExisteComoExterno = false;
+            btnGuardarNuevo.disabled = false;
+            clearRegistroBanner();
+        }
+
+        function limpiarEstadoConversion() {
+            conversionEncontrado = false;
+            btnConvertirSocio.disabled = true;
+            resNombre.textContent = '-';
+            resTipo.textContent = '-';
+            checkDocumentosValidados.checked = false;
+            setConversionResumenVisible(false);
+            clearConversionBanner();
+        }
+
+        function aplicarReglaDocumento() {
+            const regla = obtenerReglaDocumento(tipoDocumentoId.value);
+            numDocumento.maxLength = regla.maxLength;
+            numDocumento.placeholder = regla.placeholder;
+            numDocumento.inputMode = regla.soloNumeros ? 'numeric' : 'text';
+            docHint.textContent = regla.hint;
+            numDocumento.value = limpiarDocumentoSegunRegla(numDocumento.value, regla);
+        }
+
+        function aplicarReglaDocumentoConversion() {
+            const regla = obtenerReglaDocumento(tipoDocumentoConversionId.value);
+            buscarDocumento.maxLength = regla.maxLength;
+            buscarDocumento.placeholder = regla.placeholder;
+            buscarDocumento.inputMode = regla.soloNumeros ? 'numeric' : 'text';
+            conversionDocHint.textContent = regla.hint;
+            buscarDocumento.value = limpiarDocumentoSegunRegla(buscarDocumento.value, regla);
+        }
+
+        async function cargarTiposDocumento() {
+            const response = await fetch('/tipo-documento/listar');
+            if (!response.ok) {
+                throw new Error('No se pudieron cargar tipos de documento');
+            }
+
+            const data = await response.json();
+            for (const item of data) {
+                const id = Number(item.id);
+                tiposDocumento.set(id, String(item.nombre));
+
+                const optionRegistro = document.createElement('option');
+                optionRegistro.value = String(item.id);
+                optionRegistro.textContent = String(item.nombre);
+                tipoDocumentoId.appendChild(optionRegistro);
+
+                const optionConversion = document.createElement('option');
+                optionConversion.value = String(item.id);
+                optionConversion.textContent = String(item.nombre);
+                tipoDocumentoConversionId.appendChild(optionConversion);
+            }
+
+            const entryDni = [...tiposDocumento.entries()].find(
+                ([, nombreTipo]) => normalizarTexto(nombreTipo) === 'dni',
+            );
+            if (entryDni) {
+                const dniId = String(entryDni[0]);
+                tipoDocumentoId.value = dniId;
+                tipoDocumentoConversionId.value = dniId;
+            }
+        }
+
+        function resetSelect(select, placeholder) {
+            select.innerHTML = '';
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.disabled = true;
+            opt.selected = true;
+            opt.textContent = placeholder;
+            select.appendChild(opt);
+        }
+
+        async function cargarDepartamentos() {
+            resetSelect(departamento, 'Cargando...');
+            try {
+                const response = await fetch('/ubigeo/departamentos');
+                if (!response.ok) {
+                    throw new Error('No se pudieron cargar departamentos');
+                }
+                const data = await response.json();
+                resetSelect(departamento, 'Seleccione departamento');
+                for (const item of data) {
+                    const opt = document.createElement('option');
+                    opt.value = item.codigo;
+                    opt.textContent = item.nombre;
+                    departamento.appendChild(opt);
+                }
+            } catch (error) {
+                resetSelect(departamento, 'Error al cargar');
+                throw error;
+            }
+        }
+
+        async function cargarProvincias(departamentoCodigo) {
+            resetSelect(provincia, 'Cargando...');
+            resetSelect(distrito, 'Seleccione provincia');
+            provincia.disabled = true;
+            distrito.disabled = true;
+
+            if (!departamentoCodigo) {
+                resetSelect(provincia, 'Seleccione departamento');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/ubigeo/provincias?departamento=${encodeURIComponent(departamentoCodigo)}`);
+                if (!response.ok) {
+                    throw new Error('No se pudieron cargar provincias');
+                }
+                const data = await response.json();
+                resetSelect(provincia, 'Seleccione provincia');
+                for (const item of data) {
+                    const opt = document.createElement('option');
+                    opt.value = item.codigo;
+                    opt.textContent = item.nombre;
+                    provincia.appendChild(opt);
+                }
+                provincia.disabled = data.length === 0;
+            } catch (error) {
+                resetSelect(provincia, 'Error al cargar');
+                CoffeeModal.error(error.message || 'No se pudieron cargar provincias.');
+            }
+        }
+
+        async function cargarDistritos(provinciaCodigo) {
+            resetSelect(distrito, 'Cargando...');
+            distrito.disabled = true;
+
+            if (!provinciaCodigo) {
+                resetSelect(distrito, 'Seleccione provincia');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/ubigeo/distritos?provincia=${encodeURIComponent(provinciaCodigo)}`);
+                if (!response.ok) {
+                    throw new Error('No se pudieron cargar distritos');
+                }
+                const data = await response.json();
+                resetSelect(distrito, 'Seleccione distrito');
+                for (const item of data) {
+                    const opt = document.createElement('option');
+                    opt.value = item.codigo;
+                    opt.textContent = item.nombre;
+                    distrito.appendChild(opt);
+                }
+                distrito.disabled = data.length === 0;
+            } catch (error) {
+                resetSelect(distrito, 'Error al cargar');
+                CoffeeModal.error(error.message || 'No se pudieron cargar distritos.');
+            }
+        }
+
+        function esTipoDni() {
+            const id = Number(tipoDocumentoId.value || 0);
+            return normalizarTexto(tiposDocumento.get(id) || '') === 'dni';
+        }
+
+        async function autollenarDesdeDni(data) {
+            if (data.nombres)          nombre.value          = data.nombres;
+            if (data.apellido_paterno) apePaterno.value      = data.apellido_paterno;
+            if (data.apellido_materno) apeMaterno.value      = data.apellido_materno;
+            if (data.sexo)             sexo.value            = data.sexo;
+            if (data.fecha_nacimiento) fechaNacimiento.value = data.fecha_nacimiento;
+            if (data.telefono)         telefono.value        = data.telefono;
+
+            const ubigeoCode = data.ubigeo_sunat || data.ubigeo;
+            if (ubigeoCode && /^\d{6}$/.test(ubigeoCode)) {
+                const deptoCode = ubigeoCode.substring(0, 2);
+                const provCode  = ubigeoCode.substring(0, 4);
+                const distCode  = ubigeoCode;
+
+                departamento.value = deptoCode;
+                await cargarProvincias(deptoCode);
+                provincia.value = provCode;
+                await cargarDistritos(provCode);
+                distrito.value = distCode;
+            }
+        }
+
+        async function consultarYAutollenar(documento) {
+            setRegistroBanner('Buscando datos...', 'neutral');
+            try {
+                // 1. Buscar primero en la base de datos local
+                const respBD = await fetch(`/persona/consultar/${encodeURIComponent(documento)}`);
+                if (respBD.ok) {
+                    const dataBD = await respBD.json();
+                    if (dataBD.encontrado) {
+                        await autollenarDesdeDni(dataBD);
+                        setRegistroBanner('Datos completados desde la base de datos. Verifica y completa los campos faltantes.', 'success');
+                        timerBannerReniec = setTimeout(() => { clearRegistroBanner(); timerBannerReniec = null; }, 5000);
+                        return;
+                    }
+                }
+
+                // 2. Si no esta en BD y es DNI, consultar la API externa
+                if (!esTipoDni()) {
+                    clearRegistroBanner();
+                    return;
+                }
+                const respAPI = await fetch(`/dni/consultar/${encodeURIComponent(documento)}`);
+                if (!respAPI.ok) { clearRegistroBanner(); return; }
+                const dataAPI = await respAPI.json();
+                if (!dataAPI.encontrado) { clearRegistroBanner(); return; }
+                await autollenarDesdeDni(dataAPI);
+                setRegistroBanner('Datos completados automaticamente desde RENIEC. Verifica y completa los campos faltantes.', 'success');
+                timerBannerReniec = setTimeout(() => { clearRegistroBanner(); timerBannerReniec = null; }, 5000);
+            } catch (_) {
+                clearRegistroBanner();
+            }
+        }
+
+        async function cargarTiposCaficultor() {
+            const response = await fetch('/tipo-caficultor/listar');
+            if (!response.ok) {
+                throw new Error('No se pudieron cargar tipos de caficultor');
+            }
+
+            const data = await response.json();
+            let externoId = null;
+
+            for (const item of data) {
+                const id = Number(item.id);
+                const nombreTipo = String(item.nombre);
+                tiposCaficultor.set(id, nombreTipo);
+
+                const option = document.createElement('option');
+                option.value = String(id);
+                option.textContent = nombreTipo;
+                tipoCaficultorId.appendChild(option);
+
+                if (!item.is_socio) {
+                    externoId = id;
+                }
+            }
+
+            if (externoId) {
+                tipoCaficultorId.value = String(externoId);
+            }
+        }
+
+        async function consultarDocumentoParaRegistro(documento) {
+            const validacion = validarDocumentoPorTipoId(tipoDocumentoId.value, documento);
+            if (!validacion.ok) {
+                limpiarEstadoRegistro();
+                setRegistroBanner(validacion.mensaje, 'destructive');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'No se pudo validar el documento');
+                }
+
+                const payload = await response.json();
+                if (!payload.encontrado || !payload.data) {
+                    limpiarEstadoRegistro();
+                        await consultarYAutollenar(documento);
+                    return;
+                }
+
+                documentoExiste = true;
+                btnGuardarNuevo.disabled = true;
+
+                if (!payload.data.es_socio) {
+                    documentoExisteComoExterno = true;
+                    const nombreCaf = payload.data.nombre_completo || documento;
+                    const irAConversion = await CoffeeModal.confirm({
+                        type: 'warning',
+                        title: `Caficultor ya registrado: ${nombreCaf}`,
+                        message: 'Este caficultor ya está registrado como Externo. ¿Desea convertirlo a Socio ahora mismo?',
+                        okText: 'Sí, convertir',
+                        cancelText: 'No',
+                    });
+                    if (irAConversion) {
+                        if (tipoDocumentoId.value) {
+                            tipoDocumentoConversionId.value = tipoDocumentoId.value;
+                        }
+                        aplicarReglaDocumentoConversion();
+                        const regla = obtenerReglaDocumento(tipoDocumentoConversionId.value);
+                        const documento = limpiarDocumentoSegunRegla(numDocumento.value, regla);
+                        setModo('conversion');
+                        buscarDocumento.value = documento;
+                        ultimaClaveBusquedaConversion = '';
+                        intentarBusquedaAutomaticaConversion();
+                    }
+                    return;
+                }
+
+                if (payload.data.es_socio) {
+                    setRegistroBanner(
+                        'Esta persona ya cuenta con un estado de Socio Activo.',
+                        'destructive',
+                    );
+                    return;
+                }
+
+                setRegistroBanner('Esta persona ya cuenta con registro de caficultor.', 'accent');
+            } catch (error) {
+                limpiarEstadoRegistro();
+                setRegistroBanner(error.message || 'No se pudo validar el documento.', 'destructive');
+            }
+        }
+
+        async function buscarParaConversion(documentoForzado = null) {
+            const tipoDocumentoSeleccionadoId = Number(tipoDocumentoConversionId.value || 0);
+            const regla = obtenerReglaDocumento(tipoDocumentoSeleccionadoId);
+            const documento = limpiarDocumentoSegunRegla(documentoForzado ?? buscarDocumento.value, regla);
+            buscarDocumento.value = documento;
+
+            const validacion = validarDocumentoPorTipoId(tipoDocumentoSeleccionadoId, documento);
+            if (!validacion.ok) {
+                limpiarEstadoConversion();
+                setConversionBanner(validacion.mensaje, 'destructive');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'No se pudo consultar el caficultor');
+                }
+
+                const payload = await response.json();
+                if (!payload.encontrado || !payload.data) {
+                    limpiarEstadoConversion();
+                    setConversionBanner(
+                        'No existe un caficultor con ese documento. Se recomienda realizar primero el registro.',
+                        'accent',
+                    );
+                    return;
+                }
+
+                conversionEncontrado = true;
+                setConversionResumenVisible(true);
+                resNombre.textContent = payload.data.nombre_completo || '-';
+                resTipo.textContent = payload.data.tipo_caficultor || '-';
+
+                if (payload.data.es_socio) {
+                    btnConvertirSocio.disabled = true;
+                    setConversionBanner('Esta persona ya cuenta con un estado de Socio Activo.', 'destructive');
+                    return;
+                }
+
+                checkDocumentosValidados.checked = false;
+                btnConvertirSocio.disabled = false;
+                setConversionBanner('Caficultor externo encontrado. Puede convertirlo a socio.', 'success');
+            } catch (error) {
+                limpiarEstadoConversion();
+                setConversionBanner(error.message || 'No se pudo buscar el caficultor.', 'destructive');
+            }
+        }
+
+        function intentarBusquedaAutomaticaConversion() {
+            if (modoActivo !== 'conversion') {
+                return;
+            }
+
+            const tipoDocumentoSeleccionadoId = Number(tipoDocumentoConversionId.value || 0);
+            const regla = obtenerReglaDocumento(tipoDocumentoSeleccionadoId);
+            const documento = limpiarDocumentoSegunRegla(buscarDocumento.value, regla);
+            buscarDocumento.value = documento;
+
+            if (!tipoDocumentoSeleccionadoId) {
+                limpiarEstadoConversion();
+                if (documento.length > 0) {
+                    setConversionBanner('Selecciona primero el tipo de documento.', 'accent');
+                }
+                return;
+            }
+
+            if (!regla.longitudesAutoBusqueda.includes(documento.length)) {
+                limpiarEstadoConversion();
+                if (documento.length > 0) {
+                    setConversionBanner(regla.autoSearchMessage, 'accent');
+                }
+                return;
+            }
+
+            const claveBusqueda = `${tipoDocumentoSeleccionadoId}:${documento}`;
+            if (claveBusqueda === ultimaClaveBusquedaConversion) {
+                return;
+            }
+            ultimaClaveBusquedaConversion = claveBusqueda;
+
+            if (debounceDocConversion) {
+                clearTimeout(debounceDocConversion);
+            }
+
+            debounceDocConversion = setTimeout(() => {
+                buscarParaConversion(documento);
+            }, 280);
+        }
+
+        async function convertirASocio() {
+            const regla = obtenerReglaDocumento(tipoDocumentoConversionId.value);
+            const documento = limpiarDocumentoSegunRegla(buscarDocumento.value, regla);
+            buscarDocumento.value = documento;
+
+            if (!conversionEncontrado) {
+                CoffeeModal.warning('Primero debe buscar y validar un caficultor externo.');
+                return;
+            }
+
+            if (!checkDocumentosValidados.checked) {
+                CoffeeModal.warning(
+                    'Debe confirmar que el caficultor tiene todos sus documentos validados y verificados antes de proceder con la conversión a socio.',
+                    'Requisito pendiente',
+                );
+                return;
+            }
+
+            try {
+                const response = await fetch(`/caficultor/convertir-socio/${encodeURIComponent(documento)}`, {
+                    method: 'PATCH',
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'No se pudo convertir el caficultor a socio');
+                }
+
+                const payload = await response.json();
+                CoffeeModal.success(payload.mensaje || 'Conversión realizada correctamente.', 'Socio registrado');
+                buscarDocumento.value = '';
+                ultimaClaveBusquedaConversion = '';
+                limpiarEstadoConversion();
+            } catch (error) {
+                CoffeeModal.error(error.message || 'No se pudo convertir el caficultor a socio.');
+            }
+        }
+
+        function limpiarUbigeo() {
+            departamento.value = '';
+            resetSelect(provincia, 'Seleccione departamento');
+            resetSelect(distrito, 'Seleccione provincia');
+            provincia.disabled = true;
+            distrito.disabled = true;
+        }
+
+        function limpiarCamposAutollenados() {
+            nombre.value = '';
+            apePaterno.value = '';
+            apeMaterno.value = '';
+            sexo.value = '';
+            fechaNacimiento.value = '';
+            limpiarUbigeo();
+            clearRegistroBanner();
+        }
+
+        function limpiarFormularioNuevo() {
+            formNuevo.reset();
+            aplicarReglaDocumento();
+            limpiarEstadoRegistro();
+            limpiarCamposAutollenados();
+        }
+
+        async function registrarNuevoCaficultor(event) {
+            event.preventDefault();
+
+            const regla = obtenerReglaDocumento(tipoDocumentoId.value);
+            const documento = limpiarDocumentoSegunRegla(numDocumento.value, regla);
+            numDocumento.value = documento;
+            const validacion = validarDocumentoPorTipoId(tipoDocumentoId.value, documento);
+
+            if (!validacion.ok) {
+                setRegistroBanner(validacion.mensaje, 'destructive');
+                return;
+            }
+
+            if (documentoExiste) {
+                setRegistroBanner(
+                    documentoExisteComoExterno
+                        ? 'Este documento ya se encuentra registrado como Externo.'
+                        : 'Este documento ya cuenta con un registro de caficultor.',
+                    'accent',
+                    documentoExisteComoExterno,
+                );
+                return;
+            }
+
+            if (!formNuevo.reportValidity()) {
+                return;
+            }
+
+            const ubigeoSeleccionado = distrito.value && /^\d{6}$/.test(distrito.value)
+                ? distrito.value
+                : null;
+
+            const payload = {
+                nombre: nombre.value.trim(),
+                ape_paterno: apePaterno.value.trim(),
+                ape_materno: apeMaterno.value.trim(),
+                sexo: sexo.value,
+                fecha_nacimiento: fechaNacimiento.value,
+                tipo_documento_id: Number(tipoDocumentoId.value),
+                num_documento: documento,
+                telefono: telefono.value.trim(),
+                ubigeo: ubigeoSeleccionado,
+                tipo_caficultor_id: Number(tipoCaficultorId.value),
+            };
+
+            try {
+                btnGuardarNuevo.disabled = true;
+                const response = await fetch('/caficultor/registrar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'No se pudo registrar el caficultor');
+                }
+
+                const data = await response.json();
+                CoffeeModal.success(data.mensaje || 'Caficultor registrado correctamente.', 'Registro exitoso');
+                formNuevo.reset();
+                aplicarReglaDocumento();
+                limpiarCamposAutollenados();
+                documentoExiste = false;
+                documentoExisteComoExterno = false;
+            } catch (error) {
+                CoffeeModal.error(error.message || 'No se pudo completar el registro.');
+            } finally {
+                btnGuardarNuevo.disabled = false;
+            }
+        }
+
+        departamento.addEventListener('change', () => {
+            cargarProvincias(departamento.value);
+        });
+
+        provincia.addEventListener('change', () => {
+            cargarDistritos(provincia.value);
+        });
+
+        btnSelectNuevo.addEventListener('click', () => setModo('nuevo'));
+        btnSelectConversion.addEventListener('click', () => setModo('conversion'));
+
+        tipoDocumentoId.addEventListener('change', () => {
+            aplicarReglaDocumento();
+            limpiarEstadoRegistro();
+        });
+
+        numDocumento.addEventListener('input', () => {
+            const regla = obtenerReglaDocumento(tipoDocumentoId.value);
+            numDocumento.value = limpiarDocumentoSegunRegla(numDocumento.value, regla);
+            limpiarEstadoRegistro();
+
+            if (debounceDoc) {
+                clearTimeout(debounceDoc);
+            }
+
+            if (!regla.longitudesAutoBusqueda.includes(numDocumento.value.length)) {
+                limpiarCamposAutollenados();
+            }
+
+            if (modoActivo !== 'nuevo') {
+                return;
+            }
+
+            if (!numDocumento.value) {
+                return;
+            }
+
+            if (!regla.longitudesAutoBusqueda.includes(numDocumento.value.length)) {
+                return;
+            }
+
+            debounceDoc = setTimeout(() => {
+                consultarDocumentoParaRegistro(numDocumento.value.trim());
+            }, 320);
+        });
+
+        telefono.addEventListener('input', () => {
+            telefono.value = telefono.value.replace(/\D/g, '').slice(0, 9);
+        });
+
+        btnAccionConversion.addEventListener('click', () => {
+            if (tipoDocumentoId.value) {
+                tipoDocumentoConversionId.value = tipoDocumentoId.value;
+            }
+
+            aplicarReglaDocumentoConversion();
+
+            const regla = obtenerReglaDocumento(tipoDocumentoConversionId.value);
+            const documento = limpiarDocumentoSegunRegla(numDocumento.value, regla);
+            setModo('conversion');
+            buscarDocumento.value = documento;
+            ultimaClaveBusquedaConversion = '';
+            intentarBusquedaAutomaticaConversion();
+        });
+
+        btnConvertirSocio.addEventListener('click', convertirASocio);
+        btnLimpiarNuevo.addEventListener('click', limpiarFormularioNuevo);
+        formNuevo.addEventListener('submit', registrarNuevoCaficultor);
+
+        tipoDocumentoConversionId.addEventListener('change', () => {
+            aplicarReglaDocumentoConversion();
+            ultimaClaveBusquedaConversion = '';
+            limpiarEstadoConversion();
+            if (buscarDocumento.value) {
+                intentarBusquedaAutomaticaConversion();
+            }
+        });
+
+        buscarDocumento.addEventListener('input', () => {
+            const regla = obtenerReglaDocumento(tipoDocumentoConversionId.value);
+            buscarDocumento.value = limpiarDocumentoSegunRegla(buscarDocumento.value, regla);
+            ultimaClaveBusquedaConversion = '';
+            intentarBusquedaAutomaticaConversion();
+        });
+
+        Promise.all([cargarTiposDocumento(), cargarTiposCaficultor(), cargarDepartamentos()])
+            .then(() => {
+                aplicarReglaDocumento();
+                aplicarReglaDocumentoConversion();
+                setModo(null);
+            })
+            .catch((error) => {
+                setModo(null);
+                CoffeeModal.error(error.message || 'No se pudieron cargar los catálogos.');
+            });
+    })();

@@ -1,0 +1,89 @@
+import psycopg2
+import psycopg2.extras
+from src.config import Config
+
+class Connection:
+
+    def __init__(self):
+        """Inicializa la conexión a PostgreSQL con autocommit=False para transacciones"""
+        try:
+            self.conn = psycopg2.connect(
+                user=Config.USER,
+                password=Config.PASSWORD,
+                host=Config.HOST,
+                port=Config.PORT,
+                database=Config.DATABASE,
+                client_encoding='utf8',
+            )
+            # En psycopg2, autocommit es una propiedad del objeto conexión, no un parámetro de conexión
+            self.conn.autocommit = False 
+            self.cursor = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            print("Conexión a PostgreSQL establecida")
+        except Exception as e:
+            print(f"Error al conectar a PostgreSQL: {e}")
+            raise
+
+    def ejecutar(self, query, params=None):
+        """
+        Ejecuta INSERT, UPDATE, DELETE.
+        NO hace commit automático - el usuario debe llamar a commit() o rollback()
+        esto permite agrupar múltiples operaciones en una transacción.
+        """
+        try:
+            self.cursor.execute(query, params or ())
+            # Retorna cursor para inspeccionar rowcount o leer RETURNING via fetch.
+            return self.cursor
+        except Exception as e:
+            print(f"Error en ejecutar: {e}")
+            self.rollback()
+            raise
+
+    def obtener(self, query, params=None):
+        """
+        Ejecuta SELECT y retorna una lista de diccionarios.
+        Parsea DATETIME y DECIMAL automáticamente.
+        """
+        try:
+            self.cursor.execute(query, params or ())
+            resultados = self.cursor.fetchall()
+            return [dict(row) for row in resultados]
+        except Exception as e:
+            print(f"Error en obtener: {e}")
+            raise
+
+    def obtener_uno(self, query, params=None):
+        """Retorna un solo registro como diccionario o None"""
+        try:
+            self.cursor.execute(query, params or ())
+            resultado = self.cursor.fetchone()
+            return dict(resultado) if resultado else None
+        except Exception as e:
+            print(f"Error en obtener_uno: {e}")
+            raise
+
+    def commit(self):
+        """Confirma todos los cambios de la transacción actual"""
+        try:
+            self.conn.commit()
+        except Exception as e:
+            print(f"Error en commit: {e}")
+            self.rollback()
+            raise
+
+    def rollback(self):
+        """Revierte todos los cambios de la transacción actual"""
+        try:
+            self.conn.rollback()
+        except Exception as e:
+            print(f"Error en rollback: {e}")
+
+    def close(self):
+        """Cierra el cursor y la conexión"""
+        try:
+            if self.cursor:
+                self.cursor.close()
+            if self.conn:
+                self.conn.close()
+        except Exception as e:
+            print(f"Error al cerrar conexión: {e}")
+

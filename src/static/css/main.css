@@ -1,0 +1,1088 @@
+* {
+    box-sizing: border-box;
+    color-scheme: light;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--background);
+    background-image: linear-gradient(color-mix(in oklab, var(--background) 84%, transparent 16%), color-mix(in oklab, var(--background) 90%, transparent 10%)), url('/resources/fondo_temp.jpg');
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-size: cover;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+body::before {
+    display: none;
+}
+
+/* Utilidades tipograficas globales */
+.text-18 {
+    font-size: 18px !important;
+}
+
+.text-20 {
+    font-size: 20px !important;
+}
+
+.text-24 {
+    font-size: 24px !important;
+}
+
+/* Header */
+.header-glass {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    background: var(--card);
+    backdrop-filter: none;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+}
+/* box-shadow: 0 10px 28px color-mix(in oklab, var(--secondary) 24%, transparent 76%); */
+
+.dark .header-glass {
+    background: var(--card);
+    border-bottom-color: color-mix(in oklab, var(--primary) 36%, var(--border) 64%);
+}
+
+.header-container {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+    align-items: center;
+    width: 100%;
+    padding: 0 clamp(12px, 1.2vw, 22px);
+    gap: 14px;
+}
+
+.header-left {
+    min-width: 0;
+    justify-self: start;
+}
+
+.brand-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--foreground);
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+}
+
+.brand-link:hover {
+    opacity: 0.9;
+}
+
+.brand-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+}
+
+.brand-copy {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.05;
+}
+
+.brand-name {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.brand-tag {
+    font-size: 12px;
+    color: var(--muted-foreground);
+    margin-top: 2px;
+}
+
+.header-center {
+    display: flex;
+    justify-content: center;
+    justify-self: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: var(--foreground);
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.nav-link:hover {
+    color: var(--primary);
+    border-color: color-mix(in oklab, var(--primary) 40%, transparent 60%);
+    background: color-mix(in oklab, var(--primary) 14%, transparent 86%);
+}
+
+.nav-link.active {
+    color: var(--primary-foreground);
+    background: color-mix(in oklab, var(--primary) 88%, white 12%);
+    border-color: transparent;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-self: end;
+    min-width: 0;
+}
+
+.header-user-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    line-height: 1.1;
+}
+
+.header-user-name {
+    margin: 0;
+    max-width: 220px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-user-handle {
+    margin: 0;
+    max-width: 220px;
+    font-size: 15px;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-menu-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Main */
+main {
+    flex: 1 0 auto;
+    margin-top: 66px;
+    padding: 10px 0 8px;
+    min-height: auto;
+}
+
+.container-main {
+    max-width: none;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 clamp(10px, 1vw, 18px);
+}
+
+/* Avatar and controls */
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--secondary);
+    color: var(--secondary-foreground);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid color-mix(in oklab, var(--primary) 52%, transparent 48%);
+}
+    /* box-shadow: var(--shadow-sm); */
+    /* transition: box-shadow 0.18s ease; */
+
+.dark-mode-btn {
+    background-color: color-mix(in oklab, var(--muted) 60%, var(--card) 40%);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.dark-mode-btn:hover {
+    background-color: color-mix(in oklab, var(--primary) 18%, var(--card) 82%);
+    border-color: color-mix(in oklab, var(--primary) 50%, var(--border) 50%);
+}
+
+/* En modo oscuro: fondo notorio con borde brillante */
+.dark .dark-mode-btn {
+    background-color: oklch(0.42 0.04 270);
+    border-color: oklch(0.55 0.06 270);
+}
+
+.dark .dark-mode-btn:hover {
+    background-color: oklch(0.52 0.06 270);
+    border-color: var(--primary);
+}
+
+/* Dropdown */
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    background-color: color-mix(in oklab, var(--card) 94%, transparent 6%);
+    border: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+    border-radius: 14px;
+    min-width: 280px;
+    max-width: min(92vw, 380px);
+    z-index: 50;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.98);
+    transform-origin: top right;
+    transition: all 0.25s ease;
+    overflow: hidden;
+}
+
+.dropdown-menu::before {
+    content: "";
+    position: absolute;
+    top: -7px;
+    right: 18px;
+    width: 12px;
+    height: 12px;
+    background-color: color-mix(in oklab, var(--card) 94%, transparent 6%);
+    border-left: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+    border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+    transform: rotate(45deg);
+}
+
+.dropdown-menu.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.dropdown-user-info {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+}
+
+.dropdown-user-name {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dropdown-user-handle {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dropdown-item {
+    padding: 12px 16px;
+    color: var(--foreground);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.dropdown-item:hover {
+    background-color: color-mix(in oklab, var(--muted) 70%, transparent 30%);
+    color: var(--destructive);
+}
+
+/* ── Modal Términos y condiciones ────────────────────────────────── */
+.tc-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.52);
+    backdrop-filter: blur(4px);
+    overflow-y: auto;
+}
+
+.tc-box {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    margin: 2rem auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 26px 26px 22px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+    opacity: 0;
+    transform: scale(0.92) translateY(14px);
+}
+
+.tc-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+}
+
+.tc-close:hover {
+    background: color-mix(in oklab, var(--muted) 60%, transparent 40%);
+    color: var(--foreground);
+}
+
+.tc-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.tc-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--primary) 12%, transparent 88%);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.tc-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--foreground);
+    font-family: var(--font-serif);
+}
+
+.tc-body {
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--muted-foreground);
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-bottom: 18px;
+}
+
+.tc-body p {
+    margin: 0 0 10px;
+}
+
+.tc-heading {
+    font-weight: 600;
+    color: var(--foreground) !important;
+    margin-bottom: 4px !important;
+}
+
+.tc-ok {
+    width: 100%;
+    height: 40px;
+}
+
+/* Footer */
+.footer-glass {
+    background: var(--card);
+    border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+}
+
+.footer-inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 18px clamp(10px, 2vw, 24px);
+    gap: 24px;
+}
+
+/* Col 1 — brand */
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+.footer-brand-icon {
+    width: 18px;
+    height: 18px;
+    opacity: 0.6;
+}
+
+/* Col 2 — legal + location (centered) */
+.footer-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.footer-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.15s;
+}
+
+.footer-link:hover {
+    color: var(--foreground);
+}
+
+.footer-location {
+    margin: 0;
+    font-size: 11px;
+    color: color-mix(in oklab, var(--muted-foreground) 70%, transparent 30%);
+}
+
+/* Col 3 — social icons (right-aligned) */
+.footer-social {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-self: end;
+}
+
+.footer-social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--muted) 50%, transparent 50%);
+    color: var(--muted-foreground);
+    text-decoration: none;
+    transition: background 0.18s, color 0.18s;
+}
+
+.footer-social-btn:hover {
+    background: color-mix(in oklab, #1877f2 18%, var(--muted) 82%);
+    color: #1877f2;
+}
+
+.footer-social-btn.footer-social-wa:hover {
+    background: color-mix(in oklab, #25d366 18%, var(--muted) 82%);
+    color: #25d366;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .footer-inner {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 8px;
+        padding: 12px;
+    }
+}
+
+.kicker {
+    margin: 0;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 12px;
+}
+
+/* Section titles and descriptions */
+.hero-title,
+.section-title {
+    font-family: var(--font-serif);
+    margin: 8px 0 10px;
+    line-height: 1.08;
+    font-weight: 700;
+}
+
+.hero-title {
+    font-size: clamp(1.15rem, 1.4vw, 1.45rem);
+}
+
+.section-title {
+    font-size: clamp(1rem, 1.15vw, 1.2rem);
+}
+
+.hero-description,
+.section-subtitle {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 14px;
+}
+
+/* Info text utility — secondary/descriptive text */
+.info-text {
+    font-size: 14px;
+    color: var(--muted-foreground);
+}
+
+/* Form layout */
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.field-group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.field-group input,
+.field-group select {
+    width: 100%;
+    height: 40px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--input);
+    color: var(--foreground);
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field-group input:focus,
+.field-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%);
+}
+
+.field-group input::placeholder {
+    color: var(--muted-foreground);
+    opacity: 0.6;
+}
+
+/* Toggle ver/ocultar contraseña — envolver el input en .password-wrapper
+   con un botón .password-toggle-btn; main.js lo conecta automáticamente */
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper input {
+    padding-right: 44px;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.password-toggle-btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.password-toggle-icon {
+    width: 20px;
+    height: 20px;
+    opacity: 0.7;
+}
+
+.password-toggle-btn:hover .password-toggle-icon {
+    opacity: 1;
+}
+
+body.dark .password-toggle-icon {
+    filter: invert(1);
+}
+
+.form-row {
+    display: grid;
+    gap: 10px;
+    align-items: start;
+}
+
+.form-row--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-row--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.form-row--align-end {
+    align-items: end;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+/* Shared button base */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid;
+    text-decoration: none;
+    transition: filter 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    border-color: transparent;
+    color: var(--primary-foreground);
+    background: var(--primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+    filter: brightness(0.85) saturate(1.1);
+}
+
+.btn-primary:focus {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%);
+}
+
+.btn-secondary {
+    border-color: color-mix(in oklab, var(--border) 84%, transparent 16%);
+    background: color-mix(in oklab, var(--card) 90%, transparent 10%);
+    color: var(--foreground);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    color: var(--primary);
+    border-color: color-mix(in oklab, var(--primary) 42%, transparent 58%);
+    background: color-mix(in oklab, var(--primary) 8%, transparent 92%);
+}
+
+.btn-secondary:focus {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%);
+}
+/* Generic card surface */
+.card {
+    background-color: color-mix(in oklab, var(--card) 98%, transparent 2%);
+    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
+    border-radius: 14px;
+    padding: 16px;
+}
+
+/* Page hero header */
+.page-hero {
+    border-radius: 16px;
+    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
+    background: var(--card);
+    padding: clamp(14px, 1.8vw, 22px);
+}
+
+.hero-title {
+    margin: 6px 0 8px;
+    font-family: var(--font-serif);
+    font-size: clamp(1.15rem, 1.4vw, 1.45rem);
+    line-height: 1.1;
+    font-weight: 700;
+}
+
+.hero-description {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .header-container {
+        grid-template-columns: 1fr max-content;
+    }
+
+    .header-center {
+        grid-column: 1 / span 2;
+        justify-content: center;
+        order: 3;
+    }
+
+    .header-user-meta {
+        display: none;
+    }
+
+    .brand-tag {
+        display: none;
+    }
+
+    .header-glass {
+        height: auto;
+        min-height: 56px;
+        padding: 6px 0;
+    }
+
+    main {
+        margin-top: 94px;
+    }
+}
+
+/* Tablet: 768px and below */
+@media (max-width: 768px) {
+    main {
+        margin-top: 90px;
+        padding: 12px 16px;
+    }
+
+    .nav-link {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+
+    .brand-name {
+        font-size: 16px;
+    }
+
+    .dropdown-menu {
+        right: 0;
+        min-width: 250px;
+        max-width: min(94vw, 320px);
+    }
+
+    .footer-glass {
+        padding: 16px;
+    }
+
+    /* Forms: stack 2-column to 1-column */
+    .form-row--2 {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn {
+        height: 44px;
+    }
+}
+
+/* Mobile: 640px and below */
+@media (max-width: 640px) {
+    main {
+        padding: 12px 12px;
+    }
+
+    .nav-link {
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+
+    .btn {
+        height: 44px;
+        font-size: 13px;
+    }
+
+    .form-row--3 {
+        grid-template-columns: 1fr;
+    }
+
+    .header-container {
+        gap: 8px;
+    }
+}
+
+/* Cooperativa Header Banner */
+.cooperativa-header {
+    margin-top: 56px;
+    position: relative;
+}
+
+.cooperativa-banner {
+    height: 450px;
+    background-size: cover;
+    background-position: center;
+}
+
+.cooperativa-info {
+    padding: 1.5rem 1rem;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+}
+
+.cooperativa-nombre {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-family: var(--font-serif);
+    color: var(--foreground);
+}
+
+.cooperativa-descripcion {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+    max-width: 700px;
+}
+
+@media (max-width: 640px) {
+    .cooperativa-banner {
+        height: 280px;
+    }
+
+    .cooperativa-info {
+        padding: 1rem;
+    }
+
+    .cooperativa-nombre {
+        font-size: 1.1rem;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   LAYOUT SIDEBAR — compartido entre perfil, configuración, etc.
+   ───────────────────────────────────────────────────────────── */
+
+.perfil-container {
+    width: 100%;
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.perfil-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: var(--card);
+    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
+    border-radius: 12px;
+    align-items: stretch;
+    min-height: 500px;
+}
+
+.perfil-sidebar {
+    /* Sticky el propio sidebar (align-self: start evita que se estire con el
+       contenido) — así el menú queda fijo y no se despega en secciones largas. */
+    position: sticky;
+    top: 76px;
+    align-self: start;
+    max-height: calc(100vh - 92px);
+    overflow-y: auto;
+    width: 200px;
+    padding: 16px 0;
+    background: transparent;
+}
+
+.perfil-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: transparent;
+    padding: 0;
+}
+
+.perfil-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    margin: 0 8px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--muted-foreground);
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.2s, color 0.2s;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+}
+
+.perfil-nav-link:hover {
+    background: color-mix(in oklab, var(--primary) 8%, transparent 92%);
+    color: var(--foreground);
+}
+
+.perfil-nav-link.active {
+    background: color-mix(in oklab, var(--primary) 12%, transparent 88%);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.perfil-nav-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    stroke-width: 2;
+}
+
+.perfil-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    background: transparent;
+    /* La línea divisoria va aquí (no en el sidebar sticky) porque esta columna
+       siempre ocupa toda la altura del card → divisor de altura completa. */
+    border-left: 2px solid var(--primary);
+}
+
+.perfil-section {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    background: transparent;
+    padding: 20px 24px;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.perfil-section:first-child { display: flex; }
+
+.perfil-section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--foreground);
+    margin: 0;
+    padding-bottom: 16px;
+    border-bottom: 3px solid var(--primary);
+    display: inline-block;
+}
+
+.perfil-section-description {
+    font-size: 14px;
+    color: var(--muted-foreground);
+    margin: 0;
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .perfil-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .perfil-sidebar {
+        position: static;
+        max-height: none;
+        overflow-y: visible;
+        width: 100%;
+        min-height: auto;
+        border-right: none;
+        border-bottom: 2px solid var(--primary);
+        padding: 12px 0;
+    }
+
+    .perfil-content {
+        border-left: none;
+    }
+
+    .perfil-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 0 8px;
+    }
+}
+
+@media (max-width: 640px) {
+    .perfil-nav-link {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+}
+
+body.dark {
+    background-color: var(--background);
+    background-image: linear-gradient(
+        color-mix(in oklab, var(--background) 85%, black 15%),
+        color-mix(in oklab, var(--background) 92%, black 8%)
+    ), url('/resources/fondo_temp.jpg');
+    color: var(--foreground);
+}

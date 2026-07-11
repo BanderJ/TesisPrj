@@ -1,0 +1,136 @@
+﻿{% extends "main.html" %}
+
+{% block style %}
+	<link rel="stylesheet" href="/static/css/registro.css">
+{% endblock %}
+
+{% block content %}
+<section class="registro-page" aria-label="Registro de muestra de cafe">
+	<div class="registro-header card">
+		<!-- <p class="kicker info-text">Captura de muestra</p> -->
+		<h1 class="hero-title">Registro de muestra</h1>
+		<p class="hero-description">Completa la ficha tecnica para iniciar clasificacion. El monitoreo se abrira en una vista dedicada.</p>
+	</div>
+
+	<form id="registroForm" class="registro-form" novalidate>
+		<div class="registro-grid">
+			<article class="card registro-card" aria-labelledby="lote-title">
+				<h2 id="lote-title">Datos del caficultor</h2>
+
+				<div class="field-group">
+					<label for="tipoDocumento">Tipo documento</label>
+					<select id="tipoDocumento" name="tipoDocumento" required>
+						<option value="" disabled selected>Seleccionar un tipo</option>
+					</select>
+				</div>
+
+				<div class="field-group">
+					<label for="numDocumento">Número de documento</label>
+					<input id="numDocumento" name="numDocumento" type="text" maxlength="12" required placeholder="Ingrese documento">
+					<p id="caficultorLookupMessage" class="helper-text info-text" aria-live="polite"></p>
+				</div>
+
+				<div class="field-group">
+					<label for="nombreCaficultor">Nombre del caficultor</label>
+					<input id="nombreCaficultor" name="nombreCaficultor" type="text" required placeholder="Ejemplo: Juan Perez" readonly>
+				</div>
+
+				<div class="field-group">
+					<label for="tipoCaficultor">Tipo de caficultor</label>
+					<input id="tipoCaficultor" name="tipoCaficultor" type="text" required placeholder="Ejemplo: Socio" readonly>
+				</div>
+			</article>
+
+			<article class="card registro-card" aria-labelledby="peso-title">
+				<h2 id="peso-title">Datos de la muestra</h2>
+
+				<div class="form-row form-row--2">
+					<div class="field-group">
+						<label for="tipoGrano">Tipo de grano</label>
+						<select id="tipoGrano" name="tipoGrano" required>
+							<option value="" disabled selected>Seleccionar tipo</option>
+						</select>
+					</div>
+
+					<div class="field-group">
+						<label for="numSacos">Número de sacos</label>
+						<input id="numSacos" name="numSacos" type="number" min="1" step="1" required placeholder="Ejemplo: 5">
+						<p id="numSacosHint" class="helper-text" aria-live="polite"></p>
+					</div>
+				</div>
+
+				<div class="form-row form-row--2">
+					<div class="field-group">
+						<label for="pesoTotal">Peso total (kg)</label>
+						<input id="pesoTotal" name="pesoTotal" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 275.50">
+						<p id="pesoTotalHint" class="helper-text" aria-live="polite"></p>
+					</div>
+
+					<div class="field-group">
+						<label for="humedad">Humedad (%)</label>
+						<input id="humedad" name="humedad" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 12.50">
+						<p id="humedadHint" class="helper-text" aria-live="polite"></p>
+					</div>
+				</div>
+
+				<div class="form-row form-row--2">
+					<div class="field-group">
+						<label for="pesoMuestra">Peso de muestra (gr.)</label>
+						<select id="pesoMuestra" name="pesoMuestra" required>
+							<option value="" disabled selected>Seleccione...</option>
+							<option value="100">100 gr.</option>
+							<option value="150">150 gr.</option>
+							<option value="200">200 gr.</option>
+							<option value="250">250 gr.</option>
+							<option value="300">300 gr.</option>
+						</select>
+						<p id="pesoMuestraHint" class="helper-text" aria-live="polite"></p>
+					</div>
+
+					<div class="field-group">
+						<label for="pesoTrillado">Peso trillado (gr.)</label>
+						<input id="pesoTrillado" name="pesoTrillado" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 930.00">
+						<p id="pesoTrilladoHint" class="helper-text" aria-live="polite"></p>
+					</div>
+				</div>
+				
+				<div class="form-row form-row--2">
+					<div class="field-group">
+						<label for="numTamiz">Número de tamiz</label>
+						<select id="numTamiz" name="numTamiz" required>
+							<option value="" disabled selected>Seleccionar tamiz</option>
+							<option value="10">N° 10</option>
+							<option value="11">N° 11</option>
+							<option value="12">N° 12</option>
+							<option value="13">N° 13</option>
+							<option value="14">N° 14</option>
+							<option value="15">N° 15</option>
+							<option value="16">N° 16</option>
+							<option value="17">N° 17</option>
+							<option value="18">N° 18</option>
+						</select>
+					</div>
+
+					<div class="field-group">
+						<label for="pesoTamizado">Peso tamizado (gr.)</label>
+						<input id="pesoTamizado" name="pesoTamizado" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 870.00">
+						<p id="pesoTamizadoHint" class="helper-text" aria-live="polite"></p>
+					</div>
+				</div>
+
+			</article>
+		</div>
+
+		<div class="action-row">
+			<button type="button" id="clearFormBtn" class="btn btn-outline">Limpiar formulario</button>
+			<button type="button" id="startMonitoringBtn" class="btn btn-primary">Iniciar clasificacion y monitoreo</button>
+		</div>
+		<p id="submitError" class="helper-text helper-error" style="text-align:center;margin-top:.5rem;" aria-live="polite"></p>
+	</form>
+</section>
+{% endblock %}
+
+{% block script %}
+<script src="/static/js/registro.js"></script>
+{% endblock %}
+

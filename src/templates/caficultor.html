@@ -1,0 +1,198 @@
+{% extends "main.html" %}
+
+{% block style %}
+    <link rel="stylesheet" href="/static/css/caficultor.css">
+{% endblock %}
+
+{% block content %}
+<section class="socio-page grid gap-3" aria-label="Flujo de registro y conversion de caficultores">
+    <header class="page-hero">
+        <h1 class="hero-title">Registro y conversion de caficultores</h1>
+        <p class="hero-description">
+            Gestiona en una sola pantalla el registro de nuevos caficultores y su conversion a socio activo.
+        </p>
+    </header>
+
+    <section class="decision-grid" aria-label="Seleccion de flujo">
+        <article class="decision-card" id="cardNuevo">
+            <h2>Nuevo Registro</h2>
+            <img class="decision-media" src="/resources/nuevo_caficultor2.jpg" alt="Nuevo caficultor en proceso de registro" loading="lazy">
+            <p class="info-text">Registrar caficultor por primera vez.</p>
+            <button type="button" id="btnSelectNuevo" class="btn btn-primary flow-btn">Seleccionar</button>
+        </article>
+
+        <article class="decision-card" id="cardConversion">
+            <!-- <p class="flow-tag info-text">Flujo B</p> -->
+            <h2>Conversion a Socio</h2>
+            <img class="decision-media" src="/resources/conversion_socio2.jpg" alt="Caficultor en conversion a socio" loading="lazy">
+            <p class="info-text">Convertir caficultor externo existente en socio activo.</p>
+            <button type="button" id="btnSelectConversion" class="btn btn-primary flow-btn">Seleccionar</button>
+        </article>
+    </section>
+
+    <section id="panelNuevo" class="flow-panel" aria-hidden="true">
+        <div class="panel-head">
+            <h3>Registrar nuevo caficultor</h3>
+            <p class="info-text">Completa los datos del productor y selecciona su tipo de caficultor.</p>
+        </div>
+
+        <form id="formNuevoCaficultor" class="flow-grid" novalidate>
+            <div class="card flow-card">
+                <div class="form-row form-row--2">
+                    <div class="field-group">
+                        <label for="tipoDocumentoId">Tipo de documento</label>
+                        <select id="tipoDocumentoId" name="tipoDocumentoId" required>
+                            <option value="" disabled selected>Seleccione tipo</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="numDocumento">Numero de documento</label>
+                        <input id="numDocumento" name="numDocumento" type="text" maxlength="12" required placeholder="Ingrese documento">
+                        <p id="docHint" class="helper-text info-text">Selecciona primero el tipo de documento.</p>
+                    </div>
+                </div>
+
+                <div class="form-row form-row--3">
+                    <div class="field-group">
+                        <label for="nombre">Nombre</label>
+                        <input id="nombre" name="nombre" type="text" required maxlength="50" placeholder="Ej: Luis">
+                    </div>
+                    <div class="field-group">
+                        <label for="apePaterno">Apellido paterno</label>
+                        <input id="apePaterno" name="apePaterno" type="text" required maxlength="30" placeholder="Ej: Garcia">
+                    </div>
+                    <div class="field-group">
+                        <label for="apeMaterno">Apellido materno</label>
+                        <input id="apeMaterno" name="apeMaterno" type="text" required maxlength="30" placeholder="Ej: Ilimo">
+                    </div>
+                </div>
+
+                <div class="form-row form-row--3">
+                    <div class="field-group">
+                        <label for="sexo">Sexo</label>
+                        <select id="sexo" name="sexo" required>
+                            <option value="" disabled selected>Seleccione</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="fechaNacimiento">Fecha de nacimiento</label>
+                        <input id="fechaNacimiento" name="fechaNacimiento" type="date" required>
+                    </div>
+                    <div class="field-group">
+                        <label for="telefono">Telefono</label>
+                        <input id="telefono" name="telefono" type="text" maxlength="9" inputmode="numeric" placeholder="Ej: 987654321">
+                    </div>
+                </div>
+
+                <div class="form-row form-row--3">
+                    <div class="field-group">
+                        <label for="departamento">Departamento</label>
+                        <select id="departamento" name="departamento">
+                            <option value="" disabled selected>Cargando...</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="provincia">Provincia</label>
+                        <select id="provincia" name="provincia" disabled>
+                            <option value="" disabled selected>Seleccione departamento</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label for="distrito">Distrito</label>
+                        <select id="distrito" name="distrito" disabled>
+                            <option value="" disabled selected>Seleccione provincia</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row form-row--2 form-row--align-end">
+                    <div class="field-group">
+                        <label for="tipoCaficultorId">Tipo de caficultor</label>
+                        <select id="tipoCaficultorId" name="tipoCaficultorId" required>
+                            <option value="" disabled selected>Seleccione tipo</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="btnLimpiarNuevo" class="btn btn-secondary">Limpiar</button>
+                        <button type="submit" id="btnGuardarNuevo" class="btn btn-primary">Registrar caficultor</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div id="registroBanner" class="alert-banner is-hidden" role="status" aria-live="polite">
+            <p id="registroBannerText" class="info-text"></p>
+            <button type="button" id="btnAccionConversion" class="banner-btn is-hidden">
+                Desea convertirlo a Socio ahora mismo?
+            </button>
+        </div>
+    </section>
+
+    <section id="panelConversion" class="flow-panel" aria-hidden="true">
+        <div class="panel-head">
+            <h3>Conversion de caficultor a socio</h3>
+            <p class="info-text">Busca automaticamente por tipo y documento cuando se complete la longitud valida.</p>
+        </div>
+
+        <div class="conversion-info-stack">
+
+            <div class="conversion-bonus-banner">
+                Al convertirse en <strong>socio activo</strong>, el caficultor recibirá un
+                <strong>pago adicional de S/ 20.00</strong> sobre el precio final de
+                liquidación en cada entrega registrada en el sistema.
+            </div>
+
+            <label class="prereq-label" for="checkDocumentosValidados">
+                <input type="checkbox" id="checkDocumentosValidados" class="prereq-input">
+                <span class="prereq-box">
+                    <svg class="prereq-check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="1.5 6 4.5 9.5 10.5 2.5"/>
+                    </svg>
+                </span>
+                <span class="prereq-text">
+                    <span class="prereq-text-title">Confirmo que los documentos han sido validados</span>
+                    <span class="prereq-text-desc">El caficultor tiene todos sus documentos entregados y verificados por el área correspondiente, y está habilitado para la conversión a socio.</span>
+                </span>
+            </label>
+
+        </div>
+
+        <div class="card flow-card">
+            <div class="form-row form-row--2">
+                <div class="field-group">
+                    <label for="tipoDocumentoConversionId">Tipo de documento</label>
+                    <select id="tipoDocumentoConversionId" name="tipoDocumentoConversionId" required>
+                        <option value="" disabled selected>Seleccione tipo</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label for="buscarDocumento">Numero de documento</label>
+                    <input id="buscarDocumento" name="buscarDocumento" type="text" maxlength="12" placeholder="Ingrese documento">
+                    <p id="conversionDocHint" class="helper-text info-text">Selecciona primero el tipo de documento.</p>
+                </div>
+            </div>
+
+            <div id="conversionBanner" class="alert-banner is-hidden" role="status" aria-live="polite">
+                <p id="conversionBannerText" class="info-text"></p>
+            </div>
+
+            <div id="conversionResumen" class="conversion-resumen is-hidden">
+                <div class="form-row form-row--2">
+                    <p class="info-text"><strong>Nombre:</strong> <span id="resNombre">-</span></p>
+                    <p class="info-text"><strong>Tipo actual:</strong> <span id="resTipo">-</span></p>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" id="btnConvertirSocio" class="btn btn-primary" disabled>Convertir a Socio</button>
+            </div>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block script %}
+<script src="/static/js/caficultor.js"></script>
+{% endblock %}
