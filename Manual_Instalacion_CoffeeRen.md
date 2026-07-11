@@ -1,9 +1,9 @@
 # Manual de Instalación - CoffeeRen
 
-**Versión:** 2.0  
-**Fecha de actualización:** 26 de mayo de 2026  
-**Público objetivo:** Técnicos de desarrollo, administradores de sistemas  
-**Tiempo estimado:** 60-90 minutos
+**Versión:** 3.0
+**Fecha de actualización:** 9 de julio de 2026
+**Público objetivo:** Técnicos de desarrollo, administradores de sistemas
+**Tiempo estimado:** 90-120 minutos
 
 ---
 
@@ -11,17 +11,19 @@
 
 1. [Introducción](#introducción)
 2. [Checklist Preinstalación](#checklist-preinstalación)
-3. [Instalación de PostgreSQL](#instalación-de-postgresql)
+3. [Instalación de PostgreSQL 18](#instalación-de-postgresql-18)
 4. [Instalación de Python y Entorno Virtual](#instalación-de-python-y-entorno-virtual)
 5. [Descarga y Configuración del Proyecto](#descarga-y-configuración-del-proyecto)
 6. [Instalación de Dependencias Python](#instalación-de-dependencias-python)
-7. [Configuración de la Base de Datos](#configuración-de-la-base-de-datos)
-8. [Configuración del Proyecto CoffeeRen](#configuración-del-proyecto-coffeeren)
-9. [Instalación del Firmware Arduino](#instalación-del-firmware-arduino)
-10. [Configuración de Tailwind CSS](#configuración-de-tailwind-css)
-11. [Ejecución y Verificación](#ejecución-y-verificación)
-12. [Solución de Problemas](#solución-de-problemas)
-13. [Próximos Pasos](#próximos-pasos)
+7. [Descarga de los Modelos YOLO](#descarga-de-los-modelos-yolo)
+8. [Configuración de la Base de Datos](#configuración-de-la-base-de-datos)
+9. [Configuración del Proyecto CoffeeRen](#configuración-del-proyecto-coffeeren)
+10. [Instalación del Firmware Arduino](#instalación-del-firmware-arduino)
+11. [Conexión de la Cámara](#conexión-de-la-cámara)
+12. [Configuración de Tailwind CSS](#configuración-de-tailwind-css)
+13. [Ejecución y Verificación](#ejecución-y-verificación)
+14. [Solución de Problemas](#solución-de-problemas)
+15. [Próximos Pasos](#próximos-pasos)
 
 ---
 
@@ -30,9 +32,9 @@
 CoffeeRen es un sistema web integral de clasificación automática de café verde desarrollado para la **Cooperativa Agraria Line Coffee Marañón** (Lonya Grande, Amazonas, Perú). El sistema integra:
 
 - **Aplicación Web:** Backend en FastAPI + Frontend con Jinja2 templates
-- **Base de Datos:** PostgreSQL para almacenamiento de datos
-- **Hardware:** Arduino Uno que controla banda transportadora, celda de carga y servo motor
-- **Visión Artificial:** Cámara ELP AR0234 para detección de defectos en tiempo real
+- **Base de Datos:** PostgreSQL 18 para almacenamiento de datos
+- **Visión Artificial:** Modelo YOLO (ONNX) + ByteTrack para detección y conteo de granos defectuosos en tiempo real, con cámara ELP AR0234 Global Shutter
+- **Hardware:** Arduino Uno que controla la faja transportadora, la celda de carga (balanza) y el servo motor de separación
 
 Este manual proporciona instrucciones paso a paso para instalar todos los componentes desde cero, sin asumir experiencia previa con ninguna de estas tecnologías.
 
@@ -40,7 +42,6 @@ Este manual proporciona instrucciones paso a paso para instalar todos los compon
 
 Cada sección incluye:
 - **Comandos exactos** que puede copiar y pegar
-- **Capturas de concepto** de qué esperar en cada paso
 - **Verificaciones** para confirmar que cada paso funcionó
 - **Alternativas** para diferentes sistemas operativos
 
@@ -50,11 +51,24 @@ Cada sección incluye:
 
 Antes de comenzar, verifique que tiene:
 
-- [ ] Conexión a internet estable (descargará ~500 MB)
+- [ ] Conexión a internet estable (descargará **~3 GB**, principalmente PyTorch y las librerías de visión artificial)
 - [ ] Acceso de administrador en su computadora
-- [ ] Al menos 15 GB de espacio libre en disco
+- [ ] Al menos **20 GB** de espacio libre en disco
 - [ ] Cable USB tipo A-B (para Arduino, si planea usar hardware)
+- [ ] Cámara ELP AR0234 con cable USB (si planea usar el monitoreo en vivo)
 - [ ] Un editor de texto (Notepad, VS Code, o similar)
+- [ ] Acceso a la carpeta de Google Drive del proyecto (para descargar los pesos del modelo YOLO)
+
+### Hardware recomendado
+
+| Componente | Mínimo | Recomendado |
+|---|---|---|
+| CPU | 4 núcleos | 8 núcleos |
+| RAM | 8 GB | 16 GB |
+| GPU | No requerida (inferencia en CPU) | NVIDIA con CUDA (ej. GTX 1050 o superior) |
+| Disco | 20 GB libres | SSD |
+
+> El sistema funciona en CPU gracias a los modelos exportados a ONNX. Una GPU NVIDIA solo mejora los FPS del monitoreo.
 
 ### Información a Preparar
 
@@ -66,16 +80,20 @@ Antes de instalar, tenga a mano:
 
 2. **Clave Secreta JWT:** Genere una cadena aleatoria
    - Longitud mínima: 32 caracteres
-   - Puede usar: https://www.random.org/strings/
+   - Puede generarla con Python (se indica más adelante)
 
 3. **Puerto PostgreSQL:** Normalmente `5432` (verifique que no esté en uso)
 
-4. **Ubicación del Proyecto:** Decida dónde clonar el repositorio
+4. **Puerto serial del Arduino:** En Windows suele ser `COM3`–`COM6` (el sistema usa `COM5` por defecto)
+
+5. **Ubicación del Proyecto:** Decida dónde clonar el repositorio
    - Recomendado: `C:\Proyectos\` (Windows) o `~/proyectos/` (Linux/Mac)
 
 ---
 
-## Instalación de PostgreSQL
+## Instalación de PostgreSQL 18
+
+> ⚠️ **IMPORTANTE:** El esquema de la base de datos usa la función nativa `uuidv7()`, disponible **solo desde PostgreSQL 18**. No instale versiones anteriores (15, 16 o 17): la carga del script fallará con el error `function uuidv7() does not exist`.
 
 ### Windows (Pasos Detallados)
 
@@ -84,17 +102,17 @@ Antes de instalar, tenga a mano:
 1. Abra un navegador web
 2. Visite: https://www.postgresql.org/download/windows/
 3. Haga clic en el botón **"Download the installer"**
-4. Seleccione la versión **15 o 16** (no use versiones más antiguas)
+4. Seleccione la versión **18**
 5. Elija **Windows x86-64** si su computadora es de 64 bits (lo más común)
 6. Haga clic en **"Download"**
 7. Guarde el archivo en su carpeta de Descargas
 
-**Verificación:** El archivo descargado debe llamarse algo como `postgresql-16.0-1-windows-x64.exe`
+**Verificación:** El archivo descargado debe llamarse algo como `postgresql-18.x-x-windows-x64.exe`
 
 #### Paso 2: Ejecutar el instalador
 
 1. Abra la carpeta de Descargas
-2. Haga doble clic en el archivo `postgresql-16.0-1-windows-x64.exe`
+2. Haga doble clic en el archivo `postgresql-18.x-x-windows-x64.exe`
 3. Si Windows solicita confirmación, haga clic en **"Sí"**
 4. Se abrirá el asistente de instalación
 
@@ -106,7 +124,7 @@ El asistente mostrará varias pantallas. Configure cada una así:
 - Haga clic en **"Next"**
 
 **Pantalla 2: Installation Directory**
-- Deje la ruta predeterminada: `C:\Program Files\PostgreSQL\16`
+- Deje la ruta predeterminada: `C:\Program Files\PostgreSQL\18`
 - Haga clic en **"Next"**
 
 **Pantalla 3: Select Components**
@@ -114,7 +132,7 @@ El asistente mostrará varias pantallas. Configure cada una así:
 - Haga clic en **"Next"**
 
 **Pantalla 4: Data Directory**
-- Deje la ruta predeterminada: `C:\Program Files\PostgreSQL\16\data`
+- Deje la ruta predeterminada: `C:\Program Files\PostgreSQL\18\data`
 - Haga clic en **"Next"**
 
 **Pantalla 5: Password**
@@ -150,15 +168,15 @@ psql --version
 
 Debería ver algo como:
 ```
-psql (PostgreSQL) 16.0
+psql (PostgreSQL) 18.0
 ```
 
-Si ve un error "psql: command not found", verifique que agregó PostgreSQL al PATH:
+Si ve un error "psql: command not found", agregue PostgreSQL al PATH:
 
 1. Presione `Win + X` y seleccione "Símbolo del sistema (Administrador)"
 2. Ejecute:
 ```cmd
-setx PATH "%PATH%;C:\Program Files\PostgreSQL\16\bin"
+setx PATH "%PATH%;C:\Program Files\PostgreSQL\18\bin"
 ```
 3. Cierre y abra un nuevo símbolo del sistema
 4. Intente nuevamente: `psql --version`
@@ -167,14 +185,15 @@ setx PATH "%PATH%;C:\Program Files\PostgreSQL\16\bin"
 
 ### Linux (Ubuntu/Debian)
 
-Abra una terminal (Ctrl+Alt+T) y ejecute:
+PostgreSQL 18 se instala desde el repositorio oficial PGDG (los repositorios de Ubuntu/Debian traen versiones anteriores):
 
 ```bash
-# Actualizar lista de paquetes
-sudo apt update
+# Agregar el repositorio oficial de PostgreSQL
+sudo apt install -y postgresql-common
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 
-# Instalar PostgreSQL
-sudo apt install postgresql postgresql-contrib -y
+# Instalar PostgreSQL 18
+sudo apt install postgresql-18 postgresql-contrib -y
 
 # Iniciar el servicio
 sudo systemctl start postgresql
@@ -184,45 +203,38 @@ sudo systemctl enable postgresql
 psql --version
 ```
 
-Si la instalación es exitosa, verá la versión de PostgreSQL.
-
 ---
 
 ### macOS
 
-Opción 1: **Usando Homebrew** (recomendado):
+Usando Homebrew:
 
 ```bash
 # Instalar Homebrew si no lo tiene
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# Instalar PostgreSQL
-brew install postgresql
+# Instalar PostgreSQL 18
+brew install postgresql@18
 
 # Iniciar el servicio
-brew services start postgresql
+brew services start postgresql@18
 
 # Verificar
 psql --version
 ```
 
-Opción 2: **Usando el instalador visual:**
-
-1. Visite: https://www.postgresql.org/download/macosx/
-2. Descargue **PostgreSQL.app**
-3. Arrastre la aplicación a la carpeta **Applications**
-4. Abra PostgreSQL.app desde Applications
-
 ---
 
 ## Instalación de Python y Entorno Virtual
+
+El proyecto usa **Python 3.11.9**.
 
 ### Windows
 
 #### Paso 1: Descargar Python 3.11.9
 
 1. Visite: https://www.python.org/downloads/release/python-3119/
-2. Scroll down hasta encontrar **"Windows installer (64-bit)"**
+2. Baje hasta encontrar **"Windows installer (64-bit)"**
 3. Haga clic para descargar
 4. Guarde el archivo en su carpeta de Descargas
 
@@ -322,7 +334,7 @@ cd TesisPrj
 
 ## Instalación de Dependencias Python
 
-Ahora está en la carpeta `TesisPrj`. En Windows o Linux/Mac:
+Ahora está en la carpeta `TesisPrj`.
 
 ### Paso 1: Crear el entorno virtual
 
@@ -334,7 +346,7 @@ python -m venv .venv
 
 **Linux/macOS:**
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 ```
 
@@ -353,15 +365,21 @@ pip install -r requirements.txt
 ```
 
 Este paso descargará e instalará:
-- **FastAPI:** Framework web
-- **Uvicorn:** Servidor de aplicaciones
-- **psycopg2-binary:** Driver de PostgreSQL
-- **PyJWT:** Manejo de tokens de autenticación
-- **argon2-cffi:** Hash seguro de contraseñas
-- **opencv-python:** Procesamiento de imágenes
-- **jinja2:** Motor de plantillas HTML
 
-La instalación puede tomar 2-5 minutos dependiendo de su conexión.
+| Grupo | Librerías | Para qué |
+|---|---|---|
+| Framework web | `fastapi`, `uvicorn`, `python-multipart`, `pydantic` | Backend y validación |
+| Frontend | `jinja2` | Plantillas HTML |
+| Base de datos | `psycopg2` | Driver de PostgreSQL |
+| Seguridad | `PyJWT`, `argon2-cffi` | Tokens de sesión y hash de contraseñas |
+| Visión artificial | `ultralytics`, `torch`, `torchvision` | YOLO + ByteTrack |
+| Video | `opencv-python-headless`, `numpy`, `pillow` | Captura de cámara y streaming MJPEG |
+| Inferencia ONNX | `onnx`, `onnxruntime`, `onnxslim` | Ejecución de los modelos `best.onnx` |
+| Hardware | `pyserial` | Comunicación serial con Arduino |
+
+⏱️ **La instalación puede tomar de 10 a 30 minutos** dependiendo de su conexión — PyTorch y las librerías de visión pesan varios GB.
+
+> **Nota (GPU NVIDIA opcional):** el `torch` de `requirements.txt` funciona en CPU. Si su equipo tiene GPU NVIDIA y quiere acelerar la inferencia, instale la variante CUDA siguiendo https://pytorch.org/get-started/locally/ (el código detecta CUDA automáticamente; no requiere cambios).
 
 ### Verificación
 
@@ -371,13 +389,58 @@ Para confirmar que todo se instaló correctamente:
 pip list
 ```
 
-Debería ver las librerías listadas arriba. Si alguna falta, repita el paso 3.
+Debería ver las librerías listadas arriba. Verificación rápida de las críticas:
+
+```bash
+python -c "import fastapi, psycopg2, cv2, ultralytics, onnxruntime, serial; print('OK')"
+```
+
+Si imprime `OK`, todo está instalado.
+
+---
+
+## Descarga de los Modelos YOLO
+
+> ⚠️ **PASO OBLIGATORIO.** Los pesos del modelo de visión artificial **no están en el repositorio** (son archivos grandes). Sin ellos, **la aplicación no arranca**: al iniciar mostrará `FileNotFoundError: Modelo 'yolov26n_2cls' no encontrado`.
+
+### Paso 1: Obtener los archivos
+
+Descargue de la carpeta de **Google Drive del proyecto** (solicite acceso al equipo de desarrollo) los archivos del modelo activo:
+
+- `best.onnx` (≈ 9.4 MB) — modelo principal, se usa en producción
+- `best.pt` — respaldo (se usa solo si no existe el `.onnx`)
+
+### Paso 2: Colocarlos en la carpeta correcta
+
+Copie ambos archivos a:
+
+```
+TesisPrj/src/ml/models/yolov26n_2cls/
+```
+
+La carpeta ya contiene un archivo `constants.py` (clases, colores y equivalencias del modelo) — no lo borre ni lo modifique.
+
+### Verificación
+
+**Windows:**
+```cmd
+dir src\ml\models\yolov26n_2cls
+```
+
+**Linux/macOS:**
+```bash
+ls src/ml/models/yolov26n_2cls
+```
+
+Debe listar al menos: `best.onnx`, `constants.py` (y opcionalmente `best.pt`).
 
 ---
 
 ## Configuración de la Base de Datos
 
-### Paso 1: Crear la base de datos
+> El nombre de la base de datos debe ser **`tesis_prj`** — es el nombre configurado en `src/config.py`.
+
+### Paso 1: Entrar a psql
 
 Abra una terminal o símbolo del sistema e ingrese a psql:
 
@@ -389,18 +452,12 @@ Ingrese la contraseña que configuró en la instalación de PostgreSQL.
 
 Verá el prompt `postgres=#`
 
-### Paso 2: Crear la base de datos CoffeeRen
+### Paso 2: Crear la base de datos
 
 En el prompt de psql, ejecute:
 
 ```sql
-CREATE DATABASE coffeeren ENCODING 'UTF8' LC_COLLATE 'es_ES.UTF-8' LC_CTYPE 'es_ES.UTF-8';
-```
-
-Si obtiene un error sobre "collate", ejecute simplemente:
-
-```sql
-CREATE DATABASE coffeeren ENCODING 'UTF8';
+CREATE DATABASE tesis_prj ENCODING 'UTF8';
 ```
 
 ### Paso 3: Verificar que se creó
@@ -409,7 +466,7 @@ CREATE DATABASE coffeeren ENCODING 'UTF8';
 \l
 ```
 
-Debería ver `coffeeren` en la lista de bases de datos.
+Debería ver `tesis_prj` en la lista de bases de datos.
 
 ### Paso 4: Salir de psql
 
@@ -423,24 +480,20 @@ Debería ver `coffeeren` en la lista de bases de datos.
 
 Desde la carpeta raíz del proyecto (`TesisPrj`), en una terminal normal (no psql):
 
-**Windows:**
-```cmd
-psql -U postgres -d coffeeren -f src/database/script.sql
-```
-
-**Linux/macOS:**
 ```bash
-psql -U postgres -d coffeeren -f src/database/script.sql
+psql -U postgres -d tesis_prj -f src/database/script.sql
 ```
 
-Este comando crea todas las tablas, relaciones y datos iniciales (tipos de usuario, documentos, precios de café, clasificación de defectos, etc.).
+Este comando crea todas las tablas, relaciones y datos iniciales: roles de personal, tipos de documento, tipos de grano, categorías (grados), tipos de defecto, el catálogo completo de ubigeos del Perú, la cooperativa Line Coffee Marañón y usuarios de prueba.
+
+> Nota: las primeras líneas del script intentan eliminar tablas previas (`DROP ... CASCADE`). En una base de datos recién creada verá advertencias de que esas tablas no existen — **es normal, ignórelas**.
 
 ### Verificación
 
 Vuelva a entrar en psql y verifique que las tablas existen:
 
 ```bash
-psql -U postgres -d coffeeren
+psql -U postgres -d tesis_prj
 ```
 
 En psql, ejecute:
@@ -449,20 +502,22 @@ En psql, ejecute:
 \dt
 ```
 
-Debería listar estas tablas:
+Debería listar estas 15 tablas:
+- auditoria
+- caficultor
+- categoria
+- cooperativa
+- detalle_evaluacion
+- evaluacion
 - persona
 - personal
-- tipo_personal
-- caficultor
-- evaluacion
-- detalle_evaluacion
-- categoria
-- valor_cafe
+- tipo_caficultor
 - tipo_defecto
 - tipo_documento
-- tipo_caficultor
 - tipo_grano
+- tipo_personal
 - ubigeo
+- valor_cafe
 
 Si ve todas estas, la base de datos está lista.
 
@@ -470,49 +525,80 @@ Si ve todas estas, la base de datos está lista.
 \q
 ```
 
+### Usuarios iniciales creados por el script
+
+El script crea tres usuarios de prueba (uno por rol):
+
+| Usuario | Rol |
+|---|---|
+| `admin` | Administrador |
+| `evaluador1` | Evaluador |
+| `jbecerrac` | Gerente |
+
+La contraseña de estos usuarios la proporciona el equipo de desarrollo. En producción, cámbielas desde **Perfil → Gestión de usuarios** después del primer inicio de sesión.
+
 ---
 
 ## Configuración del Proyecto CoffeeRen
 
-### Paso 1: Configurar la variable de entorno SECRET_KEY
+### Paso 1: Ajustar las credenciales de la base de datos
 
-Este es el código secreto que firma los tokens de autenticación. Genere uno seguro:
-
-**Windows (PowerShell):**
-```powershell
-$env:SECRET_KEY = "su-clave-secreta-aleatoria-de-32-caracteres"
-```
-
-O genere uno automáticamente:
-```powershell
-$env:SECRET_KEY = $(python -c "import secrets; print(secrets.token_urlsafe(32))")
-```
-
-**Linux/macOS:**
-```bash
-export SECRET_KEY="su-clave-secreta-aleatoria-de-32-caracteres"
-```
-
-O genere uno:
-```bash
-export SECRET_KEY=$(python -c "import secrets; print(secrets.token_urlsafe(32))")
-```
-
-### Paso 2: Verificar archivo de configuración
-
-Abra `src/config.py` en su editor:
+Abra `src/config.py` en su editor y verifique la clase `Config`:
 
 ```python
-DB_NAME = "coffeeren"
-DB_USER = "postgres"
-DB_PASSWORD = "la_contraseña_que_uso_en_postgres"
-DB_HOST = "localhost"
-DB_PORT = "5432"
+USER = 'postgres'
+PASSWORD = 'su_contraseña_de_postgres'   # ← cámbiela por la suya
+HOST = 'localhost'
+PORT = '5432'
+DATABASE = 'tesis_prj'
 ```
 
-Verifique que **DB_PASSWORD** coincide con la contraseña que estableció en PostgreSQL.
+Actualice **PASSWORD** con la contraseña que estableció al instalar PostgreSQL y guarde los cambios. (Existe un `src/config-example.py` de referencia.)
 
-Guarde los cambios.
+### Paso 2: Crear el archivo `.env`
+
+En la **raíz del proyecto** (`TesisPrj/`), cree un archivo llamado `.env` (con punto inicial, sin extensión). El proyecto lo carga automáticamente al arrancar — no necesita configurar variables de entorno en el sistema.
+
+Contenido mínimo:
+
+```env
+# Clave que firma los tokens de sesión (JWT) — obligatoria
+SECRET_KEY=su-clave-secreta-aleatoria-de-32-caracteres
+
+# Token de la API Factiliza para consulta de DNI en RENIEC — opcional
+# (sin él, el autocompletado por DNI no funciona; el registro manual sí)
+API_FACTILIZA=su_token_de_factiliza
+```
+
+Para generar una SECRET_KEY segura automáticamente:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Copie el resultado como valor de `SECRET_KEY`.
+
+#### Variables opcionales de hardware
+
+Estas variables tienen valores por defecto razonables; agréguelas al `.env` solo si necesita cambiarlas:
+
+```env
+# Puerto serial del Arduino (por defecto: COM5)
+ARDUINO_PORT=COM5
+
+# Velocidad de comunicación serial (por defecto: 9600)
+ARDUINO_BAUDRATE=9600
+
+# Velocidad PWM de la faja transportadora (por defecto: 150)
+# DEBE coincidir con la constante VELOCIDAD del firmware Arduino
+FAJA_VELOCIDAD_PWM=150
+
+# Calibración del servo separador — NO cambiar sin pruebas en banco.
+# SERVO_DELAY_S se calcula automáticamente a partir de FAJA_VELOCIDAD_PWM;
+# defínalo aquí solo si midió un valor distinto en pruebas físicas.
+# SERVO_DELAY_S=0.5
+# SERVO_HOLD_S=0.3
+```
 
 ### Paso 3: Descargar Tailwind CSS CLI
 
@@ -538,7 +624,7 @@ chmod +x tailwindcss-linux-x64
 
 ## Instalación del Firmware Arduino
 
-Si planea usar los sensores físicos y la banda transportadora, siga estos pasos:
+Si planea usar la faja transportadora, la balanza y el servo separador, siga estos pasos. (La aplicación web funciona sin el Arduino conectado, pero el monitoreo físico no.)
 
 ### Paso 1: Descargar Arduino IDE
 
@@ -550,6 +636,7 @@ Si planea usar los sensores físicos y la banda transportadora, siga estos pasos
 
 1. Conecte la placa Arduino Uno a su computadora con un cable USB
 2. Espere a que Windows detecte el dispositivo (verá un mensaje)
+3. Anote el puerto asignado (ej. `COM5`): puede verlo en el **Administrador de dispositivos → Puertos (COM y LPT)**
 
 ### Paso 3: Instalar el soporte para Arduino Uno
 
@@ -563,23 +650,52 @@ Si planea usar los sensores físicos y la banda transportadora, siga estos pasos
 
 1. En Arduino IDE, vaya a **Archivo > Abrir**
 2. Navegue a la carpeta: `TesisPrj/arduino/logica_hardware/`
-3. Abra el archivo `.ino` (archivo del sketch)
+3. Abra el archivo `logica_hardware.ino`
 4. En la barra de herramientas, configure:
    - **Placa:** Arduino Uno
-   - **Puerto:** COM3 o COM4 (el que vea en su sistema)
-   - **Velocidad:** 115200
+   - **Puerto:** el que anotó en el Paso 2 (ej. COM5)
 
-5. Haga clic en el botón **"Cargar"** (flecha hacia arriba)
-6. Esperará a que compile y cargue
+5. Haga clic en el botón **"Cargar"** (flecha hacia la derecha)
+6. Espere a que compile y cargue
 
 Cuando vea el mensaje "Subida completada", el firmware está instalado en Arduino.
+
+> **Importante:** la constante `VELOCIDAD` (PWM de la faja) dentro de `logica_hardware.ino` debe coincidir con `FAJA_VELOCIDAD_PWM` del `.env` (por defecto 150). Si cambia una, cambie la otra: de ella depende el tiempo de viaje del grano de la cámara al servo.
 
 ### Paso 5: Verificar comunicación (opcional)
 
 1. En Arduino IDE, vaya a **Herramientas > Monitor Serial**
-2. Configure la velocidad a **9600 baud**
+2. Configure la velocidad a **9600 baud** (la misma que usa el sistema)
 3. Presione el botón **RESET** en la placa Arduino
 4. Debería ver mensajes de inicialización en la consola
+
+El protocolo que usa el sistema es por comandos de texto: `ON` / `OFF` (faja), `SERVO:DEFECTO` / `SERVO:BUENO` (separador), `PESO:` (balanza) y `LISTO:` (confirmaciones).
+
+> En `TesisPrj/arduino/test_motor/` hay un sketch auxiliar (`test_motor.ino`) para probar el motor de la faja de forma aislada, sin el firmware completo.
+
+### Paso 6: Configurar el puerto en el `.env`
+
+Si el puerto de su Arduino **no** es `COM5`, agregue al `.env`:
+
+```env
+ARDUINO_PORT=COM3
+```
+
+(reemplace COM3 por el puerto real). **Cierre el Monitor Serial de Arduino IDE antes de iniciar CoffeeRen** — solo un programa puede usar el puerto a la vez.
+
+---
+
+## Conexión de la Cámara
+
+El monitoreo en vivo usa una cámara **ELP AR0234 Global Shutter** conectada por USB, operando a 1280×720.
+
+1. Conecte la cámara a un puerto **USB 3.0** (preferible) antes de iniciar la aplicación — el sistema pre-conecta la cámara al arrancar
+2. Verifique que Windows la detecta: **Administrador de dispositivos → Cámaras**
+3. Cierre cualquier otra aplicación que use la cámara (Zoom, OBS, la app Cámara de Windows): solo un programa puede usarla a la vez
+
+> Si la cámara se desconecta durante un monitoreo, el sistema entra en modo de emergencia (detiene la faja) y lo indica en pantalla. Existe además el botón/endpoint "liberar cámara" si quedara bloqueada.
+
+Sin cámara conectada la aplicación web funciona igualmente (registro, reportes, caficultores), pero el monitoreo en vivo mostrará error al iniciarlo.
 
 ---
 
@@ -597,7 +713,7 @@ Abra una **segunda terminal** (no cierre la primera) en la carpeta raíz del pro
 ./tailwindcss-linux-x64 -i src/static/css/input.css -o src/static/css/tailwind.css --watch
 ```
 
-Esta terminal compilará los estilos CSS y se quedará monitorando cambios. Déjela abierta mientras desarrolla.
+Esta terminal compilará los estilos CSS y se quedará monitoreando cambios. Déjela abierta mientras desarrolla. (Para un despliegue sin desarrollo, basta ejecutarla una vez sin `--watch`.)
 
 ---
 
@@ -622,16 +738,22 @@ source .venv/bin/activate
 En su terminal principal (no la del Tailwind), ejecute:
 
 ```bash
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.main:app --reload
 ```
 
-Verá algo como:
+En el arranque verá mensajes como:
 ```
-INFO:     Uvicorn running on http://0.0.0.0:8000
-INFO:     Application startup complete
+Modelo YOLO cargado: yolov26n_2cls (best.onnx, conf=0.5, device=cpu)
+Calentando modelo YOLO (CUDA/ONNX)...
+Modelo listo.
+Application has started successfully!
+INFO:     Uvicorn running on http://127.0.0.1:8000
 ```
 
-**No cierre esta terminal.** Es el servidor ejecutándose.
+- Si dice `device=0` en lugar de `device=cpu`, está usando la GPU NVIDIA.
+- **No cierre esta terminal.** Es el servidor ejecutándose.
+
+> Para acceder desde otras computadoras de la red local, use `uvicorn src.main:app --host 0.0.0.0 --port 8000`.
 
 ### Paso 3: Acceder a la aplicación
 
@@ -640,48 +762,54 @@ Abra un navegador web y vaya a:
 http://localhost:8000
 ```
 
-Debería ver la página de inicio de CoffeeRen con todos los estilos cargados correctamente.
+Como no ha iniciado sesión, será redirigido a la pantalla de login.
 
-### Verificación 1: Página de inicio
+### Verificación 1: Login
 
-- Verifique que ve el logo de CoffeeRen
-- Verifique que los colores y tipografía se ven bien
-- Verifique que el menú de navegación está visible
+1. En `http://localhost:8000/auth/login` inicie sesión con:
+   - **Usuario:** `admin`
+   - **Contraseña:** (la proporcionada por el equipo de desarrollo)
 
-### Verificación 2: Login
+Si accede al dashboard de inicio (KPIs de lotes, defectos y rendimiento), la base de datos y la autenticación funcionan.
 
-1. Haga clic en el menú o vaya directamente a: `http://localhost:8000/auth/login`
-2. Intente iniciar sesión con:
-   - **Usuario:** admin
-   - **Contraseña:** (la que fue generada en el script.sql)
+### Verificación 2: Páginas principales
 
-Si accede al dashboard principal, la base de datos está funcionando.
+Recorra el menú y verifique que cargan sin error:
+- `/registro` — registro de muestras
+- `/nuevo-caficultor` — registro de caficultores
+- `/reporte` — búsqueda de muestras y reportes
+- `/valor-cafe` — precios del café
+- `/perfil` — perfil y gestión de usuarios
+
+Verifique también que los estilos se ven correctamente (colores, tipografía, menús). Si la página se ve "sin diseño", revise la terminal de Tailwind.
 
 ### Verificación 3: Base de datos
 
 Para confirmar que se están guardando datos:
 
-1. Abra una terminal diferente
-2. Ejecute:
 ```bash
-psql -U postgres -d coffeeren
+psql -U postgres -d tesis_prj -c "SELECT COUNT(*) FROM persona;"
 ```
 
-3. Ejecute:
-```sql
-SELECT COUNT(*) FROM persona;
-```
+Debería mostrar un número mayor a 0 (personas de prueba creadas por el script).
 
-Debería mostrar un número mayor a 0 (cantidad de personas registradas).
+### Verificación 4: Monitoreo con cámara (si tiene el hardware)
 
-4. Salga:
-```sql
-\q
-```
+1. Registre precios del café en `/valor-cafe` (sin precios no se puede iniciar una evaluación)
+2. Registre una muestra en `/registro` usando el documento de un caficultor de prueba (ej. `99988877`)
+3. En la pantalla de monitoreo, inicie la captura: debe ver el video en vivo con los granos detectados (defectos en rojo, sanos en verde) y el conteo subiendo
 
 ---
 
 ## Solución de Problemas
+
+### Error: "function uuidv7() does not exist" al cargar script.sql
+
+**Problema:** Su versión de PostgreSQL es anterior a la 18 — `uuidv7()` es una función nativa introducida en PostgreSQL 18.
+
+**Solución:** Instale PostgreSQL 18 (ver sección de instalación), cree de nuevo la base `tesis_prj` y vuelva a cargar `src/database/script.sql`.
+
+---
 
 ### Error: "psql: command not found"
 
@@ -691,26 +819,21 @@ Debería mostrar un número mayor a 0 (cantidad de personas registradas).
 1. Presione `Win + X`, seleccione "Símbolo del sistema (Administrador)"
 2. Ejecute:
 ```cmd
-setx PATH "%PATH%;C:\Program Files\PostgreSQL\16\bin"
+setx PATH "%PATH%;C:\Program Files\PostgreSQL\18\bin"
 ```
 3. Cierre y abra una nueva terminal
 4. Intente: `psql --version`
 
-**Solución Linux:**
-```bash
-sudo apt reinstall postgresql
-```
-
 ---
 
-### Error: "FATAL: Ident authentication failed"
+### Error: "FATAL: Ident authentication failed" / contraseña rechazada
 
 **Problema:** PostgreSQL rechaza la contraseña
 
 **Solución:**
 1. Encuentre el archivo `pg_hba.conf`:
-   - Windows: `C:\Program Files\PostgreSQL\16\data\pg_hba.conf`
-   - Linux: `/etc/postgresql/16/main/pg_hba.conf`
+   - Windows: `C:\Program Files\PostgreSQL\18\data\pg_hba.conf`
+   - Linux: `/etc/postgresql/18/main/pg_hba.conf`
 
 2. Abra el archivo con un editor
 3. Busque la línea que dice: `local   all   all   peer`
@@ -723,15 +846,25 @@ sudo apt reinstall postgresql
 
 ---
 
-### Error: "database 'coffeeren' does not exist"
+### Error: "database 'tesis_prj' does not exist"
 
-**Problema:** La base de datos no fue creada
+**Problema:** La base de datos no fue creada, o el nombre en `src/config.py` no coincide
 
 **Solución:**
 ```bash
-psql -U postgres -c "CREATE DATABASE coffeeren ENCODING 'UTF8';"
-psql -U postgres -d coffeeren -f src/database/script.sql
+psql -U postgres -c "CREATE DATABASE tesis_prj ENCODING 'UTF8';"
+psql -U postgres -d tesis_prj -f src/database/script.sql
 ```
+
+Verifique además que `DATABASE = 'tesis_prj'` en `src/config.py`.
+
+---
+
+### Error al arrancar: "Modelo 'yolov26n_2cls' no encontrado"
+
+**Problema:** No descargó los pesos del modelo YOLO (no están en el repositorio)
+
+**Solución:** Descargue `best.onnx` (y opcionalmente `best.pt`) de la carpeta de Google Drive del proyecto y colóquelos en `src/ml/models/yolov26n_2cls/`. Reinicie el servidor.
 
 ---
 
@@ -758,9 +891,9 @@ uvicorn src.main:app --reload --port 8001
 
 ---
 
-### Error: "ModuleNotFoundError: No module named 'fastapi'"
+### Error: "ModuleNotFoundError: No module named 'fastapi'" (u otro módulo)
 
-**Problema:** Las dependencias no se instalaron
+**Problema:** Las dependencias no se instalaron, o el entorno virtual no está activo
 
 **Solución:**
 1. Verifique que el entorno virtual está activo (debe ver `(.venv)`)
@@ -772,26 +905,46 @@ pip install -r requirements.txt
 
 3. Verifique:
 ```bash
-pip list | grep fastapi
+pip list
 ```
 
 ---
 
-### Página sin estilos CSS (se ve fea)
+### Página sin estilos CSS (se ve "fea")
 
 **Problema:** Tailwind CSS no se compiló
 
 **Solución:**
-1. Verifique que compiló correctamente:
-```bash
-ls -la src/static/css/tailwind.css
-```
-
+1. Verifique que el archivo existe: `src/static/css/tailwind.css`
 2. Si no existe, compile manualmente:
    - Windows: `.\tailwindcss-windows-x64.exe -i src\static\css\input.css -o src\static\css\tailwind.css`
    - Linux: `./tailwindcss-linux-x64 -i src/static/css/input.css -o src/static/css/tailwind.css`
-
 3. Recargue la página en el navegador (Ctrl+F5)
+
+---
+
+### La cámara no da imagen / "No se pudo iniciar la cámara"
+
+**Problema:** La cámara no está conectada, está en uso por otro programa, o quedó bloqueada
+
+**Solución:**
+1. Conecte la cámara **antes** de iniciar el servidor (se pre-conecta al arrancar)
+2. Cierre Zoom, OBS, la app Cámara de Windows o cualquier programa que la use
+3. Use el botón de "liberar cámara" del sistema (o reinicie el servidor)
+4. Pruebe otro puerto USB (preferible USB 3.0)
+
+---
+
+### El Arduino no responde / no separa granos
+
+**Problema:** Puerto serial incorrecto u ocupado
+
+**Solución:**
+1. Verifique el puerto real en Administrador de dispositivos → Puertos (COM y LPT)
+2. Configure `ARDUINO_PORT=COMx` en el `.env` con ese puerto
+3. Cierre el Monitor Serial de Arduino IDE (solo un programa puede usar el puerto)
+4. Verifique que `ARDUINO_BAUDRATE=9600` (o que no esté definido — 9600 es el default)
+5. Reinicie el servidor
 
 ---
 
@@ -814,23 +967,11 @@ sudo usermod -a -G dialout $USER
 
 ---
 
-### Error: "Secret key must be set"
+### No puedo iniciar una evaluación: "No hay rangos de precios de café registrados"
 
-**Problema:** No configuró la variable de entorno SECRET_KEY
+**Problema:** No es un error de instalación — el sistema exige precios del día antes de iniciar un monitoreo, porque sin ellos no puede calcular el pago al finalizar.
 
-**Solución:**
-
-**Windows:**
-```powershell
-$env:SECRET_KEY = "una-clave-aleatoria-de-32-caracteres"
-```
-
-**Linux/macOS:**
-```bash
-export SECRET_KEY="una-clave-aleatoria-de-32-caracteres"
-```
-
-Luego inicie el servidor nuevamente.
+**Solución:** Inicie sesión como Gerente o Administrador y registre los rangos de precios en `/valor-cafe`.
 
 ---
 
@@ -841,20 +982,21 @@ Una vez que la instalación está completa y funcional, realice las siguientes a
 ### 1. Explorar la Aplicación
 - Visite todas las páginas principales
 - Verifique que los menús funcionan
-- Pruebe el formulario de inicio de sesión
+- Pruebe el formulario de inicio de sesión con los tres roles
 - Valide que los estilos CSS se cargan correctamente
 
 ### 2. Registrar Datos de Prueba
+- Registre los precios del café del día en `/valor-cafe`
 - Cree un nuevo caficultor en `/nuevo-caficultor` (simule un socio de la cooperativa)
 - Registre una evaluación de muestra en `/registro` con datos reales
-- Verifique que los datos se guardan en la base de datos
-- Genere reportes y códigos EVA
+- Complete el flujo: registro → monitoreo → análisis → código EVA
+- Busque la evaluación por su código en `/reporte`
 
 ### 3. Pruebas del Hardware (si tiene Arduino)
-- Conecte la placa Arduino a la banda transportadora
-- Ejecute pruebas de comunicación: envíe comandos desde la terminal
-- Verifique que los sensores responden correctamente
-- Realice pruebas de carga con muestras de café real
+- Pruebe el motor de la faja con `arduino/test_motor/test_motor.ino`
+- Cargue el firmware completo y verifique la comunicación (faja ON/OFF, balanza, servo)
+- Verifique con granos reales que el servo separa los defectuosos en el momento correcto
+- Si ajusta la velocidad de la faja, actualice `FAJA_VELOCIDAD_PWM` en el `.env` y `VELOCIDAD` en el firmware
 
 ### 4. Capacitación de Operarios
 - Invite a operarios de la Cooperativa Agraria Line Coffee Marañón
@@ -864,17 +1006,17 @@ Una vez que la instalación está completa y funcional, realice las siguientes a
 
 ### 5. Leer la Documentación
 - Revise el **Manual de Usuario - CoffeeRen** para entender la operación
+- Revise **docs/DOCUMENTACION_SISTEMA.md** para la visión general del sistema
 - Revise el **CLAUDE.md** para entender la arquitectura técnica del código
-- Consulte los documentos de análisis de requerimientos para contexto
 
 ### 6. Validación de Datos
-- Verifique que las clasificaciones del sistema coinciden con el criterio manual
+- Verifique que las clasificaciones del sistema coinciden con el criterio manual del evaluador
 - Valide que los cálculos de rendimiento y pago son precisos
 - Genere reportes comparativos con el método anterior
 
 ### 7. Despliegue en Producción (cuando esté listo)
-- Configure un servidor dedicado o VPS para la Cooperativa
-- Obtenga un nombre de dominio apropiado
+- Configure un servidor dedicado para la Cooperativa
+- Cambie las contraseñas de los usuarios de prueba y la SECRET_KEY
 - Implemente certificados SSL/TLS para conexiones seguras
 - Configure Nginx como proxy inverso
 - Implemente copias de seguridad automáticas de la base de datos

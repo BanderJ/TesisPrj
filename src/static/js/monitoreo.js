@@ -259,7 +259,7 @@
 
 		async function detenerFaja() {
 			try {
-				await fetch('/arduino/motor/detener', { method: 'POST' });
+				await fetch('/arduino/motor/detener', { method: 'POST', keepalive: true });
 			} catch {
 				appendLog('No se pudo detener la faja. Verifique la conexión Arduino.');
 			}
@@ -352,9 +352,9 @@
 			clearInterval(timerInterval);
 			clearInterval(conteoInterval);
 			capturandoYOLO = false;
+			await detenerFaja();
 			try { await fetch('/video/detener', { method: 'POST' }); } catch { /* ignorar */ }
 			detenerStream();
-			await detenerFaja();
 		}
 
 		async function generarReporte() {
@@ -648,12 +648,12 @@
 			monitoreoActivo = false;
 			clearInterval(timerInterval);
 			clearInterval(conteoInterval);
+			await detenerFaja();
 			if (capturandoYOLO) {
 				capturandoYOLO = false;
 				await fetch('/video/detener', { method: 'POST' }).catch(() => {});
 			}
 			detenerStream();
-			await detenerFaja();
 			window.location.replace('/registro');
 		});
 

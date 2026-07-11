@@ -94,6 +94,10 @@ class TrackerService:
 
         with self._lock:
             self._frame_anotado = None  # limpiar frame viejo para próxima sesión
+
+        # Fail-safe: al terminar monitoreo, forzar apagado de la faja desde backend.
+        # Esto cubre casos donde el frontend no alcanza a enviar OFF.
+        arduino_serial.enviar_comando("OFF")
         print("TrackerService detenido — cámara permanece conectada")
 
     def _on_camara_desconectada(self) -> None:
@@ -101,6 +105,9 @@ class TrackerService:
         self.activo = False
         self._camara_desconectada = True
         self._error_camara = "Desconexión con cámara. La clasificación se ha detenido."
+
+        # Seguridad: sin cámara no debe seguir corriendo la faja.
+        arduino_serial.enviar_comando("OFF")
         servo_controller.bloquear()
         arduino_serial.enviar_comando("SERVO:DEFECTO")
         print("Cámara desconectada — servo fijado en posición DEFECTO")
@@ -118,12 +125,12 @@ class TrackerService:
 
             # Esperar nuevo frame y obtener BGR directo (sin ciclo JPEG)
             camara_service.esperar_frame(timeout=1.0)
-            frame = camara_service.obtener_frame_bgr()
+            frame, ts_frame = camara_service.obtener_frame_bgr()
             if frame is None:
                 continue
 
             # Procesar con tracker
-            frame_anotado_jpeg = self.tracker.procesar_frame(frame)
+            frame_anotado_jpeg = self.tracker.procesar_frame(frame, ts_frame)
 
             if frame_anotado_jpeg is not None:
                 frame_count += 1

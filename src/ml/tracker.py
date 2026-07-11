@@ -105,12 +105,14 @@ class CoffeeRenTracker:
 
     # ── Pipeline principal ────────────────────────────────────────────────────
 
-    def procesar_frame(self, frame) -> bytes | None:
+    def procesar_frame(self, frame, ts_frame: float | None = None) -> bytes | None:
         """
         Procesa un frame con ByteTrack y retorna JPEG anotado.
 
         Args:
             frame: Frame BGR de OpenCV (1280x720 @ 60fps)
+            ts_frame: time.monotonic() de captura del frame. El servo se programa
+                      desde este instante para descontar la latencia de inferencia.
 
         Returns:
             bytes: Frame codificado en JPEG con anotaciones, o None si error
@@ -171,6 +173,7 @@ class CoffeeRenTracker:
                             servo_controller.solicitar(
                                 obtener_clase=lambda tid=track_id: self._mejor_clase_para(tid),
                                 equivalencias=self.EQUIVALENCIAS_DEFECTO,
+                                t_referencia=ts_frame,
                             )
 
                     color = self.COLORES.get(clase, (0, 0, 255))
