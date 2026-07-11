@@ -13,7 +13,6 @@ from src.utilities.arduino_serial import arduino_serial
 from src.utilities.servo_controller import servo_controller
 
 # Umbral de confianza global para todas las detecciones YOLO
-# Preferir falsos positivos sobre granos defectuosos no detectados
 CONF_THRESHOLD = 0.50
 
 
