@@ -55,7 +55,7 @@
             // Llenar formulario básico
             document.getElementById('nombre').value = data.nombre || '';
             document.getElementById('codigo').value = data.codigo || '';
-            document.getElementById('direccion').value = data.direccion || '';
+            document.getElementById('direccion').value = data.ubicacion || '';
             document.getElementById('telefono').value = data.telefono || '';
             document.getElementById('correo').value = data.correo || '';
             const descEl = document.getElementById('descripcion');
@@ -269,7 +269,7 @@
                 body: JSON.stringify({
                     nombre: document.getElementById('nombre').value,
                     codigo: document.getElementById('codigo').value || null,
-                    direccion: document.getElementById('direccion').value || null,
+                    ubicacion: document.getElementById('direccion').value || null,
                     telefono: document.getElementById('telefono').value || null,
                     correo: document.getElementById('correo').value || null,
                     descripcion: document.getElementById('descripcion').value || null,

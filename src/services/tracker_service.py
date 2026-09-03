@@ -12,8 +12,13 @@ from src.ml.classifier import generar_reporte
 from src.utilities.arduino_serial import arduino_serial
 from src.utilities.servo_controller import servo_controller
 
-# Umbral de confianza global para todas las detecciones YOLO
-CONF_THRESHOLD = 0.50
+# Piso de confianza que YOLO usa para emitir una deteccion. Bajo a proposito:
+# ByteTrack asocia y sostiene los tracks con sus propios umbrales (bytetrack.yaml)
+# y el conteo final filtra por voto de mayoria + conf promedio (>= 0.45). Un piso
+# alto aqui mataba la etapa de recuperacion de baja confianza de ByteTrack y hacia
+# que los granos que se tocan (menor conf por ambiguedad) no se dibujaran.
+# El servo se protege aparte con la compuerta de evidencia del tracker.
+CONF_THRESHOLD = 0.15
 
 
 class TrackerService:

@@ -25,7 +25,7 @@ class CooperativaService:
             result = self.model.crear(
                 nombre=data.nombre,
                 codigo=data.codigo,
-                direccion=data.direccion,
+                ubicacion=data.ubicacion,
                 telefono=data.telefono,
                 correo=data.correo,
                 descripcion=data.descripcion,
@@ -53,7 +53,7 @@ class CooperativaService:
                 cooperativa_id=cooperativa_id,
                 nombre=data.nombre,
                 codigo=data.codigo,
-                direccion=data.direccion,
+                ubicacion=data.ubicacion,
                 telefono=data.telefono,
                 correo=data.correo,
                 descripcion=data.descripcion,

@@ -1,13 +1,12 @@
 ---
-id: frontend-coffeeren
 name: frontend-coffeeren
-description: Frontend expert para CoffeeRen — templates Jinja2, design system CSS, integración FastAPI, UX/UI y Arduino serial.
+description: Frontend experto para CoffeeRen — templates Jinja2, design system CSS, integración con FastAPI, UX/UI profesional (sin "AI aesthetics") y protocolo Arduino serial. Usar siempre al crear o modificar archivos en src/templates/, src/static/css/ o src/static/js/, o al diseñar cualquier pantalla o componente de interfaz del proyecto.
 ---
 
 # MISIÓN
 Crear y mantener interfaces de usuario en CoffeeRen: templates Jinja2 bien estructurados, CSS limpio sin duplicación, integración correcta con las APIs FastAPI y experiencia de usuario **profesional, austera, experta** (sin "AI aesthetics").
 
-Antes de cualquier tarea de frontend **consulta el agente `FastAPI-Architecture-Guardian`** si necesitas saber qué endpoints existen, qué campos retornan o cómo están construidas las rutas.
+Antes de cualquier tarea de frontend **consulta el agente `fastapi-architecture-guardian`** si necesitas saber qué endpoints existen, qué campos retornan o cómo están construidas las rutas.
 
 ---
 
@@ -92,7 +91,7 @@ Grep "nombreFuncion" en src/templates/
 - Única → Inline en el template o archivo JS específico de la página
 
 ## 🔍 PASO 6: ¿Ya existe el endpoint en el backend?
-Consultar `FastAPI-Architecture-Guardian` o:
+Consultar `fastapi-architecture-guardian` o:
 ```bash
 Grep "router\|@.*_router" en src/routes/
 ```
@@ -453,11 +452,11 @@ El Arduino (`arduino/logica_hardware/logica_hardware.ino`) comunica por serial a
 - [ ] ¿Busqué la clase CSS en `main.css` antes de crearla?
 - [ ] ¿Busqué el componente HTML en otros templates antes de inventar uno nuevo?
 - [ ] ¿Busqué la función JS en otros templates antes de escribirla?
-- [ ] ¿Verifiqué con `FastAPI-Architecture-Guardian` si el endpoint ya existe?
+- [ ] ¿Verifiqué con `fastapi-architecture-guardian` si el endpoint ya existe?
 
 ### HTML
 - [ ] ¿Extiende `main.html` con `{% extends %}` y `{% block content %}`?
-- [ ] ¿El `{% block style %}` tiene `?v=N` actualizado?
+- [ ] ¿El `{% block style %}` enlaza el CSS de la página sin query string `?v=N`? (ya no se usa — los estáticos se sirven con `Cache-Control: no-cache`)
 - [ ] ¿Rutas de imágenes usan `/static/icon/` (sin "s")?
 - [ ] ¿Los `<img>` dentro de botones tienen `width`/`height` definidos en CSS?
 - [ ] ¿Formularios usan `fetch()` + JSON, no submit tradicional?
