@@ -59,7 +59,7 @@ class Cooperativa:
         self,
         nombre: str,
         codigo: str | None,
-        direccion: str | None,
+        ubicacion: str | None,
         telefono: str | None,
         correo: str | None,
         descripcion: str | None = None,
@@ -70,11 +70,11 @@ class Cooperativa:
         db = db or Connection()
         try:
             sql = """
-                INSERT INTO COOPERATIVA (nombre, codigo, direccion, telefono, correo, descripcion, imagen_url, estado)
+                INSERT INTO COOPERATIVA (nombre, codigo, ubicacion, telefono, correo, descripcion, imagen_url, estado)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, 'A')
                 RETURNING *
             """
-            result = db.obtener_uno(sql, [nombre, codigo, direccion, telefono, correo, descripcion, imagen_url])
+            result = db.obtener_uno(sql, [nombre, codigo, ubicacion, telefono, correo, descripcion, imagen_url])
             if result:
                 result["cooperativa_id"] = str(result["id"])
             if owns_db:
@@ -93,7 +93,7 @@ class Cooperativa:
         cooperativa_id: str,
         nombre: str | None = None,
         codigo: str | None = None,
-        direccion: str | None = None,
+        ubicacion: str | None = None,
         telefono: str | None = None,
         correo: str | None = None,
         descripcion: str | None = None,
@@ -110,8 +110,8 @@ class Cooperativa:
                 updates.append("nombre=%s"); params.append(nombre)
             if codigo is not None:
                 updates.append("codigo=%s"); params.append(codigo)
-            if direccion is not None:
-                updates.append("direccion=%s"); params.append(direccion)
+            if ubicacion is not None:
+                updates.append("ubicacion=%s"); params.append(ubicacion)
             if telefono is not None:
                 updates.append("telefono=%s"); params.append(telefono)
             if correo is not None:

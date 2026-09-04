@@ -1,7 +1,6 @@
 ---
-id: fastapi-architecture
 name: fastapi-architecture
-description: Reglas de Clean Architecture, capas y psycopg2 para TESISPRJ.
+description: Reglas de arquitectura en 4 capas (routes/services/models/schemas + apis), convenciones psycopg2 y checklist anti-duplicación para el backend de TESISPRJ (CoffeeRen). Usar siempre antes de escribir, revisar o refactorizar código Python en src/routes, src/services, src/models, src/schemas o src/apis — al crear un endpoint, un método de modelo o un service nuevo, o al detectar lógica duplicada o mal ubicada.
 ---
 
 # MISIÓN PRINCIPAL

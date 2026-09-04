@@ -52,3 +52,33 @@ class Config:
     )
     # Tiempo (s) que el servo permanece en posición DEFECTO antes de volver a BUENO.
     SERVO_HOLD_S: float = float(os.environ.get('SERVO_HOLD_S') or '0.3')
+
+    # ── Cámara (ELP AR0234 global shutter, USB 2.0) ──────────────────────
+    # USB 2.0: 90fps a 1080p SOLO funciona en MJPEG. Sin MJPEG el driver cae a
+    # YUY2 (~5fps) y los granos saltan de posición entre frames capturados.
+    # Modos soportados por la ELP: 1920x1080, 1280x720, 800x600, 640x480 — todos
+    # a 90fps MJPEG. Bajar la resolución NO mejora el detalle que ve YOLO
+    # (se reescala a 640 igual); solo alivia el bus USB y la CPU del encode.
+    CAM_WIDTH: int = int(os.environ.get('CAM_WIDTH') or '1920')
+    CAM_HEIGHT: int = int(os.environ.get('CAM_HEIGHT') or '1080')
+    CAM_FPS: int = int(os.environ.get('CAM_FPS') or '90')
+
+    # Selección de la cámara ELP frente a la webcam interna de la laptop:
+    #   vacío  → autodetección por nombre de dispositivo (busca "global shutter" /
+    #            "ar0234" / "elp" y descarta la webcam interna y cámaras virtuales).
+    #   número → índice fijo de OpenCV (ej. CAM_INDICE=1).
+    #   texto  → coincidencia por nombre de dispositivo (ej. CAM_INDICE=Global Shutter).
+    # La webcam interna también negocia MJPEG, así que la selección por nombre es
+    # la única forma fiable de no encender la cámara equivocada.
+    CAM_INDICE: str = os.environ.get('CAM_INDICE') or ''
+
+    # Exposición: '' = automática (AEC de fábrica, sin cambios). Un número activa
+    # exposición manual: en el backend DSHOW de Windows el valor es log2(segundos)
+    # — -6 ≈ 1/64s, -7 ≈ 1/128s, -8 ≈ 1/256s. Exposición corta congela el grano
+    # en movimiento (el global shutter NO borra el motion blur), pero exige
+    # iluminación difusa y sin parpadeo suficiente para esa velocidad.
+    CAM_EXPOSURE: str = os.environ.get('CAM_EXPOSURE') or ''
+    # Valor de CAP_PROP_AUTO_EXPOSURE que pone el driver en modo manual.
+    # DSHOW usa 0.25; algunos drivers UVC esperan 1 o 3. Solo se aplica si
+    # CAM_EXPOSURE tiene valor.
+    CAM_AUTO_EXPOSURE_MANUAL: float = float(os.environ.get('CAM_AUTO_EXPOSURE_MANUAL') or '0.25')

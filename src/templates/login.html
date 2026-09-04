@@ -107,9 +107,39 @@
                 <hr class="divider" />
 
                 <div class="panel-links info-text">
-                    <a href="#" class="link-text">¿Olvidó su contraseña?</a>
+                    <button type="button" id="btnOlvideClave" class="link-text link-btn">¿Olvidó su contraseña?</button>
                 </div>
             </section>
+        </div>
+    </div>
+
+    <!-- Modal informativo: recuperación de contraseña -->
+    <div id="rc-overlay" class="rc-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="rc-title">
+        <div id="rc-box" class="rc-box">
+
+            <button id="rc-close" class="rc-close" type="button" aria-label="Cerrar">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <div class="rc-header">
+                <div class="rc-icon">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                </div>
+                <h2 id="rc-title" class="rc-title">Recuperación de contraseña</h2>
+            </div>
+
+            <div class="rc-body">
+                <p>Por seguridad, el sistema no restablece contraseñas de forma automática.</p>
+                <p>Comuníquese con el administrador del sistema para solicitar una nueva contraseña. Una vez generada, podrá iniciar sesión y cambiarla desde su perfil.</p>
+            </div>
+
+            <button id="rc-ok" class="btn-primary rc-ok" type="button">Entendido</button>
         </div>
     </div>
 
@@ -117,6 +147,40 @@
         (() => {
             const savedMode = localStorage.getItem('theme') || 'light';
             document.body.classList.toggle('dark', savedMode === 'dark');
+
+            const overlay = document.getElementById('rc-overlay');
+            const abrirBtn = document.getElementById('btnOlvideClave');
+
+            if (overlay && abrirBtn) {
+                const cerrarBtn = document.getElementById('rc-close');
+                const okBtn = document.getElementById('rc-ok');
+
+                const abrirModal = () => {
+                    overlay.classList.add('is-open');
+                    overlay.setAttribute('aria-hidden', 'false');
+                    okBtn.focus();
+                };
+
+                const cerrarModal = () => {
+                    overlay.classList.remove('is-open');
+                    overlay.setAttribute('aria-hidden', 'true');
+                    abrirBtn.focus();
+                };
+
+                abrirBtn.addEventListener('click', abrirModal);
+                cerrarBtn.addEventListener('click', cerrarModal);
+                okBtn.addEventListener('click', cerrarModal);
+                overlay.addEventListener('click', (event) => {
+                    if (event.target === overlay) {
+                        cerrarModal();
+                    }
+                });
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape' && overlay.classList.contains('is-open')) {
+                        cerrarModal();
+                    }
+                });
+            }
 
             const passwordInput = document.getElementById('clave');
             const toggleButton = document.getElementById('toggleClaveBtn');

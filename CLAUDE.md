@@ -250,3 +250,5 @@ Esta regla quedó desactualizada. Los modelos ahora se exportan a ONNX (`best.on
 - SQL always parametrized: `db.obtener("SELECT … WHERE id=%s", [id])` — never f-strings
 - Always `try … finally: db.close()` when opening a Connection manually
 - No duplicate methods — one flexible parametrized method beats three near-identical ones
+
+**Compliance gate:** after any change to `src/routes`, `src/services`, `src/models`, `src/schemas`, `src/apis`, `src/ml`, `src/templates` or `src/static`, delegate to the `architecture-compliance-auditor` subagent (`.claude/agents/architecture-compliance-auditor.md`) before reporting the work as done — it verifies the rules above (and the ML/hardware restrictions below) were actually followed, since they don't always get checked in practice.

@@ -56,10 +56,13 @@ class ValorCafe:
         db = Connection()
         try:
             sql = """
-                SELECT rango, MAX(precio) AS precio, MAX(fecha) AS registrado_en
-                FROM valor_cafe
-                WHERE fecha::date = %s
-                GROUP BY rango
+                SELECT rango, precio, registrado_en
+                FROM (
+                    SELECT DISTINCT ON (rango) rango, precio, fecha AS registrado_en
+                    FROM valor_cafe
+                    WHERE fecha::date = %s
+                    ORDER BY rango, fecha DESC, id DESC
+                ) ultimos
                 ORDER BY CAST(SPLIT_PART(rango, '-', 1) AS INTEGER) ASC
             """
             return db.obtener(sql, (fecha,))

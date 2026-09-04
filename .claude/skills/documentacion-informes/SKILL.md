@@ -1,7 +1,7 @@
 ---
 name: documentacion-informes
 description: 'Crear y actualizar documentacion de avances tecnicos e informes del proyecto leyendo archivos primero, aclarando dudas, y solicitando permiso antes de modificar. Consulta referencias en docs/documentacion/.'
-argument-hint: 'Que documento y que seccion debo crear o actualizar?'
+argument-hint: '[archivo] [seccion] [instruccion]'
 ---
 
 # Documentacion de Avances e Informes — Versión Mejorada

@@ -46,10 +46,10 @@
 			document.getElementById('tdSacos').textContent       = d.num_sacos     != null ? `${d.num_sacos} sacos`    : '—';
 			document.getElementById('tdPeso').textContent        = d.peso_bruto    != null ? `${d.peso_bruto} kg`      : '—';
 			document.getElementById('tdHumedad').textContent     = d.humedad       != null ? `${d.humedad}%`           : '—';
-			document.getElementById('tdPesoMuestra').textContent = d.peso_muestra  != null ? `${d.peso_muestra} kg`   : '—';
-			document.getElementById('tdTrillado').textContent    = d.peso_trillado != null ? `${d.peso_trillado} kg`  : '—';
+			document.getElementById('tdPesoMuestra').textContent = d.peso_muestra  != null ? `${d.peso_muestra} gr`   : '—';
+			document.getElementById('tdTrillado').textContent    = d.peso_trillado != null ? `${d.peso_trillado} gr`  : '—';
 			document.getElementById('tdTamiz').textContent       = d.num_tamiz     != null ? `N° ${d.num_tamiz}`      : '—';
-			document.getElementById('tdTamizado').textContent    = d.peso_tamizado != null ? `${d.peso_tamizado} kg`  : '—';
+			document.getElementById('tdTamizado').textContent    = d.peso_tamizado != null ? `${d.peso_tamizado} gr`  : '—';
 
 			renderRendimiento(d);
 

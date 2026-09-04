@@ -28,6 +28,14 @@ class CoffeeRenTracker:
         self.conf = conf
         self.model_name = model_name
 
+        # Evidencia minima antes de accionar el servo. Con el piso de conf bajo
+        # (ByteTrack filtra con sus propios umbrales), un track efimero de baja
+        # confianza no debe disparar la separacion fisica del grano.
+        self.SERVO_MIN_FRAMES = 2
+        self.SERVO_CONF_MIN = 0.45
+        # NMS mas permisivo: no suprime cajas de granos que se tocan.
+        self.IOU_NMS = 0.80
+
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         self._tracker_cfg = os.path.join(BASE_DIR, "bytetrack.yaml")
 
@@ -60,6 +68,9 @@ class CoffeeRenTracker:
         # deque(maxlen=30): evita acumulación ilimitada si la faja se pausa
         self.conteo_ids_confianza: defaultdict[int, deque] = defaultdict(lambda: deque(maxlen=30))
         self._ids_servados: set[int] = set()
+        # ts (time.monotonic) de la primera vez que se vio cada track: referencia
+        # real para el servo aunque la solicitud se posponga por falta de evidencia.
+        self._ts_primer_avistamiento: dict[int, float | None] = {}
         self.lock = threading.Lock()
 
         # Mapping ByteTrack → ID global: garantiza que el contador nunca retrocede
@@ -123,7 +134,8 @@ class CoffeeRenTracker:
         try:
             results = self.model.track(
                 source=frame,
-                conf=self.conf,
+                conf=self.conf,        # piso bajo a proposito: ByteTrack asocia con sus umbrales
+                iou=self.IOU_NMS,      # NMS permisivo: conserva granos que se tocan
                 imgsz=640,
                 device=self._device,
                 tracker=self._tracker_cfg,
@@ -168,12 +180,18 @@ class CoffeeRenTracker:
                         track_id = self._bytetrack_a_global[bytetrack_id]
 
                         self.conteo_ids_confianza[track_id].append((clase, conf_score))
-                        if track_id not in self._ids_servados:
+                        self._ts_primer_avistamiento.setdefault(track_id, ts_frame)
+
+                        # Solo se pide separacion cuando el track tiene respaldo:
+                        # evita que una deteccion debil y efimera accione el servo.
+                        # La referencia temporal sigue siendo el primer avistamiento
+                        # para no degradar la precision del delay.
+                        if track_id not in self._ids_servados and self._evidencia_suficiente(track_id):
                             self._ids_servados.add(track_id)
                             servo_controller.solicitar(
                                 obtener_clase=lambda tid=track_id: self._mejor_clase_para(tid),
                                 equivalencias=self.EQUIVALENCIAS_DEFECTO,
-                                t_referencia=ts_frame,
+                                t_referencia=self._ts_primer_avistamiento.get(track_id) or ts_frame,
                             )
 
                     color = self.COLORES.get(clase, (0, 0, 255))
@@ -212,6 +230,7 @@ class CoffeeRenTracker:
             ids_a_limpiar = set(self.conteo_ids_confianza.keys()) - ids_global_activos - self._ids_servados
             for tid in ids_a_limpiar:
                 del self.conteo_ids_confianza[tid]
+                self._ts_primer_avistamiento.pop(tid, None)
 
         try:
             _, buffer = cv2.imencode(".jpg", frame_anotado, [cv2.IMWRITE_JPEG_QUALITY, 85])
@@ -228,6 +247,7 @@ class CoffeeRenTracker:
         with self.lock:
             self.conteo_ids_confianza = defaultdict(lambda: deque(maxlen=30))
             self._ids_servados = set()
+            self._ts_primer_avistamiento = {}
             self._bytetrack_a_global = {}
             self._id_global = 0
         self.ultima_deteccion_frame_ts = None
@@ -243,6 +263,17 @@ class CoffeeRenTracker:
         """
         with self.lock:
             return self._calcular_conteo_final()
+
+    def _evidencia_suficiente(self, track_id: int) -> bool:
+        """True cuando el track tiene respaldo para accionar el servo: al menos
+        SERVO_MIN_FRAMES detecciones acumuladas, o una con confianza alta.
+        Debe llamarse con self.lock adquirido."""
+        dets = self.conteo_ids_confianza.get(track_id)
+        if not dets:
+            return False
+        if len(dets) >= self.SERVO_MIN_FRAMES:
+            return True
+        return max(c for _, c in dets) >= self.SERVO_CONF_MIN
 
     def _mejor_clase_para(self, track_id: int) -> str | None:
         """

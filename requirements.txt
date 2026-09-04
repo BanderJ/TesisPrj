@@ -40,6 +40,7 @@ torchvision>=0.15.0       # Utilidades de visión para torch
 opencv-python-headless>=4.8.0  # Captura USB (ELP AR0234), MJPEG streaming — sin GUI
 numpy>=1.24.0             # Arrays numéricos para frames y resultados YOLO
 pillow>=10.0.0            # Procesamiento de imágenes (dependencia de ultralytics)
+pygrabber>=0.2           # Enumera cámaras DirectShow por nombre (elegir la ELP, no la webcam interna) — solo Windows
 
 # ============================================================
 # INFERENCIA ONNX

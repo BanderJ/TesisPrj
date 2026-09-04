@@ -1,7 +1,7 @@
 ---
 name: profesionalismo-sin-ia
 description: "Estandar de comunicacion profesional sin emojis ni marcas de IA, con protocolo de aclaracion previa cuando la solicitud sea ambigua."
-argument-hint: "Que salida esperas y que nivel de detalle necesitas?"
+argument-hint: '[tipo-de-salida] [nivel-de-detalle]'
 ---
 
 # Skill: Profesionalismo sin marcas de IA
