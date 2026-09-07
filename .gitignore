@@ -8,8 +8,12 @@ __pycache__/
 #Excluir archivos exe
 *.exe
 
-#Excluir archivos de configuración
-#config.py
+#Excluir la configuración real (credenciales propias). Se publica solo
+#src/config-example.py como plantilla; copiar a src/config.py al instalar.
+src/config.py
+
+#Ajustes personales de Claude Code (permisos locales, no compartir)
+.claude/settings.local.json
 
 #Excluir modelos entrenados
 src/ml/models/*.pt

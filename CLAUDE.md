@@ -45,7 +45,9 @@ The project uses a four-layer pattern — every feature has a file in each layer
 
 Direct psycopg2 (no ORM). The `Connection` class in [src/database/bd.py](src/database/bd.py) wraps a single connection per request with `autocommit=False` and `RealDictCursor`. Methods: `obtener()`, `obtener_uno()`, `ejecutar()`, `commit()`, `rollback()`.
 
-Database credentials are hardcoded in [src/config.py](src/config.py) — `SECRET_KEY` reads from env, but `DB_*` values are literals.
+Configuration lives in [src/config.py](src/config.py) — `SECRET_KEY` reads from env, `DB_*` and other values are literals with env-var fallbacks.
+
+**`src/config.py` is gitignored** (holds the real DB password and personal settings). The tracked, published file is [src/config-example.py](src/config-example.py) — a redacted template. **Rule: any change to `src/config.py` (new setting, renamed field, changed comment) MUST be mirrored to `src/config-example.py` in the same edit**, with secrets replaced by placeholders. The two files must stay structurally identical (same `Config` attributes). A fresh clone runs `cp src/config-example.py src/config.py`.
 
 Schema is in [src/database/script.sql](src/database/script.sql).
 
