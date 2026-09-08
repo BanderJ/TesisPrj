@@ -11,7 +11,6 @@ CoffeeRen automatiza la evaluación de café verde mediante visión artificial:
 - Captura video en tiempo real con cámara ELP AR0234 Global Shutter
 - Detecta granos defectuosos con YOLO + ByteTrack (IDs únicos, sin doble conteo)
 - **Separa físicamente** los granos defectuosos con un servo sincronizado a la velocidad de la faja
-- Calcula grado SCA, defectos equivalentes y factor de rendimiento/pago
 - Emite código de evaluación (EVA) correlativo al finalizar
 
 ## Tecnologías
