@@ -1,6 +1,6 @@
 # CoffeeRen
 
-Sistema integral de clasificación y gestión de muestras de café verde para la **Cooperativa Agraria Line Coffee Marañón** (Lonya Grande, Utcubamba, Amazonas, Perú). Proyecto de tesis en la Universidad Católica Santo Toribio de Mogrovejo (USAT).
+Sistema integral de clasificación y gestión de muestras de café verde para la **Cooperativa Agraria Line Coffee Marañón** (Lonya Grande, Utcubamba, Amazonas, Perú)).
 
 ## Descripción
 
