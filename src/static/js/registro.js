@@ -160,7 +160,7 @@
 			try {
 				setLookupMessage('Buscando datos del caficultor...');
 				const res = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
-				if (!res.ok) throw new Error((await res.json()).detail || 'No se pudo consultar el caficultor');
+				if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo consultar el caficultor.'));
 				const payload = await res.json();
 				if (!payload.encontrado || !payload.data) {
 					limpiarDatosCaficultor();
@@ -302,8 +302,7 @@
 					body: JSON.stringify(body),
 				});
 				if (!res.ok) {
-					const err = await res.json();
-					throw new Error(err.detail || 'Error al registrar la evaluacion.');
+					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo registrar la evaluación.'));
 				}
 				const { data } = await res.json();
 				sessionStorage.setItem('coffeeren.evaluacion', JSON.stringify(data));

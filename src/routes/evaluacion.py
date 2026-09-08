@@ -52,7 +52,7 @@ async def registrar_evaluacion(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error interno al procesar la solicitud") from exc
+        raise HTTPException(status_code=500, detail="No se pudo procesar la solicitud.") from exc
 
 
 @evaluacion_router.get(
@@ -66,7 +66,7 @@ async def obtener_kpis(
         data = evaluacion_service.obtener_kpis()
         return KpisEvaluacionResponse(**data)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error interno al procesar la solicitud") from exc
+        raise HTTPException(status_code=500, detail="No se pudo procesar la solicitud.") from exc
 
 
 @evaluacion_router.get(
@@ -79,7 +79,7 @@ async def buscar_evaluacion_por_codigo(
 ) -> ResumenEvaluacionResponse:
     result = evaluacion_service.buscar_evaluacion_por_codigo(codigo)
     if not result:
-        raise HTTPException(status_code=404, detail="Evaluación no encontrada.")
+        raise HTTPException(status_code=404, detail="No se encontró la evaluación.")
     return result
 
 
@@ -96,7 +96,7 @@ async def obtener_resumen_evaluacion(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error interno al procesar la solicitud") from exc
+        raise HTTPException(status_code=500, detail="No se pudo procesar la solicitud.") from exc
 
 
 @evaluacion_router.patch(
@@ -126,7 +126,7 @@ async def completar_evaluacion(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error interno al procesar la solicitud") from exc
+        raise HTTPException(status_code=500, detail="No se pudo procesar la solicitud.") from exc
 
 
 @evaluacion_router.get("/{evaluacion_id}/estado")
@@ -182,4 +182,4 @@ async def finalizar_evaluacion(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo finalizar la evaluacion") from exc
+        raise HTTPException(status_code=500, detail="No se pudo finalizar la evaluación.") from exc

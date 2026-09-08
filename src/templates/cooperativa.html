@@ -235,6 +235,14 @@
                         <h2 class="perfil-section-title" style="border-bottom:none;padding-bottom:0;margin-bottom:4px;">Registro de auditoría</h2>
                         <p class="perfil-section-description" id="auditTotal" style="margin:0;"></p>
                     </div>
+                    <div class="field-group audit-por-pagina">
+                        <label for="auditPorPagina">Registros por página</label>
+                        <select id="auditPorPagina">
+                            <option value="10">10</option>
+                            <option value="30">30</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Filtros -->
@@ -544,6 +552,7 @@
 
 {% block script %}
 <script>const isAdmin = '{{ user.is_admin | tojson }}' === 'true';</script>
+<script>const MI_PERSONAL_ID = '{{ user.personal_id }}';</script>
 <script src="/static/js/lib/echarts.min.js"></script>
 <script src="/static/js/coffee-report.js"></script>
 <script src="/static/js/cooperativa.js"></script>

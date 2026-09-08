@@ -16,11 +16,6 @@ class CooperativaBase(BaseModel):
     imagen_url: str | None = Field(None, max_length=500)
 
 
-class CooperativaCreate(CooperativaBase):
-    """Schema for creating a cooperative."""
-    pass
-
-
 class CooperativaUpdate(BaseModel):
     """Schema for updating a cooperative (all fields optional for PATCH)."""
     nombre: str | None = Field(None, min_length=1, max_length=100)

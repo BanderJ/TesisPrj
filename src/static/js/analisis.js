@@ -173,8 +173,7 @@
 				body: JSON.stringify({ total_defectos: totalDefectosEval, peso_bueno: peso }),
 			});
 			if (!res.ok) {
-				const err = await res.json().catch(() => ({}));
-				throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo calcular el rendimiento.');
+				throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo calcular el rendimiento.'));
 			}
 			const data = await res.json();
 			mostrarRendimientoCalculado({ ...data, peso_bueno: peso });

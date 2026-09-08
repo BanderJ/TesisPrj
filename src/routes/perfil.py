@@ -13,7 +13,6 @@ from src.schemas.perfil import (
     ActualizarDatosPersonales,
     ActualizarUsuario,
     CambiarContrasena,
-    CambiarContraseñaUsuario,
     CambiarEstadoUsuario,
     CrearUsuario,
 )
@@ -39,7 +38,7 @@ async def obtener_pagina_perfil(
             context={"request": request, "user": user, "datos": datos},
         )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al cargar el perfil") from exc
+        raise HTTPException(status_code=500, detail="No se pudo cargar el perfil.") from exc
 
 
 @perfil.patch("/datos-personales")
@@ -82,7 +81,7 @@ async def actualizar_datos_personales(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al actualizar los datos") from exc
+        raise HTTPException(status_code=500, detail="No se pudo actualizar los datos.") from exc
 
 
 @perfil.patch("/cambiar-contrasena")
@@ -112,17 +111,7 @@ async def cambiar_contrasena(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al cambiar la contraseña") from exc
-
-
-@perfil.get("/usuarios/personas-disponibles")
-async def obtener_personas_sin_usuario(
-    user: dict = Depends(require_admin_o_gerente),
-):
-    try:
-        return {"personas": perfil_service.obtener_personas_sin_usuario()}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al obtener personas disponibles") from exc
+        raise HTTPException(status_code=500, detail="No se pudo cambiar la contraseña.") from exc
 
 
 @perfil.get("/usuarios")
@@ -132,7 +121,7 @@ async def listar_usuarios(
     try:
         return {"usuarios": perfil_service.listar_usuarios()}
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al listar usuarios") from exc
+        raise HTTPException(status_code=500, detail="No se pudo listar los usuarios.") from exc
 
 
 @perfil.get("/usuarios/{personal_id}")
@@ -143,12 +132,12 @@ async def obtener_usuario(
     try:
         usuario = perfil_service.obtener_usuario(personal_id)
         if not usuario:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            raise HTTPException(status_code=404, detail="No se encontró el usuario.")
         return usuario
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al obtener el usuario") from exc
+        raise HTTPException(status_code=500, detail="No se pudo obtener el usuario.") from exc
 
 
 @perfil.patch("/usuarios/{personal_id}/estado")
@@ -159,7 +148,9 @@ async def cambiar_estado_usuario(
     user: dict = Depends(require_admin_o_gerente),
 ):
     try:
-        result = perfil_service.cambiar_estado_usuario(personal_id, body.estado)
+        result = perfil_service.cambiar_estado_usuario(
+            personal_id, body.estado, solicitante_id=user.get("personal_id")
+        )
         accion = "ACTIVAR_USUARIO" if body.estado == "A" else "DESACTIVAR_USUARIO"
         auditoria_service.registrar(
             accion=accion,
@@ -176,38 +167,7 @@ async def cambiar_estado_usuario(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al cambiar el estado") from exc
-
-
-@perfil.patch("/usuarios/{personal_id}/cambiar-contrasena")
-async def cambiar_contrasena_usuario(
-    personal_id: str,
-    body: CambiarContraseñaUsuario,
-    request: Request,
-    user: dict = Depends(require_admin_o_gerente),
-):
-    try:
-        result = perfil_service.cambiar_contrasena_usuario(
-            personal_id=personal_id,
-            clave_nueva=body.clave_nueva,
-            usuario_solicitante=user.get("usuario"),
-        )
-        auditoria_service.registrar(
-            accion="CAMBIAR_CLAVE_USUARIO",
-            personal_id=user.get("personal_id"),
-            usuario=user.get("usuario"),
-            tipo_personal_id=user.get("tipo_personal_id"),
-            rol=user.get("rol"),
-            tabla_afectada="PERSONAL",
-            registro_id=personal_id,
-            descripcion=f"Cambio de contraseña del usuario ID {personal_id} por {user.get('usuario')}",
-            ip_cliente=get_client_ip(request),
-        )
-        return result
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al cambiar la contraseña") from exc
+        raise HTTPException(status_code=500, detail="No se pudo cambiar el estado del usuario.") from exc
 
 
 @perfil.patch("/usuarios/{personal_id}")
@@ -247,7 +207,7 @@ async def actualizar_usuario(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al actualizar el usuario") from exc
+        raise HTTPException(status_code=500, detail="No se pudo actualizar el usuario.") from exc
 
 
 @perfil.post("/usuarios/crear")
@@ -286,4 +246,4 @@ async def crear_usuario(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al crear el usuario") from exc
+        raise HTTPException(status_code=500, detail="No se pudo crear el usuario.") from exc

@@ -67,15 +67,6 @@ Detiene captura y streaming.
 { "mensaje": "Monitoreo detenido", "activo": false }
 ```
 
-### `POST /video/liberar-camara` — requiere JWT
-
-Fuerza la liberación de la cámara si quedó bloqueada. Equivale a `detener` más un
-release explícito.
-
-```json
-{ "mensaje": "Cámara liberada" }
-```
-
 ### `GET /video/lote/conteo` — requiere JWT
 
 Conteo actual del lote, enriquecido. No genera reporte final.

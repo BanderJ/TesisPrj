@@ -50,16 +50,3 @@ class Ubigeo:
             return db.obtener(sql, (provincia_codigo,))
         finally:
             db.close()
-
-    def obtener_por_codigo(self, ubigeo: str) -> dict[str, Any] | None:
-        db = Connection()
-        try:
-            sql = """
-                SELECT ubigeo, distrito, provincia, departamento
-                FROM ubigeo
-                WHERE ubigeo = %s
-                LIMIT 1
-            """
-            return db.obtener_uno(sql, (ubigeo,))
-        finally:
-            db.close()

@@ -38,7 +38,7 @@ async def listar_auditoria(
             total_paginas=total_paginas,
         )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al obtener registros de auditoría") from exc
+        raise HTTPException(status_code=500, detail="No se pudo obtener los registros de auditoría.") from exc
 
 
 @auditoria_router.get("/usuarios")
@@ -48,7 +48,7 @@ async def listar_usuarios_auditados(
     try:
         return {"usuarios": auditoria_service.obtener_usuarios_auditados()}
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al obtener usuarios") from exc
+        raise HTTPException(status_code=500, detail="No se pudo obtener los usuarios.") from exc
 
 
 @auditoria_router.get("/acciones")
@@ -58,4 +58,4 @@ async def listar_acciones(
     try:
         return {"acciones": auditoria_service.obtener_acciones_disponibles()}
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al obtener acciones") from exc
+        raise HTTPException(status_code=500, detail="No se pudo obtener las acciones.") from exc

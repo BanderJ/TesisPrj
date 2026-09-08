@@ -3,7 +3,7 @@ Constantes del modelo YOLO26n_2cls — 2 clases (versión simplificada)
 Clasificación binaria: defecto vs. verde
 """
 
-# Filtro de tamaño de bounding box (píxeles) — calibrar según distancia real de la cámara
+# Filtro de tamaño de bounding box (píxeles)
 GRANO_MIN_PX = 50
 GRANO_MAX_PX = 300
 

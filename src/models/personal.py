@@ -31,6 +31,17 @@ class Personal:
             if owns_db:
                 db.close()
 
+    def esta_activo(self, personal_id: str, db: Connection | None = None) -> bool:
+        """True solo si el usuario existe y su estado es 'A'."""
+        owns_db = db is None
+        db = db or Connection()
+        try:
+            fila = db.obtener_uno("SELECT estado FROM personal WHERE personal_id = %s", (personal_id,))
+            return bool(fila) and fila.get("estado") == "A"
+        finally:
+            if owns_db:
+                db.close()
+
     def actualizar_clave(
         self,
         personal_id: str,

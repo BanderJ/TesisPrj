@@ -137,7 +137,7 @@ Tabla `TIPO_DEFECTO` (Broca, Cascarilla, Cereza seca, Concha, Hongo, Flotador, P
 | **Administrador** | Todo lo anterior + gestión de usuarios, cooperativa y auditoría |
 
 - **Autenticación**: login en `/auth/login` → JWT (`personal_id`, `usuario`, `rol`, `nombre`, `exp` con TTL de 7 días) guardado como cookie httponly `access_token`. Contraseñas con hash Argon2. Toda ruta (excepto login) exige sesión; sin sesión redirige a login.
-- **Gestión de usuarios** (`/perfil/usuarios/...`): crear usuario a partir de una Persona disponible, editar, activar/desactivar (`estado`), y cambio de contraseña (propio o por administrador).
+- **Gestión de usuarios** (`/perfil/usuarios/...`): crear usuario (con validación de documento vía RENIEC), editar sus datos, y activar/desactivar (`estado`). El administrador cambia la contraseña de un usuario desde la propia edición (`clave_nueva`).
 - **Perfil propio** (`/perfil`): datos personales y cambio de contraseña.
 
 ### Caficultores (tabla `CAFICULTOR` → referencia a `PERSONA`)
@@ -164,7 +164,7 @@ La evaluación se crea **sin código** (estado "activa").
 
 ### Fase 2 — Monitoreo (`/monitoreo/{evaluacion_id}`)
 
-Pantalla en tiempo real: video MJPEG anotado (defectos en rojo), conteo en vivo por clase, control de la faja/motor y de la balanza. Endpoints usados: `POST /video/iniciar`, `GET /video/stream`, `GET /video/lote/conteo`, `POST /video/detener`, y `/arduino/*` (peso, tare, motor).
+Pantalla en tiempo real: video MJPEG anotado (defectos en rojo), conteo en vivo por clase, control de la faja/motor y de la balanza. Endpoints usados: `POST /video/iniciar`, `GET /video/stream`, `GET /video/lote/conteo`, `POST /video/detener`, y `/arduino/*` (estado, peso, motor).
 
 Al terminar, `PATCH /evaluacion/{id}/finalizar` genera el **código EVA** (secuencial `EVA0000001`) y guarda `total_defectos`, `total_buenos` e **incidencias** (eventos anómalos del monitoreo, como JSONB).
 
@@ -221,7 +221,7 @@ Tabla `AUDITORIA`: registra quién hizo qué (usuario, rol, acción, tabla afect
 | Registro | Página / API | Notas |
 |---|---|---|
 | **Caficultores** | `/nuevo-caficultor` — listar, consultar por documento, crear, convertir a socio | Validación de documento + RENIEC |
-| **Cooperativa** | `/configuracion-cooperativa` — CRUD + subida de imagen | Datos institucionales, ubigeo |
+| **Cooperativa** | `/configuracion-cooperativa` — ver y editar la cooperativa propia + subida de imagen | Datos institucionales, ubigeo |
 | **Valor del café** | `/valor-cafe` — historial, máximo del día, cambios diarios, resumen por rangos, crear bloque, actualizar precio, eliminar rango | Solo Gerente/Administrador; los rangos determinan el precio del pago |
 | **Tipos de grano** | API `/tipo-grano` — CRUD | Nombre + peso por quintal |
 | **Ubigeo** | API `/ubigeo` — departamentos/provincias/distritos del Perú | Tabla precargada completa |
@@ -239,7 +239,7 @@ Tabla `AUDITORIA`: registra quién hizo qué (usuario, rol, acción, tabla afect
 | `/monitoreo/{id}` | `monitoreo.html` | Monitoreo ML en vivo (fase 2) |
 | `/analisis/{id}` | `analisis.html` | Resumen y cálculo de pago (fase 3) |
 | `/reporte` | `reporte.html` | Búsqueda por código EVA + reportes |
-| `/nuevo-caficultor` (alias `/registro-socios`) | `caficultor.html` | Registro/conversión de caficultores |
+| `/nuevo-caficultor` | `caficultor.html` | Registro/conversión de caficultores |
 | `/valor-cafe` | `valor_cafe.html` | Precios del café (Gerente/Admin) |
 | `/configuracion-cooperativa` | `cooperativa.html` | Datos de la cooperativa |
 | `/perfil` | `perfil.html` | Perfil y gestión de usuarios |

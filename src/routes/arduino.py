@@ -18,11 +18,6 @@ async def obtener_peso(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> d
     return arduino_service.obtener_peso()
 
 
-@arduino_router.post("/tare")
-async def tarar_bascula(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
-    return arduino_service.tarar_bascula()
-
-
 @arduino_router.post("/motor/iniciar")
 async def iniciar_motor(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
     return arduino_service.iniciar_motor()

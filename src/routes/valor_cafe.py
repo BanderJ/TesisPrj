@@ -31,7 +31,7 @@ async def historial_dia(
     try:
         return valor_cafe_service.obtener_historial_dia(fecha, rango)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo obtener el historial") from exc
+        raise HTTPException(status_code=500, detail="No se pudo obtener el historial de precios.") from exc
 
 
 @valor_cafe_router.get("/maximo-dia", response_model=ValorCafeMaximoResponse)
@@ -41,7 +41,7 @@ async def maximo_dia(
     try:
         return valor_cafe_service.obtener_maximo_dia(fecha)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo obtener el precio maximo del dia") from exc
+        raise HTTPException(status_code=500, detail="No se pudo obtener el precio máximo del día.") from exc
 
 
 @valor_cafe_router.get("/cambios-diarios", response_model=ValorCafeCambiosDiariosResponse)
@@ -55,7 +55,7 @@ async def cambios_diarios(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo obtener los cambios diarios") from exc
+        raise HTTPException(status_code=500, detail="No se pudo obtener los cambios diarios.") from exc
 
 
 @valor_cafe_router.get("/resumen-rangos", response_model=ValorCafeResumenRangosResponse)
@@ -65,7 +65,7 @@ async def resumen_rangos(
     try:
         return valor_cafe_service.obtener_resumen_rangos(fecha)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo obtener el resumen por rangos") from exc
+        raise HTTPException(status_code=500, detail="No se pudo obtener el resumen por rangos.") from exc
 
 
 @valor_cafe_router.patch("/actualizar-precio", response_model=ValorCafeActualizarPrecioResponse)
@@ -88,7 +88,7 @@ async def actualizar_precio_rango(
         )
         return result
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al actualizar el precio") from exc
+        raise HTTPException(status_code=500, detail="No se pudo actualizar el precio.") from exc
 
 
 @valor_cafe_router.delete("/eliminar-rango", response_model=ValorCafeEliminarRangoResponse)
@@ -113,7 +113,7 @@ async def eliminar_rango(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al eliminar el rango") from exc
+        raise HTTPException(status_code=500, detail="No se pudo eliminar el rango.") from exc
 
 
 @valor_cafe_router.post("/crear-bloque", response_model=ValorCafeCrearBloqueResponse)
@@ -138,4 +138,4 @@ async def crear_valor_cafe_bloque(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al crear registros en bloque") from exc
+        raise HTTPException(status_code=500, detail="No se pudo registrar los precios en bloque.") from exc

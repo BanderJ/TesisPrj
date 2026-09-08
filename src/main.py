@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
 from fastapi import Depends, FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.staticfiles import StaticFiles
@@ -15,7 +16,6 @@ from src.routes.arduino import arduino_router
 from src.routes.auditoria import auditoria_router
 from src.routes.auth_login import auth as auth_router
 from src.routes.caficultor import caficultor_router
-from src.routes.camara import camara_router
 from src.routes.cooperativa import router as cooperativa_router
 from src.routes.evaluacion import evaluacion_router
 from src.routes.dni import dni_router
@@ -104,13 +104,89 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     return JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
 
 
+def _mensaje_validacion(exc: RequestValidationError) -> str:
+    """Aplana el 422 de Pydantic/FastAPI a una sola frase legible en español.
+
+    Sin esto `detail` llega al frontend como una lista de objetos y se renderiza
+    como `[object Object]`. Con esto:
+      - los mensajes de los validadores del schema (`raise ValueError("...")`)
+        se muestran tal cual, sin el prefijo "Value error,";
+      - las restricciones nativas de Pydantic (min_length, gt, pattern, ...)
+        se traducen a español en vez de mostrar el texto en inglés.
+    """
+    errores = exc.errors()
+    if not errores:
+        return "Los datos enviados no son válidos."
+    e = errores[0]
+    tipo = e.get("type", "")
+    ctx = e.get("ctx") or {}
+    campo = next(
+        (str(p) for p in reversed(e.get("loc", [])) if str(p) not in ("body", "query", "path")),
+        None,
+    )
+    pref = f"{campo}: " if campo else ""
+
+    def _num(v: Any) -> str:
+        return str(int(v)) if isinstance(v, float) and v.is_integer() else str(v)
+
+    if tipo == "missing":
+        return f"Falta un dato obligatorio: {campo}" if campo else "Los datos enviados no son válidos."
+    if tipo == "string_too_short":
+        return f"{pref}debe tener al menos {ctx.get('min_length')} caracteres."
+    if tipo == "string_too_long":
+        return f"{pref}no puede superar los {ctx.get('max_length')} caracteres."
+    if tipo == "greater_than":
+        return f"{pref}debe ser mayor que {_num(ctx.get('gt'))}."
+    if tipo == "greater_than_equal":
+        return f"{pref}debe ser mayor o igual a {_num(ctx.get('ge'))}."
+    if tipo == "less_than":
+        return f"{pref}debe ser menor que {_num(ctx.get('lt'))}."
+    if tipo == "less_than_equal":
+        return f"{pref}debe ser menor o igual a {_num(ctx.get('le'))}."
+    if tipo == "string_pattern_mismatch":
+        return f"{pref}el formato no es válido."
+    if tipo in ("int_parsing", "int_type", "int_from_float"):
+        return f"{pref}debe ser un número entero."
+    if tipo in ("float_parsing", "float_type", "decimal_parsing", "decimal_type"):
+        return f"{pref}debe ser un número."
+    if tipo in ("bool_parsing", "bool_type"):
+        return f"{pref}debe ser verdadero o falso."
+    if tipo in ("string_type", "string_unicode"):
+        return f"{pref}debe ser texto."
+    if tipo in ("date_parsing", "date_type", "date_from_datetime_parsing", "datetime_parsing"):
+        return f"{pref}la fecha no es válida."
+    if tipo == "literal_error":
+        return f"{pref}valor no permitido."
+
+    # Validador custom (raise ValueError) o cualquier otro caso: usar el msg ya redactado.
+    msg = str(e.get("msg", "")).removeprefix("Value error, ").strip()
+    return msg or (f"Dato inválido: {campo}" if campo else "Los datos enviados no son válidos.")
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """Errores de validación de request → `{"detail": "<frase legible>"}` (422)."""
+    return JSONResponse(
+        {"detail": _mensaje_validacion(exc)},
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    )
+
+
 # ==================== RUTAS ====================
+
+
+@app.get("/health", tags=["infra"])
+async def health() -> dict[str, str]:
+    """Health-check de liveness: confirma que el servidor FastAPI arrancó.
+    Público a propósito (no depende de obtener_usuario_actual) y sin acceso a
+    base de datos, para servir como sonda de arranque del primer incremento."""
+    return {"status": "ok", "service": "CoffeeRen"}
+
 
 app.include_router(arduino_router)
 app.include_router(auditoria_router)
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
-app.include_router(camara_router, prefix="/camara", tags=["camara"])
 app.include_router(cooperativa_router)
 app.include_router(evaluacion_router, prefix="/evaluacion", tags=["evaluacion"])
 app.include_router(dni_router, prefix="/dni", tags=["dni"])
@@ -214,7 +290,6 @@ async def test_deteccion(request: Request, user: dict[str, Any] = Depends(obtene
 
 
 @app.get("/nuevo-caficultor")
-@app.get("/registro-socios")
 async def nuevo_caficultor(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
     """Pantalla de registro y conversion de caficultores."""
     return templates.TemplateResponse(

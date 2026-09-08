@@ -50,48 +50,6 @@
         let documentoExisteComoExterno = false;
         let conversionEncontrado = false;
         let ultimaClaveBusquedaConversion = '';
-        let caficultorValido = false;
-        let ultimoNumDocumentoConsultado = '';
-
-        function limpiarDatosCaficultor() {
-            nombre.value = '';
-            apePaterno.value = '';
-            apeMaterno.value = '';
-            sexo.value = '';
-            fechaNacimiento.value = '';
-            telefono.value = '';
-            tipoCaficultorId.value = '';
-            caficultorValido = false;
-        }
-
-        async function consultarCaficultor(documento) {
-            if(ultimoNumDocumentoConsultado === documento && caficultorValido) {
-                return;
-            }
-            
-            try {
-                setLookupMessage('Consultando datos del caficultor...');
-                const response = await fetch(`/caficultor/consultar/${documento}`);
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'No se pudo consultar el caficultor');
-                }
-
-                const payload = await response.json();
-                ultimoNumDocumentoConsultado = documento;
-
-                if (!payload.encontrado || !payload.data) {
-                    limpiarDatosCaficultor();
-                    setLookupMessage(payload.mensaje, 'error');
-                    numDocumento.setCustomValidity(payload.mensaje);
-                    return;
-                }
-
-            } catch (error) {
-                setLookupMessage('Error al consultar el caficultor.');
-            }
-        }
 
         function normalizarTexto(valor) {
             return valor
@@ -474,8 +432,7 @@
             try {
                 const response = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'No se pudo validar el documento');
+                    throw new Error(await CoffeeHttp.mensajeError(response, 'No se pudo validar el documento.'));
                 }
 
                 const payload = await response.json();
@@ -544,8 +501,7 @@
             try {
                 const response = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'No se pudo consultar el caficultor');
+                    throw new Error(await CoffeeHttp.mensajeError(response, 'No se pudo consultar el caficultor.'));
                 }
 
                 const payload = await response.json();
@@ -643,8 +599,7 @@
                 });
 
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'No se pudo convertir el caficultor a socio');
+                    throw new Error(await CoffeeHttp.mensajeError(response, 'No se pudo convertir el caficultor a socio.'));
                 }
 
                 const payload = await response.json();
@@ -736,8 +691,7 @@
                 });
 
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'No se pudo registrar el caficultor');
+                    throw new Error(await CoffeeHttp.mensajeError(response, 'No se pudo registrar el caficultor.'));
                 }
 
                 const data = await response.json();

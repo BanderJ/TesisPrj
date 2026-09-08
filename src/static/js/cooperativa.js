@@ -47,7 +47,7 @@
 
         try {
             const res = await fetch('/cooperativas/mi-cooperativa');
-            if (!res.ok) throw new Error('No se pudo cargar la cooperativa');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cargar la cooperativa.'));
 
             const data = await res.json();
             cooperativaId = data.cooperativa_id;
@@ -189,8 +189,7 @@
             }
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail || 'Error al guardar');
+                throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo guardar el tipo de grano.'));
             }
 
             CoffeeModal.success(modoTipoGrano === 'crear' ? 'Tipo de grano creado' : 'Tipo de grano actualizado');
@@ -208,7 +207,7 @@
         const tbody = document.getElementById('tiposGranoBody');
         try {
             const res = await fetch('/tipo-grano/listar');
-            if (!res.ok) throw new Error('No se pudo cargar tipos de grano');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudieron cargar los tipos de grano.'));
 
             const tipos = await res.json();
             if (tipos.length === 0) {
@@ -246,7 +245,7 @@
 
         try {
             const res = await fetch(`/tipo-grano/${tipoId}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error('Error al eliminar');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo eliminar el tipo de grano.'));
             CoffeeModal.success('Tipo eliminado');
             await cargarTiposGrano();
         } catch (error) {
@@ -277,7 +276,7 @@
                 }),
             });
 
-            if (!res.ok) throw new Error('Error al guardar');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo actualizar la cooperativa.'));
             CoffeeModal.success('Cooperativa actualizada');
         } catch (error) {
             CoffeeModal.error(error.message);
@@ -298,7 +297,7 @@
                 method: 'POST',
                 body: formData
             });
-            if (!res.ok) throw new Error('Error al subir');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo subir la imagen.'));
             const data = await res.json();
             document.getElementById('imagenPreview').src = data.imagen_url;
             document.getElementById('imagen_url').value = data.imagen_url;
@@ -511,7 +510,7 @@
     async function cargarUsuarios() {
         try {
             const res = await fetch('/perfil/usuarios');
-            if (!res.ok) throw new Error('Error al cargar usuarios');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudieron cargar los usuarios.'));
 
             const data = await res.json();
             usuariosActuales = data.usuarios || [];
@@ -563,10 +562,12 @@
                             onclick="editarUsuario('${u.personal_id}')">
                         Editar
                     </button>
-                    <button type="button" class="btn-tabla ${u.estado === 'A' ? 'btn-inactivar' : 'btn-activar'}"
+                    ${String(u.personal_id) === String(MI_PERSONAL_ID)
+                        ? '<span class="info-text" style="font-size:.8rem;">Tu cuenta</span>'
+                        : `<button type="button" class="btn-tabla ${u.estado === 'A' ? 'btn-inactivar' : 'btn-activar'}"
                             onclick="cambiarEstadoUsuario('${u.personal_id}', '${u.estado === 'A' ? 'I' : 'A'}')">
                         ${u.estado === 'A' ? 'Desactivar' : 'Activar'}
-                    </button>
+                    </button>`}
                 </td>
             </tr>
         `).join('');
@@ -575,7 +576,7 @@
     window.editarUsuario = async function(personalId) {
         try {
             const res = await fetch(`/perfil/usuarios/${personalId}`);
-            if (!res.ok) throw new Error('No se pudo cargar el usuario');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cargar el usuario.'));
             const datos = await res.json();
             await abrirModal('editar', datos);
         } catch (error) {
@@ -600,8 +601,7 @@
             });
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(typeof err.detail === 'string' ? err.detail : `No se pudo ${accion} el usuario`);
+                throw new Error(await CoffeeHttp.mensajeError(res, `No se pudo ${accion} el usuario.`));
             }
             CoffeeModal.success(`Usuario ${accion}do correctamente`);
             cargarUsuarios();
@@ -652,7 +652,7 @@
                         correo: correo || null, ubigeo, tipo_personal_id: tipoPersonal, clave
                     }),
                 });
-                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Error');
+                if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo crear el usuario.'));
                 CoffeeModal.success('Usuario creado correctamente');
                 cerrarModal();
                 cargarUsuarios();
@@ -682,7 +682,7 @@
                         clave_nueva: clave || null
                     }),
                 });
-                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Error');
+                if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo actualizar el usuario.'));
                 CoffeeModal.success('Usuario actualizado correctamente');
                 cerrarModal();
                 cargarUsuarios();
@@ -704,7 +704,7 @@
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted-foreground);">Cargando...</td></tr>';
         try {
             const res = await fetch('/caficultor/listar');
-            if (!res.ok) throw new Error('Error al cargar caficultores');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudieron cargar los caficultores.'));
             caficultoresActuales = await res.json();
             const conteo = document.getElementById('caficultoresConteo');
             conteo.textContent = `${caficultoresActuales.length} caficultor${caficultoresActuales.length !== 1 ? 'es' : ''} registrado${caficultoresActuales.length !== 1 ? 's' : ''}`;
@@ -804,7 +804,6 @@
     // ════════════════════════════════════════════════════
 
     let auditPagina = 1;
-    const AUDIT_LIMITE = 50;
     let auditIniciada = false;
 
     const ACCION_BADGE = {
@@ -866,6 +865,7 @@
         const accion  = document.getElementById('filtroAccion').value;
         const desde   = document.getElementById('filtroFechaDesde').value;
         const hasta   = document.getElementById('filtroFechaHasta').value;
+        const limite  = document.getElementById('auditPorPagina').value || '10';
 
         if (usuario) params.set('usuario', usuario);
         if (tipoP)   params.set('tipo_personal_id', tipoP);
@@ -873,11 +873,11 @@
         if (desde)   params.set('fecha_desde', desde);
         if (hasta)   params.set('fecha_hasta', hasta);
         params.set('pagina', pagina);
-        params.set('limite', AUDIT_LIMITE);
+        params.set('limite', limite);
 
         try {
             const res = await fetch('/auditoria?' + params.toString());
-            if (!res.ok) throw new Error('Error al cargar auditoría');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cargar la auditoría.'));
             const data = await res.json();
 
             document.getElementById('auditTotal').textContent =
@@ -1025,6 +1025,8 @@
         cargarAuditoria(1);
     });
 
+    document.getElementById('auditPorPagina').addEventListener('change', () => cargarAuditoria(1));
+
     document.getElementById('btnPrevPage').addEventListener('click', () => {
         if (auditPagina > 1) cargarAuditoria(auditPagina - 1);
     });
@@ -1054,7 +1056,7 @@
             reportesIniciados = true;
             try {
                 const res = await fetch('/reportes');
-                if (!res.ok) throw new Error('No se pudo cargar el catálogo de reportes');
+                if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cargar el catálogo de reportes.'));
                 const catalogo = await res.json();
                 catalogo.forEach(r => {
                     const option = document.createElement('option');
@@ -1078,7 +1080,7 @@
         const container = document.getElementById('reporteContainer');
         try {
             const res = await fetch(`/reportes/${encodeURIComponent(codigo)}`);
-            if (!res.ok) throw new Error('No se pudo cargar el reporte');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cargar el reporte.'));
             const reporte = await res.json();
             document.getElementById('reporteDescripcion').textContent = reporte.descripcion || '';
             CoffeeReport.render(container, reporte);

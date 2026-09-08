@@ -32,7 +32,7 @@ class TipoGranoService:
         nombre = payload.nombre.strip() if payload.nombre else None
         resultado = self.tipo_grano_model.actualizar(tipo_grano_id, nombre, payload.peso_qq)
         if not resultado:
-            raise ValueError(f"Tipo de grano {tipo_grano_id} no encontrado")
+            raise ValueError("No se encontró el tipo de grano.")
         return TipoGranoResponse(
             id=int(resultado["id"]),
             nombre=str(resultado["nombre"]),

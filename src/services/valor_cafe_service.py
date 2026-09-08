@@ -59,7 +59,7 @@ class ValorCafeService:
         desde_efectivo = desde or (hasta_efectivo - timedelta(days=29))
 
         if desde_efectivo > hasta_efectivo:
-            raise ValueError("'desde' no puede ser posterior a 'hasta'")
+            raise ValueError("La fecha inicial no puede ser posterior a la fecha final.")
 
         filas = self.model.obtener_cambios_diarios(desde_efectivo, hasta_efectivo, rango)
         cambios = [

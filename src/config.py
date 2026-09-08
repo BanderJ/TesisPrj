@@ -1,7 +1,5 @@
 #Conexion DATABASE_URI = 'postgresql://user:password@localhost:5432/mydatabase'
-#
-# Este archivo está en .gitignore (credenciales propias). La plantilla publicada
-# es src/config-example.py: todo cambio estructural aquí debe replicarse allí.
+
 import os
 
 

@@ -45,7 +45,7 @@ class PerfilService:
         )
 
         if not actualizado:
-            raise ValueError("No se pudo actualizar los datos del usuario")
+            raise ValueError("No se pudieron actualizar los datos del usuario.")
 
         return {"mensaje": "Datos personales actualizados correctamente"}
 
@@ -57,17 +57,17 @@ class PerfilService:
     ) -> dict[str, Any]:
         resultado = self.personal_model.obtener_clave_por_id(personal_id)
         if not resultado or not resultado.get("clave"):
-            raise ValueError("No se encontró la contraseña del usuario")
+            raise ValueError("No se encontró la contraseña del usuario.")
 
         if not verify_password(resultado["clave"], clave_actual):
-            raise ValueError("La contraseña actual es incorrecta")
+            raise ValueError("La contraseña actual es incorrecta.")
 
         is_valid, validation_msg = password_validate(clave_nueva)
         if not is_valid:
             raise ValueError(validation_msg)
 
         if not self.personal_model.actualizar_clave(personal_id, hash_password(clave_nueva)):
-            raise ValueError("No se pudo actualizar la contraseña")
+            raise ValueError("No se pudo actualizar la contraseña.")
 
         return {"mensaje": "Contraseña actualizada correctamente"}
 
@@ -80,9 +80,16 @@ class PerfilService:
         """Obtiene los datos de un usuario específico."""
         return self.personal_model.obtener_usuario_por_id(personal_id)
 
-    def cambiar_estado_usuario(self, personal_id: str, nuevo_estado: str) -> dict[str, Any]:
+    def cambiar_estado_usuario(
+        self,
+        personal_id: str,
+        nuevo_estado: str,
+        solicitante_id: str | None = None,
+    ) -> dict[str, Any]:
         """Cambia el estado de un usuario (A=Activo, I=Inactivo)."""
         if nuevo_estado != "A":
+            if solicitante_id is not None and str(personal_id) == str(solicitante_id):
+                raise ValueError("No puedes desactivar tu propia cuenta.")
             objetivo = self.personal_model.obtener_usuario_por_id(personal_id)
             if objetivo and objetivo.get("usuario") == USUARIO_PROTEGIDO:
                 raise ValueError(
@@ -92,7 +99,7 @@ class PerfilService:
         actualizado = self.personal_model.cambiar_estado(personal_id, nuevo_estado)
 
         if not actualizado:
-            raise ValueError("No se pudo cambiar el estado del usuario")
+            raise ValueError("No se pudo cambiar el estado del usuario.")
 
         return {"mensaje": f"Usuario marcado como {'activo' if nuevo_estado == 'A' else 'inactivo'}"}
 
@@ -107,27 +114,6 @@ class PerfilService:
                 "solo esa cuenta puede cambiar su propia contraseña."
             )
 
-    def cambiar_contrasena_usuario(
-        self,
-        personal_id: str,
-        clave_nueva: str,
-        usuario_solicitante: str | None = None,
-    ) -> dict[str, Any]:
-        """Cambia la contraseña de un usuario (sin verificar contraseña actual)."""
-        self._validar_clave_protegida(personal_id, usuario_solicitante)
-
-        is_valid, validation_msg = password_validate(clave_nueva)
-        if not is_valid:
-            raise ValueError(validation_msg)
-
-        nueva_clave_hash = hash_password(clave_nueva)
-        actualizado = self.personal_model.actualizar_clave(personal_id, nueva_clave_hash)
-
-        if not actualizado:
-            raise ValueError("No se pudo actualizar la contraseña")
-
-        return {"mensaje": "Contraseña actualizada correctamente"}
-
     @staticmethod
     def generar_nombre_usuario(nombre: str, ape_paterno: str, ape_materno: str) -> str:
         """Genera nombre de usuario: primera letra nombre + apellido paterno + 2 caracteres apellido materno."""
@@ -135,11 +121,6 @@ class PerfilService:
         apellido_paterno = ape_paterno.lower() if ape_paterno else ""
         dos_caracteres = ape_materno[:2].lower() if ape_materno else ""
         return f"{primer_letra}{apellido_paterno}{dos_caracteres}"
-
-    def obtener_personas_sin_usuario(self) -> list[dict[str, Any]]:
-        """Obtiene lista de personas que no tienen usuario asignado."""
-        personas = self.persona_model.obtener_personas_sin_usuario()
-        return personas
 
     def actualizar_usuario(
         self,

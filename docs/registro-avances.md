@@ -504,3 +504,206 @@ como plantilla; al instalar se copia a `src/config.py`.
 ### Proximo paso
 Decidir si se reescribe el historial + se rota la contrasena, o si basta con que
 el repositorio permanezca privado y no se publiquen nuevos cambios de credenciales.
+
+## 2026-09-07 - Eliminacion de endpoints y codigo muerto (INC-59)
+
+### Contexto
+Partiendo de una inconsistencia detectada en los mensajes de error del login
+(el backend y el frontend mostraban textos distintos), se hizo una auditoria
+completa de las 4 capas cruzando cada endpoint contra sus consumidores reales:
+`fetch` en los 14 archivos JS, `action` / `href` / redirecciones en las 13
+plantillas, y llamadas internas del backend. Decision del usuario: eliminar todo
+endpoint sin uso y su codigo en cascada.
+
+### Trabajo realizado
+- Eliminados 13 endpoints + 1 alias sin ningun consumidor:
+  - `POST /auth/api/login` (endpoint JSON paralelo al formulario; nadie lo llamaba).
+  - Router `/camara` completo — `GET /camara/stream`, `GET /camara/estado`
+    (`src/routes/camara.py` borrado). Reemplazado hace tiempo por `/video/*`
+    (ver INC-29). `camara_service` se conserva: lo usan el lifespan y el tracker.
+  - `POST /video/liberar-camara`.
+  - Alias `GET /registro-socios` (solo el decorador extra sobre `/nuevo-caficultor`).
+  - CRUD sin uso de cooperativas: `GET /cooperativas`, `GET /cooperativas/{id}`,
+    `POST /cooperativas`, `DELETE /cooperativas/{id}`. La UI solo usa
+    `mi-cooperativa`, `PATCH /{id}` y `upload-imagen`.
+  - `GET /perfil/usuarios/personas-disponibles` y
+    `PATCH /perfil/usuarios/{id}/cambiar-contrasena` (la edicion de usuario ya
+    cambia la clave con `clave_nueva`).
+  - `GET /ubigeo/{codigo}` (la cascada de ubigeo del frontend no lo usa).
+  - `POST /arduino/tare`. `arduino_serial.py` NO se toco.
+- Cascada eliminada en servicios, modelos y schemas: metodos
+  `obtener_todas`/`crear`/`desactivar`/`obtener_por_codigo` (cooperativa),
+  `obtener_personas_sin_usuario` y `cambiar_contrasena_usuario` (perfil/persona),
+  `obtener_por_codigo` (ubigeo), `tarar_bascula` (arduino); schemas
+  `LoginRequest`, `CooperativaCreate`, `CambiarContrasenaUsuario`, `UbigeoResponse`.
+- Documentacion de referencia actualizada al estado real: `API_VIDEO_STREAMING.md`,
+  `DOCUMENTACION_SISTEMA.md`,
+  `docs/documentacion/arquitectura-sistema-clasificacion.md`, y la seccion 7
+  (Rutas y Servicios) de `avance-tecnico-completo-2026.md`, que ademas arrastraba
+  endpoints inventados de antes (`/valor-cafe/registrar`, `/cooperativa/obtener`,
+  `/arduino/comando`, `/perfil/cambiar-clave`, `/ubigeo/buscar`).
+- Ficha INC-59 y leccion aprendida 8 anadidas a
+  `docs/incidencias/incidencia_proyecto.md`.
+
+### Archivos impactados
+- eliminado: `src/routes/camara.py`
+- backend: `src/main.py`, `src/routes/` (`auth_login`, `cooperativa`, `perfil`,
+  `ubigeo`, `arduino`, `video`), `src/services/` (`cooperativa_service`,
+  `perfil_service`, `ubigeo_service`, `arduino_service`), `src/models/`
+  (`cooperativa`, `persona`, `ubigeo`), `src/schemas/` (`auth`, `cooperativa`,
+  `perfil`, `ubigeo`)
+- docs: `API_VIDEO_STREAMING.md`, `DOCUMENTACION_SISTEMA.md`,
+  `documentacion/arquitectura-sistema-clasificacion.md`,
+  `documentacion/avance-tecnico-completo-2026.md`,
+  `incidencias/incidencia_proyecto.md`, este registro
+
+### Validacion
+- Estado: hecho.
+- `python -m compileall -q src/` y `python -m pyflakes src/` → sin errores ni
+  imports/simbolos huerfanos en todo el arbol.
+- `from src.main import app` carga completa; `GET /health` → 200; ninguna de las
+  rutas eliminadas figura entre las 79 rutas registradas; las conservadas quedan
+  con el metodo correcto (`/cooperativas/{id}` solo `PATCH`, `/perfil/usuarios/{id}`
+  solo `GET`+`PATCH`).
+- Auditor de arquitectura (`architecture-compliance-auditor`): 4 capas intactas,
+  sin cruces de responsabilidad, restricciones ML/hardware sin tocar.
+- No se modifico `servo_controller.py`, `arduino_serial.py`, la estructura de
+  hilos, `imgsz=640` ni `half=False`.
+
+### Pendientes
+- Inconsistencia de mensajes backend/frontend (el disparador original): sigue
+  abierta. Propuesta: catalogo unico de mensajes en `src/utilities/` consumido por
+  rutas y plantillas + helper HTTP en el frontend que propague el `detail` del
+  backend en lugar de textos fijos.
+- Staleness preexistente aun sin corregir en `avance-tecnico-completo-2026.md`:
+  seccion 9 (`src/services/camara.py` deberia ser `camara_service.py`), arbol de
+  templates con nombres viejos (`nuevo_caficultor.html`, `configuracion_cooperativa.html`).
+- Menciones historicas de `/camara/*` en entradas antiguas de este registro y en
+  la narrativa de INC-29/INC-33: se dejan como evidencia del estado de entonces.
+
+### Proximo paso
+Resolver la inconsistencia de mensajes de error con fuente unica en el backend.
+
+## 2026-09-07 - Mensajes de error con fuente unica en el backend (INC-60)
+
+### Contexto
+Cierre del pendiente de la entrada anterior. El mismo error se mostraba con
+textos distintos segun el origen (el disparador fue el login: "Credenciales
+incorrectas, intenta nuevamente." en pantalla vs "Credenciales invalidas" en el
+endpoint JSON, ya eliminado en INC-59). Ademas, al cambiar un mensaje en el
+backend no siempre se reflejaba en la UI.
+
+### Trabajo realizado
+- **Arreglo de raiz del 422:** handler `RequestValidationError` en `main.py` +
+  helper `_mensaje_validacion()`. Antes, la validacion de Pydantic llegaba como
+  `detail: [ {..} ]` y el frontend la renderizaba como `[object Object]`; ahora
+  llega como `detail: "<frase en espaniol>"`. Traduce los codigos nativos de
+  Pydantic (`string_too_short`, `greater_than`, `string_pattern_mismatch`, ...) y
+  respeta el texto de los validadores del schema (`raise ValueError(...)`)
+  quitando el prefijo "Value error,". Con esto, CUALQUIER mensaje del backend
+  llega a la UI como texto legible; cambiarlo donde se lanza se refleja sin tocar
+  nada mas.
+- **Mensajes literales y consistentes en el backend:** los textos de error viven
+  como string literal en el sitio donde se lanzan (`raise HTTPException(...)` /
+  `raise ValueError(...)`), con una sola convencion: "No se pudo <verbo>
+  <objeto>." para 500, "No se encontro <entidad>." para 404, frase completa con
+  tilde y punto, sin `str(e)` ni trazas. Se recorrieron TODAS las rutas de
+  `src/routes/` y los servicios con `raise ValueError` de `src/services/`.
+- **Nota de diseno:** se probo un catalogo central `src/utilities/mensajes.py`
+  (constantes + helpers) y se DESCARTO: cada mensaje aparece una sola vez, no hay
+  duplicacion que eliminar, y forzaba a saltar de archivo para leer el texto real.
+  El modulo se elimino; lo que escala es el handler del 422 + el extractor unico
+  del front, no un catalogo. (Leccion aprendida 9 en `incidencia_proyecto.md`.)
+- **Dedup real:** el validador de telefono repetido 3x identico en
+  `schemas/perfil.py` se unifico en un `Annotated`/`AfterValidator` local del
+  mismo archivo. La dependencia `verificar_admin` de `routes/tipo_grano.py`
+  (copia de `require_admin_o_gerente`) se reemplazo por la compartida.
+- **Consumo consistente (frontend):** `src/static/js/http.js` (nuevo) con
+  `CoffeeHttp.mensajeError(res, fallback)` como unico extractor. Los ~25 sitios
+  `fetch` de 8 archivos JS pasan de `throw new Error(err.detail || 'literal')` a
+  `throw new Error(await CoffeeHttp.mensajeError(res, 'respaldo'))`. El literal del
+  front queda solo como respaldo si el backend no manda nada legible.
+- Limpieza colateral: se elimino el helper local duplicado `mensajeHttpError` de
+  `valor_cafe.js` y la funcion muerta `consultarCaficultor` (+ `limpiarDatosCaficultor`
+  y sus variables) de `caficultor.js` (copia-pega de `registro.js`, sin llamadores,
+  usaba `setLookupMessage` inexistente en ese archivo).
+
+### Archivos impactados
+- backend: `src/main.py`, `src/utilities/jwt_required.py`, todas las rutas de
+  `src/routes/`, los servicios con `raise ValueError` de `src/services/`
+  (`caficultor`, `evaluacion`, `perfil`, `ubigeo`, `tipo_grano`, `valor_cafe`,
+  `cooperativa`), `src/schemas/perfil.py`
+- frontend: `src/static/js/http.js` (nuevo), `src/templates/main.html` (carga de
+  `http.js`), `src/static/js/{caficultor,registro,perfil,monitoreo,analisis,
+  cooperativa,valor_cafe,test}.js`
+- docs: `docs/incidencias/incidencia_proyecto.md` (INC-60 + leccion 9), este registro
+
+### Validacion
+- Estado: hecho.
+- `python -m pyflakes src/` y `python -m compileall -q src/` limpios;
+  `node --check` en los 9 JS nuevos/modificados.
+- Pruebas con TestClient: login invalido muestra el literal correcto en la
+  pagina; 403 (incluye tipo-grano, que ahora usa la dependencia compartida)
+  devuelve "No tienes permisos para acceder a esta seccion."; 422 (constraint
+  nativo y validador de schema) devuelve `detail` como cadena en espaniol sin
+  prefijo "Value error,"; 404 devuelve "No se encontro ..."; `openapi.json` 200.
+- `verificacion_incremento_1` 3/3. Validacion funcional autenticada de los
+  endpoints y las 8 paginas: sin regresiones.
+
+### Pendientes
+- Staleness preexistente en `avance-tecnico-completo-2026.md` seccion 9 y arbol
+  de templates (heredado de la entrada anterior).
+- No se estandarizo un mensaje unico para fallo de red en el frontend (cada sitio
+  cae en su `catch` generico). Se puede unificar mas adelante si aparece la
+  necesidad.
+
+### Proximo paso
+Ninguno inmediato para este tema. Confirmar los cambios de la rama `temporal`.
+
+## 2026-09-08 - Auto-desactivacion de cuenta y sesion viva tras desactivar (INC-61)
+
+### Contexto
+Un Gerente/Administrador podia desactivar su propia cuenta desde la gestion de
+usuarios. Y desactivar a cualquiera (uno mismo u otro) no cortaba la sesion ya
+iniciada: el JWT en cookie vale 7 dias, asi que la cuenta desactivada seguia
+operando hasta que el token expiraba.
+
+### Trabajo realizado
+- **Guard de auto-desactivacion (service):** `perfil_service.cambiar_estado_usuario`
+  recibe `solicitante_id`; si el destino es uno mismo y el nuevo estado no es 'A'
+  lanza `ValueError("No puedes desactivar tu propia cuenta.")` (-> 400). La ruta
+  `PATCH /perfil/usuarios/{id}/estado` pasa `user.get("personal_id")`.
+- **Sesion atada al estado real:** `obtener_usuario_actual` ahora, tras validar el
+  token, consulta el estado de la cuenta. `Personal.esta_activo()` (nuevo,
+  `SELECT estado ... WHERE personal_id=%s`) via `auth_service.cuenta_habilitada()`
+  (nuevo). Cuenta inactiva -> `RequerirLoginException` -> redirect a
+  `/auth/login`. Fail-open ante caida de BD (no expulsar por fallo transitorio).
+  Es un query de una columna con indice de PK por request autenticada.
+- `AuthService` gana singleton de modulo `auth_service` (patron de
+  `auditoria_service`); `auth_login.py` deja de instanciarlo local.
+- Frontend: `cooperativa.html` inyecta `MI_PERSONAL_ID`; la fila propia en la
+  tabla de usuarios muestra "Tu cuenta" en vez del boton Desactivar.
+
+### Archivos impactados
+- `src/models/personal.py`, `src/services/auth_service.py`,
+  `src/services/perfil_service.py`, `src/utilities/jwt_required.py`,
+  `src/routes/auth_login.py`, `src/routes/perfil.py`,
+  `src/templates/cooperativa.html`, `src/static/js/cooperativa.js`
+- docs: `docs/incidencias/incidencia_proyecto.md` (INC-61), este registro
+
+### Validacion
+- Estado: hecho.
+- `pyflakes`/`compileall` limpios; `node --check` en `cooperativa.js`; sin ciclos
+  de import (`jwt_required` -> `auth_service` -> `models.personal`).
+- TestClient: auto-desactivacion -> 400; admin desactiva a otro usuario -> la
+  siguiente peticion de ese usuario (pagina y endpoint JSON) redirige a
+  `/auth/login`; reactivar -> vuelve a funcionar; `jbecerrac` sigue protegido.
+- `verificacion_incremento_1` 3/3. Auditor de arquitectura: sin hallazgos.
+
+### Pendientes
+- El `cuenta_habilitada` fail-open significa que durante una caida de BD una
+  cuenta desactivada con JWT vivo sigue operando hasta que la BD se recupera.
+  Decision consciente (documentada en el docstring).
+
+### Proximo paso
+Ninguno. Confirmar los cambios de la rama `temporal`.

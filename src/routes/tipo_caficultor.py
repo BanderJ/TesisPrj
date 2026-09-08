@@ -13,4 +13,4 @@ async def listar_tipo_caficultor() -> list[TipoCaficultorResponse]:
     try:
         return tipo_caficultor_service.listar_tipos_caficultor()
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo obtener tipos de caficultor") from exc
+        raise HTTPException(status_code=500, detail="No se pudo obtener los tipos de caficultor.") from exc

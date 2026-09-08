@@ -25,6 +25,21 @@ class AuthService:
         token = token_cookie.split(" ")[-1] if token_cookie.startswith("Bearer ") else token_cookie
         return verificar_token(token) is not None
 
+    def cuenta_habilitada(self, personal_id: str | None) -> bool:
+        """True si la cuenta existe y sigue activa en la BD.
+
+        El JWT es válido 7 días aunque la cuenta se desactive en ese lapso; esto
+        permite cortar la sesión en cuanto el estado deja de ser 'A'. Ante un
+        fallo transitorio de BD devuelve True para no expulsar por un error de
+        infraestructura (el token sigue siendo criptográficamente válido).
+        """
+        if not personal_id:
+            return False
+        try:
+            return self.personal_model.esta_activo(personal_id)
+        except Exception:
+            return True
+
     def autenticar(self, usuario: str, clave: str) -> LoginResponse | None:
         """Autentica credenciales y retorna el objeto de respuesta si son validas."""
         usuario_db: dict[str, Any] | None = self.personal_model.buscar_activo_por_usuario(usuario)
@@ -65,3 +80,6 @@ class AuthService:
             nombre=nombre_completo,
             token=token,
         )
+
+
+auth_service = AuthService()

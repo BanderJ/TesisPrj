@@ -12,4 +12,4 @@ async def consultar_persona(num_documento: str) -> DniConsultaResponse:
     try:
         return _persona_service.consultar_por_documento(num_documento)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al consultar persona") from exc
+        raise HTTPException(status_code=500, detail="No se pudo consultar la persona.") from exc

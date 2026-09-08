@@ -287,8 +287,7 @@
 				appendLog('Cargando modelo y conectando cámara...');
 				const res = await fetch('/video/iniciar', { method: 'POST' });
 				if (!res.ok) {
-					const err = await res.json().catch(() => ({ detail: 'Error desconocido' }));
-					throw new Error(err.detail || 'Error al iniciar captura');
+					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo iniciar la captura.'));
 				}
 
 				// 2. Esperar a que la cámara produzca el primer frame real
@@ -361,7 +360,7 @@
 			try {
 				appendLog('Generando reporte ...');
 				const res = await fetch('/video/lote/generar-reporte', { method: 'POST' });
-				if (!res.ok) throw new Error('Error generando reporte');
+				if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo generar el reporte.'));
 				reporteActual = await res.json();
 				const { grado, total_defectos, apto_specialty } = reporteActual;
 				appendLog(`Reporte: ${grado} | ${total_defectos} defectos equiv. | Specialty: ${apto_specialty ? 'Apto' : 'No apto'}`);
@@ -484,8 +483,7 @@
 					body: JSON.stringify({ total_defectos: totalDefectosFinal, peso_bueno: peso }),
 				});
 				if (!res.ok) {
-					const err = await res.json().catch(() => ({}));
-					throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo calcular el rendimiento.');
+					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo calcular el rendimiento.'));
 				}
 				const data = await res.json();
 				document.getElementById('resFactor').textContent    = Number(data.factor_rendimiento).toFixed(2);
@@ -599,8 +597,7 @@
 					body: JSON.stringify({ total_defectos: _totalDefectoGranos, total_buenos: _totalGranos - _totalDefectoGranos, incidencias }),
 				});
 				if (!res.ok) {
-					const err = await res.json();
-					throw new Error(err.detail || 'Error al finalizar la evaluacion.');
+					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo finalizar la evaluación.'));
 				}
 				const { codigo } = await res.json();
 				_pasoOk(3);

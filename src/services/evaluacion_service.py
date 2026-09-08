@@ -109,7 +109,7 @@ class EvaluacionService:
     def obtener_resumen_evaluacion(self, evaluacion_id: str) -> ResumenEvaluacionResponse:
         fila = self.evaluacion_model.obtener_resumen(evaluacion_id=evaluacion_id)
         if not fila:
-            raise ValueError("Evaluacion no encontrada.")
+            raise ValueError("No se encontró la evaluación.")
         return ResumenEvaluacionResponse(**fila)
 
     def completar_evaluacion(
@@ -121,11 +121,11 @@ class EvaluacionService:
         try:
             eva = self.evaluacion_model.obtener_para_completar(evaluacion_id, db)
             if not eva:
-                raise ValueError("Evaluación no encontrada.")
+                raise ValueError("No se encontró la evaluación.")
 
             grano = self.tipo_grano_model.obtener_por_id(int(eva["tipo_grano_id"]), db)
             if not grano:
-                raise ValueError("Tipo de grano no encontrado.")
+                raise ValueError("No se encontró el tipo de grano.")
 
             peso_muestra   = Decimal(str(eva["peso_muestra"]))
             peso_trillado  = Decimal(str(eva["peso_trillado"]))

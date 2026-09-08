@@ -88,8 +88,7 @@
             });
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail || 'Error al guardar');
+                throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudieron guardar los datos.'));
             }
 
             CoffeeModal.success('Datos actualizados correctamente.', 'Cambios guardados');
@@ -172,8 +171,7 @@
             });
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail || 'Error al cambiar contraseña');
+                throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cambiar la contraseña.'));
             }
 
             CoffeeModal.success('Contraseña actualizada correctamente.', 'Cambio exitoso');
