@@ -64,7 +64,7 @@ class CrearUsuario(BaseModel):
     sexo: str = Field(..., pattern="^[MF]$")
     fecha_nacimiento: str = Field(...)
     tipo_documento_id: int = Field(..., ge=1, le=3)
-    num_documento: str = Field(..., min_length=8, max_length=12)
+    num_documento: str = Field(..., pattern=r"^[A-Za-z0-9]{8,12}$")
     telefono: Telefono = None
     correo: str | None = Field(None, max_length=100)
     ubigeo: str | None = Field(None, pattern=r'^\d{6}$')

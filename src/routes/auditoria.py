@@ -1,4 +1,5 @@
 import math
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -14,8 +15,8 @@ async def listar_auditoria(
     usuario: str | None = Query(default=None),
     tipo_personal_id: int | None = Query(default=None),
     accion: str | None = Query(default=None),
-    fecha_desde: str | None = Query(default=None),
-    fecha_hasta: str | None = Query(default=None),
+    fecha_desde: date | None = Query(default=None),
+    fecha_hasta: date | None = Query(default=None),
     pagina: int = Query(default=1, ge=1),
     limite: int = Query(default=50, ge=1, le=200),
     _: dict = Depends(require_admin_o_gerente),

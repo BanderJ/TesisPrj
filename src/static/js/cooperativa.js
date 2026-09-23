@@ -203,6 +203,12 @@
         }
     });
 
+    function escapeHtml(texto) {
+        return String(texto ?? '').replace(/[&<>"']/g, (c) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+        }[c]));
+    }
+
     async function cargarTiposGrano() {
         const tbody = document.getElementById('tiposGranoBody');
         try {
@@ -215,13 +221,16 @@
                 return;
             }
 
+            // data-* en vez de interpolar en onclick: un nombre con comillas
+            // (ej. "Piloto's") rompía el atributo generado y el botón dejaba
+            // de funcionar (o ejecutaba HTML/JS arbitrario inyectado en el nombre).
             tbody.innerHTML = tipos.map(tipo => `
                 <tr>
-                    <td><strong>${tipo.nombre}</strong></td>
+                    <td><strong>${escapeHtml(tipo.nombre)}</strong></td>
                     <td>${tipo.peso_qq}</td>
                     <td class="acciones-celda">
-                        <button type="button" class="btn-tabla" onclick="editarTipo(${tipo.id}, '${tipo.nombre}', ${tipo.peso_qq})">Editar</button>
-                        <button type="button" class="btn-tabla btn-inactivar" onclick="eliminarTipo(${tipo.id})">Eliminar</button>
+                        <button type="button" class="btn-tabla btn-editar-tipo" data-id="${tipo.id}" data-nombre="${escapeHtml(tipo.nombre)}" data-peso="${tipo.peso_qq}">Editar</button>
+                        <button type="button" class="btn-tabla btn-inactivar btn-eliminar-tipo" data-id="${tipo.id}">Eliminar</button>
                     </td>
                 </tr>
             `).join('');
@@ -231,9 +240,19 @@
         }
     }
 
-    window.editarTipo = function(tipoId, nombre, peso) {
+    document.getElementById('tiposGranoBody').addEventListener('click', (e) => {
+        const btnEditar = e.target.closest('.btn-editar-tipo');
+        if (btnEditar) {
+            editarTipo(Number(btnEditar.dataset.id), btnEditar.dataset.nombre, Number(btnEditar.dataset.peso));
+            return;
+        }
+        const btnEliminar = e.target.closest('.btn-eliminar-tipo');
+        if (btnEliminar) eliminarTipo(Number(btnEliminar.dataset.id));
+    });
+
+    function editarTipo(tipoId, nombre, peso) {
         abrirModalTipoGrano('editar', { id: tipoId, nombre, peso_qq: peso });
-    };
+    }
 
     window.eliminarTipo = async function(tipoId) {
         const ok = await CoffeeModal.confirm({

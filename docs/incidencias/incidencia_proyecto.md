@@ -101,6 +101,9 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 | INC-59 | 4 | Infraestructura | Endpoints y código muerto sin consumidor en las 4 capas | Baja | Resuelta |
 | INC-60 | 4 | Integración | Mensajes de error divergentes entre backend y frontend | Media | Resuelta |
 | INC-61 | 4 | Autenticación | Un usuario podía desactivar su propia cuenta y la sesión seguía viva tras desactivar a cualquiera | Alta | Resuelta |
+| INC-62 | 2 | Detección / ML | Prácticas de calidad de dataset y trazabilidad de experimentos planificadas sin ejecutar (IRA, fuga de datos, MLflow) | Media | Mitigada |
+| INC-63 | 3 | Detección / ML | Fase 4 CRISP-ML(Q) (validación formal, matriz de confusión, robustez) no se ejecutó | Alta | Abierta |
+| INC-64 | 4 | Detección / ML / Integración | Monitoreo de calidad de detecciones y validación en campo con operarios reales sin implementar | Media | Abierta |
 
 ---
 
@@ -332,6 +335,14 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Gravedad:** Media. **Estado:** Resuelta.
 - **Evidencia:** memoria técnica del proyecto (errores conocidos).
 
+### INC-62 · Prácticas de calidad de dataset y trazabilidad de experimentos planificadas sin ejecutar
+- **Área:** Detección / ML (Dataset).
+- **Qué se detectó:** el backlog original de Scrum definía criterios formales de aseguramiento de calidad para esta etapa — acuerdo inter-anotador (IRA) ≥85% con un experto, validación de duplicados/fuga de datos entre splits por hash MD5, y seguimiento de experimentos de entrenamiento con MLflow — que nunca se ejecutaron ni quedaron registrados en ningún artefacto del proyecto.
+- **Causa raíz:** el etiquetado y la consolidación del dataset los realizó una sola persona (el propio tesista) sin un segundo experto disponible para calcular acuerdo inter-anotador, y no se incorporó herramienta de tracking de experimentos por el volumen de trabajo y los plazos del cronograma.
+- **Solución (parcial):** se sustituyó por controles informales que sí quedaron documentados: nomenclatura trazable `_o_`/`_p_` por origen de imagen (INC-09) y descarte manual de imágenes borrosas o con reflejos (INC-10). Dan trazabilidad y calidad básica, pero no las métricas formales planificadas.
+- **Gravedad:** Media. **Estado:** Mitigada (control informal en su lugar; sin cifra real de IRA ni validación de fuga por hash).
+- **Evidencia:** `docs/documentacion/Product_Backlog_Sprints.md` (PBI-06 "IRA ≥85% con experto", PBI-07 "Split sin data leakage (MD5)", PBI-08 "entrenar con seguimiento MLflow"); ausencia de `mlflow` en `requirements.txt` y en el resto del repositorio (verificado por búsqueda).
+
 ---
 
 ## 5. Sprint 3 — Funcionalidades complementarias e integración
@@ -466,6 +477,14 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Solución:** las páginas full-width sobrescriben `.perfil-container`, `.perfil-layout`, `.perfil-content` y `.perfil-section` con `max-width: none !important; margin: 0 !important; width: 100%`. Regla general adoptada: los layouts ocupan todo el ancho disponible salvo indicación contraria.
 - **Gravedad:** Baja. **Estado:** Resuelta.
 - **Evidencia:** memoria de estilo de código; memoria de errores conocidos.
+
+### INC-63 · Fase 4 CRISP-ML(Q) (validación formal, matriz de confusión, pruebas de robustez) no se ejecutó
+- **Área:** Detección / ML.
+- **Qué se detectó:** el cronograma exige, en esta etapa, validar formalmente el modelo seleccionado sobre el conjunto de prueba nunca visto durante entrenamiento (precision, recall, F1-score y mAP por clase), analizar la matriz de confusión e interpretar los resultados, y probar robustez ante variaciones de iluminación y condiciones de captura. Solo se reportaron mAP50 y mAP50-95 del `yolov8n` (0.767 / 0.757); nunca se calcularon ni documentaron precision, recall o F1, no hay matriz de confusión y no se ejecutaron pruebas sistemáticas de robustez.
+- **Causa raíz:** el proyecto pasó directamente de la Fase 3 (comparación de arquitecturas) a la integración en el backend (Fase 5) para poder demostrar el flujo completo dentro del cronograma, dejando la garantía de calidad formal de Fase 4 como pendiente declarado en la propia documentación del proyecto.
+- **Solución (parcial):** el sesgo del modelo hacia "defecto" (~40% de granos buenos mal clasificados en pruebas) se detectó de forma indirecta al operar el pipeline en vivo, no mediante la Fase 4 planificada; se mitigó parcialmente con `MARGEN_DEFECTO` (exige que la confianza acumulada de defecto supere a la de la clase sana por un factor) en vez de una recalibración basada en una matriz de confusión real.
+- **Gravedad:** Alta (una validación formal habría detectado el sesgo del modelo antes de integrarlo al flujo de separación física, que hoy puede desviar granos buenos por error). **Estado:** Abierta.
+- **Evidencia:** `docs/documentacion/avance-tecnico-completo-2026.md` (tabla "Pendientes técnicos", fila "Fase 4 CRISP-ML(Q)"); `docs/registro-avances.md` (líneas 230 y 264, "Fase 4: Garantía de calidad (validación de métricas, robustez)" listada como pendiente); `CLAUDE.md` (sección del módulo ML, sesgo ~40% falsos defectos).
 
 ---
 
@@ -626,6 +645,14 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Gravedad:** Alta. **Estado:** Resuelta (cambios sin confirmar en la rama `temporal`).
 - **Evidencia:** cambios sin confirmar en `src/models/personal.py`, `src/services/auth_service.py`, `src/services/perfil_service.py`, `src/utilities/jwt_required.py`, `src/routes/auth_login.py`, `src/routes/perfil.py`, `src/templates/cooperativa.html`, `src/static/js/cooperativa.js`. Verificado con TestClient: auto-desactivación → 400; un admin desactiva a otro usuario → la siguiente petición de ese usuario redirige a `/auth/login` (página y endpoint JSON); reactivar → vuelve a funcionar; `jbecerrac` sigue protegido. `pyflakes`/`compileall` limpios, `verificacion_incremento_1` 3/3, auditoría de arquitectura sin hallazgos.
 
+### INC-64 · Monitoreo de calidad de detecciones (Fase 6) y validación en campo con operarios reales sin implementar
+- **Área:** Detección / ML / Integración.
+- **Qué se detectó:** el cronograma exige, en el cierre del proyecto, implementar un mecanismo básico de monitoreo de la calidad de las detecciones a lo largo del tiempo y ejecutar validación técnica local. El backlog original además preveía una alerta de deriva de datos (data drift) si la precisión caía por debajo de 80% en 3 sesiones consecutivas (`GET /monitoring/quality`) y una validación de campo con al menos 3 operarios reales, ≥2 lotes cada uno, encuesta SUS ≥70 y acta firmada por la gerencia de la cooperativa. Ninguno de los dos existe: no hay ningún endpoint ni lógica de monitoreo de calidad en `src/` (verificado por búsqueda en el código), y no hay evidencia de sesiones de validación con operarios de Line Coffee Marañón.
+- **Causa raíz:** el desarrollo del Sprint 4 se concentró en cerrar el pipeline técnico (cámara, tiles, servo, IDs globales — INC-53 a INC-58) y en estabilizar la capa backend (INC-59 a INC-61); el mecanismo de monitoreo de calidad y la validación de campo quedaron fuera de alcance por tiempo.
+- **Solución:** pendiente. Es el tramo final del cronograma (semana 8, cierre y entrega) sin cubrir.
+- **Gravedad:** Media (no bloquea el flujo técnico, pero impide detectar degradación del modelo en producción y deja sin evidencia formal la aceptación del sistema por parte de la cooperativa). **Estado:** Abierta.
+- **Evidencia:** `docs/documentacion/Product_Backlog_Sprints.md` (PBI-21 "Validación en campo: ≥3 operarios... SUS ≥70. Acta firmada"; PBI-22 "Monitoreo: alerta si precisión < 80% en 3 sesiones consecutivas... GET /monitoring/quality"); búsqueda en `src/` sin resultados de un endpoint o módulo de monitoreo de calidad.
+
 ---
 
 ## 7. Incidencias abiertas y en curso (consolidado)
@@ -643,6 +670,9 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 | INC-56 | Cámara | Foco/zoom manual | Bloquear anillos, anotar geometría de trabajo, seguir checklist de calibración. |
 | INC-57 | Cámara | Motion blur | Instalar iluminación difusa potente y fijar exposición manual. |
 | INC-58 | Base de datos | `direccion` → `ubicacion` | Cerrar el cambio y confirmarlo; ejecutar `script.sql` en los entornos. |
+| INC-62 | Detección / ML | Calidad de dataset y experimentos sin trazar | Medir un IRA real o documentar por qué no aplica (anotador único); registrar splits/hashes si el dataset se reentrena. |
+| INC-63 | Detección / ML | Fase 4 (evaluación formal) sin ejecutar | Calcular precision/recall/F1/mAP por clase y matriz de confusión sobre el test set antes de ampliar el despliegue. |
+| INC-64 | Detección / ML / Integración | Monitoreo de calidad y validación en campo sin implementar | Definir el mecanismo mínimo de alerta por degradación y programar la sesión de validación con operarios de la cooperativa. |
 | — | Detección / ML | Verificación en hardware | Confirmar que los IDs globales no retroceden tras pausas y medir FPS en GTX 1050 Mobile vs RTX 5070 Ti con ONNX; confirmar `torch.cuda.is_available()` en ambas laptops. |
 
 ---
@@ -658,6 +688,7 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 7. **La documentación se desactualiza rápido.** Nombre de la BD, versión de PostgreSQL, baudrate y la necesidad de descargar los pesos del modelo estuvieron mal en los manuales hasta el Sprint 4 (INC-52).
 8. **El código muerto se acumula por capas.** Scaffolding de CRUD que la UI nunca usó, endpoints reemplazados sin borrar y utilidades sin cablear se arrastraron hasta que una auditoría cruzada de endpoints contra consumidores los sacó (INC-50, INC-59). Conviene revisar "¿esto lo llama alguien?" al cerrar cada funcionalidad, no solo al final.
 9. **Un catálogo central de mensajes no siempre ayuda (INC-60).** Un módulo `utilities/mensajes.py` con constantes y helpers solo paga si los textos se repiten de verdad; si cada mensaje aparece una sola vez, agrega indirección (leer la ruta + saltar al catálogo + reconstruir la plantilla) sin quitar duplicación. Lo que sí escala es el handler que normaliza el formato de salida (`RequestValidationError` → `detail` string) y un único extractor en el frontend; el texto se queda como literal donde se lanza.
+10. **Los criterios de calidad y gobierno de ML definidos en la planificación no sobreviven automáticamente a un cronograma ajustado con un solo desarrollador.** IRA con experto, control de fuga de datos por hash, seguimiento de experimentos con MLflow, la Fase 4 formal (matriz de confusión, pruebas de robustez) y el monitoreo de deriva en producción quedaron todos planificados en el backlog inicial pero sin ejecutar (INC-62, INC-63, INC-64): sin un responsable dedicado a QA, estas actividades se posponen frente a las que bloquean la demo funcional. Quedan como deuda de aseguramiento de calidad a saldar antes de un despliegue real con la cooperativa.
 
 ---
 

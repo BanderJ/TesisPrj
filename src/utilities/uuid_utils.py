@@ -1,6 +1,10 @@
 import os
 import time
 
+# Formato UUID canonico. Unico lugar donde vive el patron: lo usan las rutas
+# que reciben un id por Path y los schemas que lo reciben en el body.
+UUID_PATTERN: str = r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+
 
 def uuid7() -> str:
     """Generate a UUIDv7 (RFC 9562) — time-ordered, compatible with PostgreSQL uuidv7()."""

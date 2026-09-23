@@ -37,7 +37,7 @@
         });
 
         // Navigation active state
-        const currentPath = window.location.pathname === '/' ? '/inicio' : window.location.pathname;
+        const currentPath = window.location.pathname;
         document.querySelectorAll('.nav-link').forEach(link => {
             link.classList.remove('active');
             if (link.getAttribute('href') === currentPath) {
@@ -205,40 +205,6 @@
             document.addEventListener('keydown', e => {
                 if (e.key === 'Escape' && overlay.style.display !== 'none') closeTC();
             });
-        })();
-
-        // ── Cargar información de cooperativa ──
-        (async () => {
-            try {
-                const res = await fetch('/cooperativas/mi-cooperativa');
-
-                if (res.status === 404) {
-                    console.warn('Usuario sin cooperativa asociada');
-                    return;
-                }
-
-                if (!res.ok) {
-                    console.error('Error HTTP:', res.status, res.statusText);
-                    return;
-                }
-
-                const data = await res.json();
-                const header = document.getElementById('cooperativaHeader');
-                const banner = document.getElementById('cooperativaBanner');
-                const nombre = document.getElementById('cooperativaNombre');
-                const desc = document.getElementById('cooperativaDescripcion');
-
-                nombre.textContent = data.nombre || 'Cooperativa';
-                desc.textContent = data.descripcion || '';
-
-                if (data.imagen_url) {
-                    banner.style.backgroundImage = `url('${data.imagen_url}')`;
-                }
-
-                header.style.display = 'block';
-            } catch (error) {
-                console.error('Error cargando cooperativa:', error);
-            }
         })();
 
         // === Toggle ver/ocultar contraseña (delegado, reutilizable) ===

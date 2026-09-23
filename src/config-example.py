@@ -87,3 +87,72 @@ class Config:
     # DSHOW usa 0.25; algunos drivers UVC esperan 1 o 3. Solo se aplica si
     # CAM_EXPOSURE tiene valor.
     CAM_AUTO_EXPOSURE_MANUAL: float = float(os.environ.get('CAM_AUTO_EXPOSURE_MANUAL') or '0.25')
+
+    # Balance de blancos: '' = automático (AWB de fábrica, sin cambios). Un
+    # número fija la temperatura de color en Kelvin (según el driver, suele
+    # aceptar ~2800-6500) y desactiva el AWB. El AWB automático deriva el
+    # color cuadro a cuadro según lo que entra al encuadre; el dataset de
+    # entrenamiento (fotos fijas) no tiene ese drift, así que un grano verde
+    # puede cruzar al lado "defecto" del modelo solo por el tono que le
+    # asignó el AWB en ese instante, no por el grano mismo. Fijar un valor
+    # constante elimina esa variable en producción.
+    CAM_WB_TEMP: str = os.environ.get('CAM_WB_TEMP') or ''
+
+    # ── Rendimiento del módulo ML ───────────────────────────────────────
+    # La cámara entrega ~90 fps, pero no hace falta correr YOLO en cada frame.
+    # Este es un TECHO de fps para la detección: los frames intermedios se
+    # descartan. Bajarlo alivia la GPU, pero si se baja demasiado el grano se
+    # desplaza mucho entre frames y ByteTrack puede perderle el rastro (lo
+    # recupera como ID nuevo → sobreconteo). 30 deja margen a la GPU sin
+    # arriesgar el tracking. 0 = sin techo. El ahorro real entre lotes lo da
+    # ML_GATE_MOVIMIENTO, no este techo.
+    ML_DETECTOR_FPS: float = float(os.environ.get('ML_DETECTOR_FPS') or '30')
+
+    # Gate por movimiento: si el frame es casi idéntico al anterior (faja
+    # detenida, sin granos nuevos) se omite la inferencia por completo. Ahorra
+    # 100% de GPU entre lotes. Umbral = diferencia media de intensidad (0-255)
+    # sobre una miniatura 160x90 en gris; por debajo se considera "sin cambios".
+    # CALIBRAR en banco: con la faja parada tracker.py loguea la diferencia media
+    # cada ~2 s ("gate: diff media=..."). El umbral va entre ese valor (ruido del
+    # sensor, típico 0.1-0.5) y el de la faja en marcha (>> 1). Si se pusiera muy
+    # alto se saltarían granos reales → subconteo. Si el alimentador NO es faja
+    # (granos sueltos uno a uno) conviene ML_GATE_MOVIMIENTO=false.
+    ML_GATE_MOVIMIENTO: bool = (os.environ.get('ML_GATE_MOVIMIENTO') or 'true').lower() == 'true'
+    ML_GATE_UMBRAL: float = float(os.environ.get('ML_GATE_UMBRAL') or '1.0')
+
+    # Tope de hilos de CPU para OpenCV y las operaciones de glue de PyTorch.
+    # La inferencia va en la GPU; sin este tope OpenCV reparte el imencode y los
+    # resize entre los 24 núcleos y satura la CPU igual. 0 = sin tope.
+    ML_MAX_THREADS_CPU: int = int(os.environ.get('ML_MAX_THREADS_CPU') or '4')
+
+    # Resolución del frame anotado que se envía al navegador (MJPEG). La
+    # detección corre a resolución completa; solo se reduce lo que se transmite.
+    # 0 = enviar a resolución nativa de la cámara.
+    ML_STREAM_ANCHO: int = int(os.environ.get('ML_STREAM_ANCHO') or '1280')
+    ML_STREAM_JPEG_QUALITY: int = int(os.environ.get('ML_STREAM_JPEG_QUALITY') or '80')
+
+    # Diagnostico de la cadena deteccion -> servo. Con true, tracker.py imprime
+    # una linea por cada grano que pide separacion, por cada uno que muere sin
+    # pedirla (evidencia insuficiente) y por cada caja descartada por tamaño.
+    # Sirve para saber por que un grano defectuoso no movio el servo. Ruidoso:
+    # dejar en false fuera de calibracion.
+    ML_DEBUG_SERVO: bool = (os.environ.get('ML_DEBUG_SERVO') or 'false').lower() == 'true'
+
+    # ── Evidencia de materia extraña ───────────────────
+    # Cada objeto que el modelo nunca reconoció como grano (piedra, palito,
+    # pajilla) se recorta del frame y se archiva bajo la carpeta de su
+    # evaluación, para que el operario pueda verificar después qué se desvió.
+    # Pasado el tope por lote se sigue avisando en el monitoreo, pero sin foto.
+    ML_EVIDENCIA_DESCONOCIDOS: bool = (os.environ.get('ML_EVIDENCIA_DESCONOCIDOS') or 'true').lower() == 'true'
+    ML_EVIDENCIA_MAX_POR_LOTE: int = int(os.environ.get('ML_EVIDENCIA_MAX_POR_LOTE') or '30')
+    ML_EVIDENCIA_DIR: str = os.environ.get('ML_EVIDENCIA_DIR') or 'src/resources/desconocidos'
+
+    # ── Medición de latencia del pipeline ───────────────────
+    # Evidencia del indicador de tesis (Obj. específico 4, Resultado 01):
+    # latencia captura->registro <= 200 ms en >= 50 iteraciones consecutivas.
+    # Con true, tracker.py cronometra cada frame y cada ML_LATENCIA_ITERACIONES
+    # imprime el resumen y exporta un CSV a ML_LATENCIA_DIR.
+    ML_MEDIR_LATENCIA: bool = (os.environ.get('ML_MEDIR_LATENCIA') or 'false').lower() == 'true'
+    ML_LATENCIA_OBJETIVO_MS: float = float(os.environ.get('ML_LATENCIA_OBJETIVO_MS') or '200')
+    ML_LATENCIA_ITERACIONES: int = int(os.environ.get('ML_LATENCIA_ITERACIONES') or '50')
+    ML_LATENCIA_DIR: str = os.environ.get('ML_LATENCIA_DIR') or 'docs/evidencias'

@@ -1,6 +1,4 @@
 from typing import Any
-import re
-import unicodedata
 
 from src.config import Config
 from src.database.bd import Connection
@@ -8,13 +6,13 @@ from src.models.caficultor import Caficultor
 from src.models.cooperativa import Cooperativa
 from src.models.persona import Persona
 from src.models.tipo_caficultor import TipoCaficultor
-from src.models.tipo_documento import TipoDocumento
 from src.schemas.caficultor import (
     CaficultorData,
     ConvertirSocioResponse,
     RegistrarCaficultorRequest,
     RegistrarCaficultorResponse,
 )
+from src.utilities.documento_validador import validar_documento_por_tipo
 
 
 class CaficultorService:
@@ -27,36 +25,6 @@ class CaficultorService:
         self.cooperativa_model: Cooperativa = Cooperativa()
         self.persona_model: Persona = Persona()
         self.tipo_caficultor_model: TipoCaficultor = TipoCaficultor()
-        self.tipo_documento_model: TipoDocumento = TipoDocumento()
-
-    def _normalizar_nombre_tipo_documento(self, nombre: str) -> str:
-        """Normaliza texto para comparar nombres de tipos de documento."""
-        texto = unicodedata.normalize("NFD", nombre)
-        texto = "".join(ch for ch in texto if unicodedata.category(ch) != "Mn")
-        return texto.strip().lower()
-
-    def _validar_documento_por_tipo(self, tipo_documento_id: int, num_documento: str) -> None:
-        """Valida num_documento en función del tipo de documento registrado."""
-        tipo_documento = self.tipo_documento_model.obtener_por_id(tipo_documento_id)
-        if not tipo_documento:
-            raise ValueError("El tipo de documento seleccionado no existe.")
-
-        nombre_tipo = self._normalizar_nombre_tipo_documento(str(tipo_documento.get("nombre", "")))
-
-        if nombre_tipo == "dni":
-            if not num_documento.isdigit() or len(num_documento) != 8:
-                raise ValueError("El DNI debe tener exactamente 8 dígitos numéricos.")
-            return
-
-        if nombre_tipo in {"pasaporte", "carnet de extranjeria"}:
-            if not re.fullmatch(r"[A-Za-z0-9]{8,12}", num_documento):
-                raise ValueError(
-                    "El pasaporte o carnet de extranjería debe tener entre 8 y 12 caracteres alfanuméricos."
-                )
-            return
-
-        if not re.fullmatch(r"[A-Za-z0-9]{8,12}", num_documento):
-            raise ValueError("El documento debe tener entre 8 y 12 caracteres alfanuméricos.")
 
     def obtener_caficultor_por_documento(self, num_documento: str) -> CaficultorData | None:
         """Retorna datos de caficultor por documento o None si no existe."""
@@ -114,7 +82,7 @@ class CaficultorService:
 
     def registrar_caficultor(self, payload: RegistrarCaficultorRequest) -> RegistrarCaficultorResponse:
         """Registra persona y caficultor en una sola transaccion."""
-        self._validar_documento_por_tipo(payload.tipo_documento_id, payload.num_documento)
+        validar_documento_por_tipo(payload.tipo_documento_id, payload.num_documento)
         self._validar_tipo_caficultor(payload.tipo_caficultor_id)
 
         db = Connection()

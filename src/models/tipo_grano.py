@@ -64,10 +64,14 @@ class TipoGrano:
         owns_db = db is None
         db = db or Connection()
         try:
-            db.ejecutar("DELETE FROM tipo_grano WHERE id = %s", (tipo_grano_id,))
+            cursor = db.ejecutar("DELETE FROM tipo_grano WHERE id = %s", (tipo_grano_id,))
+            eliminado = cursor.rowcount > 0
             if owns_db:
-                db.commit()
-            return True
+                if eliminado:
+                    db.commit()
+                else:
+                    db.rollback()
+            return eliminado
         finally:
             if owns_db:
                 db.close()

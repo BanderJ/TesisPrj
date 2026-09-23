@@ -10,8 +10,6 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), ".
 
 auth = APIRouter()
 
-
-
 @auth.get("/login")
 async def login_get(request: Request):
     token = request.cookies.get("access_token")

@@ -135,7 +135,9 @@ const CoffeeValidators = (() => {
                 length:    password.length >= 8,
                 uppercase: /[A-Z]/.test(password),
                 number:    /\d/.test(password),
-                special:   /[!@#%^&*(),.=?":{}$¿?¡]/.test(password),
+                // Coincide con la regla del backend (src/utilities/security.py): cualquier
+                // caracter no alfanumerico cuenta como "especial", no solo una lista fija.
+                special:   /[^A-Za-z0-9]/.test(password),
             };
         }
 

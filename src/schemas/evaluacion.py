@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -106,6 +106,18 @@ class KpisEvaluacionResponse(BaseModel):
     rendimiento_promedio: float | None = None
 
 
+class EventoMonitoreoResponse(BaseModel):
+    """Evento persistido del monitoreo, tal como se muestra en el analisis y en
+    el reporte por codigo."""
+
+    segundo: int
+    tipo: str
+    severidad: str
+    mensaje: str
+    imagen_url: str | None = None
+    datos: dict[str, Any] | None = None
+
+
 class ResumenEvaluacionResponse(BaseModel):
     evaluacion_id: str
     codigo: str | None = None
@@ -124,6 +136,9 @@ class ResumenEvaluacionResponse(BaseModel):
     peso_tamizado: Decimal
     fecha: str | None = None
     incidencias: list | None = None
+    # Traza de lo que el sistema informo durante el monitoreo. Misma fuente para
+    # /analisis y para la busqueda por codigo: ambas vistas muestran lo mismo.
+    eventos: list[EventoMonitoreoResponse] | None = None
     # Campos de rendimiento — NULL hasta que se complete la evaluación
     total_defectos: int | None = None
     total_buenos: int | None = None

@@ -33,8 +33,17 @@ argon2-cffi>=23.1.0       # Hashing seguro de contraseñas con Argon2
 # ============================================================
 # YOLO (YOLOv8n, YOLO11n, YOLO26n) — detección y tracking de granos
 ultralytics>=8.4.0        # YOLO v8+ framework — incluye ByteTrack y utilidades de tracking
-torch>=2.0.0              # PyTorch para inferencia (CPU y CUDA)
+torch>=2.0.0              # PyTorch para inferencia
 torchvision>=0.15.0       # Utilidades de visión para torch
+#
+# GPU (NVIDIA): pip instala por defecto el build CPU de torch. Para usar la GPU
+# hay que instalar el build con CUDA que coincida con el driver. En la laptop
+# RTX 5070 Ti (Blackwell, driver CUDA 13.x):
+#   pip install torch==2.12.0+cu130 torchvision==0.27.0+cu130 \
+#       --index-url https://download.pytorch.org/whl/cu130
+# Verificar: python -c "import torch; print(torch.cuda.is_available())"  -> True
+# Sin CUDA la inferencia corre en CPU y usa todos los núcleos. En GPU,
+# tracker.py carga best.pt directamente (PyTorch nativo, sin onnxruntime-gpu).
 
 # Procesamiento de video & frames
 opencv-python-headless>=4.8.0  # Captura USB (ELP AR0234), MJPEG streaming — sin GUI
@@ -43,13 +52,17 @@ pillow>=10.0.0            # Procesamiento de imágenes (dependencia de ultralyti
 pygrabber>=0.2           # Enumera cámaras DirectShow por nombre (elegir la ELP, no la webcam interna) — solo Windows
 
 # ============================================================
-# INFERENCIA ONNX
-# Requerido desde que tracker.py prefiere best.onnx sobre best.pt
+# INFERENCIA ONNX (solo fallback CPU)
+# En GPU tracker.py usa best.pt. En máquinas sin CUDA prefiere best.onnx, que
+# es más rápido que best.pt en CPU. onnxruntime (a secas) es CPU puro: NO trae
+# DirectML ni CUDA. Para ONNX en GPU haría falta onnxruntime-gpu + cuDNN, que
+# aquí evitamos usando best.pt en la GPU.
 # Exportar modelos con: YOLO("best.pt").export(format="onnx", imgsz=640)
 # ============================================================
 onnx>=1.21.0              # Formato de modelo ONNX — requerido para cargar best.onnx
-onnxruntime>=1.20.1       # Runtime de inferencia ONNX (CPU + GPU vía DML en Windows)
+onnxruntime>=1.20.1       # Runtime de inferencia ONNX en CPU (fallback sin GPU)
 onnxslim>=0.1.71          # Optimizador de grafos ONNX — usado en la exportación
+pyyaml>=6.0              # tracker.py lee bytetrack.yaml directo (BYTETracker manual)
 
 # ============================================================
 # ARDUINO & SERIAL

@@ -16,12 +16,12 @@ from src.services.auditoria_service import auditoria_service
 from src.services.evaluacion_service import EvaluacionService
 from src.utilities.jwt_required import obtener_usuario_actual
 from src.utilities.request_utils import get_client_ip
+from src.utilities.uuid_utils import UUID_PATTERN
 
 
 evaluacion_router = APIRouter()
 evaluacion_service = EvaluacionService()
 
-_UUID_PATTERN = r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 
 
 @evaluacion_router.post(
@@ -88,7 +88,7 @@ async def buscar_evaluacion_por_codigo(
     response_model=ResumenEvaluacionResponse,
 )
 async def obtener_resumen_evaluacion(
-    evaluacion_id: str = Path(..., pattern=_UUID_PATTERN),
+    evaluacion_id: str = Path(..., pattern=UUID_PATTERN),
     _: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> ResumenEvaluacionResponse:
     try:
@@ -106,7 +106,7 @@ async def obtener_resumen_evaluacion(
 async def completar_evaluacion(
     request: Request,
     payload: CompletarEvaluacionRequest,
-    evaluacion_id: str = Path(..., pattern=_UUID_PATTERN),
+    evaluacion_id: str = Path(..., pattern=UUID_PATTERN),
     usuario: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> CompletarEvaluacionResponse:
     try:
@@ -131,10 +131,13 @@ async def completar_evaluacion(
 
 @evaluacion_router.get("/{evaluacion_id}/estado")
 async def obtener_estado_evaluacion(
-    evaluacion_id: str = Path(..., pattern=_UUID_PATTERN),
+    evaluacion_id: str = Path(..., pattern=UUID_PATTERN),
     _: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> dict[str, str | None]:
-    return {"estado": evaluacion_service.verificar_estado(evaluacion_id)}
+    try:
+        return {"estado": evaluacion_service.verificar_estado(evaluacion_id)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="No se pudo procesar la solicitud.") from exc
 
 
 @evaluacion_router.patch(
@@ -144,7 +147,7 @@ async def obtener_estado_evaluacion(
 async def finalizar_evaluacion(
     request: Request,
     payload: FinalizarEvaluacionRequest,
-    evaluacion_id: str = Path(..., pattern=_UUID_PATTERN),
+    evaluacion_id: str = Path(..., pattern=UUID_PATTERN),
     usuario: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> FinalizarEvaluacionResponse:
     try:

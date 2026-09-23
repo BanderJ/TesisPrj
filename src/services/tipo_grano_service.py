@@ -1,6 +1,8 @@
 from decimal import Decimal
 from typing import Any
 
+import psycopg2.errors
+
 from src.models.tipo_grano import TipoGrano
 from src.schemas.tipo_grano import TipoGranoResponse, TipoGranoCreate, TipoGranoUpdate
 
@@ -21,7 +23,10 @@ class TipoGranoService:
         ]
 
     def crear_tipo_grano(self, payload: TipoGranoCreate) -> TipoGranoResponse:
-        resultado = self.tipo_grano_model.crear(payload.nombre.strip(), payload.peso_qq)
+        try:
+            resultado = self.tipo_grano_model.crear(payload.nombre.strip(), payload.peso_qq)
+        except psycopg2.errors.UniqueViolation as exc:
+            raise ValueError(f"Ya existe un tipo de grano llamado '{payload.nombre.strip()}'.") from exc
         return TipoGranoResponse(
             id=int(resultado["id"]),
             nombre=str(resultado["nombre"]),
@@ -30,7 +35,10 @@ class TipoGranoService:
 
     def actualizar_tipo_grano(self, tipo_grano_id: int, payload: TipoGranoUpdate) -> TipoGranoResponse:
         nombre = payload.nombre.strip() if payload.nombre else None
-        resultado = self.tipo_grano_model.actualizar(tipo_grano_id, nombre, payload.peso_qq)
+        try:
+            resultado = self.tipo_grano_model.actualizar(tipo_grano_id, nombre, payload.peso_qq)
+        except psycopg2.errors.UniqueViolation as exc:
+            raise ValueError(f"Ya existe un tipo de grano llamado '{nombre}'.") from exc
         if not resultado:
             raise ValueError("No se encontró el tipo de grano.")
         return TipoGranoResponse(
@@ -40,4 +48,5 @@ class TipoGranoService:
         )
 
     def eliminar_tipo_grano(self, tipo_grano_id: int) -> None:
-        self.tipo_grano_model.eliminar(tipo_grano_id)
+        if not self.tipo_grano_model.eliminar(tipo_grano_id):
+            raise ValueError("No se encontró el tipo de grano.")

@@ -1,9 +1,12 @@
 from datetime import datetime
 from typing import Any
 
+import psycopg2.errors
+
 from src.database.bd import Connection
 from src.models.persona import Persona
 from src.models.personal import Personal
+from src.utilities.documento_validador import validar_documento_por_tipo
 from src.utilities.security import hash_password, verify_password, password_validate
 
 # Usuario del gerente de la empresa — no puede ser desactivado
@@ -184,6 +187,8 @@ class PerfilService:
         tipo_personal_id: int,
         clave: str,
     ) -> dict[str, Any]:
+        validar_documento_por_tipo(tipo_documento_id, num_documento)
+
         usuario = self.generar_nombre_usuario(nombre, ape_paterno, ape_materno)
 
         is_valid, validation_msg = password_validate(clave)
@@ -218,6 +223,12 @@ class PerfilService:
             )
             db.commit()
             return {"mensaje": "Usuario creado correctamente", "personal_id": personal_id, "usuario": usuario}
+        except psycopg2.errors.UniqueViolation as exc:
+            db.rollback()
+            raise ValueError(
+                "Ya existe una persona registrada con ese número de documento, "
+                "o el nombre de usuario generado ya está en uso."
+            ) from exc
         except Exception:
             db.rollback()
             raise

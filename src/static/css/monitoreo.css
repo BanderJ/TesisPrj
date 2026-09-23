@@ -232,6 +232,81 @@
     background-color: var(--primary);
 }
 
+/* ── Materia extraña ───────────────────────────────── */
+/* Hereda la caja de .defect-item; aquí solo va el color. El azul replica la
+   caja que tracker.py dibuja sobre el objeto desconocido, para que el operario
+   relacione el aviso con el video. No hay token azul en el design system. */
+.foreign-alert {
+    --extrano: oklch(0.5200 0.1750 258.0000);
+    border-color: color-mix(in oklab, var(--extrano) 45%, transparent 55%);
+    background: color-mix(in oklab, var(--extrano) 11%, transparent 89%);
+}
+
+.dark .foreign-alert {
+    --extrano: oklch(0.7000 0.1450 258.0000);
+}
+
+.foreign-alert span,
+.foreign-alert strong {
+    color: var(--extrano);
+}
+
+.foreign-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 6px;
+    vertical-align: -1px;
+    border-radius: 3px;
+    background: var(--extrano);
+}
+
+.foreign-note {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--muted-foreground);
+}
+
+/* ── Estados en vivo del sistema ────────────────────────────────── */
+/* Verbaliza lo que el sistema ya sabía (cámara, faja, Arduino, modelo) y antes
+   solo se podía inferir del video. El color lo fija data-estado desde el JS. */
+.status-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.status-chip {
+    --chip: var(--muted-foreground);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--chip) 40%, transparent 60%);
+    background: color-mix(in oklab, var(--chip) 10%, transparent 90%);
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--chip);
+}
+
+.status-chip::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--chip);
+}
+
+.status-chip[data-estado="ok"]     { --chip: var(--primary); }
+.status-chip[data-estado="alerta"] { --chip: oklch(0.6200 0.1400 75.0000); }
+.status-chip[data-estado="error"]  { --chip: var(--destructive); }
+
+.dark .status-chip[data-estado="alerta"] { --chip: oklch(0.7800 0.1300 80.0000); }
+.dark .status-chip[data-estado="error"]  { --chip: oklch(0.7000 0.1700 25.0000); }
+
 /* ── Event log — grows to fill remaining analytics height ─────── */
 .event-log {
     flex: 1;
@@ -247,7 +322,12 @@
 }
 
 .log-item {
+    --log-color: var(--muted-foreground);
     margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: 8px;
     color: var(--muted-foreground);
     font-size: 12px;
     border-bottom: 1px dashed color-mix(in oklab, var(--border) 60%, transparent 40%);
@@ -258,6 +338,65 @@
 .log-item:last-child {
     border-bottom: none;
     padding-bottom: 0;
+}
+
+/* Marca de tiempo del lote: el segundo exacto en que ocurrió el evento. */
+.log-time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--log-color);
+    padding-top: 1px;
+}
+
+.log-msg {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Severidades: info (neutro), ok (confirmación), alerta, error. */
+.log-ok     { --log-color: var(--primary); }
+.log-alerta { --log-color: oklch(0.6200 0.1400 75.0000); }
+.log-error  { --log-color: var(--destructive); }
+
+.dark .log-alerta { --log-color: oklch(0.7800 0.1300 80.0000); }
+.dark .log-error  { --log-color: oklch(0.7000 0.1700 25.0000); }
+
+.log-ok .log-msg,
+.log-alerta .log-msg,
+.log-error .log-msg {
+    color: var(--foreground);
+}
+
+/* Evidencia fotográfica del objeto extraño, junto a su propio evento. */
+.log-thumb {
+    display: block;
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid color-mix(in oklab, var(--extrano, var(--border)) 50%, transparent 50%);
+}
+
+.log-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Llamada de atención en Finalizar cuando el lote lleva segundos sin granos. */
+.btn-atencion {
+    animation: atencion-pulso 1.6s ease-in-out infinite;
+}
+
+@keyframes atencion-pulso {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent 55%); }
+    50%      { box-shadow: 0 0 0 6px color-mix(in oklab, var(--primary) 0%, transparent 100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .btn-atencion { animation: none; outline: 2px solid var(--primary); outline-offset: 2px; }
 }
 
 /* ── Bottom action buttons ──────────────────────────────────────── */

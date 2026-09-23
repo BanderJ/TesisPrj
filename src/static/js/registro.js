@@ -106,10 +106,10 @@
 			};
 			if (nombreTipo === 'pasaporte' || nombreTipo === 'carnet de extranjeria') return {
 				maxLength: 12, soloNumeros: false,
-				hint: 'Pasaporte/Carnet: 12 caracteres alfanumericos.',
-				placeholder: 'Ingrese 12 caracteres',
-				validationMessage: 'Para Pasaporte/Carnet se requieren 12 caracteres alfanumericos.',
-				regex: /^[A-Za-z0-9]{12}$/, longitudesAutoBusqueda: [12],
+				hint: 'Pasaporte/Carnet: 8 a 12 caracteres alfanumericos.',
+				placeholder: 'Ingrese 8-12 caracteres',
+				validationMessage: 'Para Pasaporte/Carnet se requieren de 8 a 12 caracteres alfanumericos.',
+				regex: /^[A-Za-z0-9]{8,12}$/, longitudesAutoBusqueda: [8, 9, 10, 11, 12],
 			};
 			return {
 				maxLength: 12, soloNumeros: false,
@@ -263,8 +263,8 @@
 			if (!esFloatPositivo(pesoTotalInput.value))   return rechazar('El peso total debe ser un número positivo (en kg).', pesoTotalInput);
 			const maxPesoTotal = parseInt(numSacosInput.value, 10) * 70;
 			if (parseFloat(pesoTotalInput.value) > maxPesoTotal) return rechazar(`El peso total no puede superar ${maxPesoTotal} kg (${numSacosInput.value} sacos × 70 kg).`, pesoTotalInput);
-			if (!esFloatPositivo(humedadInput.value))     return rechazar('La humedad debe ser un número positivo.', humedadInput);
-			if (parseFloat(humedadInput.value) > 100)     return rechazar('La humedad no puede superar 100%.', humedadInput);
+			if (!esEnteroPositivo(humedadInput.value))    return rechazar('La humedad debe ser un número entero (sin decimales).', humedadInput);
+			if (parseInt(humedadInput.value, 10) > 100)   return rechazar('La humedad no puede superar 100%.', humedadInput);
 			if (!esFloatPositivo(pm))                     return rechazar('Seleccione un peso de muestra (100, 150, 200, 250 o 300 gr.).', pesoMuestraInput);
 			if (!esFloatPositivo(pt))                     return rechazar('El peso trillado debe ser un número positivo (en gr.).', pesoTrilladoInput);
 			if (pt === pm)                                return rechazar('El peso trillado debe ser diferente al peso de muestra.', pesoTrilladoInput);
@@ -382,11 +382,10 @@
 		});
 
 		humedadInput.addEventListener('input', () => {
-			const h = parseFloat(humedadInput.value);
-			if (!humedadInput.value)        { setHint(humedadHint, ''); return; }
-			if (!esFloatPositivo(h))         setHint(humedadHint, 'Debe ser un número positivo.', true);
-			else if (h > 100)                setHint(humedadHint, 'La humedad no puede superar 100%.', true);
-			else                             setHint(humedadHint, '');
+			if (!humedadInput.value)              { setHint(humedadHint, ''); return; }
+			if (!esEnteroPositivo(humedadInput.value)) setHint(humedadHint, 'Debe ser un número entero (sin decimales).', true);
+			else if (parseInt(humedadInput.value, 10) > 100) setHint(humedadHint, 'La humedad no puede superar 100%.', true);
+			else                                   setHint(humedadHint, '');
 		});
 
 		pesoMuestraInput.addEventListener('input', () => {
@@ -403,11 +402,13 @@
 			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint, 'el peso trillado'));
 
 		forzarEntero(numSacosInput);
-		[pesoTotalInput, humedadInput, pesoTrilladoInput, pesoTamizadoInput]
+		forzarEntero(humedadInput);
+		[pesoTotalInput, pesoTrilladoInput, pesoTamizadoInput]
 			.forEach(forzar2Decimales);
 
 		bloquearCaracteresNumericos(numSacosInput, true);
-		[pesoTotalInput, humedadInput, pesoTrilladoInput, pesoTamizadoInput]
+		bloquearCaracteresNumericos(humedadInput, true);
+		[pesoTotalInput, pesoTrilladoInput, pesoTamizadoInput]
 			.forEach(i => bloquearCaracteresNumericos(i));
 
 		startBtn.addEventListener('click', async () => {

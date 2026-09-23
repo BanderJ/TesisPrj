@@ -135,10 +135,28 @@
 				</div>
 			</div>
 
-			<!-- Event log -->
-			<div class="event-log" id="eventLog" aria-live="polite">
-				<p class="log-item">Esperando lectura inicial del lote...</p>
+			<!-- Materia extraña: aparece solo cuando el modelo marca objetos en azul.
+			     Reusa .defect-item; solo cambia el color para amarrarlo a la caja del video. -->
+			<div class="defect-item foreign-alert" id="foreignAlert" hidden role="status" aria-live="polite">
+				<header>
+					<span><i class="foreign-dot" aria-hidden="true"></i>Objetos extraños</span>
+					<strong id="foreignCount">0</strong>
+				</header>
+				<p class="foreign-note">Enmarcados en azul sobre el video y desviados al canal de defecto.
+					Ya están contados dentro de «Defectos».</p>
 			</div>
+
+			<!-- Estado en vivo de cada componente del sistema -->
+			<div class="status-chips" role="status" aria-live="polite" aria-label="Estado del sistema">
+				<span class="status-chip" id="chipCamara"  data-estado="neutro">Cámara: —</span>
+				<span class="status-chip" id="chipFaja"    data-estado="neutro">Faja: —</span>
+				<span class="status-chip" id="chipArduino" data-estado="neutro">Arduino: —</span>
+				<span class="status-chip" id="chipModelo"  data-estado="neutro">Modelo: —</span>
+			</div>
+
+			<!-- Event log: registro cronológico acumulativo del lote -->
+			<p class="section-label">Registro del monitoreo</p>
+			<div class="event-log" id="eventLog" aria-live="polite"></div>
 		</article>
 	</div>
 

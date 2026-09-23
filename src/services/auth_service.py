@@ -23,7 +23,13 @@ class AuthService:
         if not token_cookie:
             return False
         token = token_cookie.split(" ")[-1] if token_cookie.startswith("Bearer ") else token_cookie
-        return verificar_token(token) is not None
+        payload = verificar_token(token)
+        if payload is None:
+            return False
+        # Una cuenta desactivada con cookie aun vigente no debe considerarse
+        # "con sesion activa": si no, /auth/login la redirige a "/" y "/" la
+        # devuelve a /auth/login por obtener_usuario_actual, en un loop infinito.
+        return self.cuenta_habilitada(payload.get("personal_id"))
 
     def cuenta_habilitada(self, personal_id: str | None) -> bool:
         """True si la cuenta existe y sigue activa en la BD.

@@ -134,6 +134,8 @@ class Evaluacion:
             if evaluacion_id is not None:
                 sql += " WHERE e.id = %s"
                 return db.obtener_uno(sql, (evaluacion_id,))
+            if codigo is None:
+                raise ValueError("Debe especificarse evaluacion_id o codigo.")
             sql += " WHERE TRIM(e.codigo) = %s"
             return db.obtener_uno(sql, (codigo.upper(),))
         finally:
@@ -200,7 +202,7 @@ class Evaluacion:
         factor_rendimiento: Decimal,
         tara_saco: Decimal,
         tara_total: int,
-        peso_neto: int,
+        peso_neto: Decimal,
         peso_por_qq: Decimal,
         pago: Decimal,
         categoria_id: int | None,
@@ -288,11 +290,22 @@ class Evaluacion:
         incidencias: list | None = None,
         db: Connection | None = None,
     ) -> dict[str, Any]:
-        """Genera el codigo EVA correlativo y lo asigna a la evaluacion. Retorna id y codigo."""
+        """Genera el codigo EVA correlativo y lo asigna a la evaluacion. Retorna id y codigo.
+
+        Idempotente: si la evaluacion ya tiene codigo (reintento de red o doble
+        submit hacia /finalizar) reutiliza el existente en vez de generar otro
+        y dejar huerfano el que ya vio/imprimio el operador.
+        """
         owns_db = db is None
         db = db or Connection()
         try:
-            codigo = self._generar_codigo(db)
+            existente = db.obtener_uno(
+                "SELECT TRIM(codigo) AS codigo FROM evaluacion WHERE id = %s",
+                (evaluacion_id,),
+            )
+            if existente is None:
+                raise ValueError("Evaluacion no encontrada.")
+            codigo = existente.get("codigo") or self._generar_codigo(db)
             incidencias_json = json.dumps(incidencias) if incidencias else None
             sql = """
                 UPDATE evaluacion

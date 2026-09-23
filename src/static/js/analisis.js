@@ -33,7 +33,7 @@
 			if (!res.ok) throw new Error('No se pudo cargar el resumen.');
 			const d = await res.json();
 
-			document.getElementById('codEval').textContent           = d.codigo || `EVA-${EVALUACION_ID.slice(0, 8)}`;
+			document.getElementById('codEval').textContent           = d.codigo || '—';
 			document.getElementById('caficultorNombre').textContent  = d.caficultor_nombre || '—';
 			document.getElementById('metaDoc').textContent           = d.num_documento    || '—';
 			document.getElementById('metaTipoCaf').textContent       = d.tipo_caficultor  || '—';
@@ -57,6 +57,9 @@
 			if (!stats && d.incidencias) {
 				renderIncidencias(d.incidencias);
 			}
+
+			// Traza del monitoreo: siempre desde la API, igual que en /reporte.
+			CoffeeEventos.render(d.eventos);
 		} catch (e) {
 			console.error(e);
 			if (window.CoffeeModal) {

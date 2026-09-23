@@ -21,8 +21,15 @@
 		const sanoValueEl     = document.getElementById('sanosValue');
 		const sanoBarEl       = document.getElementById('sanosBar');
 		const eventLog        = document.getElementById('eventLog');
+		const foreignAlertEl  = document.getElementById('foreignAlert');
+		const foreignCountEl  = document.getElementById('foreignCount');
 		const finishBtn         = document.getElementById('finishBtn');
 		const startBtn          = document.getElementById('startBtn');
+
+		const chipCamara  = document.getElementById('chipCamara');
+		const chipFaja    = document.getElementById('chipFaja');
+		const chipArduino = document.getElementById('chipArduino');
+		const chipModelo  = document.getElementById('chipModelo');
 
 		if (sample) {
 			sampleDni.textContent            = sample.num_documento    || '-';
@@ -123,42 +130,28 @@
 			try {
 				const res = await fetch('/video/status');
 				if (!res.ok) throw new Error();
-				const { activo } = await res.json();
-				if (activo) {
+				const { activo, evaluacion_id: loteDe } = await res.json();
+				// Solo se adopta el lote en curso si es el de ESTA evaluación (caso
+				// normal: recarga de la pestaña a mitad de monitoreo). Un lote que
+				// quedó activo de otra evaluación se cierra primero: si no, su
+				// conteo y sus evidencias se mezclarían con las de esta.
+				if (activo && loteDe && loteDe !== EVALUACION_ID) {
+					appendLog('Había un monitoreo de otra evaluación en curso. Se cerró para iniciar este lote.', 'alerta');
+					await fetch('/video/detener', { method: 'POST' }).catch(() => {});
+					await iniciarCaptura();
+				} else if (activo) {
 					// YOLO
 					capturandoYOLO        = true;
 					elapsedSeconds        = 0;
 					iniciarStream();
-					timerInterval = setInterval(() => {
-						elapsedSeconds += 1;
-						if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
-					}, 1000);
-					conteoInterval = setInterval(async () => {
-						if (!capturandoYOLO || finalizando) return;
-						try {
-							const [rConteo, rStatus] = await Promise.all([
-								fetch('/video/lote/conteo'),
-								fetch('/video/status'),
-							]);
-							if (rStatus.ok) {
-								const st = await rStatus.json();
-								if (st.camara_desconectada) { _manejarDesconexionCamara(st.error); return; }
-							}
-							const data = await rConteo.json();
-							conteoActual = data.conteo;
-							gruposActual = data.conteo_agrupado ?? {};
-							totalDefectosActual = data.total_defectos ?? 0;
-							totalSanosActual    = data.total_sanos ?? 0;
-							actualizarUIdesdeConteo(totalDefectosActual, totalSanosActual, gruposActual);
-							await _verificarTapa();
-						} catch (e) { console.error('Error obteniendo conteo:', e); }
-					}, 1500);
-					appendLog('Cámara conectada. Monitoreo en curso.');
+					iniciarTimer();
+					iniciarPoll();
+					appendLog('Cámara conectada. Monitoreo en curso.', 'ok');
 				} else {
 					await iniciarCaptura();
 				}
 			} catch {
-				appendLog('No se pudo verificar el servidor. Reintentando arranque...');
+				appendLog('No se pudo verificar el servidor. Reintentando arranque...', 'error');
 				await iniciarCaptura();
 			}
 		})();
@@ -183,12 +176,76 @@
 		let incidencias     = [];    // [{seg_apertura, seg_cierre, duracion_s}]
 
 		// ── UI helpers ────────────────────────────────────────────────────────
-		function appendLog(message) {
-			if (eventLog) eventLog.innerHTML = `<p class="log-item">${elapsedSeconds}s - ${message}</p>`;
+		// Registro cronológico ACUMULATIVO: cada evento se apila (lo más reciente
+		// arriba) con su marca mm:ss y su severidad. Antes se hacía
+		// `eventLog.innerHTML = ...`, que dejaba visible un único mensaje y borraba
+		// toda la traza del lote — el operario no podía reconstruir qué pasó.
+		const LOG_MAX_ENTRADAS = 80;
+
+		// `segundo` llega en los eventos del backend: es el segundo real del lote
+		// medido contra su inicio. Al recargar la pestaña a mitad de lote el
+		// cronómetro del navegador vuelve a 0, así que usar elapsedSeconds ahí
+		// fecharía mal toda la traza previa.
+		function appendLog(message, severidad = 'info', imagenUrl = null, segundo = null) {
+			if (!eventLog) return;
+
+			const item = document.createElement('p');
+			item.className = `log-item log-${severidad}`;
+
+			const marca = document.createElement('time');
+			marca.className = 'log-time';
+			marca.textContent = formatTimer(segundo != null ? segundo : elapsedSeconds);
+			item.appendChild(marca);
+
+			// textContent, nunca innerHTML: el mensaje puede venir del backend.
+			const texto = document.createElement('span');
+			texto.className = 'log-msg';
+			texto.textContent = message;
+			item.appendChild(texto);
+
+			if (imagenUrl) {
+				const link = document.createElement('a');
+				link.href      = imagenUrl;
+				link.target    = '_blank';
+				link.rel       = 'noopener';
+				link.className = 'log-thumb';
+				link.title     = 'Ver evidencia completa';
+				const img = document.createElement('img');
+				img.src     = imagenUrl;
+				img.alt     = 'Evidencia del objeto detectado';
+				img.loading = 'lazy';
+				link.appendChild(img);
+				item.appendChild(link);
+			}
+
+			eventLog.insertAdjacentElement('afterbegin', item);
+			while (eventLog.children.length > LOG_MAX_ENTRADAS) {
+				eventLog.lastElementChild.remove();
+			}
 		}
 
 		function formatTimer(v) {
 			return `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`;
+		}
+
+		// ── Estados en vivo ───────────────────────────────────────────────────
+		// Traduce a texto los estados que el sistema ya conocía pero no mostraba.
+		// No hace peticiones propias: se alimenta de las respuestas del poll.
+		function _pintarChip(el, texto, estado) {
+			if (!el) return;
+			el.textContent    = texto;
+			el.dataset.estado = estado;   // ok | alerta | error | neutro
+		}
+
+		function actualizarChipsCamara(status) {
+			if (status.camara_desconectada)  _pintarChip(chipCamara, 'Cámara: desconectada', 'error');
+			else if (status.activo)          _pintarChip(chipCamara, 'Cámara: en vivo', 'ok');
+			else                             _pintarChip(chipCamara, 'Cámara: detenida', 'alerta');
+			_pintarChip(chipModelo, `Modelo: ${status.modelo || '—'}`, status.activo ? 'ok' : 'neutro');
+		}
+
+		function actualizarChipFaja(activa) {
+			_pintarChip(chipFaja, activa ? 'Faja: en marcha' : 'Faja: detenida', activa ? 'ok' : 'alerta');
 		}
 
 		function actualizarUIdesdeConteo(totalDefectos = 0, totalSanos = 0, grupos = {}) {
@@ -206,6 +263,124 @@
 			sanoBarEl.style.width     = (100 - pct) + '%';
 		}
 
+		// Objetos que el modelo nunca reconoció como grano (piedra, pajilla, palito):
+		// tracker.py los enmarca en azul sobre el video, el servo los desvía al canal
+		// de defecto y cuentan como materia extraña en el grado. Aquí solo se
+		// mantiene el contador: el AVISO de cada objeto llega como evento del
+		// backend (con su segundo real y la foto del recorte), no se infiere
+		// restando contadores entre polls.
+		function avisarDesconocidos(n = 0) {
+			if (foreignCountEl) foreignCountEl.textContent = n;
+			if (foreignAlertEl) foreignAlertEl.hidden = n === 0;
+		}
+
+		// Lote nuevo: POST /video/iniciar reinicia la secuencia de eventos en el
+		// backend, así que el cursor del cliente TIENE que volver a 0 — si no, los
+		// primeros eventos del lote nuevo caerían por debajo del cursor viejo y
+		// nunca se mostrarían.
+		function resetearEstadoLote() {
+			cursorEventos       = 0;
+			_primerGranoAvisado = null;
+			_inactividadAvisada = false;
+			if (finishBtn) finishBtn.classList.remove('btn-atencion');
+			if (foreignCountEl) foreignCountEl.textContent = '0';
+			if (foreignAlertEl) foreignAlertEl.hidden = true;
+		}
+
+		// El backend ya calculaba segundos_sin_deteccion y el frontend lo descartaba.
+		// Aquí se traduce en dos avisos: confirmación de que el conteo arrancó, y
+		// alerta de racha sin granos (el operario decide si el lote terminó).
+		const SEG_INACTIVIDAD = 10;
+		// null = todavía sin sincronizar con el backend. Al recargar la pestaña a
+		// mitad de lote el primer poll adopta el estado en silencio, en vez de
+		// anunciar como recién ocurrido lo que ya estaba contado.
+		let _primerGranoAvisado = null;
+		let _inactividadAvisada = false;
+
+		function avisarActividad(totalGranos = 0, segundosSinDeteccion = null) {
+			if (_primerGranoAvisado === null) {
+				_primerGranoAvisado = totalGranos > 0;
+			} else if (!_primerGranoAvisado && totalGranos > 0) {
+				_primerGranoAvisado = true;
+				appendLog('Primer grano detectado. Conteo en marcha.', 'ok');
+			}
+			if (segundosSinDeteccion == null || !_primerGranoAvisado) return;
+
+			if (segundosSinDeteccion >= SEG_INACTIVIDAD) {
+				if (!_inactividadAvisada) {
+					_inactividadAvisada = true;
+					appendLog(
+						`Sin granos hace ${SEG_INACTIVIDAD} s — si el lote terminó, presione Finalizar monitoreo.`,
+						'alerta',
+					);
+					if (finishBtn) finishBtn.classList.add('btn-atencion');
+				}
+			} else if (_inactividadAvisada) {
+				_inactividadAvisada = false;
+				if (finishBtn) finishBtn.classList.remove('btn-atencion');
+			}
+		}
+
+		// ── Poll unificado ────────────────────────────────────────────────────
+		// Una sola implementación para conteo + estado de cámara + eventos del
+		// backend + tapa. Antes este bloque estaba duplicado (arranque automático
+		// e iniciarCaptura) y cada añadido había que hacerlo dos veces.
+		let cursorEventos = 0;
+
+		async function pollEstado() {
+			if (!capturandoYOLO || finalizando) return;
+			try {
+				const [rConteo, rStatus, rEventos] = await Promise.all([
+					fetch('/video/lote/conteo'),
+					fetch('/video/status'),
+					fetch(`/video/eventos?desde=${cursorEventos}`),
+				]);
+
+				if (rStatus.ok) {
+					const status = await rStatus.json();
+					actualizarChipsCamara(status);
+					if (status.camara_desconectada) {
+						_manejarDesconexionCamara(status.error);
+						return;
+					}
+				}
+
+				if (rConteo.ok) {
+					const data = await rConteo.json();
+					conteoActual        = data.conteo;
+					gruposActual        = data.conteo_agrupado ?? {};
+					totalDefectosActual = data.total_defectos ?? 0;
+					totalSanosActual    = data.total_sanos ?? 0;
+					actualizarUIdesdeConteo(totalDefectosActual, totalSanosActual, gruposActual);
+					avisarDesconocidos(data.total_desconocidos ?? 0);
+					avisarActividad(data.total_granos ?? 0, data.segundos_sin_deteccion);
+				}
+
+				if (rEventos.ok) {
+					const { eventos, cursor } = await rEventos.json();
+					(eventos || []).forEach(ev => appendLog(ev.mensaje, ev.severidad, ev.imagen_url, ev.segundo));
+					if (cursor != null) cursorEventos = cursor;
+				}
+
+				await _verificarTapa();
+			} catch (e) {
+				console.error('Error en el poll de monitoreo:', e);
+			}
+		}
+
+		function iniciarPoll() {
+			clearInterval(conteoInterval);
+			conteoInterval = setInterval(pollEstado, 1500);
+		}
+
+		function iniciarTimer() {
+			clearInterval(timerInterval);
+			timerInterval = setInterval(() => {
+				elapsedSeconds += 1;
+				if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
+			}, 1000);
+		}
+
 		// ── Desconexión de cámara ─────────────────────────────────────────────
 		function _manejarDesconexionCamara(errorMsg) {
 			if (finalizando) return;
@@ -216,7 +391,8 @@
 
 			const mensaje = errorMsg || 'Desconexión con cámara. La clasificación se ha detenido.';
 			mostrarErrorCamara(mensaje);
-			appendLog(mensaje);
+			appendLog(mensaje, 'error');
+			_pintarChip(chipCamara, 'Cámara: desconectada', 'error');
 
 			if (startBtn) { startBtn.style.display = 'inline-flex'; startBtn.textContent = 'Reintentar captura'; }
 		}
@@ -228,20 +404,21 @@
 		async function _verificarTapa() {
 			try {
 				const rTapa = await fetch('/arduino/estado');
-				if (!rTapa.ok) return;
+				if (!rTapa.ok) { _pintarChip(chipArduino, 'Arduino: sin respuesta', 'error'); return; }
 				const tapa = await rTapa.json();
-				if (!tapa.conectado) return;
+				if (!tapa.conectado) { _pintarChip(chipArduino, 'Arduino: sin conexión', 'error'); return; }
+				_pintarChip(chipArduino, 'Arduino: conectado', 'ok');
 
 				if (tapaCerrada && !tapa.listo) {
 					tapaCerrada     = false;
 					msAperturaTapa  = Date.now();
 					segAperturaTapa = elapsedSeconds;
-					appendLog('Tapa abierta — se registrará como incidencia.');
+					appendLog('Tapa abierta — se registrará como incidencia.', 'alerta');
 				} else if (!tapaCerrada && tapa.listo) {
 					tapaCerrada = true;
 					const segsAbierta = Math.round((Date.now() - msAperturaTapa) / 1000);
 					incidencias.push({ seg_apertura: segAperturaTapa, seg_cierre: elapsedSeconds, duracion_s: segsAbierta });
-					appendLog(`Tapa cerrada — estuvo abierta ${segsAbierta}s.`);
+					appendLog(`Tapa cerrada — estuvo abierta ${segsAbierta}s.`, 'ok');
 				}
 			} catch { /* ignorar error de tapa */ }
 		}
@@ -251,17 +428,20 @@
 			try {
 				const res  = await fetch('/arduino/motor/iniciar', { method: 'POST' });
 				const data = await res.json();
-				appendLog(data.mensaje || 'Faja iniciada.');
+				appendLog(data.mensaje || 'Faja iniciada.', data.activo ? 'ok' : 'error');
+				actualizarChipFaja(Boolean(data.activo));
 			} catch {
-				appendLog('No se pudo iniciar la faja. Verifique la conexión Arduino.');
+				appendLog('No se pudo iniciar la faja. Verifique la conexión Arduino.', 'error');
+				actualizarChipFaja(false);
 			}
 		}
 
 		async function detenerFaja() {
 			try {
 				await fetch('/arduino/motor/detener', { method: 'POST', keepalive: true });
+				actualizarChipFaja(false);
 			} catch {
-				appendLog('No se pudo detener la faja. Verifique la conexión Arduino.');
+				appendLog('No se pudo detener la faja. Verifique la conexión Arduino.', 'error');
 			}
 		}
 
@@ -283,9 +463,15 @@
 			if (startBtn) { startBtn.style.display = 'none'; }
 
 			try {
-				// 1. Iniciar YOLO + cámara primero
+				// 1. Iniciar YOLO + cámara primero. El id de evaluación viaja al
+				// backend para que los eventos y las evidencias del lote queden
+				// asociados a esta evaluación.
 				appendLog('Cargando modelo y conectando cámara...');
-				const res = await fetch('/video/iniciar', { method: 'POST' });
+				const res = await fetch('/video/iniciar', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ evaluacion_id: EVALUACION_ID }),
+				});
 				if (!res.ok) {
 					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo iniciar la captura.'));
 				}
@@ -296,52 +482,20 @@
 				if (!camaraLista) throw new Error('La cámara no respondió a tiempo. Verifique la conexión.');
 
 				// 3. Cámara confirmada — arrancar faja
-				appendLog('Cámara activa. Arrancando faja transportadora...');
+				appendLog('Cámara activa. Arrancando faja transportadora...', 'ok');
 				await iniciarFaja();
 
 				capturandoYOLO        = true;
 				elapsedSeconds        = 0;
+				resetearEstadoLote();
 
-				appendLog('Faja en marcha. Captura YOLO activa.');
+				appendLog('Faja en marcha. Captura YOLO activa.', 'ok');
 				iniciarStream();
-
-				// Timer de sesión
-				timerInterval = setInterval(() => {
-					elapsedSeconds += 1;
-					if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
-				}, 1000);
-
-				// Conteo + detección de desconexión de cámara + auto-stop
-				conteoInterval = setInterval(async () => {
-					if (!capturandoYOLO || finalizando) return;
-					try {
-						const [rConteo, rStatus] = await Promise.all([
-							fetch('/video/lote/conteo'),
-							fetch('/video/status'),
-						]);
-
-						if (rStatus.ok) {
-							const status = await rStatus.json();
-							if (status.camara_desconectada) {
-								_manejarDesconexionCamara(status.error);
-								return;
-							}
-						}
-
-						const data = await rConteo.json();
-						conteoActual = data.conteo;
-						gruposActual = data.conteo_agrupado ?? {};
-						totalDefectosActual = data.total_defectos ?? 0;
-						totalSanosActual    = data.total_sanos ?? 0;
-						actualizarUIdesdeConteo(totalDefectosActual, totalSanosActual, gruposActual);
-						await _verificarTapa();
-					} catch (e) {
-						console.error('Error obteniendo conteo:', e);
-					}
-				}, 1500);
+				iniciarTimer();
+				iniciarPoll();
 
 			} catch (err) {
-				appendLog('Error: ' + err.message);
+				appendLog('Error: ' + err.message, 'error');
 				if (startBtn) { startBtn.style.display = 'inline-flex'; startBtn.textContent = 'Reintentar captura'; }
 				await detenerFaja();
 			}
@@ -363,9 +517,12 @@
 				if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo generar el reporte.'));
 				reporteActual = await res.json();
 				const { grado, total_defectos, apto_specialty } = reporteActual;
-				appendLog(`Reporte: ${grado} | ${total_defectos} defectos equiv. | Specialty: ${apto_specialty ? 'Apto' : 'No apto'}`);
+				appendLog(
+					`Reporte: ${grado} | ${total_defectos} defectos equiv. | Specialty: ${apto_specialty ? 'Apto' : 'No apto'}`,
+					'ok',
+				);
 			} catch (err) {
-				appendLog('Error al generar reporte: ' + err.message);
+				appendLog('Error al generar reporte: ' + err.message, 'error');
 			}
 		}
 
@@ -492,7 +649,7 @@
 				document.getElementById('finRendimiento').style.display = 'block';
 				document.getElementById('finPesoForm').style.display = 'none';
 				finDescripcion.textContent = 'Rendimiento calculado. Revisa el resumen antes de continuar al análisis.';
-				appendLog(`Peso bueno: ${peso} g — factor de rendimiento ${Number(data.factor_rendimiento).toFixed(2)}`);
+				appendLog(`Peso bueno: ${peso} g — factor de rendimiento ${Number(data.factor_rendimiento).toFixed(2)}`, 'ok');
 				_habilitarIrAnalisis();
 			} catch (err) {
 				errorEl.textContent = err.message;
@@ -602,12 +759,12 @@
 				const { codigo } = await res.json();
 				_pasoOk(3);
 				sessionStorage.removeItem('coffeeren.evaluacion');
-				appendLog(`Evaluacion finalizada. Código: ${codigo}`);
+				appendLog(`Evaluacion finalizada. Código: ${codigo}`, 'ok');
 				history.replaceState(null, '', '/registro');
 				completarOverlay(codigo, pesoCapturado);
 			} catch (err) {
 				_pasoError(3);
-				appendLog('Error: ' + err.message);
+				appendLog('Error: ' + err.message, 'error');
 				sessionStorage.removeItem('coffeeren.stats');
 				errorOverlay(err.message);
 			}

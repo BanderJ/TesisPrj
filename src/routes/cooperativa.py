@@ -11,6 +11,9 @@ from src.utilities.uuid_utils import uuid7
 
 router = APIRouter(prefix="/cooperativas", tags=["cooperativas"])
 
+EXTENSIONES_IMAGEN_PERMITIDAS = {"jpg", "jpeg", "png", "webp", "gif"}
+MAX_TAMANO_IMAGEN_BYTES = 5 * 1024 * 1024
+
 
 @router.get("/mi-cooperativa", response_model=CooperativaResponse)
 async def obtener_mi_cooperativa(usuario_actual: dict = Depends(obtener_usuario_actual)):
@@ -62,12 +65,19 @@ async def upload_imagen_cooperativa(
     try:
         if not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="Solo se aceptan imágenes.")
+        # Extension por whitelist fija: nunca se usa la extension cruda del
+        # archivo subido para construir la ruta de escritura (riesgo de path
+        # traversal via un filename como "a.png/../../evil.py").
+        ext = file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else ""
+        if ext not in EXTENSIONES_IMAGEN_PERMITIDAS:
+            raise HTTPException(status_code=400, detail="Formato de imagen no permitido. Use JPG, PNG, WEBP o GIF.")
+        contents = await file.read()
+        if len(contents) > MAX_TAMANO_IMAGEN_BYTES:
+            raise HTTPException(status_code=400, detail="La imagen no puede superar 5 MB.")
         upload_dir = "src/resources/cooperativa"
         os.makedirs(upload_dir, exist_ok=True)
-        ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
         filename = f"{uuid7()}.{ext}"
         filepath = os.path.join(upload_dir, filename)
-        contents = await file.read()
         with open(filepath, "wb") as f:
             f.write(contents)
         return {"imagen_url": f"/resources/cooperativa/{filename}"}

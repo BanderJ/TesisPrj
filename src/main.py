@@ -34,7 +34,11 @@ from src.services.tracker_service import tracker_service
 from src.utilities.arduino_serial import arduino_serial
 from src.utilities.servo_controller import servo_controller
 from src.services.evaluacion_service import EvaluacionService
-from src.utilities.jwt_required import RequerirLoginException, obtener_usuario_actual
+from src.utilities.jwt_required import (
+    RequerirLoginException,
+    obtener_usuario_actual,
+    require_admin_o_gerente,
+)
 
 _UUID_RE = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
@@ -93,14 +97,20 @@ async def auth_exception_handler(request: Request, exc: RequerirLoginException) 
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> Response:
-    """404 en navegación del browser → página HTML; para fetch/API se mantiene el JSON."""
-    if exc.status_code == status.HTTP_404_NOT_FOUND and "text/html" in request.headers.get("accept", ""):
+    """Navegación del browser: 404 → página HTML, 403 → redirect a inicio.
+    Para fetch/API (Accept sin text/html) se mantiene el JSON con el status real."""
+    navegacion_html = "text/html" in request.headers.get("accept", "")
+    if exc.status_code == status.HTTP_404_NOT_FOUND and navegacion_html:
         return templates.TemplateResponse(
             request=request,
             name="404.html",
             context={"request": request},
             status_code=status.HTTP_404_NOT_FOUND,
         )
+    if exc.status_code == status.HTTP_403_FORBIDDEN and navegacion_html:
+        # Un rol sin permiso que escribe la URL de una página restringida a mano
+        # va a inicio, no ve un JSON de error.
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     return JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
 
 
@@ -203,14 +213,21 @@ app.include_router(video_router)  # Video streaming y análisis ML
 
 
 @app.get("/")
-@app.get("/inicio")
 async def inicio(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
-    """Página de inicio del sistema."""
+    """Página de inicio del sistema. URL canónica: `/`."""
     return templates.TemplateResponse(
         request=request,
         name="inicio.html",
         context={"request": request, "user": user},
     )
+
+
+@app.get("/inicio", include_in_schema=False)
+async def inicio_alias(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> RedirectResponse:
+    """Alias histórico → redirige a la URL canónica `/` (marcadores viejos).
+    307 (temporal): no se cachea de forma permanente en el browser. Mantiene el
+    guard de sesión como toda ruta de página (un no autenticado va a login)."""
+    return RedirectResponse(url="/", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
 @app.get("/registro")
@@ -310,8 +327,9 @@ async def reporte(request: Request, user: dict[str, Any] = Depends(obtener_usuar
 
 
 @app.get("/valor-cafe")
-async def valor_cafe(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
-    """Pantalla de registro de precios de café. Solo accesible para Gerente y Administrador."""
+async def valor_cafe(request: Request, user: dict[str, Any] = Depends(require_admin_o_gerente)) -> Any:
+    """Pantalla de registro de precios de café. Solo Gerente y Administrador —
+    un Evaluador que escriba la URL a mano recibe 403 → redirect a `/`."""
     return templates.TemplateResponse(
         request=request,
         name="valor_cafe.html",
@@ -320,8 +338,8 @@ async def valor_cafe(request: Request, user: dict[str, Any] = Depends(obtener_us
 
 
 @app.get("/configuracion-cooperativa")
-async def configuracion_cooperativa(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
-    """Pantalla de configuración de cooperativa."""
+async def configuracion_cooperativa(request: Request, user: dict[str, Any] = Depends(require_admin_o_gerente)) -> Any:
+    """Pantalla de configuración de cooperativa. Solo Gerente y Administrador."""
     return templates.TemplateResponse(
         request=request,
         name="cooperativa.html",

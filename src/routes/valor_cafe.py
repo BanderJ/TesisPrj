@@ -15,7 +15,7 @@ from src.schemas.valor_cafe import (
 )
 from src.services.auditoria_service import auditoria_service
 from src.services.valor_cafe_service import ValorCafeService
-from src.utilities.jwt_required import require_admin_o_gerente
+from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente
 from src.utilities.request_utils import get_client_ip
 
 
@@ -27,6 +27,7 @@ valor_cafe_service = ValorCafeService()
 async def historial_dia(
     fecha: date | None = Query(default=None, description="Fecha a consultar (YYYY-MM-DD). Default: hoy"),
     rango: str | None = Query(default=None, description="Filtrar por rango de cafe"),
+    _: dict = Depends(obtener_usuario_actual),
 ) -> ValorCafeHistorialResponse:
     try:
         return valor_cafe_service.obtener_historial_dia(fecha, rango)
@@ -37,6 +38,7 @@ async def historial_dia(
 @valor_cafe_router.get("/maximo-dia", response_model=ValorCafeMaximoResponse)
 async def maximo_dia(
     fecha: date | None = Query(default=None, description="Fecha a consultar (YYYY-MM-DD). Default: hoy"),
+    _: dict = Depends(obtener_usuario_actual),
 ) -> ValorCafeMaximoResponse:
     try:
         return valor_cafe_service.obtener_maximo_dia(fecha)
@@ -49,6 +51,7 @@ async def cambios_diarios(
     desde: date | None = Query(default=None, description="Fecha inicio (YYYY-MM-DD). Default: hace 30 dias"),
     hasta: date | None = Query(default=None, description="Fecha fin (YYYY-MM-DD). Default: hoy"),
     rango: str | None = Query(default=None, description="Filtrar por rango de cafe"),
+    _: dict = Depends(obtener_usuario_actual),
 ) -> ValorCafeCambiosDiariosResponse:
     try:
         return valor_cafe_service.obtener_cambios_diarios(desde, hasta, rango)
@@ -61,6 +64,7 @@ async def cambios_diarios(
 @valor_cafe_router.get("/resumen-rangos", response_model=ValorCafeResumenRangosResponse)
 async def resumen_rangos(
     fecha: date | None = Query(default=None, description="Fecha a consultar (YYYY-MM-DD). Default: hoy"),
+    _: dict = Depends(obtener_usuario_actual),
 ) -> ValorCafeResumenRangosResponse:
     try:
         return valor_cafe_service.obtener_resumen_rangos(fecha)
@@ -87,6 +91,8 @@ async def actualizar_precio_rango(
             ip_cliente=get_client_ip(request),
         )
         return result
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail="No se pudo actualizar el precio.") from exc
 
