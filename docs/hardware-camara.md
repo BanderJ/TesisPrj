@@ -243,9 +243,13 @@ Requisitos para que MSMF funcione bien:
   ve el modelo** (se preserva la proporción grano/cuadro). Solo mejoran el
   detalle: (a) recortar un ROI de la faja antes de inferir, o (b) acercar el
   zoom del lente.
-- `imgsz=640` y `half=False` están fijados y el ONNX se exportó con
-  `dynamic=False`: **el modelo ONNX solo acepta entrada 640x640**. Cambiar
-  `imgsz` requiere reexportar.
+- Desde septiembre de 2026 el frame no se reescala entero: se divide en una
+  grilla de 3×3 recortes con solape de 200 px y cada recorte se infiere a 640
+  (ver [guia/02-modulo-ml.md](guia/02-modulo-ml.md)). Eso acerca el grano a la
+  escala de entrenamiento sin cambiar `imgsz`.
+- `imgsz=640` está fijado y el ONNX se exportó con `dynamic=False` y
+  `half=False`: **el modelo ONNX solo acepta entrada 640x640**. Cambiar `imgsz`
+  requiere reexportar. En GPU se usa `best.pt` con FP16 condicional por hardware.
 
 ---
 

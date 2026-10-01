@@ -1,6 +1,6 @@
 # Registro de Avances - Tesis CoffeeRen 2026
 
-**Última actualización:** 25 de mayo de 2026
+**Última actualización:** 30 de septiembre de 2026
 
 ---
 
@@ -707,3 +707,58 @@ operando hasta que el token expiraba.
 
 ### Proximo paso
 Ninguno. Confirmar los cambios de la rama `temporal`.
+
+## 2026-09-16 al 2026-09-30 - GPU, robustez del ML, reglas de pesos y reorganizacion de la documentacion
+
+### Contexto
+Entre el 16 y el 30 de septiembre se integraron varios cambios grandes (commits
+`93cd39a` y `4f38d55`) que no tenian entrada en este registro, y la documentacion
+seguia describiendo el modelo cascada de 14 clases, ONNX como formato unico y la
+camara a 1280x720. Se consolido todo en una guia de contexto.
+
+### Trabajo realizado
+- **Domain gap (2026-09-16):** se investigo por que granos sanos salian como
+  defecto (~40 %). Causa principal: dataset tomado con celular y produccion con
+  la ELP, sin augmentation de tono. Bloque 1 aplicado (`CAM_WB_TEMP`); notebook
+  de fine-tuning v7 preparado. Incidencia INC-65.
+- **Migracion a GPU (2026-09-22, `93cd39a`):** torch `+cu130`, `best.pt` en GPU
+  con FP16 condicional, tiles 3x3 en un batch, fusion consciente de costura,
+  clase por confianza acumulada, objeto desconocido con evidencia fotografica,
+  gate de movimiento, tabla `EVENTO_MONITOREO`, medidor de latencia (p95 110 ms).
+  CPU ~96 % -> ~25 %. Incidencias INC-66 e INC-67.
+- **Tara minima (2026-09-30, `4f38d55`):** el peso bruto debe superar
+  `round(num_sacos x 0.25)`. Incidencia INC-68.
+- **Documentacion (2026-09-30):** nueva carpeta `docs/guia/` (contexto, modulo
+  ML, reentrenamiento con la ELP, pendientes, historial); manuales movidos a
+  `docs/manuales/`; `CLAUDE.md`, `AGENTS.md`, `readme.md`,
+  `DOCUMENTACION_SISTEMA.md`, `API_VIDEO_STREAMING.md`, `hardware-camara.md`,
+  `LIBRERIAS.md`, `arquitectura.md` y los manuales corregidos al estado real;
+  `docs/documentacion/README.md` marca esa carpeta como historica; incidencias
+  INC-53 a INC-61 cerradas con su commit.
+- **Limpieza (2026-09-30):** eliminados por redundantes `docs/manuales/INSTALACION.md`
+  (duplicaba el Manual de Instalacion y el readme) y en `docs/documentacion/`
+  `avance-tecnico-completo-2026.md`, `arquitectura-sistema-clasificacion.md` y
+  `registro-avances.md` (superados por `docs/guia/`; la arquitectura de hilos paso a
+  `docs/guia/02-modulo-ml.md`). `BACA CHUQUIMANCO_PROY.md` regenerado desde el `.docx`
+  (382 lineas tenian caracteres danados).
+
+### Archivos impactados
+- `docs/guia/*` (nuevo), `docs/manuales/*` (movidos desde la raiz),
+  `docs/documentacion/README.md` (nuevo), `docs/incidencias/incidencia_proyecto.md`,
+  `CLAUDE.md`, `AGENTS.md`, `readme.md`, `convert_md_to_docx.py` (ruta del manual)
+  y los documentos tecnicos de `docs/`.
+
+### Validacion
+- Estado: hecho (solo documentacion; no se modifico codigo de `src/`).
+- Cada dato tecnico se contrasto con el codigo actual (`tracker.py`,
+  `tracker_service.py`, `constants.py`, `config-example.py`, `main.py`, rutas).
+
+### Pendientes
+- Lista unica y priorizada en `docs/guia/04-pendientes.md`. Lo principal:
+  reentrenamiento v7 con fotos de la ELP, evaluacion formal (INC-63), validacion
+  de equivalencias con la cooperativa (INC-17), analisis de los CSV de latencia
+  del 2026-09-29 y regenerar los `.docx` de los manuales.
+
+### Proximo paso
+Preparar las condiciones de captura (iluminacion, lente bloqueado, `CAM_WB_TEMP`)
+y capturar las fotos con la ELP segun `docs/guia/03-reentrenamiento-camara-elp.md`.

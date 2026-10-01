@@ -1,7 +1,8 @@
 # Manual de Mantenimiento - CoffeeRen
 
-**Versión:** 1.0
+**Versión:** 1.1
 **Fecha de elaboración:** 9 de julio de 2026
+**Última actualización:** 30 de septiembre de 2026 (inferencia en GPU, fine-tuning con fotos de la cámara ELP)
 **Público objetivo:** Técnicos de mantenimiento, administradores del sistema, equipo de desarrollo
 **Alcance:** Mantenimiento preventivo mensual, reentrenamiento semestral del modelo de visión artificial y resolución de problemas frecuentes de operación
 
@@ -54,6 +55,9 @@ Este manual asume que el sistema ya está instalado y operativo (ver **Manual de
   - Cambió el hardware: cámara nueva, iluminación distinta, faja de otro color.
   - Se procesan variedades o presentaciones de café que el modelo no conoció en el entrenamiento.
 
+> **Procedimiento detallado vigente:** [docs/guia/03-reentrenamiento-camara-elp.md](../guia/03-reentrenamiento-camara-elp.md).
+> Esta sección es el resumen operativo; ante cualquier diferencia, manda la guía.
+
 ### Resumen del ciclo (CRISP-ML(Q))
 
 ```
@@ -65,14 +69,14 @@ Este manual asume que el sistema ya está instalado y operativo (ver **Manual de
 
 ### Paso 1: Recolección de imágenes nuevas
 
-1. Use la **misma cámara y montaje** del sistema en producción (ELP AR0234 sobre la faja, 1280×720) — las imágenes de entrenamiento deben parecerse a lo que el modelo verá en operación.
+1. Use la **misma cámara, montaje y configuración** del sistema en producción (ELP AR0234 sobre la faja, 1920×1080, mismos `CAM_WB_TEMP` y `CAM_EXPOSURE` del `.env`) — las imágenes de entrenamiento deben parecerse a lo que el modelo verá en operación. Guarde los recortes de la grilla 3×3 que usa el tracker, no solo el frame completo (ver la guía).
 2. Capture granos representativos de la campaña actual:
    - Mínimo **300-500 imágenes nuevas** por sesión de reentrenamiento.
    - Incluya ambas clases: granos sanos (`verde`) y defectuosos (`defecto`), en proporción realista.
    - Varíe condiciones dentro de lo normal: distintas horas del día, densidades de granos sobre la faja, lotes de distintos caficultores.
 3. Guarde las imágenes originales en la carpeta de Google Drive del proyecto (`dataset/campaña_<año>-<semestre>/`).
 
-> **Consejo:** puede extraer frames directamente de sesiones de monitoreo reales. Cuanto más se parezcan los datos de entrenamiento a la operación real, mejor será el modelo.
+> **Consejo:** guarde frames **crudos** (sin cajas dibujadas): `/video/frame` y `/video/stream` entregan el frame anotado y no sirven para entrenar. Aparte 50-100 imágenes de sesiones distintas en `validacion_elp/` (Google Drive) sin subirlas a Roboflow: sirven para comprobar el modelo nuevo con datos que nunca vio.
 
 ### Paso 2: Etiquetado en Roboflow
 
@@ -99,29 +103,34 @@ Genere una **nueva versión** del dataset en Roboflow con exactamente esta confi
 | Ruido | 0.1% |
 | Resolución | 640×640 |
 
+El jitter de tono y saturación (HSV) **no** se configura en Roboflow: lo aplica el entrenamiento (`hsv_h`, `hsv_s`, `hsv_v`, Paso 4). El split debe hacerse por sesión de captura, no al azar, para que frames casi idénticos no queden a la vez en train y test.
+
 Exporte la versión en formato **YOLO** y anote el número de versión del dataset (se registra en la bitácora, sección 7).
 
 ### Paso 4: Entrenamiento en Google Colab
 
-1. Abra el notebook de entrenamiento del proyecto en Google Colab.
+1. Abra en Google Colab el notebook del proyecto: `src/ml/models/yolov26n_2cls_new/entrenamiento_yolo26n_v7_finetune.ipynb` (la API key de Roboflow va como secreto de Colab `ROBOFLOW_API_KEY`).
 2. Seleccione GPU (**A100** si está disponible; T4 funciona pero tarda más).
-3. Parámetros de entrenamiento de referencia:
+3. Se hace **fine-tuning** desde los pesos del modelo en producción (no desde COCO). Parámetros de referencia:
 
 ```python
 from ultralytics import YOLO
 
-model = YOLO("yolo26n.pt")          # transfer learning desde COCO
+model = YOLO("/content/drive/MyDrive/CoffeeRen/modelos/<version_actual>/best.pt")
 model.train(
-    data="data.yaml",                # dataset exportado de Roboflow
-    epochs=100,                      # referencia: 75-100
+    data="data.yaml",                # versión nueva del dataset de Roboflow
+    epochs=50,
     imgsz=640,                       # NO cambiar — debe coincidir con producción
-    batch=16,
+    batch=32,
+    patience=15,
+    optimizer="AdamW",
+    lr0=0.001,                       # bajo: se afina, no se entrena desde cero
     seed=42,                         # reproducibilidad
-    patience=20,                     # early stopping
+    hsv_h=0.02, hsv_s=0.7, hsv_v=0.4 # variación de tono y saturación
 )
 ```
 
-4. Duración de referencia: ~1-2 horas en A100 para un dataset de ~8,000 imágenes.
+4. Verifique que `data.yaml` declare las clases en el orden `['defecto', 'verde']`; un orden distinto invierte la clasificación.
 5. Al finalizar, descargue la carpeta `runs/detect/train/` completa (pesos + métricas + curvas).
 
 ### Paso 5: Validación del modelo nuevo
@@ -135,6 +144,7 @@ model.train(
 | mAP50 | ≥ que el modelo en producción (referencia histórica: 0.767) |
 | mAP50-95 | ≥ que el modelo en producción (referencia histórica: 0.757) |
 | Precision / Recall por clase | Sin caídas notorias en la clase `defecto` (es la crítica: un defecto no detectado llega al lote bueno) |
+| Fotos de `validacion_elp/` | Menos granos sanos marcados como defecto que el modelo actual, sin más defectos marcados como sanos |
 
 **b) Prueba real en banco** (obligatoria antes de desplegar):
 
@@ -145,7 +155,7 @@ model.train(
 
 ### Paso 6: Exportación a ONNX
 
-Exporte con **exactamente estos parámetros** — son los calibrados para producción (CPU y GPU) y no deben cambiarse:
+El sistema usa `best.pt` cuando hay GPU NVIDIA (FP16 automático en GPUs con compute capability ≥ 7.0) y `best.onnx` cuando corre en CPU. Exporte el ONNX con **exactamente estos parámetros**:
 
 ```python
 from ultralytics import YOLO
@@ -154,7 +164,7 @@ model = YOLO("best.pt")
 model.export(format="onnx", imgsz=640, half=False, dynamic=False, simplify=True)
 ```
 
-- `half=False` es obligatorio: la GTX 1050 Mobile de la cooperativa tiene soporte FP16 limitado.
+- `half=False` en la exportación es obligatorio: el ONNX es el respaldo de CPU y de equipos sin FP16 (GTX 1050 Mobile). El FP16 en GPU lo decide el sistema al cargar `best.pt`, no la exportación.
 - `imgsz=640` debe coincidir con el tamaño de entrenamiento.
 
 El resultado es un archivo `best.onnx` (~9-10 MB).
@@ -171,7 +181,8 @@ copy yolov26n_2cls\best.onnx yolov26n_2cls_backup_2026-07\
 copy yolov26n_2cls\best.pt   yolov26n_2cls_backup_2026-07\
 ```
 
-3. Copie los archivos nuevos (`best.onnx` y `best.pt`) a `src/ml/models/yolov26n_2cls/`.
+3. Copie los archivos nuevos (`best.onnx` y `best.pt`) a `src/ml/models/yolov26n_2cls/` y confirme el orden de clases:
+   `python -c "from ultralytics import YOLO; print(YOLO('src/ml/models/yolov26n_2cls/best.pt').names)"` debe mostrar `{0: 'defecto', 1: 'verde'}`.
 4. **No modifique `constants.py`** salvo que hayan cambiado las clases del modelo (con el modelo binario defecto/verde, normalmente no cambia). Si cambió la distancia de la cámara a la faja, recalibre `GRANO_MIN_PX` / `GRANO_MAX_PX`.
 5. Suba también los pesos nuevos a la carpeta de Google Drive del proyecto (es el origen oficial para nuevas instalaciones).
 
@@ -179,11 +190,13 @@ copy yolov26n_2cls\best.pt   yolov26n_2cls_backup_2026-07\
 
 1. Inicie el servidor y confirme en la consola:
 ```
-Modelo YOLO cargado: yolov26n_2cls (best.onnx, conf=0.5, device=...)
+Modelo YOLO cargado: yolov26n_2cls (best.pt, conf=0.15, device=0, half=True)
 Modelo listo.
 ```
-2. Corra un lote de prueba corto y verifique conteo, colores (defectos en rojo) y separación física.
-3. Registre el reentrenamiento en la bitácora (sección 7).
+   En un equipo sin GPU aparece `best.onnx` y `device=cpu`.
+2. Corra un lote de prueba corto y verifique conteo, colores (defectos en rojo, sanos en verde, objetos desconocidos en azul) y separación física.
+3. Revise con el equipo de desarrollo si conviene recalibrar `MARGEN_DEFECTO` y `UMBRAL_CONF_CONOCIDO` para el modelo nuevo.
+4. Registre el reentrenamiento en la bitácora (sección 7).
 
 ### Rollback (si el modelo nuevo falla en producción)
 
@@ -336,7 +349,7 @@ SERVO_DELAY_S=0.55
 
 1. Verifique que no hay otras aplicaciones pesadas abiertas (navegador con muchas pestañas, actualizaciones de Windows).
 2. Verifique en el arranque qué dispositivo usa el modelo: `device=0` (GPU) es más rápido que `device=cpu`.
-3. Confirme que se está usando `best.onnx` (más rápido) y no `best.pt`: el mensaje de arranque lo indica.
+3. Con GPU debe usarse `best.pt` con `device=0`; si el arranque muestra `device=cpu` en un equipo con tarjeta NVIDIA, PyTorch quedó instalado sin CUDA (ver `requirements.txt`). Sin GPU el sistema usa `best.onnx`; en ese caso conviene bajar la grilla de tiles a 2×2 (`constants.py`, con el equipo de desarrollo).
 4. Los frames descartados a alta velocidad son normales y aceptables — el sistema prefiere degradarse con elegancia antes que bloquearse. Preocúpese solo si el conteo se vuelve impreciso.
 
 ### 4. La cámara se desconectó a mitad de un lote
@@ -344,7 +357,7 @@ SERVO_DELAY_S=0.55
 El sistema entra en **modo de emergencia**: detiene la faja automáticamente para no dejar pasar granos sin analizar.
 
 1. Reconecte la cámara (preferible el mismo puerto USB).
-2. Use "liberar cámara" en el sistema o reinicie el servidor.
+2. Reinicie el monitoreo desde la pantalla o, si no se recupera, reinicie el servidor.
 3. El conteo del lote **no se pierde** — el mapeo interno de IDs es resistente a pausas y reconexiones; al reanudar, los IDs continúan sin retroceder.
 4. Si se repite con frecuencia: cambie el cable USB (causa más común) o el puerto.
 
@@ -389,12 +402,17 @@ Una evaluación sin código sigue **activa**: al abrirla, el sistema redirige a 
 
 | Parámetro | Valor | Dónde vive |
 |---|---|---|
-| Umbral de confianza | 0.50 | `tracker_service.py` |
+| Piso de confianza de detección | 0.15 | `tracker_service.py` |
 | Tamaño de inferencia | 640 | exportación ONNX + tracker |
-| Precisión FP16 | Desactivada (`half=False`) | exportación ONNX |
-| Delay del servo | Calculado por PWM (ref. 0.5 s a PWM 220) | `.env` / `config.py` |
+| Precisión FP16 | Automática: solo en GPU con compute capability ≥ 7.0 | `tracker.py` |
+| Grilla de tiles | 3×3 con solape de 200 px | `constants.py` del modelo |
+| Umbral de objeto desconocido | 0.35 | `constants.py` del modelo |
+| Margen hacia defecto | 1.3 | `tracker.py` |
+| Delay del servo | 0.5 s (fijado en `.env`) | `.env` / `config.py` |
 | Hold del servo | 0.3 s | `.env` / `config.py` |
-| Filtro de tamaño de grano | 50-300 px | `constants.py` del modelo |
+| Filtro de tamaño de grano | 50-480 px | `constants.py` del modelo |
+
+La tabla completa de parámetros está en [docs/guia/02-modulo-ml.md](../guia/02-modulo-ml.md).
 
 Cambiar uno sin ajustar los demás degrada la precisión del conteo o la separación física.
 

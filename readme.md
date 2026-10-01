@@ -1,6 +1,9 @@
 # CoffeeRen
 
-Sistema integral de clasificación y gestión de muestras de café verde para la **Cooperativa Agraria Line Coffee Marañón** (Lonya Grande, Utcubamba, Amazonas, Perú)).
+Sistema integral de clasificación y gestión de muestras de café verde para la **Cooperativa Agraria Line Coffee Marañón** (Lonya Grande, Utcubamba, Amazonas, Perú).
+
+> **¿Primera vez en el proyecto?** Empezar por [docs/guia/](docs/guia/README.md): contexto,
+> estado del modelo, reentrenamiento pendiente con la cámara ELP y lista de pendientes.
 
 ## Descripción
 
@@ -21,18 +24,19 @@ CoffeeRen automatiza la evaluación de café verde mediante visión artificial:
 | **Base de datos** | PostgreSQL + psycopg2 directo (sin ORM) |
 | **Frontend** | Jinja2 templates + TailwindCSS + JavaScript vanilla |
 | **Autenticación** | JWT en cookie httponly (Argon2 para contraseñas) |
-| **ML** | YOLO26n exportado a ONNX (transfer learning COCO, augmentación Roboflow) |
+| **ML** | YOLO26n binario (`defecto`/`verde`); GPU: PyTorch CUDA 13 con `best.pt` (FP16); CPU: `best.onnx` |
 | **Tracking** | ByteTrack + mapeo propio de IDs globales (nunca retroceden) |
 | **Hardware** | Arduino Uno: puente H (faja), HC-SR04 (tapa), servo separador |
+| **Cámara** | ELP AR0234 global shutter, USB 2.0, 1920×1080 MJPEG ~90 fps |
 | **Streaming** | MJPEG con OpenCV (headless) + polling de frames JPEG |
 
 ## Requisitos previos
 
 - **Python 3.11** (con pip)
-- **PostgreSQL** corriendo localmente (usuario `postgres`, base de datos `tesis_prj`)
+- **PostgreSQL 18** corriendo localmente (usuario `postgres`, base de datos `tesis_prj`; el esquema usa `uuidv7()` nativo)
 - **Arduino IDE** (para cargar firmware en Arduino Uno)
 - **Cámara ELP AR0234** (Global Shutter) — opcional para desarrollo sin visión
-- GPU NVIDIA opcional: el device se detecta automáticamente (`cuda` / `cpu`)
+- GPU NVIDIA recomendada: el device se detecta automáticamente (`cuda` / `cpu`). Requiere `torch` con CUDA (ver `requirements.txt`)
 
 ## Instalación
 
@@ -45,17 +49,19 @@ python -m venv .venv
 # 2. Instalar dependencias
 pip install -r requirements.txt
 
-# 3. Configurar variables en .env (ver sección "Configuración")
+# 3. Copiar la plantilla de configuración y poner la contraseña de PostgreSQL
+copy src\config-example.py src\config.py
+#    y opcionalmente variables en .env (ver sección "Configuración")
 
 # 4. Crear schema de base de datos
 psql -U postgres -d tesis_prj -f src/database/script.sql
 
-# 5. Cargar el modelo YOLO (no está en Git — descargar desde Google Drive)
-# → src/ml/models/yolov26n_2cls/best.onnx  (preferido)
-# → src/ml/models/yolov26n_2cls/best.pt    (respaldo)
+# 5. Pesos del modelo YOLO en src/ml/models/yolov26n_2cls/
+# → best.onnx  ya viene en el repositorio (se usa en CPU)
+# → best.pt    descargar de Google Drive (se usa en GPU, FP16)
 ```
 
-Ver también [INSTALACION.md](INSTALACION.md) y [Manual_Instalacion_CoffeeRen.md](Manual_Instalacion_CoffeeRen.md) para la guía completa de despliegue.
+Guía completa de despliegue: [Manual_Instalacion_CoffeeRen.md](docs/manuales/Manual_Instalacion_CoffeeRen.md).
 
 ## Ejecución
 
@@ -83,8 +89,13 @@ La app está disponible en `http://localhost:8000`. La cámara se pre-conecta al
 | `FAJA_VELOCIDAD_PWM` | `150` | PWM de la faja — **debe coincidir** con `VELOCIDAD` en `logica_hardware.ino` |
 | `SERVO_DELAY_S` | calculado | Tiempo cámara→servo; se deriva del PWM, o se fija medido en banco |
 | `SERVO_HOLD_S` | `0.3` | Tiempo que el servo sostiene la posición DEFECTO |
+| `CAM_INDICE`, `CAM_WIDTH`, `CAM_HEIGHT`, `CAM_FPS` | auto, 1920, 1080, 90 | Selección y modo de la cámara |
+| `CAM_EXPOSURE`, `CAM_WB_TEMP` | automáticos | Exposición y balance de blancos manuales |
+| `ML_DETECTOR_FPS`, `ML_GATE_MOVIMIENTO`, `ML_GATE_UMBRAL` | 30, true, 1.0 | Cadencia de detección y gate de movimiento |
+| `ML_MEDIR_LATENCIA` | `false` | Exporta CSV de latencia a `docs/evidencias/` |
 
-Las credenciales de PostgreSQL están hardcodeadas en `src/config.py` (`USER`, `PASSWORD`, `HOST`, `PORT`, `DATABASE`).
+Lista completa y comentada en [src/config-example.py](src/config-example.py) y [docs/guia/02-modulo-ml.md](docs/guia/02-modulo-ml.md).
+`src/config.py` no se versiona (contiene la contraseña de PostgreSQL): todo cambio se replica en `src/config-example.py`.
 
 ## Arquitectura
 
@@ -105,23 +116,28 @@ TesisPrj/
 │   ├── logica_hardware/        # Firmware de producción (faja + HC-SR04 + servo)
 │   └── test_motor/             # Sketch de prueba aislada del motor (banco)
 ├── docs/
+│   ├── guia/                   # Guía de contexto: empezar aquí
+│   ├── manuales/               # Instalación y mantenimiento
+│   ├── incidencias/            # Registro formal de incidencias
+│   ├── evidencias/             # Ensayos de latencia (indicadores de tesis)
 │   ├── DOCUMENTACION_SISTEMA.md
 │   ├── API_VIDEO_STREAMING.md
-│   ├── defectos_sca_tabla_referencia.md
-│   └── documentacion/          # Especificaciones SCA, equivalencias de defectos
+│   ├── hardware-camara.md
+│   └── documentacion/          # Documentos de tesis (referencia histórica)
 ├── src/
 │   ├── database/
 │   │   ├── bd.py               # Wrapper Connection (obtener, obtener_uno, ejecutar, commit, rollback)
 │   │   └── script.sql          # Schema PostgreSQL
 │   ├── ml/
-│   │   ├── tracker.py          # CoffeeRenTracker: YOLO + ByteTrack + IDs globales + votación
+│   │   ├── tracker.py          # CoffeeRenTracker: tiles + YOLO + ByteTrack + IDs globales + clase por confianza
 │   │   ├── classifier.py       # Defectos equivalentes y grado SCA (3 grados)
 │   │   ├── bytetrack.yaml      # Configuración del tracker
 │   │   └── models/
-│   │       └── yolov26n_2cls/
-│   │           ├── best.onnx    # Modelo activo (2 clases) — no en Git
-│   │           ├── best.pt      # Respaldo — no en Git
-│   │           └── constants.py # CLASES, COLORES, EQUIVALENCIAS_DEFECTO, filtro de tamaño
+│   │       ├── yolov26n_2cls/
+│   │       │   ├── best.onnx    # Modelo activo para CPU (versionado)
+│   │       │   ├── best.pt      # Modelo activo para GPU — no en Git
+│   │       │   └── constants.py # CLASES, COLORES, EQUIVALENCIAS_DEFECTO, tiles, umbrales
+│   │       └── yolov26n_2cls_new/  # Notebook de fine-tuning v7 (pendiente)
 │   ├── models/                 # SQL crudo: persona, caficultor, evaluacion, etc.
 │   ├── routes/                 # Endpoints FastAPI (auth, evaluacion, video, arduino, etc.)
 │   ├── schemas/                # Validación Pydantic
@@ -139,15 +155,17 @@ TesisPrj/
 
 | URL | Template | Descripción | Acceso |
 |---|---|---|---|
-| `/` `/inicio` | `inicio.html` | Dashboard de inicio | JWT |
+| `/` (alias `/inicio`) | `inicio.html` | Dashboard de inicio | JWT |
 | `/auth/login` | `login.html` | Inicio de sesión | — |
 | `/registro` | `registro.html` | Crear nueva evaluación (caficultor + muestra) | JWT |
 | `/monitoreo/{id}` | `monitoreo.html` | Video en vivo + conteo + control de faja | JWT |
 | `/analisis/{id}` | `analisis.html` | Resumen estadístico de la evaluación finalizada | JWT |
-| `/nuevo-caficultor` `/registro-socios` | `caficultor.html` | Alta de caficultor + conversión a Socio | JWT |
+| `/nuevo-caficultor` | `caficultor.html` | Alta de caficultor + conversión a Socio | JWT |
 | `/reporte` | `reporte.html` | Búsqueda de evaluaciones por código EVA | JWT |
 | `/valor-cafe` | `valor_cafe.html` | Gestión de precios de café | Gerente/Admin |
-| `/configuracion-cooperativa` | `cooperativa.html` | Datos de la cooperativa | JWT |
+| `/configuracion-cooperativa` | `cooperativa.html` | Datos de la cooperativa | Gerente/Admin |
+| `/perfil` | `perfil.html` | Perfil propio y gestión de usuarios | JWT |
+| `/test` | `test.html` | Prueba de detección en vivo sin evaluación | JWT |
 
 Las páginas `/monitoreo/{id}` y `/analisis/{id}` tienen guards de estado: una evaluación finalizada redirige a análisis y viceversa.
 
@@ -155,18 +173,19 @@ Las páginas `/monitoreo/{id}` y `/analisis/{id}` tienen guards de estado: una e
 
 ```
 1. REGISTRO
-   /registro → POST /evaluacion → evaluacion_id (UUID), estado "activa"
+   /registro → POST /evaluacion/registrar → evaluacion_id (UUID), estado "activa"
 
 2. MONITOREO EN TIEMPO REAL  (/monitoreo/{id})
    POST /video/iniciar          → carga YOLO + conecta cámara
    POST /arduino/motor/iniciar  → arranca la faja (solo tras confirmar primer frame)
    GET  /video/frame            → frame anotado JPEG (polling ~30 fps)
    GET  /video/lote/conteo      → conteo en vivo (polling cada 1.5 s)
+   GET  /video/eventos          → bitácora del monitoreo (avisos, objetos desconocidos)
    [servo separa defectuosos en paralelo, sincronizado con SERVO_DELAY_S]
 
 3. FINALIZAR
    POST  /video/lote/generar-reporte → grado SCA + defectos equivalentes
-   PATCH /evaluacion/{id}/finalizar  → asigna código EVA correlativo
+   PATCH /evaluacion/{id}/finalizar  → asigna código EVA correlativo + guarda EVENTO_MONITOREO
 
 4. COMPLETAR (rendimiento)
    El evaluador pesa el grano bueno separado e ingresa el valor
@@ -183,11 +202,15 @@ Las páginas `/monitoreo/{id}` y `/analisis/{id}` tienen guards de estado: una e
 ```
 Cámara ELP (hilo de captura dedicado — guarda solo el último frame + timestamp)
     ↓
+tracker_service.py: techo ML_DETECTOR_FPS (30) + gate de movimiento
+    ↓
 tracker.py: CoffeeRenTracker
-    ├─ YOLO (ONNX, imgsz=640, conf=0.50, device auto cuda/cpu)
+    ├─ Grilla 3×3 con solape 200 px → un solo predict() en batch (imgsz=640, conf=0.15)
+    ├─ Fusión de cajas partidas entre tiles vecinos
+    ├─ Filtro de tamaño de bounding box (GRANO_MIN_PX–GRANO_MAX_PX = 50–480)
     ├─ ByteTrack + mapeo a IDs globales (nunca retroceden tras pausas)
-    ├─ Filtro de tamaño de bounding box (GRANO_MIN_PX–GRANO_MAX_PX)
-    └─ Votación por mayoría por ID (≥5 detecciones, conf promedio ≥0.45)
+    ├─ Clase por confianza acumulada del track (MARGEN_DEFECTO = 1.3)
+    └─ "Objeto desconocido" (materia extraña) si nunca supera conf 0.35 → defecto
     ↓
 servo_controller.py: cola de separación
     ├─ Programa cada grano a t_captura + SERVO_DELAY_S (descuenta latencia de inferencia)
@@ -202,12 +225,14 @@ Fin de lote → classifier.py: generar_reporte(conteo)
 
 | Modelo | Clases | Formato | Estado |
 |---|---|---|---|
-| **yolov26n_2cls** | 2 (`defecto`, `verde`) | ONNX (respaldo `.pt`) | ✅ Producción |
-| yolov26n (cascada) | 14 subtipos de defecto | ONNX | ⏳ Preparado, pendiente de activar |
+| **yolov26n_2cls** | 2 (`defecto`, `verde`) | `best.pt` en GPU / `best.onnx` en CPU | Producción |
+| v7 fine-tuning con fotos ELP | 2 (`defecto`, `verde`) | — | Pendiente ([guía](docs/guia/03-reentrenamiento-camara-elp.md)) |
 
-**Nota:** Los pesos no están en Git — descargar desde Google Drive a `src/ml/models/{modelo}/`. El tracker prefiere `best.onnx` y cae a `best.pt` si no existe.
+**Nota:** `best.onnx` está versionado; `best.pt` se descarga de Google Drive. Con GPU el tracker carga `best.pt` (FP16 si la compute capability es ≥ 7.0); en CPU prefiere `best.onnx`.
 
-El modelo de cascada de 14 clases (`agrio`, `averanado`, `blanco`, `broca_ligero`, `broca_severo`, `cascarilla_cereza_seca`, `cascarilla_pergamino`, `cereza_seca`, `defecto_forma`, `inmaduro`, `negro`, `partido`, `pergamino`, `verde`) correrá sobre el crop de cada grano defectuoso para identificar el subtipo.
+El modelo cascada de 14 subtipos de defecto que figuraba en versiones anteriores se retiró del código en julio de 2026.
+
+**Problema conocido:** el modelo actual confunde granos sanos con defecto (~40 % en pruebas en vivo) porque se entrenó con fotos de celular y producción usa la cámara ELP. Ver [docs/guia/02-modulo-ml.md](docs/guia/02-modulo-ml.md#8-problema-de-calidad-abierto-domain-gap).
 
 ### Constantes por modelo
 
@@ -215,22 +240,26 @@ Cada modelo tiene su directorio con `constants.py` que define:
 
 - **CLASES**: lista ordenada según los índices del modelo
 - **COLORES**: paleta BGR `{clase: (B,G,R)}`
-- **EQUIVALENCIAS_DEFECTO**: tabla SCA de 350 g específica del modelo
+- **EQUIVALENCIAS_DEFECTO**: tabla SCA de 350 g específica del modelo (`defecto` 1, `verde` 0, `desconocido` 1.0)
 - **GRANO_MIN_PX / GRANO_MAX_PX**: filtro de tamaño de detecciones
+- **TILES_X / TILES_Y / TILE_SOLAPE_PX**: grilla de inferencia
+- **UMBRAL_CONF_CONOCIDO / DESCONOCIDO_MIN_FRAMES**: criterio de objeto desconocido
 
 El tracker las carga dinámicamente al instanciarse:
 
 ```python
-tracker = CoffeeRenTracker(conf=0.50, model_name="yolov26n_2cls")
+tracker = CoffeeRenTracker(conf=0.15, model_name="yolov26n_2cls")
 ```
 
 ### Parámetros de inferencia (no cambiar sin recalibrar)
 
-- **conf**: 0.50 (`CONF_THRESHOLD` en `tracker_service.py` — preferir falsos positivos antes que defectos sin detectar)
+- **conf**: 0.15 (`CONF_THRESHOLD` en `tracker_service.py`) — piso bajo a propósito: ByteTrack usa su banda de baja confianza y la clase se resuelve por confianza acumulada
 - **imgsz**: 640 (coincide con el entrenamiento en Roboflow)
-- **half**: False (la GTX 1050 Mobile tiene soporte FP16 limitado)
-- **persist**: True (mantiene estado de ByteTrack entre frames)
+- **half**: automático — FP16 solo en GPU con compute capability ≥ 7.0 y `best.pt`; FP32 en GTX 1050 Mobile y CPU
+- **ByteTrack**: instanciado a mano (`BYTETracker`) porque hay que fusionar los tiles antes de trackear
 - Exportación ONNX: `model.export(format="onnx", imgsz=640, half=False, dynamic=False, simplify=True)`
+
+Tabla completa de parámetros y restricciones: [docs/guia/02-modulo-ml.md](docs/guia/02-modulo-ml.md).
 
 ### Grados SCA (classifier.py)
 
@@ -240,7 +269,7 @@ tracker = CoffeeRenTracker(conf=0.50, model_name="yolov26n_2cls")
 | Grado 2 | 16 – 23 |
 | Grado 3 | 24 o más |
 
-**⚠️ Crítico:** Las equivalencias deben coincidir con los estándares SCA de Line Coffee Marañón. Verificar contra `docs/documentacion/` y [docs/defectos_sca_tabla_referencia.md](docs/defectos_sca_tabla_referencia.md) antes de producción.
+**Crítico:** Las equivalencias deben coincidir con los estándares SCA de Line Coffee Marañón. La validación con la cooperativa está pendiente (INC-17); referencia en [docs/defectos_sca_tabla_referencia.md](docs/defectos_sca_tabla_referencia.md).
 
 ## Hardware — Arduino
 
@@ -307,16 +336,18 @@ finally:
 
 | tipo_personal_id | Rol | Permisos |
 |---|---|---|
-| 1 | Operario | Registrar evaluaciones, consultar reportes |
-| 2 | Gerente | + Crear/editar precios de café |
-| 3 | Administrador | + Crear/editar precios de café |
+| 1 | Evaluador | Registrar evaluaciones, monitorear, buscar por código EVA |
+| 2 | Gerente | + Precios de café, cooperativa, usuarios, auditoría y reportes estadísticos |
+| 3 | Administrador | Mismos permisos que Gerente (`require_admin_o_gerente`) |
 
 ## Validación de datos
 
 | Campo | Regla | Ubicación |
 |---|---|---|
-| DNI (Persona) | Exactamente 8 dígitos | [src/schemas/persona.py](src/schemas/persona.py) |
-| Pasaporte / Carnet | 8–12 caracteres alfanuméricos | [src/schemas/persona.py](src/schemas/persona.py) |
+| DNI (Persona) | Exactamente 8 dígitos | [src/utilities/documento_validador.py](src/utilities/documento_validador.py) |
+| Pasaporte / Carnet | 8–12 caracteres alfanuméricos | [src/utilities/documento_validador.py](src/utilities/documento_validador.py) |
+| Peso bruto | ≤ `num_sacos × 70` kg y mayor que la tara `round(num_sacos × 0.25)` | [src/schemas/evaluacion.py](src/schemas/evaluacion.py) |
+| Humedad | Entero 1–100 | [src/schemas/evaluacion.py](src/schemas/evaluacion.py) |
 | Peso de grano bueno | Entero en gramos, ≤ peso tamizado | backend valida en `/evaluacion/{id}/completar` |
 
 ## Entrenamiento de modelos
@@ -330,26 +361,27 @@ finally:
 | **Augmentación** | Flip H/V, rotate ±15°, brightness ±15%, exposure ±5%, blur 0.5px, noise 0.1% |
 | **Infraestructura** | Google Colab A100 GPU, transfer learning desde COCO |
 
-**Proceso:**
-1. Anotar imágenes en Roboflow y augmentar el dataset
-2. Entrenar en Google Colab (`yolo detect train data=... imgsz=640 ...`)
-3. Exportar a ONNX con los parámetros exactos de la sección de inferencia
-4. Copiar `best.onnx` (+ `best.pt` de respaldo) a `src/ml/models/{modelo}/`
-5. Crear/actualizar `constants.py` con el mapeo de clases y equivalencias
+El dataset original se capturó con un celular. El siguiente paso es un **fine-tuning (v7)** con
+fotos de la cámara ELP y augmentation de tono (HSV): procedimiento completo en
+[docs/guia/03-reentrenamiento-camara-elp.md](docs/guia/03-reentrenamiento-camara-elp.md) y
+notebook en `src/ml/models/yolov26n_2cls_new/`.
 
 ## Documentación adicional
 
 | Documento | Contenido |
 |---|---|
-| [docs/DOCUMENTACION_SISTEMA.md](docs/DOCUMENTACION_SISTEMA.md) | Documentación técnica del sistema |
+| [docs/guia/](docs/guia/README.md) | Guía de contexto: proyecto, módulo ML, reentrenamiento, pendientes, historial |
+| [docs/DOCUMENTACION_SISTEMA.md](docs/DOCUMENTACION_SISTEMA.md) | Documentación funcional del sistema |
 | [docs/API_VIDEO_STREAMING.md](docs/API_VIDEO_STREAMING.md) | API de video y streaming |
+| [docs/hardware-camara.md](docs/hardware-camara.md) | Ficha técnica y calibración de la cámara |
+| [docs/incidencias/incidencia_proyecto.md](docs/incidencias/incidencia_proyecto.md) | Registro de incidencias |
 | [docs/defectos_sca_tabla_referencia.md](docs/defectos_sca_tabla_referencia.md) | Tabla de referencia de defectos SCA |
-| [INSTALACION.md](INSTALACION.md) | Guía de instalación |
-| [CLAUDE.md](CLAUDE.md) | Patrones, reglas y arquitectura para desarrollo |
+| [docs/manuales/](docs/manuales/) | Manuales de instalación y mantenimiento |
+| [AGENTS.md](AGENTS.md) | Reglas de desarrollo para cualquier asistente de IA (Claude, GPT, Gemini, Copilot) |
 
 ## Testing
 
-**No existe suite de tests automatizados.** Validar cambios manualmente:
+**No existe suite de tests automatizados** (solo `tests/verificacion_incremento_1.py`). Validar cambios manualmente:
 
 - Servidor: `uvicorn src.main:app --reload` → `http://localhost:8000`
 - Flujo completo: registro → monitoreo → finalizar → peso bueno → análisis

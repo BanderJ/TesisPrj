@@ -4,16 +4,19 @@ Endpoints del router `src/routes/video.py`. Todas las rutas cuelgan del prefijo
 `/video`. El procesamiento (detección + ByteTrack) vive en `src/services/tracker_service.py`
 y `src/ml/tracker.py`; la clasificación por grado SCA en `src/ml/classifier.py`.
 
-Modelo activo: **`yolov26n_2cls`** (2 clases: `defecto`, `verde`). Se carga una vez
-al arrancar. Peso preferido `best.onnx`, con fallback a `best.pt`, en
-`src/ml/models/yolov26n_2cls/`.
+Modelo activo: **`yolov26n_2cls`** (2 clases: `defecto`, `verde`, más la clase derivada
+`desconocido` para materia extraña). Se carga una vez al arrancar desde
+`src/ml/models/yolov26n_2cls/`: con GPU `best.pt` (FP16 si la tarjeta lo soporta), en CPU
+`best.onnx`. Detalle del pipeline: [docs/guia/02-modulo-ml.md](guia/02-modulo-ml.md).
 
 ## Endpoints
 
 ### `GET /video/stream` — sin autenticación
 
 Stream MJPEG en vivo con los frames anotados (cajas rojas para `defecto`, verdes
-para `verde`, etiqueta `#id clase conf% WxHpx` y contador total).
+para `verde`, azules para `objeto desconocido`, etiqueta `#id clase conf% WxHpx` y
+contador total). El frame se reduce a `ML_STREAM_ANCHO` (1280 px) con calidad JPEG
+`ML_STREAM_JPEG_QUALITY` (80) antes de enviarlo.
 
 - `Content-Type: multipart/x-mixed-replace; boundary=frame`
 - Ritmo de entrega al cliente: ~30 fps (la captura de la cámara corre a 90 fps).
@@ -43,10 +46,14 @@ frontend detecte desconexión de cámara.
   "activo": true,
   "modelo": "yolov26n_2cls",
   "conteo_actual": { "defecto": 5, "verde": 12 },
+  "evaluacion_id": "0199....",
   "camara_desconectada": false,
   "error": null
 }
 ```
+
+`evaluacion_id` es la evaluación dueña del lote en curso: el monitoreo lo compara con la
+suya para no adoptar un lote que quedó activo de otra evaluación.
 
 ### `POST /video/iniciar` — requiere JWT
 
@@ -77,6 +84,7 @@ Conteo actual del lote, enriquecido. No genera reporte final.
   "total_granos": 28,
   "total_defectos": 8,
   "total_sanos": 20,
+  "total_desconocidos": 0,
   "conteo_agrupado": {},
   "clases_detectadas": 2,
   "segundos_sin_deteccion": 1.4
@@ -84,9 +92,22 @@ Conteo actual del lote, enriquecido. No genera reporte final.
 ```
 
 - `total_defectos` / `total_sanos` se derivan de `EQUIVALENCIAS_DEFECTO`
-  (`defecto` > 0 cuenta como defecto; `verde` = 0 cuenta como sano).
+  (equivalencia > 0 cuenta como defecto; `verde` = 0 cuenta como sano).
+  `desconocido` (equivalencia 1.0) **está incluido** en `total_defectos`;
+  `total_desconocidos` lo informa aparte como subconjunto.
 - `conteo_agrupado` queda vacío con el modelo de 2 clases (no hay subtipos).
 - `segundos_sin_deteccion` es `null` si aún no hubo ninguna detección.
+
+### `GET /video/eventos?desde=<seq>` — requiere JWT
+
+Eventos del lote en curso con número de secuencia mayor que `desde` (bitácora del
+monitoreo: inicio, primer grano, rachas sin granos, objetos desconocidos con su foto,
+desconexión de cámara). El frontend lo consulta en el mismo ciclo que el conteo y acumula
+las entradas. Al finalizar la evaluación los eventos se guardan en `EVENTO_MONITOREO`.
+
+```json
+{ "eventos": [ { "seq": 3, "segundo": 41, "tipo": "objeto_desconocido", "severidad": "alerta", "mensaje": "Objeto extraño detectado — desviado al canal de defecto.", "imagen_url": "/resources/desconocidos/<evaluacion>/<archivo>.jpg", "datos": { "track_id": 12, "conf": 0.21 } } ], "cursor": 3 }
+```
 
 ### `POST /video/lote/generar-reporte` — requiere JWT
 
@@ -158,12 +179,14 @@ otras apps que usen la cámara y confirmar el índice con
 ### Conteo siempre vacío
 Modelo sin cargar o umbral de confianza. Verificar con `python check_model.py`.
 El piso de confianza (`CONF_THRESHOLD` en `tracker_service.py`) es 0.15 a
-propósito: ByteTrack asocia con sus propios umbrales y la votación por mayoría
-(`_mejor_clase_para`) filtra después con conf promedio ≥ 0.45.
+propósito: ByteTrack asocia con sus propios umbrales y la clase se resuelve por
+confianza acumulada del track. Si la faja está quieta, el gate de movimiento omite la
+inferencia (`ML_GATE_UMBRAL`); con `ML_GATE_MOVIMIENTO=false` se desactiva.
 
 ### FPS bajo
 Procesamiento en CPU. Verificar CUDA con
-`python -c "import torch; print(torch.cuda.is_available())"`. Bajar
+`python -c "import torch; print(torch.__version__, torch.cuda.is_available())"`
+(debe mostrar `+cu130` y `True`). En CPU conviene bajar la grilla a 2×2 en `constants.py`. Bajar
 `CAM_WIDTH`/`CAM_HEIGHT` en `.env` alivia el bus USB y el encode, pero no cambia
 el detalle que ve YOLO (siempre reescala a 640).
 
@@ -176,10 +199,13 @@ el detalle que ve YOLO (siempre reescala a 640).
 | FPS de entrega al cliente | ~30 | `video.py` (`asyncio.sleep(0.033)`) |
 | Codec de streaming | MJPEG | `video.py` |
 | Tamaño de inferencia | 640 | `tracker.py` (`imgsz=640`) |
-| Modelo | yolov26n_2cls (ONNX, fallback .pt) | `tracker_service.py` |
-| Clases | `defecto`, `verde` | `models/yolov26n_2cls/constants.py` |
-| Tracker | ByteTrack | `src/ml/bytetrack.yaml` |
+| Modelo | yolov26n_2cls (`best.pt` en GPU, `best.onnx` en CPU) | `tracker_service.py` |
+| Clases | `defecto`, `verde` (+ `desconocido` derivada) | `models/yolov26n_2cls/constants.py` |
+| Grilla de inferencia | 3×3, solape 200 px, un batch | `constants.py` |
+| Tracker | ByteTrack (`BYTETracker` manual) | `src/ml/bytetrack.yaml` |
 | Confianza mínima de detección | 0.15 | `tracker_service.CONF_THRESHOLD` |
-| Confianza mínima para votación / servo | 0.45 | `tracker.py` |
-| Filtro de tamaño de caja | 50–300 px | `constants.py` (`GRANO_MIN/MAX_PX`) |
-| Device | `cuda` si disponible, si no `cpu` | `tracker.py` (automático) |
+| Confianza mínima para servo | 0.45 (o 2 detecciones) | `tracker.py` |
+| Umbral de objeto desconocido | 0.35 | `constants.py` |
+| Filtro de tamaño de caja | 50–480 px | `constants.py` (`GRANO_MIN/MAX_PX`) |
+| Techo de detección | 30 fps | `Config.ML_DETECTOR_FPS` |
+| Device | `cuda` si disponible, si no `cpu`; FP16 si compute capability ≥ 7.0 | `tracker.py` (automático) |

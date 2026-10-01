@@ -1,6 +1,7 @@
 # CoffeeRen — Documentación General del Sistema
 
-> Última actualización: septiembre 2026 · Basado en el estado real del código en la rama `temporal`.
+> Última actualización: 30 de septiembre de 2026 · Basado en el estado real del código en la rama `temporal`.
+> Contexto técnico, pendientes y reentrenamiento: [docs/guia/](guia/README.md).
 
 CoffeeRen es un sistema de visión por computadora para la **clasificación automatizada de granos de café verde y detección de defectos en tiempo real**. Es un proyecto de tesis de la Universidad Católica Santo Toribio de Mogrovejo (USAT), desarrollado en colaboración con la **Cooperativa Agraria Line Coffee Marañón**.
 
@@ -33,8 +34,8 @@ Componentes:
 |---|---|
 | Backend web | FastAPI (Python), Jinja2 (server-rendered), TailwindCSS |
 | Base de datos | PostgreSQL con psycopg2 directo (sin ORM) |
-| Visión artificial | YOLO (Ultralytics) exportado a ONNX + ByteTrack |
-| Cámara | ELP AR0234 Global Shutter (opera a 1280×720 @ 60 fps) |
+| Visión artificial | YOLO26n (Ultralytics) + ByteTrack; GPU con PyTorch CUDA (`best.pt`), CPU con ONNX (`best.onnx`) |
+| Cámara | ELP AR0234 Global Shutter, USB 2.0, 1920×1080 MJPEG ~90 fps |
 | Hardware físico | Arduino: faja transportadora, servo separador, balanza (celda de carga) |
 | Autenticación | JWT en cookie httponly + contraseñas Argon2 |
 
@@ -51,40 +52,38 @@ El modelo en producción es **binario de 2 clases**:
 | `defecto` | Grano con cualquier defecto físico | Rojo |
 | `verde` | Grano sano (café verde exportable) | Verde |
 
-- Pesos en `src/ml/models/yolov26n_2cls/best.onnx` (preferido) con fallback a `best.pt`. No están en Git; se descargan de Google Drive.
-- Umbral de confianza global: **0.50** (`CONF_THRESHOLD` en `tracker_service.py`) — se prefiere un falso positivo antes que dejar pasar un grano defectuoso.
-- Inferencia a `imgsz=640`, `half=False` (compatibilidad GTX 1050 Mobile), device automático (CUDA si está disponible).
-- Filtro de tamaño de bounding box: solo se cuentan detecciones entre `GRANO_MIN_PX=50` y `GRANO_MAX_PX=300` píxeles (descarta ruido y objetos que no son granos).
+| `desconocido` | Objeto que el modelo nunca reconoce como grano (materia extraña). Clase derivada por el tracker, no la emite el modelo | Azul |
+
+- Pesos en `src/ml/models/yolov26n_2cls/`: con GPU se carga `best.pt` (PyTorch, FP16 si la compute capability es ≥ 7.0); en CPU `best.onnx`. `best.onnx` está en Git; `best.pt` se descarga de Google Drive.
+- El frame 1920×1080 se divide en una grilla de **3×3 recortes con solape de 200 px** que se infieren en un solo lote a `imgsz=640` (el modelo se entrenó con un grano por imagen; sobre el frame completo cada grano quedaba demasiado chico). Las cajas del mismo grano partidas entre recortes vecinos se fusionan.
+- Piso de confianza: **0.15** (`CONF_THRESHOLD` en `tracker_service.py`). Es bajo a propósito: el filtrado lo hacen ByteTrack y la resolución de clase por confianza acumulada.
+- Filtro de tamaño de bounding box: `GRANO_MIN_PX=50` a `GRANO_MAX_PX=480` píxeles.
+- Detección limitada a 30 fps (`ML_DETECTOR_FPS`) y omitida cuando la imagen no cambia (gate de movimiento).
+- Problema abierto: el modelo marca como defecto ~40 % de granos sanos en pruebas en vivo (dataset tomado con celular, producción con la ELP). Se mitiga con `MARGEN_DEFECTO`; la solución es el reentrenamiento descrito en [guia/03-reentrenamiento-camara-elp.md](guia/03-reentrenamiento-camara-elp.md).
 
 ### 2.2 Tracking con ByteTrack (conteo sin duplicados)
 
 Cada grano recibe un **ID único que persiste entre frames** — así un grano que aparece en 40 frames se cuenta una sola vez.
 
-- **Votación por mayoría**: la clase final de cada grano se decide con el historial de sus detecciones (deque de máx. 30) — con ≥5 detecciones gana la clase mayoritaria si su confianza promedio es ≥0.45; si no, la detección de mayor confianza individual.
+- **Clase por confianza acumulada**: la clase final de cada grano suma la confianza por clase sobre su historial (últimas 30 detecciones). Para marcarlo defecto, la suma de `defecto` debe superar a la de `verde` por un factor `MARGEN_DEFECTO = 1.3`. Si el track nunca superó confianza 0.35 tras 3 cuadros, es `desconocido`.
+- **Objeto desconocido**: se considera materia extraña (piedra, palito, pajilla): el servo lo desvía, suma 1.0 defecto equivalente y se guarda una foto recortada en `src/resources/desconocidos/{evaluacion}/`.
 - **IDs globales**: ByteTrack reinicia su contador interno tras pausas sin detecciones; el tracker mantiene un mapeo propio (`_bytetrack_a_global`) que nunca retrocede, de modo que el conteo resiste pausas de la faja.
 - Configuración en `src/ml/bytetrack.yaml` (`track_buffer: 10`, `match_thresh: 0.8`).
 
-### 2.3 Modelo cascada de 14 clases (preparado, desactivado)
+### 2.3 Modelos anteriores (retirados)
 
-Existe un segundo modelo (`yolov26n`) que clasifica el **tipo específico de defecto** sobre el recorte del grano defectuoso. Se activa con `USE_MODELO_DEFECTOS=True` en `config.py`. Sus 14 clases:
-
-```
-agrio, averanado, blanco, broca_ligero, broca_severo,
-cascarilla_cereza_seca, cascarilla_pergamino, cereza_seca,
-defecto_forma, inmaduro, negro, partido, pergamino, verde
-```
-
-(El dataset original de entrenamiento contemplaba 17 clases de defecto: agrio_ligero, agrio_severo, averanado, blanco, broca_ligero, broca_severo, cascarilla_cereza_seca, cascarilla_pergamino, cereza_seca, concha, deforme, inmaduro, negro, partido_maquina, partido_mitad, pergamino, verde.)
+El plan inicial contemplaba un modelo de 17 clases de defecto y luego un modelo cascada (`yolov26n`, 14 subtipos) que clasificaría el tipo de defecto sobre el recorte del grano. El modelo de 17 clases no convergió a tiempo (INC-18) y la cascada se retiró del código en julio de 2026 (commit `787a7ac`). Hoy solo existe el modelo binario.
 
 ### 2.4 Separación física
 
-Cuando el tracker confirma un grano defectuoso, programa el servo (`servo_controller`) para desviarlo de la faja. El servo se agenda desde el **timestamp de captura del frame** para descontar la latencia de inferencia. Comandos serie al Arduino: `SERVO:DEFECTO`, `SERVO:BUENO`, `ON`, `OFF` (faja), `PESO:` (balanza), `LISTO:`.
+Cuando el tracker confirma un grano defectuoso (al menos 2 detecciones o una con confianza ≥ 0.45), programa el servo (`servo_controller`) para desviarlo de la faja. El servo se agenda desde el **timestamp de captura** del primer cuadro en que se vio el grano, para descontar la latencia de inferencia. Comandos serie al Arduino: `SERVO:DEFECTO`, `SERVO:BUENO`, `ON`, `OFF` (faja), `PESO:` (balanza), `LISTO:`.
 
 ### 2.5 Entrenamiento (CRISP-ML(Q))
 
 - Dataset: 3,451 imágenes originales → 8,283 con augmentación 3× en Roboflow (flip H/V, rotación ±15°, brillo ±15%, exposición ±5%, blur 0.5px, ruido 0.1%).
 - Split: 88% train / 8% validation / 4% test. Transfer learning desde COCO, en Google Colab (A100).
-- Resultados de referencia: YOLOv8n — mAP50: 0.767, mAP50-95: 0.757 (75 épocas).
+- Resultados de referencia del primer entrenamiento: YOLOv8n — mAP50: 0.767, mAP50-95: 0.757 (75 épocas). El modelo en producción es YOLO26n de 2 clases (versión v6 del dataset en Roboflow).
+- Pendiente: fine-tuning v7 con fotos de la cámara ELP y augmentation HSV (ver [guia/03-reentrenamiento-camara-elp.md](guia/03-reentrenamiento-camara-elp.md)).
 
 ---
 
@@ -94,7 +93,7 @@ El sistema clasifica en **cuatro dimensiones distintas**:
 
 ### 3.1 Clasificación por grado SCA (calidad del lote)
 
-Calculada en `src/ml/classifier.py` a partir del conteo del tracker. Cada clase detectada tiene un **peso de equivalencia** (tabla SCA sobre muestra de 350 g). En el modelo binario actual: `defecto = 1` equivalente, `verde = 0` (no es defecto). Con el total de defectos equivalentes se asigna el grado — **solo existen 3 grados**:
+Calculada en `src/ml/classifier.py` a partir del conteo del tracker. Cada clase detectada tiene un **peso de equivalencia** (tabla SCA sobre muestra de 350 g). En el modelo binario actual: `defecto = 1` equivalente, `verde = 0` (no es defecto), `desconocido = 1.0` (materia extraña). Con el total de defectos equivalentes se asigna el grado — **solo existen 3 grados**:
 
 | Grado | Defectos equivalentes | ¿Apto Specialty? |
 |---|---|---|
@@ -133,8 +132,8 @@ Tabla `TIPO_DEFECTO` (Broca, Cascarilla, Cereza seca, Concha, Hongo, Flotador, P
 | Rol | Uso principal |
 |---|---|
 | **Evaluador** | Registra muestras, opera el monitoreo, completa evaluaciones |
-| **Gerente** | Además gestiona precios de café (valor-cafe) |
-| **Administrador** | Todo lo anterior + gestión de usuarios, cooperativa y auditoría |
+| **Gerente** | Además gestiona precios de café, cooperativa, usuarios, auditoría y reportes estadísticos |
+| **Administrador** | Mismos permisos que Gerente (en el código ambos usan `require_admin_o_gerente`) |
 
 - **Autenticación**: login en `/auth/login` → JWT (`personal_id`, `usuario`, `rol`, `nombre`, `exp` con TTL de 7 días) guardado como cookie httponly `access_token`. Contraseñas con hash Argon2. Toda ruta (excepto login) exige sesión; sin sesión redirige a login.
 - **Gestión de usuarios** (`/perfil/usuarios/...`): crear usuario (documento validado por tipo — DNI exactamente 8 dígitos, Pasaporte/Carnet 8–12 alfanuméricos — con la misma regla compartida que usa el registro de caficultores, vía `src/utilities/documento_validador.py`), editar sus datos, y activar/desactivar (`estado`). El administrador cambia la contraseña de un usuario desde la propia edición (`clave_nueva`).
@@ -156,7 +155,7 @@ Una **evaluación** es el análisis completo de un lote de café de un caficulto
 
 ### Fase 1 — Registro (`/registro`)
 
-El evaluador ingresa: documento del caficultor, número de sacos, peso bruto, humedad (**% entero, 1–100** — sin decimales, tanto en el formulario como en el schema y la columna de BD), peso de muestra, peso trillado, número de tamiz, peso tamizado y tipo de grano. Requisitos validados antes de crear:
+El evaluador ingresa: documento del caficultor, número de sacos, peso bruto (máximo 70 kg por saco y **mayor que la tara** `round(num_sacos × 0.25)`, desde el 2026-09-30), humedad (**% entero, 1–100** — sin decimales, tanto en el formulario como en el schema y la columna de BD), peso de muestra, peso trillado, número de tamiz, peso tamizado y tipo de grano. Requisitos validados antes de crear:
 - El caficultor debe existir y estar **activo**.
 - Debe haber **precios de café registrados** (sin ellos no se puede calcular el pago al finalizar).
 
@@ -164,9 +163,9 @@ La evaluación se crea **sin código** (estado "activa").
 
 ### Fase 2 — Monitoreo (`/monitoreo/{evaluacion_id}`)
 
-Pantalla en tiempo real: video MJPEG anotado (defectos en rojo), conteo en vivo por clase, control de la faja/motor y de la balanza. Endpoints usados: `POST /video/iniciar`, `GET /video/stream`, `GET /video/lote/conteo`, `POST /video/detener`, y `/arduino/*` (estado, peso, motor).
+Pantalla en tiempo real: video MJPEG anotado (defectos en rojo, sanos en verde, objetos desconocidos en azul), conteo en vivo por clase, barra de estado (cámara, faja, Arduino, modelo), bitácora de avisos con marca de tiempo y control de la faja/motor. Endpoints usados: `POST /video/iniciar`, `GET /video/stream`, `GET /video/lote/conteo`, `GET /video/eventos`, `GET /video/status`, `POST /video/detener`, y `/arduino/*` (estado, peso, motor).
 
-Al terminar, `PATCH /evaluacion/{id}/finalizar` genera el **código EVA** (secuencial `EVA0000001`) y guarda `total_defectos`, `total_buenos` e **incidencias** (eventos anómalos del monitoreo, como JSONB). Es **idempotente**: si la llamada se reintenta (timeout de red, doble clic) reutiliza el código ya asignado en vez de generar uno nuevo y dejar huérfano el anterior.
+Al terminar, `PATCH /evaluacion/{id}/finalizar` genera el **código EVA** (secuencial `EVA0000001`) y guarda `total_defectos`, `total_buenos`, **incidencias** (JSONB) y los **eventos del monitoreo** en la tabla `EVENTO_MONITOREO` (misma transacción). `/analisis` y la búsqueda por código muestran esos eventos. Es **idempotente**: si la llamada se reintenta (timeout de red, doble clic) reutiliza el código ya asignado en vez de generar uno nuevo y dejar huérfano el anterior.
 
 > Guardas: si la evaluación ya tiene código, `/monitoreo/{id}` redirige a `/analisis/{id}` y viceversa; UUID inexistente redirige a `/registro`.
 
@@ -239,7 +238,7 @@ Tabla `AUDITORIA`: registra quién hizo qué (usuario, rol, acción, tabla afect
 
 | URL | Template | Descripción |
 |---|---|---|
-| `/` o `/inicio` | `inicio.html` | Dashboard con KPIs |
+| `/` (alias `/inicio`) | `inicio.html` | Dashboard con KPIs |
 | `/auth/login` | `login.html` | Inicio de sesión |
 | `/registro` | `registro.html` | Registro de muestras (fase 1) |
 | `/monitoreo/{id}` | `monitoreo.html` | Monitoreo ML en vivo (fase 2) |
@@ -247,8 +246,9 @@ Tabla `AUDITORIA`: registra quién hizo qué (usuario, rol, acción, tabla afect
 | `/reporte` | `reporte.html` | Búsqueda por código EVA + reportes |
 | `/nuevo-caficultor` | `caficultor.html` | Registro/conversión de caficultores |
 | `/valor-cafe` | `valor_cafe.html` | Precios del café (Gerente/Admin) |
-| `/configuracion-cooperativa` | `cooperativa.html` | Datos de la cooperativa |
+| `/configuracion-cooperativa` | `cooperativa.html` | Datos de la cooperativa (Gerente/Admin) |
 | `/perfil` | `perfil.html` | Perfil y gestión de usuarios |
+| `/test` | `test.html` | Prueba de detección en vivo sin evaluación |
 
 ---
 
@@ -267,11 +267,11 @@ Patrón de **4 capas** — cada feature tiene un archivo en cada capa:
 - **Transacciones multi-tabla**: el service crea una `Connection`, la pasa a cada model, y hace `commit()`/`rollback()` al final, siempre con `try…finally: db.close()`.
 - **ML**: `camara_service` (captura) → `tracker_service` (hilo de procesamiento) → `CoffeeRenTracker` (YOLO+ByteTrack) → `classifier.py` (grado SCA). El modelo se carga **una sola vez** al arranque con warmup; el tracking corre en hilo aparte y las rutas solo hacen polling no bloqueante.
 - **Ciclo de vida** (`main.py` lifespan): al arrancar pre-conecta la cámara; al apagar detiene tracker, apaga la faja (`OFF`), cierra cámara, servo y serial.
-- **Restricciones calibradas físicamente** (no tocar sin permiso): `servo_controller.py`, `arduino_serial.py`, `SERVO_DELAY_S=0.5`, `SERVO_HOLD_S=0.3`, `imgsz=640`, `half=False`, modo emergencia `_on_camara_desconectada()`.
+- **Restricciones calibradas físicamente** (no tocar sin permiso): `servo_controller.py`, `arduino_serial.py`, `SERVO_DELAY_S=0.5`, `SERVO_HOLD_S=0.3`, `imgsz=640`, `half` solo condicional por hardware, `track_buffer: 10`, modo emergencia `_on_camara_desconectada()`.
 
 ### Tablas de la base de datos
 
-`PERSONA` (datos personales) · `PERSONAL` (usuarios del sistema) · `TIPO_PERSONAL` (roles) · `CAFICULTOR` · `TIPO_CAFICULTOR` · `COOPERATIVA` · `UBIGEO` · `EVALUACION` (lote evaluado con todos los pesos y el pago) · `DETALLE_EVALUACION` · `TIPO_DEFECTO` · `TIPO_GRANO` · `TIPO_DOCUMENTO` · `CATEGORIA` (grados) · `VALOR_CAFE` (precios por rango) · `AUDITORIA`.
+`PERSONA` (datos personales) · `PERSONAL` (usuarios del sistema) · `TIPO_PERSONAL` (roles) · `CAFICULTOR` · `TIPO_CAFICULTOR` · `COOPERATIVA` · `UBIGEO` · `EVALUACION` (lote evaluado con todos los pesos y el pago) · `DETALLE_EVALUACION` · `TIPO_DEFECTO` · `TIPO_GRANO` · `TIPO_DOCUMENTO` · `CATEGORIA` (grados) · `VALOR_CAFE` (precios por rango) · `AUDITORIA` · `EVENTO_MONITOREO` (bitácora del monitoreo por evaluación).
 
 ---
 
@@ -287,12 +287,14 @@ uvicorn src.main:app --reload   # → http://localhost:8000
 ./tailwindcss-windows-x64.exe -i src/static/css/input.css -o src/static/css/tailwind.css --watch
 ```
 
-No existe suite de tests. Los pesos del modelo se descargan de Google Drive a `src/ml/models/{modelo}/`.
+No existe suite de tests (solo `tests/verificacion_incremento_1.py`). `best.onnx` viene en el repositorio; `best.pt` se descarga de Google Drive a `src/ml/models/yolov26n_2cls/`.
 
 ## Documentación relacionada
 
-- `docs/defectos_sca_tabla_referencia.md` — tabla oficial de equivalencias SCA
+- `docs/guia/` — guía de contexto: módulo ML, reentrenamiento con la ELP, pendientes, historial
 - `docs/API_VIDEO_STREAMING.md` — detalle de la API de video
-- `docs/documentacion/arquitectura-sistema-clasificacion.md` — arquitectura del clasificador
-- `docs/documentacion/etapa2_crisp_mlq.md` — metodología CRISP-ML(Q)
-- `CLAUDE.md` — reglas de desarrollo y estado del módulo ML
+- `docs/hardware-camara.md` — cámara ELP y calibración
+- `docs/defectos_sca_tabla_referencia.md` — tabla de equivalencias SCA (pendiente de validación oficial)
+- `docs/documentacion/` — documentos de tesis (referencia histórica: describen el plan de mayo-junio)
+- `docs/manuales/` — manuales de instalación y mantenimiento
+- `AGENTS.md` — reglas de desarrollo para cualquier asistente de IA (`CLAUDE.md` y `GEMINI.md` lo importan)

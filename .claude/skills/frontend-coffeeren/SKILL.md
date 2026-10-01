@@ -347,12 +347,14 @@ function mostrarEstado(state) {
 ## Streaming MJPEG en tiempo real
 
 Página: `/monitoreo/{evaluacion_id}` integra:
-- **`GET /video/stream`** → MJPEG (defectos en **ROJO 🔴**, 1280×720 @ 60fps)
+- **`GET /video/stream`** / **`GET /video/frame`** → MJPEG / último JPEG anotado (defecto rojo, verde verde, objeto desconocido azul; reducido a 1280 px de ancho)
 - **`POST /video/iniciar`** → Inicia captura YOLO + ByteTrack
 - **`POST /video/detener`** → Detiene procesamiento
-- **`GET /lote/conteo`** → Conteo actual `{clase: cantidad, ...}`
-- **`POST /lote/generar-reporte`** → Reporte final {grado, defectos, apto_specialty}
-- **`POST /lote/resetear`** → Prepara nuevo lote
+- **`GET /video/lote/conteo`** → Conteo enriquecido (`total_defectos`, `total_sanos`, `total_desconocidos`, `segundos_sin_deteccion`…)
+- **`GET /video/eventos?desde=<seq>`** → Bitácora del monitoreo (render compartido en `eventos-monitoreo.js`)
+- **`GET /video/status`** → Estado, `evaluacion_id` dueña del lote, cámara desconectada
+- **`POST /video/lote/generar-reporte`** → Reporte final {grado, defectos, apto_specialty}
+- **`POST /video/lote/resetear`** → Prepara nuevo lote
 
 ### Patrón de integración en templates
 

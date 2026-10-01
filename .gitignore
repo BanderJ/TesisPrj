@@ -28,3 +28,5 @@ src/ml/models/**/*.pt
 node_modules/
 package-*
 package.*
+#Excluir volcados de consola (la evidencia de latencia va en docs/evidencias/*.csv)
+*.log

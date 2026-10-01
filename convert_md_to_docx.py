@@ -4,7 +4,7 @@ from docx.shared import Pt, RGBColor, Inches
 
 doc = Document()
 
-with open('Manual_Instalacion_CoffeeRen.md', 'r', encoding='utf-8') as f:
+with open('docs/manuales/Manual_Instalacion_CoffeeRen.md', 'r', encoding='utf-8') as f:
     lines = f.readlines()
 
 i = 0
@@ -114,5 +114,5 @@ while i < len(lines):
     if last_end < len(text):
         p.add_run(text[last_end:])
 
-doc.save('Manual_Instalacion_CoffeeRen.docx')
+doc.save('docs/manuales/Manual_Instalacion_CoffeeRen.docx')
 print("Documento mejorado creado exitosamente!")

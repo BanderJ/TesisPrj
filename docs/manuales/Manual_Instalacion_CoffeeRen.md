@@ -1,7 +1,7 @@
 # Manual de Instalación - CoffeeRen
 
-**Versión:** 3.0
-**Fecha de actualización:** 9 de julio de 2026
+**Versión:** 3.1
+**Fecha de actualización:** 30 de septiembre de 2026
 **Público objetivo:** Técnicos de desarrollo, administradores de sistemas
 **Tiempo estimado:** 90-120 minutos
 
@@ -65,7 +65,7 @@ Antes de comenzar, verifique que tiene:
 |---|---|---|
 | CPU | 4 núcleos | 8 núcleos |
 | RAM | 8 GB | 16 GB |
-| GPU | No requerida (inferencia en CPU) | NVIDIA con CUDA (ej. GTX 1050 o superior) |
+| GPU | No requerida (inferencia en CPU, más lenta) | NVIDIA con CUDA (desarrollo: RTX 5070 Ti; mínimo probado: GTX 1050 Mobile) |
 | Disco | 20 GB libres | SSD |
 
 > El sistema funciona en CPU gracias a los modelos exportados a ONNX. Una GPU NVIDIA solo mejora los FPS del monitoreo.
@@ -379,7 +379,7 @@ Este paso descargará e instalará:
 
 ⏱️ **La instalación puede tomar de 10 a 30 minutos** dependiendo de su conexión — PyTorch y las librerías de visión pesan varios GB.
 
-> **Nota (GPU NVIDIA opcional):** el `torch` de `requirements.txt` funciona en CPU. Si su equipo tiene GPU NVIDIA y quiere acelerar la inferencia, instale la variante CUDA siguiendo https://pytorch.org/get-started/locally/ (el código detecta CUDA automáticamente; no requiere cambios).
+> **Nota (GPU NVIDIA):** con GPU el sistema infiere con `best.pt` en PyTorch y usa FP16 si la tarjeta lo soporta (compute capability ≥ 7.0). Para eso `torch` debe ser la variante CUDA: siga las instrucciones del propio `requirements.txt` (índice `https://download.pytorch.org/whl/cu130` para drivers CUDA 13.x) y verifique con `python -c "import torch; print(torch.__version__, torch.cuda.is_available())"` — debe mostrar `+cu130` y `True`. Si aparece `+cpu`, la inferencia correrá en CPU y saturará el procesador.
 
 ### Verificación
 
@@ -401,18 +401,18 @@ Si imprime `OK`, todo está instalado.
 
 ## Descarga de los Modelos YOLO
 
-> ⚠️ **PASO OBLIGATORIO.** Los pesos del modelo de visión artificial **no están en el repositorio** (son archivos grandes). Sin ellos, **la aplicación no arranca**: al iniciar mostrará `FileNotFoundError: Modelo 'yolov26n_2cls' no encontrado`.
+> ⚠️ **PASO OBLIGATORIO EN EQUIPOS CON GPU.** `best.onnx` viene incluido en el repositorio; `best.pt` **no** (está excluido de Git). Sin ningún peso la aplicación no arranca (`FileNotFoundError: Modelo 'yolov26n_2cls' no encontrado`). Sin `best.pt`, un equipo con GPU funciona con el `.onnx` pero sin FP16.
 
 ### Paso 1: Obtener los archivos
 
 Descargue de la carpeta de **Google Drive del proyecto** (solicite acceso al equipo de desarrollo) los archivos del modelo activo:
 
-- `best.onnx` (≈ 9.4 MB) — modelo principal, se usa en producción
-- `best.pt` — respaldo (se usa solo si no existe el `.onnx`)
+- `best.pt` (≈ 5.4 MB) — se usa cuando hay GPU NVIDIA con CUDA
+- `best.onnx` (≈ 9.8 MB) — ya viene con el repositorio; se usa en CPU y como respaldo
 
 ### Paso 2: Colocarlos en la carpeta correcta
 
-Copie ambos archivos a:
+Copie `best.pt` (y `best.onnx` si no estuviera) a:
 
 ```
 TesisPrj/src/ml/models/yolov26n_2cls/
@@ -432,7 +432,7 @@ dir src\ml\models\yolov26n_2cls
 ls src/ml/models/yolov26n_2cls
 ```
 
-Debe listar al menos: `best.onnx`, `constants.py` (y opcionalmente `best.pt`).
+Debe listar `best.onnx`, `constants.py` y, en equipos con GPU, `best.pt`.
 
 ---
 
@@ -697,13 +697,13 @@ ARDUINO_PORT=COM3
 
 ## Conexión de la Cámara
 
-El monitoreo en vivo usa una cámara **ELP AR0234 Global Shutter** conectada por USB, operando a 1280×720.
+El monitoreo en vivo usa una cámara **ELP AR0234 Global Shutter** (USB 2.0) operando a 1920×1080 en MJPEG a ~90 fps. Ficha técnica, variables `CAM_*` y checklist de calibración: [docs/hardware-camara.md](../hardware-camara.md).
 
-1. Conecte la cámara a un puerto **USB 3.0** (preferible) antes de iniciar la aplicación — el sistema pre-conecta la cámara al arrancar
+1. Conecte la cámara directo a un puerto USB de la laptop (sin hub, cable corto) antes de iniciar la aplicación — el sistema pre-conecta la cámara al arrancar. La cámara se elige por nombre de dispositivo ("Global Shutter Camera"); si se abre la webcam de la laptop, fije `CAM_INDICE` en `.env` (ver `python scripts/detectar_camaras.py`)
 2. Verifique que Windows la detecta: **Administrador de dispositivos → Cámaras**
 3. Cierre cualquier otra aplicación que use la cámara (Zoom, OBS, la app Cámara de Windows): solo un programa puede usarla a la vez
 
-> Si la cámara se desconecta durante un monitoreo, el sistema entra en modo de emergencia (detiene la faja) y lo indica en pantalla. Existe además el botón/endpoint "liberar cámara" si quedara bloqueada.
+> Si la cámara se desconecta durante un monitoreo, el sistema entra en modo de emergencia (detiene la faja) y lo indica en pantalla. Si quedara bloqueada, reinicie el servidor.
 
 Sin cámara conectada la aplicación web funciona igualmente (registro, reportes, caficultores), pero el monitoreo en vivo mostrará error al iniciarlo.
 
@@ -753,7 +753,7 @@ uvicorn src.main:app --reload
 
 En el arranque verá mensajes como:
 ```
-Modelo YOLO cargado: yolov26n_2cls (best.onnx, conf=0.5, device=cpu)
+Modelo YOLO cargado: yolov26n_2cls (best.pt, conf=0.15, device=0, half=True)
 Calentando modelo YOLO (CUDA/ONNX)...
 Modelo listo.
 Application has started successfully!
@@ -872,9 +872,9 @@ Verifique además que `DATABASE = 'tesis_prj'` en `src/config.py`.
 
 ### Error al arrancar: "Modelo 'yolov26n_2cls' no encontrado"
 
-**Problema:** No descargó los pesos del modelo YOLO (no están en el repositorio)
+**Problema:** Faltan los pesos del modelo YOLO en `src/ml/models/yolov26n_2cls/`
 
-**Solución:** Descargue `best.onnx` (y opcionalmente `best.pt`) de la carpeta de Google Drive del proyecto y colóquelos en `src/ml/models/yolov26n_2cls/`. Reinicie el servidor.
+**Solución:** Restaure `best.onnx` desde Git (`git checkout -- src/ml/models/yolov26n_2cls/best.onnx`) y descargue `best.pt` de la carpeta de Google Drive del proyecto. Reinicie el servidor.
 
 ---
 
@@ -940,8 +940,8 @@ pip list
 **Solución:**
 1. Conecte la cámara **antes** de iniciar el servidor (se pre-conecta al arrancar)
 2. Cierre Zoom, OBS, la app Cámara de Windows o cualquier programa que la use
-3. Use el botón de "liberar cámara" del sistema (o reinicie el servidor)
-4. Pruebe otro puerto USB (preferible USB 3.0)
+3. Reinicie el servidor
+4. Pruebe otro puerto USB y otro cable; confirme en el log de arranque que la cámara abre en MJPEG a ~90 fps
 
 ---
 
@@ -1017,7 +1017,8 @@ Una vez que la instalación está completa y funcional, realice las siguientes a
 ### 5. Leer la Documentación
 - Revise el **Manual de Usuario - CoffeeRen** para entender la operación
 - Revise **docs/DOCUMENTACION_SISTEMA.md** para la visión general del sistema
-- Revise el **CLAUDE.md** para entender la arquitectura técnica del código
+- Revise **docs/guia/** (empezar por `README.md`) para el contexto técnico, el estado del modelo y los pendientes
+- Revise **AGENTS.md** para las reglas de desarrollo del código (válidas para cualquier asistente de IA)
 
 ### 6. Validación de Datos
 - Verifique que las clasificaciones del sistema coinciden con el criterio manual del evaluador

@@ -5,7 +5,7 @@ organización de carpetas del repositorio.
 
 Se omiten de forma intencional las carpetas y archivos de soporte que **no
 forman parte del sistema**: herramientas de asistentes de IA (`.claude/`,
-`.codex/`, `AGENTS.md`, `CLAUDE.md`), integración con GitHub (`.github/`),
+`.codex/`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`), integración con GitHub (`.github/`),
 configuración del editor (`.vscode/`), documentación (`docs/`), scripts
 auxiliares (`scripts/`), manuales y utilidades de generación de documentos.
 
@@ -29,10 +29,10 @@ TesisPrj/
 │   ├── apis/                       #   Clientes de servicios externos (consulta de DNI a RENIEC)
 │   ├── database/                   #   Conexión a PostgreSQL (bd.py) y esquema de la base (script.sql)
 │   ├── ml/                         #   Módulo de visión por computadora
-│   │   ├── tracker.py              #     Captura de cámara + detección YOLO + IDs únicos por grano (ByteTrack)
+│   │   ├── tracker.py              #     Detección YOLO por tiles + IDs únicos por grano (ByteTrack) + clase por track
 │   │   ├── classifier.py           #     Defectos equivalentes y grado SCA del lote
 │   │   ├── bytetrack.yaml          #     Parámetros del algoritmo de seguimiento
-│   │   └── models/                 #     Pesos YOLO entrenados (best.onnx / best.pt - fuera de Git)
+│   │   └── models/                 #     Pesos YOLO + constants.py por modelo (best.onnx en Git, best.pt fuera)
 │   ├── utilities/                  #   Utilidades transversales: JWT, hash Argon2, serial Arduino, servo, CSV de ubigeo
 │   ├── resources/                  #   Imágenes y recursos internos usados por la aplicación
 │   │
