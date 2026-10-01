@@ -20,11 +20,19 @@ class RegistrarEvaluacionRequest(BaseModel):
     }
 
     @model_validator(mode="after")
-    def validar_pesos(self):
+    def validar_pesos(self) -> "RegistrarEvaluacionRequest":
         max_peso_bruto = self.num_sacos * Decimal("70")
         if self.peso_bruto > max_peso_bruto:
             raise ValueError(
                 f"El peso total no puede superar {max_peso_bruto} kg ({self.num_sacos} sacos × 70 kg)"
+            )
+        # Mismo cálculo de tara que EvaluacionService.completar: si el peso total no la
+        # supera, el peso neto sale <= 0 y el pago se calcula negativo.
+        tara_total = int(round(self.num_sacos * 0.25))
+        if self.peso_bruto <= tara_total:
+            raise ValueError(
+                f"El peso total debe ser mayor a la tara de los sacos: {tara_total} kg "
+                f"({self.num_sacos} sacos × 0.25 kg). Verifique el peso total o el número de sacos."
             )
         if self.peso_muestra not in self.PESOS_MUESTRA_VALIDOS:
             raise ValueError("El peso de muestra debe ser 100, 150, 200, 250 o 300 gr.")

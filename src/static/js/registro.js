@@ -53,6 +53,13 @@
 		const esEnteroPositivo = (v) => { const n = Number(v); return Number.isFinite(n) && Number.isInteger(n) && n >= 1; };
 		const esFloatPositivo  = (v) => { const n = parseFloat(v); return Number.isFinite(n) && n > 0; };
 		const redondear2       = (v) => Math.round(parseFloat(v) * 100) / 100;
+		// Tara total = sacos × 0.25 kg redondeado igual que round() de Python en el
+		// backend (mitades al par: 0.5 → 0, 1.5 → 2), para que ambos lados coincidan.
+		const calcularTara     = (sacos) => {
+			const t = sacos * 0.25, piso = Math.floor(t), resto = t - piso;
+			if (resto !== 0.5) return Math.round(t);
+			return piso % 2 === 0 ? piso : piso + 1;
+		};
 
 		function forzarEntero(input) {
 			input.addEventListener('change', () => {
@@ -263,6 +270,8 @@
 			if (!esFloatPositivo(pesoTotalInput.value))   return rechazar('El peso total debe ser un número positivo (en kg).', pesoTotalInput);
 			const maxPesoTotal = parseInt(numSacosInput.value, 10) * 70;
 			if (parseFloat(pesoTotalInput.value) > maxPesoTotal) return rechazar(`El peso total no puede superar ${maxPesoTotal} kg (${numSacosInput.value} sacos × 70 kg).`, pesoTotalInput);
+			const taraTotal = calcularTara(parseInt(numSacosInput.value, 10));
+			if (parseFloat(pesoTotalInput.value) <= taraTotal) return rechazar(`El peso total debe ser mayor a la tara de los sacos: ${taraTotal} kg (${numSacosInput.value} sacos × 0.25 kg). Verifique el peso total o el número de sacos.`, pesoTotalInput);
 			if (!esEnteroPositivo(humedadInput.value))    return rechazar('La humedad debe ser un número entero (sin decimales).', humedadInput);
 			if (parseInt(humedadInput.value, 10) > 100)   return rechazar('La humedad no puede superar 100%.', humedadInput);
 			if (!esFloatPositivo(pm))                     return rechazar('Seleccione un peso de muestra (100, 150, 200, 250 o 300 gr.).', pesoMuestraInput);
@@ -369,9 +378,12 @@
 			if (!esFloatPositivo(pesoTotalInput.value)) {
 				setHint(pesoTotalHint, 'Debe ser un número positivo (kg).', true);
 			} else if (esEnteroPositivo(numSacosInput.value)) {
-				const maxKg = parseInt(numSacosInput.value, 10) * 70;
+				const maxKg  = parseInt(numSacosInput.value, 10) * 70;
+				const taraKg = calcularTara(parseInt(numSacosInput.value, 10));
 				if (parseFloat(pesoTotalInput.value) > maxKg) {
 					setHint(pesoTotalHint, `No puede superar ${maxKg} kg (${numSacosInput.value} sacos × 70 kg).`, true);
+				} else if (parseFloat(pesoTotalInput.value) <= taraKg) {
+					setHint(pesoTotalHint, `Debe ser mayor a la tara de los sacos: ${taraKg} kg (${numSacosInput.value} sacos × 0.25 kg).`, true);
 				} else {
 					setHint(pesoTotalHint, `Máximo: ${maxKg} kg.`);
 				}

@@ -49,10 +49,10 @@
 const int VELOCIDAD_INICIAL = 150;  // igual a producción — recalibrar con el reductor
 const int VELOCIDAD_MIN     = 0;
 const int VELOCIDAD_MAX     = 255;
-const int PASO_VELOCIDAD    = 25;
+const int PASO_VELOCIDAD    = 55;
 
 int  velocidad = VELOCIDAD_INICIAL;
-int  sentido   = 0;   // 0 = parado, 1 = adelante, -1 = reversa
+int  sentido   = -1;   // 0 = parado, 1 = adelante, -1 = reversa
 String lineaSerial = "";
 
 void setup() {
