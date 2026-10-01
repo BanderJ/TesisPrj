@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Request, Form, HTTPException
+from fastapi import APIRouter, Request, Form
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse, JSONResponse
-from src.schemas.auth import LoginRequest, LoginResponse
-from src.services.auth_service import AuthService
+from fastapi.responses import RedirectResponse
+from src.services.auth_service import auth_service
 from src.services.auditoria_service import auditoria_service
 from src.utilities.request_utils import get_client_ip
 import os
@@ -10,9 +9,6 @@ import os
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "../templates"))
 
 auth = APIRouter()
-auth_service = AuthService()
-
-
 
 @auth.get("/login")
 async def login_get(request: Request):
@@ -75,14 +71,4 @@ async def logout(request: Request):
             )
     response = RedirectResponse(url="/auth/login", status_code=303)
     response.delete_cookie("access_token")
-    return response
-
-
-@auth.post("/api/login", response_model=LoginResponse)
-async def login_api(credentials: LoginRequest):
-    login_response = auth_service.autenticar(credentials.usuario, credentials.clave)
-    if not login_response:
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    response = JSONResponse(content=login_response.dict())
-    response.set_cookie(key="access_token", value=login_response.token, httponly=True)
     return response

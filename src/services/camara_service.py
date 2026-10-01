@@ -31,7 +31,6 @@ class CamaraService:
     def __init__(self) -> None:
         self._cap: cv2.VideoCapture | None = None
         self._cap_lock = threading.Lock()
-        self._latest_jpeg: bytes | None = None
         self._latest_frame: np.ndarray | None = None
         self._latest_ts: float | None = None  # time.monotonic() de captura del frame
         self._frame_lock = threading.Lock()
@@ -59,9 +58,10 @@ class CamaraService:
                     break
                 continue
             errores_consecutivos = 0
-            _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
+            # Solo se guarda el frame BGR crudo. El JPEG se arma una única vez
+            # por frame procesado, sobre el frame anotado, en tracker.py — no
+            # tiene sentido comprimir aquí a 90 fps un frame que nadie mira.
             with self._frame_lock:
-                self._latest_jpeg = buf.tobytes()
                 self._latest_frame = frame
                 self._latest_ts = time.monotonic()
             self._new_frame.set()
@@ -111,6 +111,13 @@ class CamaraService:
             cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, Config.CAM_AUTO_EXPOSURE_MANUAL)
             cap.set(cv2.CAP_PROP_EXPOSURE, float(Config.CAM_EXPOSURE))
         # Sin CAM_EXPOSURE no se toca la exposición: queda el AEC de fábrica.
+
+        if Config.CAM_WB_TEMP:
+            # Balance de blancos manual: fijo durante toda la sesión, no deriva
+            # cuadro a cuadro como el AWB automático (ver comentario en config.py).
+            cap.set(cv2.CAP_PROP_AUTO_WB, 0)
+            cap.set(cv2.CAP_PROP_WB_TEMPERATURE, float(Config.CAM_WB_TEMP))
+        # Sin CAM_WB_TEMP no se toca el balance de blancos: queda el AWB de fábrica.
 
     @staticmethod
     def _dispositivos() -> list[str]:
@@ -173,8 +180,9 @@ class CamaraService:
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         exp = cap.get(cv2.CAP_PROP_EXPOSURE)
+        wb = cap.get(cv2.CAP_PROP_WB_TEMPERATURE)
         print(f"Cámara iniciada (índice {idx}, {w}x{h}, ~{fps_medido:.0f} fps real, "
-              f"exposición={exp})")
+              f"exposición={exp}, balance_blancos={wb}K)")
         if fps_medido < 30:
             print("  ADVERTENCIA: FPS bajo — el driver está entregando formato sin "
                   "comprimir (YUY2), no MJPEG. En USB 2.0 eso limita a ~5fps. Revisá "
@@ -248,12 +256,12 @@ class CamaraService:
     def esta_disponible(self) -> bool:
         return self._running and self._cap is not None and self._cap.isOpened()
 
-    def esperar_frame(self, timeout: float = 1.0) -> bytes | None:
-        """Bloquea hasta que haya un frame nuevo o expire el timeout."""
-        self._new_frame.wait(timeout)
+    def esperar_frame(self, timeout: float = 1.0) -> bool:
+        """Bloquea hasta que haya un frame nuevo o expire el timeout.
+        Devuelve True si llegó un frame nuevo dentro del timeout."""
+        llego = self._new_frame.wait(timeout)
         self._new_frame.clear()
-        with self._frame_lock:
-            return self._latest_jpeg
+        return llego
 
     def obtener_frame_bgr(self) -> tuple[np.ndarray | None, float | None]:
         """Retorna el último frame BGR crudo y su timestamp de captura

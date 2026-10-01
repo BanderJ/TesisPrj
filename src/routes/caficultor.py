@@ -24,7 +24,7 @@ async def listar_caficultores(
     try:
         return caficultor_service.listar_caficultores()
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo listar los caficultores") from exc
+        raise HTTPException(status_code=500, detail="No se pudo listar los caficultores.") from exc
 
 
 @caficultor_router.get("/consultar/{num_documento}", response_model=ObtenerDatosResponse)
@@ -47,7 +47,7 @@ async def consultar_caficultor(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo consultar el caficultor") from exc
+        raise HTTPException(status_code=500, detail="No se pudo consultar el caficultor.") from exc
 
 
 @caficultor_router.post(
@@ -76,7 +76,7 @@ async def registrar_caficultor(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo registrar el caficultor") from exc
+        raise HTTPException(status_code=500, detail="No se pudo registrar el caficultor.") from exc
 
 
 @caficultor_router.patch(
@@ -104,4 +104,4 @@ async def convertir_caficultor_a_socio(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo convertir el caficultor a socio") from exc
+        raise HTTPException(status_code=500, detail="No se pudo convertir el caficultor a socio.") from exc

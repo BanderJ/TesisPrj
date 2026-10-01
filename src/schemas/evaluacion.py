@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -8,8 +8,8 @@ class RegistrarEvaluacionRequest(BaseModel):
     num_documento: str = Field(..., pattern=r"^[A-Za-z0-9]{8,12}$")
     num_sacos: int = Field(..., ge=1)
     peso_bruto: Decimal = Field(..., gt=0)
-    humedad: int = Field(..., ge=0, le=100)
-    peso_muestra: Decimal = Field(..., gt=0)
+    humedad: int = Field(..., ge=1, le=100)
+    peso_muestra: Decimal = Field(..., ge=100)
     peso_trillado: Decimal = Field(..., gt=0)
     num_tamiz: int = Field(..., ge=1)
     peso_tamizado: Decimal = Field(..., gt=0)
@@ -20,11 +20,19 @@ class RegistrarEvaluacionRequest(BaseModel):
     }
 
     @model_validator(mode="after")
-    def validar_pesos(self):
+    def validar_pesos(self) -> "RegistrarEvaluacionRequest":
         max_peso_bruto = self.num_sacos * Decimal("70")
         if self.peso_bruto > max_peso_bruto:
             raise ValueError(
                 f"El peso total no puede superar {max_peso_bruto} kg ({self.num_sacos} sacos × 70 kg)"
+            )
+        # Mismo cálculo de tara que EvaluacionService.completar: si el peso total no la
+        # supera, el peso neto sale <= 0 y el pago se calcula negativo.
+        tara_total = int(round(self.num_sacos * 0.25))
+        if self.peso_bruto <= tara_total:
+            raise ValueError(
+                f"El peso total debe ser mayor a la tara de los sacos: {tara_total} kg "
+                f"({self.num_sacos} sacos × 0.25 kg). Verifique el peso total o el número de sacos."
             )
         if self.peso_muestra not in self.PESOS_MUESTRA_VALIDOS:
             raise ValueError("El peso de muestra debe ser 100, 150, 200, 250 o 300 gr.")
@@ -106,6 +114,18 @@ class KpisEvaluacionResponse(BaseModel):
     rendimiento_promedio: float | None = None
 
 
+class EventoMonitoreoResponse(BaseModel):
+    """Evento persistido del monitoreo, tal como se muestra en el analisis y en
+    el reporte por codigo."""
+
+    segundo: int
+    tipo: str
+    severidad: str
+    mensaje: str
+    imagen_url: str | None = None
+    datos: dict[str, Any] | None = None
+
+
 class ResumenEvaluacionResponse(BaseModel):
     evaluacion_id: str
     codigo: str | None = None
@@ -124,6 +144,9 @@ class ResumenEvaluacionResponse(BaseModel):
     peso_tamizado: Decimal
     fecha: str | None = None
     incidencias: list | None = None
+    # Traza de lo que el sistema informo durante el monitoreo. Misma fuente para
+    # /analisis y para la busqueda por codigo: ambas vistas muestran lo mismo.
+    eventos: list[EventoMonitoreoResponse] | None = None
     # Campos de rendimiento — NULL hasta que se complete la evaluación
     total_defectos: int | None = None
     total_buenos: int | None = None

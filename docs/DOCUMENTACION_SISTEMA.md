@@ -1,6 +1,6 @@
 # CoffeeRen — Documentación General del Sistema
 
-> Última actualización: julio 2026 · Basado en el estado real del código en la rama `temporal`.
+> Última actualización: septiembre 2026 · Basado en el estado real del código en la rama `temporal`.
 
 CoffeeRen es un sistema de visión por computadora para la **clasificación automatizada de granos de café verde y detección de defectos en tiempo real**. Es un proyecto de tesis de la Universidad Católica Santo Toribio de Mogrovejo (USAT), desarrollado en colaboración con la **Cooperativa Agraria Line Coffee Marañón**.
 
@@ -137,7 +137,7 @@ Tabla `TIPO_DEFECTO` (Broca, Cascarilla, Cereza seca, Concha, Hongo, Flotador, P
 | **Administrador** | Todo lo anterior + gestión de usuarios, cooperativa y auditoría |
 
 - **Autenticación**: login en `/auth/login` → JWT (`personal_id`, `usuario`, `rol`, `nombre`, `exp` con TTL de 7 días) guardado como cookie httponly `access_token`. Contraseñas con hash Argon2. Toda ruta (excepto login) exige sesión; sin sesión redirige a login.
-- **Gestión de usuarios** (`/perfil/usuarios/...`): crear usuario a partir de una Persona disponible, editar, activar/desactivar (`estado`), y cambio de contraseña (propio o por administrador).
+- **Gestión de usuarios** (`/perfil/usuarios/...`): crear usuario (documento validado por tipo — DNI exactamente 8 dígitos, Pasaporte/Carnet 8–12 alfanuméricos — con la misma regla compartida que usa el registro de caficultores, vía `src/utilities/documento_validador.py`), editar sus datos, y activar/desactivar (`estado`). El administrador cambia la contraseña de un usuario desde la propia edición (`clave_nueva`).
 - **Perfil propio** (`/perfil`): datos personales y cambio de contraseña.
 
 ### Caficultores (tabla `CAFICULTOR` → referencia a `PERSONA`)
@@ -156,7 +156,7 @@ Una **evaluación** es el análisis completo de un lote de café de un caficulto
 
 ### Fase 1 — Registro (`/registro`)
 
-El evaluador ingresa: documento del caficultor, número de sacos, peso bruto, humedad (%), peso de muestra, peso trillado, número de tamiz, peso tamizado y tipo de grano. Requisitos validados antes de crear:
+El evaluador ingresa: documento del caficultor, número de sacos, peso bruto, humedad (**% entero, 1–100** — sin decimales, tanto en el formulario como en el schema y la columna de BD), peso de muestra, peso trillado, número de tamiz, peso tamizado y tipo de grano. Requisitos validados antes de crear:
 - El caficultor debe existir y estar **activo**.
 - Debe haber **precios de café registrados** (sin ellos no se puede calcular el pago al finalizar).
 
@@ -164,9 +164,9 @@ La evaluación se crea **sin código** (estado "activa").
 
 ### Fase 2 — Monitoreo (`/monitoreo/{evaluacion_id}`)
 
-Pantalla en tiempo real: video MJPEG anotado (defectos en rojo), conteo en vivo por clase, control de la faja/motor y de la balanza. Endpoints usados: `POST /video/iniciar`, `GET /video/stream`, `GET /video/lote/conteo`, `POST /video/detener`, y `/arduino/*` (peso, tare, motor).
+Pantalla en tiempo real: video MJPEG anotado (defectos en rojo), conteo en vivo por clase, control de la faja/motor y de la balanza. Endpoints usados: `POST /video/iniciar`, `GET /video/stream`, `GET /video/lote/conteo`, `POST /video/detener`, y `/arduino/*` (estado, peso, motor).
 
-Al terminar, `PATCH /evaluacion/{id}/finalizar` genera el **código EVA** (secuencial `EVA0000001`) y guarda `total_defectos`, `total_buenos` e **incidencias** (eventos anómalos del monitoreo, como JSONB).
+Al terminar, `PATCH /evaluacion/{id}/finalizar` genera el **código EVA** (secuencial `EVA0000001`) y guarda `total_defectos`, `total_buenos` e **incidencias** (eventos anómalos del monitoreo, como JSONB). Es **idempotente**: si la llamada se reintenta (timeout de red, doble clic) reutiliza el código ya asignado en vez de generar uno nuevo y dejar huérfano el anterior.
 
 > Guardas: si la evaluación ya tiene código, `/monitoreo/{id}` redirige a `/analisis/{id}` y viceversa; UUID inexistente redirige a `/registro`.
 
@@ -186,6 +186,8 @@ Resumen estadístico del lote. Al **completar** (`PATCH /evaluacion/{id}/complet
 | **Pago** | `peso_por_qq × precio_del_rango` |
 
 También asigna la **categoría** (Grado 1/2/3) según `total_defectos` y el **precio** según el rango de `VALOR_CAFE` que contiene el factor de rendimiento.
+
+> La columna `evaluacion.peso_neto` es `numeric(7,2)` (antes era `int4` y Postgres redondeaba el valor calculado al guardarlo, aunque el pago mostrado ya se calculaba correctamente en memoria con el `Decimal` sin redondear). Requiere `ALTER TABLE evaluacion ALTER COLUMN peso_neto TYPE numeric(7,2)` en bases de datos creadas antes de este cambio.
 
 ---
 
@@ -221,11 +223,15 @@ Tabla `AUDITORIA`: registra quién hizo qué (usuario, rol, acción, tabla afect
 | Registro | Página / API | Notas |
 |---|---|---|
 | **Caficultores** | `/nuevo-caficultor` — listar, consultar por documento, crear, convertir a socio | Validación de documento + RENIEC |
-| **Cooperativa** | `/configuracion-cooperativa` — CRUD + subida de imagen | Datos institucionales, ubigeo |
-| **Valor del café** | `/valor-cafe` — historial, máximo del día, cambios diarios, resumen por rangos, crear bloque, actualizar precio, eliminar rango | Solo Gerente/Administrador; los rangos determinan el precio del pago |
+| **Cooperativa** | `/configuracion-cooperativa` — ver y editar la cooperativa propia + subida de imagen | Datos institucionales, ubigeo. Imagen: solo jpg/jpeg/png/webp/gif, máx. 5 MB |
+| **Valor del café** | `/valor-cafe` — historial, máximo del día, cambios diarios, resumen por rangos, crear bloque, actualizar precio, eliminar rango | Solo Gerente/Administrador; los rangos determinan el precio del pago (ver reglas de validación abajo) |
 | **Tipos de grano** | API `/tipo-grano` — CRUD | Nombre + peso por quintal |
 | **Ubigeo** | API `/ubigeo` — departamentos/provincias/distritos del Perú | Tabla precargada completa |
 | **Tablas maestras** | `/tipo-caficultor`, `/tipo-documento`, `/tipo-personal` — solo lectura | Sembradas en `script.sql` |
+
+**Reglas de validación de rangos de precio** (`src/services/valor_cafe_service.py`, aplicadas tanto al crear un bloque de precios como al re-cotizar uno individual):
+- **Sin solapamiento**: dos rangos no pueden compartir ningún valor de factor de rendimiento, ni siquiera un límite (`60-65` y `65-70` se consideran solapados porque ambos incluyen el 65). Evita que `obtener_por_factor()` tenga que elegir de forma ambigua entre dos precios para el mismo factor.
+- **Precio no decreciente por rango**: el precio no puede bajar conforme sube el rango (un lote con mejor rendimiento nunca paga menos que uno con peor rendimiento). Se valida contra la tabla de precios vigente del día, no solo contra el lote que se está enviando.
 
 ---
 
@@ -239,7 +245,7 @@ Tabla `AUDITORIA`: registra quién hizo qué (usuario, rol, acción, tabla afect
 | `/monitoreo/{id}` | `monitoreo.html` | Monitoreo ML en vivo (fase 2) |
 | `/analisis/{id}` | `analisis.html` | Resumen y cálculo de pago (fase 3) |
 | `/reporte` | `reporte.html` | Búsqueda por código EVA + reportes |
-| `/nuevo-caficultor` (alias `/registro-socios`) | `caficultor.html` | Registro/conversión de caficultores |
+| `/nuevo-caficultor` | `caficultor.html` | Registro/conversión de caficultores |
 | `/valor-cafe` | `valor_cafe.html` | Precios del café (Gerente/Admin) |
 | `/configuracion-cooperativa` | `cooperativa.html` | Datos de la cooperativa |
 | `/perfil` | `perfil.html` | Perfil y gestión de usuarios |

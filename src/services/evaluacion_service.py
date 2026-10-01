@@ -3,6 +3,7 @@ from decimal import Decimal, ROUND_DOWN
 from src.database.bd import Connection
 from src.models.caficultor import Caficultor
 from src.models.evaluacion import Evaluacion
+from src.models.evento_monitoreo import EventoMonitoreo
 from src.models.tipo_grano import TipoGrano
 from src.models.valor_cafe import ValorCafe
 from src.schemas.evaluacion import (
@@ -14,11 +15,13 @@ from src.schemas.evaluacion import (
     RegistrarEvaluacionResponse,
     ResumenEvaluacionResponse,
 )
+from src.utilities.eventos_monitoreo import registro_eventos
 
 
 class EvaluacionService:
     def __init__(self) -> None:
         self.evaluacion_model = Evaluacion()
+        self.evento_model = EventoMonitoreo()
         self.caficultor_model = Caficultor()
         self.tipo_grano_model = TipoGrano()
         self.valor_cafe_model = ValorCafe()
@@ -109,7 +112,8 @@ class EvaluacionService:
     def obtener_resumen_evaluacion(self, evaluacion_id: str) -> ResumenEvaluacionResponse:
         fila = self.evaluacion_model.obtener_resumen(evaluacion_id=evaluacion_id)
         if not fila:
-            raise ValueError("Evaluacion no encontrada.")
+            raise ValueError("No se encontró la evaluación.")
+        fila["eventos"] = self.evento_model.listar_por_evaluacion(fila["evaluacion_id"])
         return ResumenEvaluacionResponse(**fila)
 
     def completar_evaluacion(
@@ -121,11 +125,11 @@ class EvaluacionService:
         try:
             eva = self.evaluacion_model.obtener_para_completar(evaluacion_id, db)
             if not eva:
-                raise ValueError("Evaluación no encontrada.")
+                raise ValueError("No se encontró la evaluación.")
 
             grano = self.tipo_grano_model.obtener_por_id(int(eva["tipo_grano_id"]), db)
             if not grano:
-                raise ValueError("Tipo de grano no encontrado.")
+                raise ValueError("No se encontró el tipo de grano.")
 
             peso_muestra   = Decimal(str(eva["peso_muestra"]))
             peso_trillado  = Decimal(str(eva["peso_trillado"]))
@@ -216,6 +220,7 @@ class EvaluacionService:
         fila = self.evaluacion_model.obtener_resumen(codigo=codigo)
         if not fila:
             return None
+        fila["eventos"] = self.evento_model.listar_por_evaluacion(fila["evaluacion_id"])
         return ResumenEvaluacionResponse(**fila)
 
     def verificar_estado(self, evaluacion_id: str) -> str | None:
@@ -241,10 +246,30 @@ class EvaluacionService:
         total_buenos: int | None = None,
         incidencias: list | None = None,
     ) -> FinalizarEvaluacionResponse:
-        """Genera y asigna el codigo EVA a la evaluacion al finalizar el monitoreo."""
-        fila = self.evaluacion_model.asignar_codigo(
-            evaluacion_id, total_defectos, total_buenos, incidencias
-        )
+        """Genera y asigna el codigo EVA y persiste la traza del monitoreo.
+
+        Codigo y eventos se escriben en una sola transaccion: una evaluacion
+        finalizada sin su traza, o una traza sin evaluacion cerrada, dejarian el
+        historial incoherente.
+        """
+        db = Connection()
+        try:
+            fila = self.evaluacion_model.asignar_codigo(
+                evaluacion_id, total_defectos, total_buenos, incidencias, db=db
+            )
+            # Solo la traza de ESTE lote: si el tracker ya arrancó otra evaluación
+            # sus eventos no pertenecen a esta.
+            if registro_eventos.evaluacion_id == evaluacion_id:
+                self.evento_model.registrar_lote(
+                    evaluacion_id, registro_eventos.todos(), db=db
+                )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
         return FinalizarEvaluacionResponse(
             finalizado=True,
             mensaje="Evaluacion finalizada correctamente.",

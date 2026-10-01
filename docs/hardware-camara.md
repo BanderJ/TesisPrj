@@ -168,6 +168,7 @@ Backlight Compensation, Exposure`
 | `CAM_FPS` | 90 | `CAM_FPS=` |
 | `CAM_EXPOSURE` | `''` (AEC) | `CAM_EXPOSURE=-6` |
 | `CAM_AUTO_EXPOSURE_MANUAL` | 0.25 | `CAM_AUTO_EXPOSURE_MANUAL=1` |
+| `CAM_WB_TEMP` | `''` (AWB) | `CAM_WB_TEMP=4500` |
 
 ### Selección de la cámara correcta
 
@@ -280,6 +281,11 @@ Requisitos para que MSMF funcione bien:
 - [ ] Log de arranque confirma la ELP por nombre y `~85-90 fps real`.
 - [ ] Con la faja en marcha, un grano se ve nítido (sin estela) en el stream.
       Si hay estela, bajar `CAM_EXPOSURE` y añadir luz.
+- [ ] `CAM_WB_TEMP` fijado (no vacío): el AWB automático deriva el tono cuadro
+      a cuadro según lo que entra al encuadre, y eso puede hacer que un grano
+      verde cruce al lado "defecto" del modelo solo por el tono del instante,
+      no por el grano. Fijar un valor constante y volver a capturar/entrenar
+      con la cámara en ese mismo estado si el dataset se toma con la ELP.
 - [ ] Medidas de la sección 5 anotadas en este documento.
 
 ---

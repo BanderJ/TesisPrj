@@ -33,7 +33,7 @@
 			if (!res.ok) throw new Error('No se pudo cargar el resumen.');
 			const d = await res.json();
 
-			document.getElementById('codEval').textContent           = d.codigo || `EVA-${EVALUACION_ID.slice(0, 8)}`;
+			document.getElementById('codEval').textContent           = d.codigo || '—';
 			document.getElementById('caficultorNombre').textContent  = d.caficultor_nombre || '—';
 			document.getElementById('metaDoc').textContent           = d.num_documento    || '—';
 			document.getElementById('metaTipoCaf').textContent       = d.tipo_caficultor  || '—';
@@ -57,6 +57,9 @@
 			if (!stats && d.incidencias) {
 				renderIncidencias(d.incidencias);
 			}
+
+			// Traza del monitoreo: siempre desde la API, igual que en /reporte.
+			CoffeeEventos.render(d.eventos);
 		} catch (e) {
 			console.error(e);
 			if (window.CoffeeModal) {
@@ -173,8 +176,7 @@
 				body: JSON.stringify({ total_defectos: totalDefectosEval, peso_bueno: peso }),
 			});
 			if (!res.ok) {
-				const err = await res.json().catch(() => ({}));
-				throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo calcular el rendimiento.');
+				throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo calcular el rendimiento.'));
 			}
 			const data = await res.json();
 			mostrarRendimientoCalculado({ ...data, peso_bueno: peso });

@@ -14,10 +14,3 @@ class ProvinciaResponse(BaseModel):
 class DistritoResponse(BaseModel):
     codigo: str = Field(..., min_length=6, max_length=6)
     nombre: str
-
-
-class UbigeoResponse(BaseModel):
-    ubigeo: str
-    distrito: str
-    provincia: str
-    departamento: str

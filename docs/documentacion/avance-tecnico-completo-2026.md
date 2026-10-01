@@ -301,7 +301,7 @@ Implementado en: `src/utilities/security.py`
 |--------|----------|-------------|
 | GET | `/auth/login` | Página de login (template) |
 | POST | `/auth/login` | Autentica, genera JWT cookie, redirige a `/` |
-| POST | `/auth/logout` | Elimina cookie, redirige a login |
+| GET | `/auth/logout` | Elimina cookie, redirige a login |
 
 ### 7.2 Evaluaciones (`/evaluacion`)
 
@@ -309,8 +309,10 @@ Implementado en: `src/utilities/security.py`
 |--------|----------|-------------|
 | POST | `/evaluacion/registrar` | Crea evaluación sin código (estado activa). Retorna `evaluacion_id` UUID |
 | GET | `/evaluacion/{id}/resumen` | Datos completos de la evaluación para análisis |
+| GET | `/evaluacion/{id}/estado` | `activa` / `finalizada` / `null` — usado por los guards de página |
 | PATCH | `/evaluacion/{id}/completar` | Calcula y guarda: peso_bueno, peso_malo, factor_rendimiento, peso_neto, peso_por_qq, pago, categoría. Genera código EVA correlativo |
-| GET | `/evaluacion/buscar?codigo=EVA-XXX` | Busca evaluación por código EVA |
+| PATCH | `/evaluacion/{id}/finalizar` | Cierra el monitoreo: guarda total de defectos/buenos e incidencias de tapa abierta |
+| GET | `/evaluacion/buscar?codigo=EVA...` | Busca evaluación por código EVA |
 | GET | `/evaluacion/kpis` | Totales: lotes procesados, defectos acumulados |
 
 **Lógica de cálculo (`completar_evaluacion`):**
@@ -339,8 +341,9 @@ pago = peso_por_qq × precio_cafe
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
+| GET | `/caficultor/listar` | Lista de caficultores registrados |
+| GET | `/caficultor/consultar/{num_documento}` | Busca caficultor por documento |
 | POST | `/caficultor/registrar` | Alta de caficultor (crea Persona + Caficultor) |
-| GET | `/caficultor/consultar/{num_documento}` | Busca caficultor por documento (pública) |
 | PATCH | `/caficultor/convertir-socio/{num_documento}` | Cambia tipo_caficultor_id a "Socio" |
 
 **Validaciones de documento:**
@@ -348,16 +351,9 @@ pago = peso_por_qq × precio_cafe
 - Pasaporte: 8–12 caracteres alfanuméricos
 - Carnet de Extranjería: 8–12 caracteres alfanuméricos
 
-### 7.4 Cámara (`/camara`)
+La captura de cámara la gestiona `CamaraService` (singleton con hilo dedicado): drena la cámara al máximo FPS del sensor y guarda solo el último frame; si detecta MJPEG passthrough nativo lo usa directamente (sin re-encodear); detecta desconexión tras 10 lecturas fallidas consecutivas. No expone rutas HTTP propias — el frontend consume el video siempre a través de `/video/*` (con procesamiento YOLO).
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/camara/stream` | MJPEG streaming sin procesar (sin YOLO) |
-| GET | `/camara/estado` | `{disponible: bool}` |
-
-`CamaraService` es un singleton con hilo dedicado de captura. Drena la cámara al máximo FPS del sensor y guarda solo el último frame. Si detecta MJPEG passthrough nativo, lo usa directamente (sin re-encodear). Detecta desconexión tras 10 lecturas fallidas consecutivas.
-
-### 7.5 Video y ML (`/video`, `/lote`)
+### 7.4 Video y ML (`/video`, `/lote`)
 
 | Método | Endpoint | Auth | Descripción |
 |--------|----------|------|-------------|
@@ -366,61 +362,78 @@ pago = peso_por_qq × precio_cafe
 | POST | `/video/detener` | Sí | Detiene TrackerService |
 | GET | `/video/frame` | No | Último frame como JPEG individual |
 | GET | `/video/status` | No | Estado: activo, modelo, conteo, error de cámara |
-| POST | `/video/liberar-camara` | Sí | Fuerza liberación de cámara si está bloqueada |
 | GET | `/video/lote/conteo` | Sí | `{conteo: {clase: n}, total_granos, clases_detectadas}` |
 | POST | `/video/lote/generar-reporte` | Sí | Reporte SCA: grado, defectos, apto_specialty, detalle |
 | POST | `/video/lote/resetear` | Sí | Limpia conteo para nuevo lote |
 
-### 7.6 Arduino (`/arduino`)
+### 7.5 Arduino (`/arduino`)
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | GET | `/arduino/estado` | Estado serial: listo, distancia, conectado, error |
 | GET | `/arduino/peso` | Peso en gramos desde celda de carga |
-| POST | `/arduino/comando` | Envía comando arbitrario al Arduino |
-| POST | `/arduino/faja/on` | Inicia faja (`ON`) |
-| POST | `/arduino/faja/off` | Detiene faja (`OFF`) |
-| POST | `/arduino/tara` | Tara la báscula (`TARE`) |
+| POST | `/arduino/motor/iniciar` | Inicia faja (`ON`) |
+| POST | `/arduino/motor/detener` | Detiene faja (`OFF`) |
 
-### 7.7 Valor Café (`/valor-cafe`)
+### 7.6 Valor Café (`/valor-cafe`)
 
 | Método | Endpoint | Auth | Descripción |
 |--------|----------|------|-------------|
-| POST | `/valor-cafe/registrar` | Gerente/Admin | Registra nuevo precio con rango |
-| GET | `/valor-cafe/historial` | Pública | Lista todos los precios históricos |
-| GET | `/valor-cafe/maximo-dia` | Pública | Precio máximo del día actual |
-| GET | `/valor-cafe/cambios-diarios` | Pública | Histórico de precios por día |
-| GET | `/valor-cafe/resumen-rangos` | Pública | Resumen por rango de café |
+| GET | `/valor-cafe/historial` | Pública | Precios del día (opcional `fecha`, `rango`) |
+| GET | `/valor-cafe/maximo-dia` | Pública | Precio máximo del día (opcional `fecha`) |
+| GET | `/valor-cafe/cambios-diarios` | Pública | Máximo por día en un rango de fechas |
+| GET | `/valor-cafe/resumen-rangos` | Pública | Último precio vigente por rango |
+| PATCH | `/valor-cafe/actualizar-precio` | Gerente/Admin | Registra un nuevo precio para un rango (no borra históricos) |
+| DELETE | `/valor-cafe/eliminar-rango` | Gerente/Admin | Elimina los registros de un rango en el día actual |
+| POST | `/valor-cafe/crear-bloque` | Gerente/Admin | Alta de varios rangos y precios en una sola operación |
 
-### 7.8 Cooperativa (`/cooperativa`)
+### 7.7 Cooperativa (`/cooperativas`)
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| GET | `/cooperativa/obtener` | Datos de la cooperativa activa (singleton) |
-| PATCH | `/cooperativa/actualizar` | Actualiza nombre, dirección, teléfono, correo, imagen |
+| GET | `/cooperativas/mi-cooperativa` | Cooperativa del usuario autenticado (asigna la de por defecto si no tiene) |
+| PATCH | `/cooperativas/{id}` | Actualiza nombre, ubicación, teléfono, correo, descripción, imagen (Gerente/Admin) |
+| POST | `/cooperativas/upload-imagen` | Sube el logo y devuelve su URL (Gerente/Admin) |
 
-### 7.9 APIs de catálogos (todas públicas)
+### 7.8 APIs de catálogos (todas públicas)
 
 - `GET /tipo-documento/listar` → `[{id, nombre}]`
-- `GET /tipo-grano/listar` → `[{id, nombre, peso_qq}]`
+- `GET /tipo-grano/listar` → `[{id, nombre, peso_qq}]` (+ `POST /tipo-grano/crear`, `PATCH /tipo-grano/{id}`, `DELETE /tipo-grano/{id}` para Gerente/Admin)
 - `GET /tipo-caficultor/listar` → `[{id, nombre}]`
 - `GET /tipo-personal/listar` → `[{id, nombre}]`
-- `GET /ubigeo/{ubigeo}` → `{departamento, provincia, distrito}`
-- `GET /ubigeo/buscar?q=...` → lista filtrada
+- `GET /ubigeo/departamentos` → `[{codigo, nombre}]`
+- `GET /ubigeo/provincias?departamento=NN` → `[{codigo, nombre}]`
+- `GET /ubigeo/distritos?provincia=NNNN` → `[{codigo, nombre}]`
 
-### 7.10 Perfil (`/perfil`)
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/perfil/` | Datos del usuario autenticado |
-| PATCH | `/perfil/actualizar` | Actualiza nombre, apellidos, teléfono, correo |
-| PATCH | `/perfil/cambiar-clave` | Cambia contraseña (requiere clave actual) |
-
-### 7.11 Validación DNI — RENIEC (`/dni`)
+### 7.9 Perfil y usuarios (`/perfil`)
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| GET | `/dni/consultar/{num_documento}` | Consulta RENIEC/Factiliza API para validar DNI |
+| GET | `/perfil/` | Página de perfil del usuario autenticado (template) |
+| PATCH | `/perfil/datos-personales` | Actualiza nombre, apellidos, teléfono, correo (reemite el JWT) |
+| PATCH | `/perfil/cambiar-contrasena` | Cambia la contraseña propia (requiere clave actual) |
+| GET | `/perfil/usuarios` | Lista de usuarios del sistema (Gerente/Admin) |
+| GET | `/perfil/usuarios/{id}` | Datos de un usuario (Gerente/Admin) |
+| POST | `/perfil/usuarios/crear` | Alta de usuario + Persona (Gerente/Admin) |
+| PATCH | `/perfil/usuarios/{id}` | Edita datos del usuario; `clave_nueva` opcional (Gerente/Admin) |
+| PATCH | `/perfil/usuarios/{id}/estado` | Activa/desactiva un usuario (Gerente/Admin) |
+
+### 7.10 Validación DNI — RENIEC (`/dni`, `/persona`)
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/dni/consultar/{dni}` | Consulta la API externa (Factiliza) para validar un DNI |
+| GET | `/persona/consultar/{num_documento}` | Busca una Persona ya registrada en la BD por documento |
+
+### 7.11 Reportes y auditoría
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/reportes` | Catálogo de reportes disponibles (Gerente/Admin) |
+| GET | `/reportes/{codigo}` | Reporte completo: columnas + filas + gráfico (Gerente/Admin) |
+| GET | `/auditoria` | Registros de auditoría paginados y filtrables (Gerente/Admin) |
+| GET | `/auditoria/usuarios` | Usuarios que aparecen en la auditoría (Gerente/Admin) |
+| GET | `/auditoria/acciones` | Acciones registrables disponibles (Gerente/Admin) |
 
 ---
 
@@ -733,7 +746,7 @@ Muestra:
 - Pago calculado (S/. o USD)
 - Apto para specialty (sí/no)
 
-#### `/nuevo-caficultor` o `/registro-socios` → `nuevo_caficultor.html`
+#### `/nuevo-caficultor` → `caficultor.html`
 Alta y conversión de caficultores. Dos modos:
 - **Alta nueva:** llena datos de Persona + Caficultor, consulta RENIEC para autocompletar nombre
 - **Convertir a socio:** búsqueda por documento, `PATCH /caficultor/convertir-socio/{num_documento}`

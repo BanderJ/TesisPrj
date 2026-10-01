@@ -3,6 +3,7 @@ Rutas para streaming de video y análisis de defectos en tiempo real.
 GET  /video/stream         → MJPEG streaming del monitoreo en vivo
 POST /video/iniciar        → Inicia captura y procesamiento
 POST /video/detener        → Detiene captura
+GET  /video/eventos        → Eventos del lote para el panel de monitoreo
 GET  /lote/conteo          → Conteo actual de granos por clase
 POST /lote/generar-reporte → Genera reporte final del lote
 POST /lote/resetear        → Resetea conteo para nuevo lote
@@ -10,9 +11,10 @@ POST /lote/resetear        → Resetea conteo para nuevo lote
 
 import asyncio
 
-from fastapi import APIRouter, Depends, Response, HTTPException
+from fastapi import APIRouter, Depends, Query, Response, HTTPException
 from fastapi.responses import StreamingResponse
 
+from src.schemas.video import EventosMonitoreoResponse, IniciarMonitoreoRequest
 from src.services.tracker_service import tracker_service
 from src.utilities.jwt_required import obtener_usuario_actual
 
@@ -56,9 +58,15 @@ async def stream_mjpeg():
 # ============================================================
 
 @video_router.post("/iniciar")
-async def iniciar_captura(_: dict = Depends(obtener_usuario_actual)):
+async def iniciar_captura(
+    payload: IniciarMonitoreoRequest | None = None,
+    _: dict = Depends(obtener_usuario_actual),
+) -> dict:
     """
     Inicia la captura de video y procesamiento en tiempo real.
+
+    El id de evaluación llega para asociarle los eventos y las evidencias del
+    lote; sin él el monitoreo corre igual, pero no se archiva nada.
 
     Returns:
         dict: {mensaje, activo}
@@ -70,16 +78,17 @@ async def iniciar_captura(_: dict = Depends(obtener_usuario_actual)):
         }
 
     try:
-        exito = tracker_service.iniciar()
-        if not exito:
-            raise HTTPException(status_code=500, detail="No se pudo iniciar la cámara")
+        exito = tracker_service.iniciar(payload.evaluacion_id if payload else None)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="No se pudo iniciar el monitoreo.") from exc
 
-        return {
-            "mensaje": "Monitoreo iniciado exitosamente",
-            "activo": True
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al iniciar: {str(e)}")
+    if not exito:
+        raise HTTPException(status_code=500, detail="No se pudo iniciar la cámara.")
+
+    return {
+        "mensaje": "Monitoreo iniciado exitosamente",
+        "activo": True
+    }
 
 
 @video_router.post("/detener")
@@ -96,25 +105,33 @@ async def detener_captura(_: dict = Depends(obtener_usuario_actual)):
 # RUTAS DE ANÁLISIS DE LOTES
 # ============================================================
 
+@video_router.get("/eventos", response_model=EventosMonitoreoResponse)
+async def obtener_eventos_monitoreo(
+    desde: int = Query(0, ge=0),
+    _: dict = Depends(obtener_usuario_actual),
+) -> dict:
+    """Eventos del lote con seq mayor a `desde`, para el registro del monitoreo."""
+    return tracker_service.obtener_eventos(desde)
+
+
 @video_router.get("/lote/conteo")
 async def obtener_conteo_lote(_: dict = Depends(obtener_usuario_actual)):
     return tracker_service.obtener_conteo_enriquecido()
 
 
 @video_router.post("/lote/generar-reporte")
-async def generar_reporte_lote(_: dict = Depends(obtener_usuario_actual)):
+async def generar_reporte_lote(_: dict = Depends(obtener_usuario_actual)) -> dict:
     """
     Genera el reporte final del lote actual.
 
     """
     try:
-        reporte = tracker_service.generar_reporte_lote()
-        return reporte
-    except Exception as e:
+        return tracker_service.generar_reporte_lote()
+    except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Error generando reporte: {str(e)}"
-        )
+            detail="No se pudo generar el reporte del lote.",
+        ) from exc
 
 
 @video_router.post("/lote/resetear")
@@ -145,7 +162,7 @@ async def obtener_frame():
     """
     frame_jpeg = tracker_service.obtener_frame_streaming()
     if frame_jpeg is None:
-        raise HTTPException(status_code=503, detail="No hay frame disponible")
+        raise HTTPException(status_code=503, detail="No hay ningún frame disponible todavía.")
 
     return Response(
         content=frame_jpeg,
@@ -161,14 +178,10 @@ async def obtener_status():
         "activo": tracker_service.esta_activo(),
         "modelo": tracker_service.model_name,
         "conteo_actual": tracker_service.obtener_conteo_actual(),
+        # Evaluación dueña del lote en curso: el monitoreo lo compara con la suya
+        # para no adoptar un lote que quedó activo de otra evaluación.
+        "evaluacion_id": tracker_service.evaluacion_id,
         "camara_desconectada": estado_error["camara_desconectada"],
         "error": estado_error["error"],
     }
-
-
-@video_router.post("/liberar-camara")
-async def liberar_camara(_: dict = Depends(obtener_usuario_actual)):
-    """Fuerza la liberación de la cámara (útil si está bloqueada)."""
-    tracker_service.detener()
-    return {"mensaje": "Cámara liberada"}
 

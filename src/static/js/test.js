@@ -114,8 +114,7 @@
 		try {
 			const res = await fetch('/video/iniciar', { method: 'POST' });
 			if (!res.ok) {
-				const err = await res.json().catch(() => ({}));
-				throw new Error(err.detail || 'No se pudo iniciar la cámara.');
+				throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo iniciar la cámara.'));
 			}
 			activo = true;
 			iniciarStream();

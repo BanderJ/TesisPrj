@@ -36,42 +36,52 @@ pip install -r requirements.txt
 
 **Nota:** Primera instalación puede tardar ~3-5 minutos porque torch + ultralytics (~2GB) se descargan.
 
-### 4. Configurar variables de entorno
+### 4. Configurar credenciales
 
-Crear archivo `.env` en la raíz del proyecto:
+`src/config.py` está en `.gitignore` (credenciales propias). Cópialo desde la
+plantilla publicada y ajústalo:
 ```bash
-# Copia como base
-cp .env.example .env
+# Windows
+copy src\config-example.py src\config.py
+# Linux/macOS
+cp src/config-example.py src/config.py
+```
+Edita `PASSWORD` y `DATABASE` en `src/config.py` según tu PostgreSQL (BD por
+defecto: **`tesis_prj`**).
 
-# O crea manualmente con:
+El `.env` de la raíz solo cubre `SECRET_KEY` y parámetros opcionales de
+Arduino/cámara/servo (todos con default en `config.py`):
+```bash
 SECRET_KEY=tu-clave-secreta-aqui
-DATABASE_URL=postgresql://usuario:password@localhost:5432/cofferen
-DEBUG=True
+# ARDUINO_PORT=COM5
+# CAM_INDICE=
 ```
 
 ### 5. Preparar la base de datos
 
 ```bash
-# Conectar a PostgreSQL y ejecutar el schema
-psql -U postgres -d cofferen -f src/database/script.sql
+# Crear la base y ejecutar el schema
+createdb -U postgres tesis_prj
+psql -U postgres -d tesis_prj -f src/database/script.sql
 ```
 
-O desde Python:
-```bash
-python -c "from src.database.bd import init_db; init_db()"
-```
+Guía detallada en `Manual_Instalacion_CoffeeRen.md`.
 
 ### 6. Descargar modelos YOLO
 
-Los modelos entrenados NO están en Git por su tamaño (~6MB c/u).
+Los pesos entrenados NO están en Git por su tamaño (~9 MB).
 
 **Ubicación esperada:**
 ```
 src/ml/models/
-├── yolov8n/best.pt       (mAP50: 0.767)
-├── yolo26n/best.pt       (en progreso)
-└── yolo11n/best.pt       (pendiente)
+└── yolov26n_2cls/
+    ├── best.onnx        (usado en producción)
+    ├── best.pt          (respaldo)
+    └── constants.py     (clases y equivalencias — sí versionado)
 ```
+
+El tracker carga `best.onnx` y usa `best.pt` como fallback. Verifica con
+`python check_model.py`.
 
 **Descargar desde:**
 - Google Drive (CoffeeRen/modelos/) → Copiar a `src/ml/models/`
@@ -124,14 +134,15 @@ TesisPrj/
 │   ├── ml/
 │   │   ├── tracker.py             # Captura USB + ByteTrack + carga del modelo YOLO
 │   │   ├── classifier.py          # Cálculo de grados (SCA)
-│   │   └── models/                # Pesos entrenados (.pt)
+│   │   └── models/                # Pesos entrenados (best.onnx / best.pt)
 │   ├── utilities/
 │   │   ├── jwt_required.py        # Middleware JWT
-│   │   └── arduino.py             # Serial para actuadores
+│   │   ├── arduino_serial.py      # Serial con el Arduino
+│   │   └── servo_controller.py    # Cadena de tiempos del servo separador
 │   ├── static/
 │   │   ├── css/
 │   │   ├── js/
-│   │   └── img/
+│   │   └── icon/
 │   └── templates/                 # Jinja2 HTML
 ├── requirements.txt               # Dependencias Python
 ├── CLAUDE.md                      # Guía para Claude Code
@@ -161,11 +172,11 @@ pip install torch==2.0.0 torchvision==0.15.0 --no-cache-dir
 # macOS: brew services list | grep postgres
 ```
 
-### Error: `psycopg2.OperationalError: database "cofferen" does not exist`
+### Error: `psycopg2.OperationalError: database "tesis_prj" does not exist`
 ```bash
 # Crear la base de datos
-createdb -U postgres cofferen
-psql -U postgres -d cofferen -f src/database/script.sql
+createdb -U postgres tesis_prj
+psql -U postgres -d tesis_prj -f src/database/script.sql
 ```
 
 ### Torch/CUDA muy grande (~2GB)

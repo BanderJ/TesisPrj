@@ -23,7 +23,28 @@ class AuthService:
         if not token_cookie:
             return False
         token = token_cookie.split(" ")[-1] if token_cookie.startswith("Bearer ") else token_cookie
-        return verificar_token(token) is not None
+        payload = verificar_token(token)
+        if payload is None:
+            return False
+        # Una cuenta desactivada con cookie aun vigente no debe considerarse
+        # "con sesion activa": si no, /auth/login la redirige a "/" y "/" la
+        # devuelve a /auth/login por obtener_usuario_actual, en un loop infinito.
+        return self.cuenta_habilitada(payload.get("personal_id"))
+
+    def cuenta_habilitada(self, personal_id: str | None) -> bool:
+        """True si la cuenta existe y sigue activa en la BD.
+
+        El JWT es válido 7 días aunque la cuenta se desactive en ese lapso; esto
+        permite cortar la sesión en cuanto el estado deja de ser 'A'. Ante un
+        fallo transitorio de BD devuelve True para no expulsar por un error de
+        infraestructura (el token sigue siendo criptográficamente válido).
+        """
+        if not personal_id:
+            return False
+        try:
+            return self.personal_model.esta_activo(personal_id)
+        except Exception:
+            return True
 
     def autenticar(self, usuario: str, clave: str) -> LoginResponse | None:
         """Autentica credenciales y retorna el objeto de respuesta si son validas."""
@@ -65,3 +86,6 @@ class AuthService:
             nombre=nombre_completo,
             token=token,
         )
+
+
+auth_service = AuthService()

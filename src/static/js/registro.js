@@ -53,6 +53,13 @@
 		const esEnteroPositivo = (v) => { const n = Number(v); return Number.isFinite(n) && Number.isInteger(n) && n >= 1; };
 		const esFloatPositivo  = (v) => { const n = parseFloat(v); return Number.isFinite(n) && n > 0; };
 		const redondear2       = (v) => Math.round(parseFloat(v) * 100) / 100;
+		// Tara total = sacos × 0.25 kg redondeado igual que round() de Python en el
+		// backend (mitades al par: 0.5 → 0, 1.5 → 2), para que ambos lados coincidan.
+		const calcularTara     = (sacos) => {
+			const t = sacos * 0.25, piso = Math.floor(t), resto = t - piso;
+			if (resto !== 0.5) return Math.round(t);
+			return piso % 2 === 0 ? piso : piso + 1;
+		};
 
 		function forzarEntero(input) {
 			input.addEventListener('change', () => {
@@ -106,10 +113,10 @@
 			};
 			if (nombreTipo === 'pasaporte' || nombreTipo === 'carnet de extranjeria') return {
 				maxLength: 12, soloNumeros: false,
-				hint: 'Pasaporte/Carnet: 12 caracteres alfanumericos.',
-				placeholder: 'Ingrese 12 caracteres',
-				validationMessage: 'Para Pasaporte/Carnet se requieren 12 caracteres alfanumericos.',
-				regex: /^[A-Za-z0-9]{12}$/, longitudesAutoBusqueda: [12],
+				hint: 'Pasaporte/Carnet: 8 a 12 caracteres alfanumericos.',
+				placeholder: 'Ingrese 8-12 caracteres',
+				validationMessage: 'Para Pasaporte/Carnet se requieren de 8 a 12 caracteres alfanumericos.',
+				regex: /^[A-Za-z0-9]{8,12}$/, longitudesAutoBusqueda: [8, 9, 10, 11, 12],
 			};
 			return {
 				maxLength: 12, soloNumeros: false,
@@ -160,7 +167,7 @@
 			try {
 				setLookupMessage('Buscando datos del caficultor...');
 				const res = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
-				if (!res.ok) throw new Error((await res.json()).detail || 'No se pudo consultar el caficultor');
+				if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo consultar el caficultor.'));
 				const payload = await res.json();
 				if (!payload.encontrado || !payload.data) {
 					limpiarDatosCaficultor();
@@ -263,8 +270,10 @@
 			if (!esFloatPositivo(pesoTotalInput.value))   return rechazar('El peso total debe ser un número positivo (en kg).', pesoTotalInput);
 			const maxPesoTotal = parseInt(numSacosInput.value, 10) * 70;
 			if (parseFloat(pesoTotalInput.value) > maxPesoTotal) return rechazar(`El peso total no puede superar ${maxPesoTotal} kg (${numSacosInput.value} sacos × 70 kg).`, pesoTotalInput);
-			if (!esFloatPositivo(humedadInput.value))     return rechazar('La humedad debe ser un número positivo.', humedadInput);
-			if (parseFloat(humedadInput.value) > 100)     return rechazar('La humedad no puede superar 100%.', humedadInput);
+			const taraTotal = calcularTara(parseInt(numSacosInput.value, 10));
+			if (parseFloat(pesoTotalInput.value) <= taraTotal) return rechazar(`El peso total debe ser mayor a la tara de los sacos: ${taraTotal} kg (${numSacosInput.value} sacos × 0.25 kg). Verifique el peso total o el número de sacos.`, pesoTotalInput);
+			if (!esEnteroPositivo(humedadInput.value))    return rechazar('La humedad debe ser un número entero (sin decimales).', humedadInput);
+			if (parseInt(humedadInput.value, 10) > 100)   return rechazar('La humedad no puede superar 100%.', humedadInput);
 			if (!esFloatPositivo(pm))                     return rechazar('Seleccione un peso de muestra (100, 150, 200, 250 o 300 gr.).', pesoMuestraInput);
 			if (!esFloatPositivo(pt))                     return rechazar('El peso trillado debe ser un número positivo (en gr.).', pesoTrilladoInput);
 			if (pt === pm)                                return rechazar('El peso trillado debe ser diferente al peso de muestra.', pesoTrilladoInput);
@@ -302,8 +311,7 @@
 					body: JSON.stringify(body),
 				});
 				if (!res.ok) {
-					const err = await res.json();
-					throw new Error(err.detail || 'Error al registrar la evaluacion.');
+					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo registrar la evaluación.'));
 				}
 				const { data } = await res.json();
 				sessionStorage.setItem('coffeeren.evaluacion', JSON.stringify(data));
@@ -370,9 +378,12 @@
 			if (!esFloatPositivo(pesoTotalInput.value)) {
 				setHint(pesoTotalHint, 'Debe ser un número positivo (kg).', true);
 			} else if (esEnteroPositivo(numSacosInput.value)) {
-				const maxKg = parseInt(numSacosInput.value, 10) * 70;
+				const maxKg  = parseInt(numSacosInput.value, 10) * 70;
+				const taraKg = calcularTara(parseInt(numSacosInput.value, 10));
 				if (parseFloat(pesoTotalInput.value) > maxKg) {
 					setHint(pesoTotalHint, `No puede superar ${maxKg} kg (${numSacosInput.value} sacos × 70 kg).`, true);
+				} else if (parseFloat(pesoTotalInput.value) <= taraKg) {
+					setHint(pesoTotalHint, `Debe ser mayor a la tara de los sacos: ${taraKg} kg (${numSacosInput.value} sacos × 0.25 kg).`, true);
 				} else {
 					setHint(pesoTotalHint, `Máximo: ${maxKg} kg.`);
 				}
@@ -383,11 +394,10 @@
 		});
 
 		humedadInput.addEventListener('input', () => {
-			const h = parseFloat(humedadInput.value);
-			if (!humedadInput.value)        { setHint(humedadHint, ''); return; }
-			if (!esFloatPositivo(h))         setHint(humedadHint, 'Debe ser un número positivo.', true);
-			else if (h > 100)                setHint(humedadHint, 'La humedad no puede superar 100%.', true);
-			else                             setHint(humedadHint, '');
+			if (!humedadInput.value)              { setHint(humedadHint, ''); return; }
+			if (!esEnteroPositivo(humedadInput.value)) setHint(humedadHint, 'Debe ser un número entero (sin decimales).', true);
+			else if (parseInt(humedadInput.value, 10) > 100) setHint(humedadHint, 'La humedad no puede superar 100%.', true);
+			else                                   setHint(humedadHint, '');
 		});
 
 		pesoMuestraInput.addEventListener('input', () => {
@@ -404,11 +414,13 @@
 			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint, 'el peso trillado'));
 
 		forzarEntero(numSacosInput);
-		[pesoTotalInput, humedadInput, pesoTrilladoInput, pesoTamizadoInput]
+		forzarEntero(humedadInput);
+		[pesoTotalInput, pesoTrilladoInput, pesoTamizadoInput]
 			.forEach(forzar2Decimales);
 
 		bloquearCaracteresNumericos(numSacosInput, true);
-		[pesoTotalInput, humedadInput, pesoTrilladoInput, pesoTamizadoInput]
+		bloquearCaracteresNumericos(humedadInput, true);
+		[pesoTotalInput, pesoTrilladoInput, pesoTamizadoInput]
 			.forEach(i => bloquearCaracteresNumericos(i));
 
 		startBtn.addEventListener('click', async () => {

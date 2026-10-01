@@ -98,6 +98,12 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 | INC-56 | 4 | Cámara | Foco y zoom manuales del lente, sin repetibilidad | Media | Abierta |
 | INC-57 | 4 | Cámara | Desenfoque por movimiento (motion blur) pese al global shutter | Media | Abierta |
 | INC-58 | 4 | Base de datos | Renombrado de `COOPERATIVA.direccion` a `ubicacion` | Baja | En curso |
+| INC-59 | 4 | Infraestructura | Endpoints y código muerto sin consumidor en las 4 capas | Baja | Resuelta |
+| INC-60 | 4 | Integración | Mensajes de error divergentes entre backend y frontend | Media | Resuelta |
+| INC-61 | 4 | Autenticación | Un usuario podía desactivar su propia cuenta y la sesión seguía viva tras desactivar a cualquiera | Alta | Resuelta |
+| INC-62 | 2 | Detección / ML | Prácticas de calidad de dataset y trazabilidad de experimentos planificadas sin ejecutar (IRA, fuga de datos, MLflow) | Media | Mitigada |
+| INC-63 | 3 | Detección / ML | Fase 4 CRISP-ML(Q) (validación formal, matriz de confusión, robustez) no se ejecutó | Alta | Abierta |
+| INC-64 | 4 | Detección / ML / Integración | Monitoreo de calidad de detecciones y validación en campo con operarios reales sin implementar | Media | Abierta |
 
 ---
 
@@ -329,6 +335,14 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Gravedad:** Media. **Estado:** Resuelta.
 - **Evidencia:** memoria técnica del proyecto (errores conocidos).
 
+### INC-62 · Prácticas de calidad de dataset y trazabilidad de experimentos planificadas sin ejecutar
+- **Área:** Detección / ML (Dataset).
+- **Qué se detectó:** el backlog original de Scrum definía criterios formales de aseguramiento de calidad para esta etapa — acuerdo inter-anotador (IRA) ≥85% con un experto, validación de duplicados/fuga de datos entre splits por hash MD5, y seguimiento de experimentos de entrenamiento con MLflow — que nunca se ejecutaron ni quedaron registrados en ningún artefacto del proyecto.
+- **Causa raíz:** el etiquetado y la consolidación del dataset los realizó una sola persona (el propio tesista) sin un segundo experto disponible para calcular acuerdo inter-anotador, y no se incorporó herramienta de tracking de experimentos por el volumen de trabajo y los plazos del cronograma.
+- **Solución (parcial):** se sustituyó por controles informales que sí quedaron documentados: nomenclatura trazable `_o_`/`_p_` por origen de imagen (INC-09) y descarte manual de imágenes borrosas o con reflejos (INC-10). Dan trazabilidad y calidad básica, pero no las métricas formales planificadas.
+- **Gravedad:** Media. **Estado:** Mitigada (control informal en su lugar; sin cifra real de IRA ni validación de fuga por hash).
+- **Evidencia:** `docs/documentacion/Product_Backlog_Sprints.md` (PBI-06 "IRA ≥85% con experto", PBI-07 "Split sin data leakage (MD5)", PBI-08 "entrenar con seguimiento MLflow"); ausencia de `mlflow` en `requirements.txt` y en el resto del repositorio (verificado por búsqueda).
+
 ---
 
 ## 5. Sprint 3 — Funcionalidades complementarias e integración
@@ -464,6 +478,14 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Gravedad:** Baja. **Estado:** Resuelta.
 - **Evidencia:** memoria de estilo de código; memoria de errores conocidos.
 
+### INC-63 · Fase 4 CRISP-ML(Q) (validación formal, matriz de confusión, pruebas de robustez) no se ejecutó
+- **Área:** Detección / ML.
+- **Qué se detectó:** el cronograma exige, en esta etapa, validar formalmente el modelo seleccionado sobre el conjunto de prueba nunca visto durante entrenamiento (precision, recall, F1-score y mAP por clase), analizar la matriz de confusión e interpretar los resultados, y probar robustez ante variaciones de iluminación y condiciones de captura. Solo se reportaron mAP50 y mAP50-95 del `yolov8n` (0.767 / 0.757); nunca se calcularon ni documentaron precision, recall o F1, no hay matriz de confusión y no se ejecutaron pruebas sistemáticas de robustez.
+- **Causa raíz:** el proyecto pasó directamente de la Fase 3 (comparación de arquitecturas) a la integración en el backend (Fase 5) para poder demostrar el flujo completo dentro del cronograma, dejando la garantía de calidad formal de Fase 4 como pendiente declarado en la propia documentación del proyecto.
+- **Solución (parcial):** el sesgo del modelo hacia "defecto" (~40% de granos buenos mal clasificados en pruebas) se detectó de forma indirecta al operar el pipeline en vivo, no mediante la Fase 4 planificada; se mitigó parcialmente con `MARGEN_DEFECTO` (exige que la confianza acumulada de defecto supere a la de la clase sana por un factor) en vez de una recalibración basada en una matriz de confusión real.
+- **Gravedad:** Alta (una validación formal habría detectado el sesgo del modelo antes de integrarlo al flujo de separación física, que hoy puede desviar granos buenos por error). **Estado:** Abierta.
+- **Evidencia:** `docs/documentacion/avance-tecnico-completo-2026.md` (tabla "Pendientes técnicos", fila "Fase 4 CRISP-ML(Q)"); `docs/registro-avances.md` (líneas 230 y 264, "Fase 4: Garantía de calidad (validación de métricas, robustez)" listada como pendiente); `CLAUDE.md` (sección del módulo ML, sesgo ~40% falsos defectos).
+
 ---
 
 ## 6. Sprint 4 — Finalización, estabilización y monitoreo
@@ -591,6 +613,46 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Gravedad:** Baja. **Estado:** En curso (cambios sin confirmar en la rama `temporal`).
 - **Evidencia:** cambios sin confirmar en `src/database/script.sql`, `src/models/cooperativa.py`, `src/schemas/cooperativa.py`, `src/services/cooperativa_service.py`, `src/templates/cooperativa.html`.
 
+### INC-59 · Endpoints y código muerto acumulado sin consumidor
+- **Área:** Infraestructura / Backend.
+- **Qué se detectó:** auditoría de las 4 capas (routes/services/models/schemas) cruzando cada endpoint contra sus consumidores reales (`fetch` en JS, `action`/`href` en plantillas, redirecciones, llamadas internas del backend). 13 endpoints más 1 alias sin ningún consumidor, con su cascada de métodos de servicio, métodos de modelo y schemas también sin uso.
+- **Causa raíz:** scaffolding de CRUD completo que la UI nunca llegó a consumir (cooperativas), endpoints reemplazados que no se borraron (`/camara/*` → `/video/*`, ver INC-29), un endpoint JSON de login paralelo al formulario, y utilidades que quedaron sin cablear (tara de báscula, resolución de ubigeo por código completo).
+- **Solución:** eliminados `POST /auth/api/login`, el router `/camara` completo (`GET /camara/stream`, `GET /camara/estado`), `POST /video/liberar-camara`, el alias `GET /registro-socios`, el CRUD sin uso de cooperativas (`GET`/`GET {id}`/`POST`/`DELETE`), `GET /perfil/usuarios/personas-disponibles`, `PATCH /perfil/usuarios/{id}/cambiar-contrasena`, `GET /ubigeo/{codigo}` y `POST /arduino/tare`, junto con su cascada en servicios, modelos y schemas. `camara_service` se conserva (lo usan el ciclo de vida de la app y el tracker); `arduino_serial.py` no se tocó. Verificado con `pyflakes` y `compileall` limpios, carga completa de la app (`/health` 200) y auditoría de arquitectura de 4 capas sin hallazgos.
+- **Gravedad:** Baja. **Estado:** Resuelta (cambios sin confirmar en la rama `temporal`).
+- **Evidencia:** cambios sin confirmar en `src/main.py`, `src/routes/` (`auth_login`, `cooperativa`, `perfil`, `ubigeo`, `arduino`, `video`; `camara.py` eliminado), `src/services/` y `src/models/` (`cooperativa`, `perfil`, `persona`, `ubigeo`, `arduino`), `src/schemas/` (`auth`, `cooperativa`, `perfil`, `ubigeo`); documentación en `docs/API_VIDEO_STREAMING.md`, `docs/DOCUMENTACION_SISTEMA.md`, `docs/documentacion/arquitectura-sistema-clasificacion.md`, `docs/documentacion/avance-tecnico-completo-2026.md`.
+
+### INC-60 · Mensajes de error divergentes entre backend y frontend
+- **Área:** Integración / Frontend.
+- **Qué se detectó:** el mismo error se veía con textos distintos según el origen. Ejemplo del disparador: el login mostraba "Credenciales incorrectas, intenta nuevamente." en pantalla pero un endpoint JSON paralelo (ya eliminado, INC-59) decía "Credenciales inválidas". Al cambiar un mensaje en el backend no siempre se reflejaba en la UI. Además, redacción heterogénea entre rutas ("No se pudo…" / "Error al…" / "Error al cargar…"), tildes faltantes y fugas de excepción (`detail=f"Error al iniciar: {str(e)}"`).
+- **Causa raíz:** (1) los errores de validación de Pydantic llegaban como `detail: [{...}]` (lista de objetos) y el frontend los renderizaba como `[object Object]`, así que cada llamada `fetch` traía su propio literal de respaldo (`throw new Error(err.detail || 'texto fijo')`) que ganaba cuando `detail` no era una cadena; (2) cada ruta redactaba su 500/404 a mano, sin una convención; (3) algún `catch` descartaba `error.message` y mostraba un literal.
+- **Solución:**
+  - Backend — arreglo de raíz: handler `RequestValidationError` en `main.py` que aplana el 422 a `{"detail": "<frase en español>"}`. Traduce los códigos nativos de Pydantic (`string_too_short`, `greater_than`, `string_pattern_mismatch`, …) y deja intactos los mensajes de los validadores del schema (`raise ValueError("…")`), quitando el prefijo `"Value error, "`. Con esto, **cualquier** mensaje del backend llega al frontend como texto legible; cambiarlo donde se lanza se refleja en la UI sin tocar nada más.
+  - Backend — consistencia: los mensajes son **literales en español en el sitio donde se lanzan** (`raise HTTPException(...)` / `raise ValueError(...)`), con una sola convención: "No se pudo &lt;verbo&gt; &lt;objeto&gt;." para 500, "No se encontró &lt;entidad&gt;." para 404, frase completa con tilde y punto, sin filtrar trazas ni `str(e)`. Se descartó un catálogo central en `utilities/` porque cada mensaje aparece una sola vez (sin duplicación real) y forzaba a saltar de archivo para leerlo.
+  - Backend — dedup real: el validador de teléfono, repetido 3× idéntico en `schemas/perfil.py`, se unificó en un `Annotated`/`AfterValidator` local del propio archivo. La dependencia de permisos `verificar_admin` de `routes/tipo_grano.py` (copia de `require_admin_o_gerente`) se reemplazó por la compartida.
+  - Frontend: `src/static/js/http.js` (`CoffeeHttp.mensajeError(res, fallback)`) como único extractor de mensajes de error; los ~25 sitios `fetch` de 8 archivos JS pasan a `throw new Error(await CoffeeHttp.mensajeError(res, 'respaldo'))`. Se eliminó el helper local duplicado `mensajeHttpError` de `valor_cafe.js` y una función muerta (`consultarCaficultor`) en `caficultor.js`. El literal del frontend queda solo como respaldo si el backend no envía nada legible.
+- **Gravedad:** Media. **Estado:** Resuelta (cambios sin confirmar en la rama `temporal`).
+- **Evidencia:** cambios sin confirmar en `src/main.py`, `src/static/js/http.js` (nuevo), `src/templates/main.html`, todas las rutas de `src/routes/`, los servicios con `raise ValueError` de `src/services/`, `src/schemas/perfil.py`, `src/utilities/jwt_required.py`, y `src/static/js/{caficultor,registro,perfil,monitoreo,analisis,cooperativa,valor_cafe,test}.js`. Verificado: login/403/422 (nativo y custom) devuelven `detail` como cadena en español; `pyflakes`/`compileall`/`node --check` limpios; suite `verificacion_incremento_1` 3/3; auditoría de arquitectura sin hallazgos.
+
+### INC-61 · Auto-desactivación de cuenta y sesión que sobrevive a la desactivación
+- **Área:** Autenticación.
+- **Qué se detectó:** desde `PATCH /perfil/usuarios/{id}/estado` un Gerente/Administrador podía desactivar su propia cuenta. Peor aún: desactivar a **cualquier** usuario (uno mismo u otro) no tenía efecto sobre una sesión ya iniciada — el JWT en cookie sigue siendo válido 7 días, así que la cuenta desactivada seguía operando con normalidad hasta que el token expiraba.
+- **Causa raíz:** (1) `perfil_service.cambiar_estado_usuario` solo protegía al usuario `jbecerrac`, no al solicitante; (2) `obtener_usuario_actual` (`utilities/jwt_required.py`) validaba únicamente la firma y expiración del token, nunca el estado real de la cuenta en la BD.
+- **Solución:**
+  - Guard de auto-desactivación en el servicio: `cambiar_estado_usuario` recibe `solicitante_id`; si el destino es uno mismo y el nuevo estado no es 'A', lanza `ValueError("No puedes desactivar tu propia cuenta.")` (→ HTTP 400). La ruta pasa `user.get("personal_id")`.
+  - Sesión atada al estado: `obtener_usuario_actual`, tras validar el token, llama `auth_service.cuenta_habilitada(personal_id)` (nuevo), que delega en `Personal.esta_activo(...)` (nuevo, `SELECT estado FROM personal WHERE personal_id=%s`). Si la cuenta no está activa → `RequerirLoginException` → redirect a `/auth/login`. Ante fallo de BD devuelve `True` (fail-open, para no expulsar a todos por un error transitorio; el token sigue siendo criptográficamente válido). Una petición extra de una columna con índice de PK por request autenticada.
+  - `AuthService` gana un singleton de módulo `auth_service` (mismo patrón que `auditoria_service`); `auth_login.py` deja de instanciarlo localmente.
+  - Frontend: `cooperativa.html` inyecta `MI_PERSONAL_ID`; en la tabla de usuarios, la fila propia muestra "Tu cuenta" en vez del botón Desactivar (afordancia; la regla vive en el backend).
+- **Gravedad:** Alta. **Estado:** Resuelta (cambios sin confirmar en la rama `temporal`).
+- **Evidencia:** cambios sin confirmar en `src/models/personal.py`, `src/services/auth_service.py`, `src/services/perfil_service.py`, `src/utilities/jwt_required.py`, `src/routes/auth_login.py`, `src/routes/perfil.py`, `src/templates/cooperativa.html`, `src/static/js/cooperativa.js`. Verificado con TestClient: auto-desactivación → 400; un admin desactiva a otro usuario → la siguiente petición de ese usuario redirige a `/auth/login` (página y endpoint JSON); reactivar → vuelve a funcionar; `jbecerrac` sigue protegido. `pyflakes`/`compileall` limpios, `verificacion_incremento_1` 3/3, auditoría de arquitectura sin hallazgos.
+
+### INC-64 · Monitoreo de calidad de detecciones (Fase 6) y validación en campo con operarios reales sin implementar
+- **Área:** Detección / ML / Integración.
+- **Qué se detectó:** el cronograma exige, en el cierre del proyecto, implementar un mecanismo básico de monitoreo de la calidad de las detecciones a lo largo del tiempo y ejecutar validación técnica local. El backlog original además preveía una alerta de deriva de datos (data drift) si la precisión caía por debajo de 80% en 3 sesiones consecutivas (`GET /monitoring/quality`) y una validación de campo con al menos 3 operarios reales, ≥2 lotes cada uno, encuesta SUS ≥70 y acta firmada por la gerencia de la cooperativa. Ninguno de los dos existe: no hay ningún endpoint ni lógica de monitoreo de calidad en `src/` (verificado por búsqueda en el código), y no hay evidencia de sesiones de validación con operarios de Line Coffee Marañón.
+- **Causa raíz:** el desarrollo del Sprint 4 se concentró en cerrar el pipeline técnico (cámara, tiles, servo, IDs globales — INC-53 a INC-58) y en estabilizar la capa backend (INC-59 a INC-61); el mecanismo de monitoreo de calidad y la validación de campo quedaron fuera de alcance por tiempo.
+- **Solución:** pendiente. Es el tramo final del cronograma (semana 8, cierre y entrega) sin cubrir.
+- **Gravedad:** Media (no bloquea el flujo técnico, pero impide detectar degradación del modelo en producción y deja sin evidencia formal la aceptación del sistema por parte de la cooperativa). **Estado:** Abierta.
+- **Evidencia:** `docs/documentacion/Product_Backlog_Sprints.md` (PBI-21 "Validación en campo: ≥3 operarios... SUS ≥70. Acta firmada"; PBI-22 "Monitoreo: alerta si precisión < 80% en 3 sesiones consecutivas... GET /monitoring/quality"); búsqueda en `src/` sin resultados de un endpoint o módulo de monitoreo de calidad.
+
 ---
 
 ## 7. Incidencias abiertas y en curso (consolidado)
@@ -608,6 +670,9 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 | INC-56 | Cámara | Foco/zoom manual | Bloquear anillos, anotar geometría de trabajo, seguir checklist de calibración. |
 | INC-57 | Cámara | Motion blur | Instalar iluminación difusa potente y fijar exposición manual. |
 | INC-58 | Base de datos | `direccion` → `ubicacion` | Cerrar el cambio y confirmarlo; ejecutar `script.sql` en los entornos. |
+| INC-62 | Detección / ML | Calidad de dataset y experimentos sin trazar | Medir un IRA real o documentar por qué no aplica (anotador único); registrar splits/hashes si el dataset se reentrena. |
+| INC-63 | Detección / ML | Fase 4 (evaluación formal) sin ejecutar | Calcular precision/recall/F1/mAP por clase y matriz de confusión sobre el test set antes de ampliar el despliegue. |
+| INC-64 | Detección / ML / Integración | Monitoreo de calidad y validación en campo sin implementar | Definir el mecanismo mínimo de alerta por degradación y programar la sesión de validación con operarios de la cooperativa. |
 | — | Detección / ML | Verificación en hardware | Confirmar que los IDs globales no retroceden tras pausas y medir FPS en GTX 1050 Mobile vs RTX 5070 Ti con ONNX; confirmar `torch.cuda.is_available()` en ambas laptops. |
 
 ---
@@ -621,6 +686,9 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 5. **El hardware de bajo costo impone su realidad.** Los clones de Arduino con resonador cerámico forzaron el pesaje manual (INC-44); el lente varifocal barato obliga a un protocolo de bloqueo y calibración (INC-56).
 6. **PowerShell en Windows introduce trampas propias** (BOM UTF-8, codificaciones): preferir herramientas que escriban UTF-8 sin BOM (INC-21, INC-25).
 7. **La documentación se desactualiza rápido.** Nombre de la BD, versión de PostgreSQL, baudrate y la necesidad de descargar los pesos del modelo estuvieron mal en los manuales hasta el Sprint 4 (INC-52).
+8. **El código muerto se acumula por capas.** Scaffolding de CRUD que la UI nunca usó, endpoints reemplazados sin borrar y utilidades sin cablear se arrastraron hasta que una auditoría cruzada de endpoints contra consumidores los sacó (INC-50, INC-59). Conviene revisar "¿esto lo llama alguien?" al cerrar cada funcionalidad, no solo al final.
+9. **Un catálogo central de mensajes no siempre ayuda (INC-60).** Un módulo `utilities/mensajes.py` con constantes y helpers solo paga si los textos se repiten de verdad; si cada mensaje aparece una sola vez, agrega indirección (leer la ruta + saltar al catálogo + reconstruir la plantilla) sin quitar duplicación. Lo que sí escala es el handler que normaliza el formato de salida (`RequestValidationError` → `detail` string) y un único extractor en el frontend; el texto se queda como literal donde se lanza.
+10. **Los criterios de calidad y gobierno de ML definidos en la planificación no sobreviven automáticamente a un cronograma ajustado con un solo desarrollador.** IRA con experto, control de fuga de datos por hash, seguimiento de experimentos con MLflow, la Fase 4 formal (matriz de confusión, pruebas de robustez) y el monitoreo de deriva en producción quedaron todos planificados en el backlog inicial pero sin ejecutar (INC-62, INC-63, INC-64): sin un responsable dedicado a QA, estas actividades se posponen frente a las que bloquean la demo funcional. Quedan como deuda de aseguramiento de calidad a saldar antes de un despliegue real con la cooperativa.
 
 ---
 

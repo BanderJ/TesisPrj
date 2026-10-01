@@ -543,7 +543,17 @@ La contraseña de estos usuarios la proporciona el equipo de desarrollo. En prod
 
 ### Paso 1: Ajustar las credenciales de la base de datos
 
-Abra `src/config.py` en su editor y verifique la clase `Config`:
+`src/config.py` no viene en el repositorio (contiene credenciales propias y está
+en `.gitignore`). Cópielo desde la plantilla:
+
+```bash
+# Windows
+copy src\config-example.py src\config.py
+# Linux/macOS
+cp src/config-example.py src/config.py
+```
+
+Abra `src/config.py` y ajuste la clase `Config`:
 
 ```python
 USER = 'postgres'
@@ -553,7 +563,7 @@ PORT = '5432'
 DATABASE = 'tesis_prj'
 ```
 
-Actualice **PASSWORD** con la contraseña que estableció al instalar PostgreSQL y guarde los cambios. (Existe un `src/config-example.py` de referencia.)
+Actualice **PASSWORD** con la contraseña que estableció al instalar PostgreSQL y guarde los cambios.
 
 ### Paso 2: Crear el archivo `.env`
 

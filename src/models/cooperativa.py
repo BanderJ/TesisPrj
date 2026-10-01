@@ -2,15 +2,6 @@ from src.database.bd import Connection
 
 
 class Cooperativa:
-    def obtener_todas(self, db: Connection | None = None) -> list[dict]:
-        owns_db = db is None
-        db = db or Connection()
-        try:
-            return db.obtener("SELECT *, id AS cooperativa_id FROM COOPERATIVA WHERE estado='A' ORDER BY nombre")
-        finally:
-            if owns_db:
-                db.close()
-
     def obtener_por_id(self, cooperativa_id: str, db: Connection | None = None) -> dict | None:
         owns_db = db is None
         db = db or Connection()
@@ -55,39 +46,6 @@ class Cooperativa:
     def asignar_cooperativa_a_persona(self, personal_id: str, cooperativa_id: str, db: Connection) -> None:
         db.ejecutar("UPDATE PERSONA SET cooperativa_id = %s WHERE id = %s", [cooperativa_id, personal_id])
 
-    def crear(
-        self,
-        nombre: str,
-        codigo: str | None,
-        ubicacion: str | None,
-        telefono: str | None,
-        correo: str | None,
-        descripcion: str | None = None,
-        imagen_url: str | None = None,
-        db: Connection | None = None,
-    ) -> dict:
-        owns_db = db is None
-        db = db or Connection()
-        try:
-            sql = """
-                INSERT INTO COOPERATIVA (nombre, codigo, ubicacion, telefono, correo, descripcion, imagen_url, estado)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'A')
-                RETURNING *
-            """
-            result = db.obtener_uno(sql, [nombre, codigo, ubicacion, telefono, correo, descripcion, imagen_url])
-            if result:
-                result["cooperativa_id"] = str(result["id"])
-            if owns_db:
-                db.commit()
-            return result
-        except Exception:
-            if owns_db:
-                db.rollback()
-            raise
-        finally:
-            if owns_db:
-                db.close()
-
     def actualizar(
         self,
         cooperativa_id: str,
@@ -127,25 +85,6 @@ class Cooperativa:
             params.append(cooperativa_id)
             sql = f"UPDATE COOPERATIVA SET {', '.join(updates)} WHERE id=%s RETURNING *, id AS cooperativa_id"
             result = db.obtener_uno(sql, params)
-            if owns_db:
-                db.commit()
-            return result
-        except Exception:
-            if owns_db:
-                db.rollback()
-            raise
-        finally:
-            if owns_db:
-                db.close()
-
-    def desactivar(self, cooperativa_id: str, db: Connection | None = None) -> dict | None:
-        owns_db = db is None
-        db = db or Connection()
-        try:
-            result = db.obtener_uno(
-                "UPDATE COOPERATIVA SET estado='I' WHERE id=%s RETURNING *, id AS cooperativa_id",
-                [cooperativa_id],
-            )
             if owns_db:
                 db.commit()
             return result

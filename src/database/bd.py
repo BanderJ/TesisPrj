@@ -1,10 +1,12 @@
+from typing import Any, Sequence
+
 import psycopg2
 import psycopg2.extras
 from src.config import Config
 
 class Connection:
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Inicializa la conexión a PostgreSQL con autocommit=False para transacciones"""
         try:
             self.conn = psycopg2.connect(
@@ -23,7 +25,7 @@ class Connection:
             print(f"Error al conectar a PostgreSQL: {e}")
             raise
 
-    def ejecutar(self, query, params=None):
+    def ejecutar(self, query: str, params: Sequence[Any] | None = None) -> Any:
         """
         Ejecuta INSERT, UPDATE, DELETE.
         NO hace commit automático - el usuario debe llamar a commit() o rollback()
@@ -38,7 +40,7 @@ class Connection:
             self.rollback()
             raise
 
-    def obtener(self, query, params=None):
+    def obtener(self, query: str, params: Sequence[Any] | None = None) -> list[dict[str, Any]]:
         """
         Ejecuta SELECT y retorna una lista de diccionarios.
         Parsea DATETIME y DECIMAL automáticamente.
@@ -51,7 +53,7 @@ class Connection:
             print(f"Error en obtener: {e}")
             raise
 
-    def obtener_uno(self, query, params=None):
+    def obtener_uno(self, query: str, params: Sequence[Any] | None = None) -> dict[str, Any] | None:
         """Retorna un solo registro como diccionario o None"""
         try:
             self.cursor.execute(query, params or ())
@@ -61,7 +63,7 @@ class Connection:
             print(f"Error en obtener_uno: {e}")
             raise
 
-    def commit(self):
+    def commit(self) -> None:
         """Confirma todos los cambios de la transacción actual"""
         try:
             self.conn.commit()
@@ -70,14 +72,14 @@ class Connection:
             self.rollback()
             raise
 
-    def rollback(self):
+    def rollback(self) -> None:
         """Revierte todos los cambios de la transacción actual"""
         try:
             self.conn.rollback()
         except Exception as e:
             print(f"Error en rollback: {e}")
 
-    def close(self):
+    def close(self) -> None:
         """Cierra el cursor y la conexión"""
         try:
             if self.cursor:

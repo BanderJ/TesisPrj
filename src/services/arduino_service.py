@@ -64,13 +64,6 @@ class ArduinoService:
             "mensaje": f"{peso_r} g",
         }
 
-    def tarar_bascula(self) -> dict:
-        ok = arduino_serial.enviar_comando("TARE")
-        return {
-            "ok": ok,
-            "mensaje": "Tara enviada. La báscula se está calibrando." if ok else "No se pudo enviar tara. Verifique la conexión Arduino.",
-        }
-
     def iniciar_motor(self) -> dict:
         ok = arduino_serial.enviar_comando("ON")
         return {

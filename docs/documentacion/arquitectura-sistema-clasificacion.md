@@ -314,7 +314,6 @@ Todas bajo `src/routes/video.py`:
 | `GET` | `/video/lote/conteo` | Conteo enriquecido en tiempo real (para polling frontend) |
 | `POST` | `/video/lote/generar-reporte` | Genera reporte SCA final del lote |
 | `POST` | `/video/lote/resetear` | Limpia conteo para nuevo lote |
-| `POST` | `/video/liberar-camara` | Fuerza liberación de cámara si está bloqueada |
 
 ---
 

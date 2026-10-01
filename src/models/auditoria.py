@@ -1,4 +1,5 @@
 import json
+from datetime import date
 
 from src.database.bd import Connection
 
@@ -56,8 +57,8 @@ class Auditoria:
         tipo_personal_id: int | None = None,
         accion: str | None = None,
         usuario: str | None = None,
-        fecha_desde: str | None = None,
-        fecha_hasta: str | None = None,
+        fecha_desde: date | None = None,
+        fecha_hasta: date | None = None,
         pagina: int = 1,
         limite: int = 50,
         db: Connection | None = None,

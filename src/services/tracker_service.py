@@ -3,14 +3,18 @@ TrackerService - Integración de Captura + Procesamiento ML
 Coordina CamaraService (captura de frames) con CoffeeRenTracker (procesamiento YOLO).
 """
 
+import os
 import threading
 import time
 
+from src.config import Config
 from src.services.camara_service import camara_service
 from src.ml.tracker import CoffeeRenTracker
 from src.ml.classifier import generar_reporte
 from src.utilities.arduino_serial import arduino_serial
+from src.utilities.eventos_monitoreo import registro_eventos
 from src.utilities.servo_controller import servo_controller
+from src.utilities.uuid_utils import uuid7
 
 # Piso de confianza que YOLO usa para emitir una deteccion. Bajo a proposito:
 # ByteTrack asocia y sostiene los tracks con sus propios umbrales (bytetrack.yaml)
@@ -48,9 +52,19 @@ class TrackerService:
         self._camara_desconectada: bool = False
         self._error_camara: str | None = None
 
-    def iniciar(self) -> bool:
+        # Evaluación a la que pertenece el lote en curso: las evidencias de
+        # materia extraña se archivan bajo su carpeta y los eventos se persisten
+        # contra ella al finalizar.
+        self._evaluacion_id: str | None = None
+        self._evidencias_guardadas: int = 0
+
+    def iniciar(self, evaluacion_id: str | None = None) -> bool:
         """
         Inicia el procesamiento YOLO. La cámara ya debe estar conectada desde el arranque.
+
+        Args:
+            evaluacion_id: evaluación dueña del lote, para archivar evidencias y
+                eventos. None = monitoreo suelto (vista /test), sin persistencia.
 
         Returns:
             bool: True si inició exitosamente, False si error
@@ -75,6 +89,17 @@ class TrackerService:
 
             # Resetear conteo y ByteTrack para nueva sesión (IDs empezarán desde 1)
             self.tracker.resetear_conteo()
+
+            # Lote nuevo: el registro de eventos arranca su reloj aquí, de modo
+            # que el segundo de cada evento sea relativo al inicio real del lote.
+            self._evaluacion_id = evaluacion_id
+            self._evidencias_guardadas = 0
+            registro_eventos.iniciar_lote(evaluacion_id)
+            registro_eventos.registrar(
+                tipo="inicio",
+                mensaje=f"Monitoreo iniciado — modelo {self.model_name}.",
+                severidad="ok",
+            )
 
             # Iniciar hilo de procesamiento
             self.activo = True
@@ -102,6 +127,11 @@ class TrackerService:
         # Fail-safe: al terminar monitoreo, forzar apagado de la faja desde backend.
         # Esto cubre casos donde el frontend no alcanza a enviar OFF.
         arduino_serial.enviar_comando("OFF")
+        registro_eventos.registrar(
+            tipo="fin",
+            mensaje="Monitoreo detenido. Faja apagada.",
+            severidad="info",
+        )
         print("TrackerService detenido — cámara permanece conectada")
 
     def _on_camara_desconectada(self) -> None:
@@ -117,14 +147,29 @@ class TrackerService:
         print("Cámara desconectada — servo fijado en posición DEFECTO")
 
     def _loop_procesamiento(self) -> None:
-        """Loop principal de procesamiento (corre en hilo separado)."""
+        """Loop principal de procesamiento (corre en hilo separado).
+
+        No corre YOLO en cada frame de la cámara (~90 fps): limita la detección
+        a ML_DETECTOR_FPS y, si ML_GATE_MOVIMIENTO está activo, la omite cuando
+        el frame casi no cambió (faja detenida). Menos inferencia = menos
+        GPU/CPU sin perder precisión de conteo.
+        """
         t_anterior = time.time()
         frame_count = 0
+        intervalo_min = 1.0 / Config.ML_DETECTOR_FPS if Config.ML_DETECTOR_FPS > 0 else 0.0
+        t_ultima_inferencia = 0.0
 
         while self.activo:
             # Detectar desconexión de cámara
             if not camara_service.esta_disponible():
                 self._on_camara_desconectada()
+                # El evento se emite aquí y no dentro de _on_camara_desconectada:
+                # esa rutina es el modo de emergencia del hardware y no se toca.
+                registro_eventos.registrar(
+                    tipo="camara",
+                    mensaje=self._error_camara or "Desconexión con cámara. La clasificación se detuvo.",
+                    severidad="error",
+                )
                 break
 
             # Esperar nuevo frame y obtener BGR directo (sin ciclo JPEG)
@@ -133,8 +178,23 @@ class TrackerService:
             if frame is None:
                 continue
 
+            # Cadencia: no correr YOLO más rápido que ML_DETECTOR_FPS.
+            ahora = time.monotonic()
+            if intervalo_min and (ahora - t_ultima_inferencia) < intervalo_min:
+                time.sleep(min(intervalo_min - (ahora - t_ultima_inferencia), 0.02))
+                continue
+            t_ultima_inferencia = ahora
+
+            # Gate por movimiento: si la faja está quieta, saltarse la inferencia.
+            if Config.ML_GATE_MOVIMIENTO and not self.tracker.hay_movimiento(frame):
+                time.sleep(0.02)
+                continue
+
             # Procesar con tracker
             frame_anotado_jpeg = self.tracker.procesar_frame(frame, ts_frame)
+
+            # Archivar los objetos extraños que el tracker recortó en este frame.
+            self._guardar_evidencias()
 
             if frame_anotado_jpeg is not None:
                 frame_count += 1
@@ -147,6 +207,64 @@ class TrackerService:
                     t_anterior = time.time()
             else:
                 print("Tracker retornó None para frame_anotado_jpeg")
+
+    def _guardar_evidencias(self) -> None:
+        """Escribe a disco los recortes de materia extraña y emite su evento.
+
+        El tracker solo recorta y encola (no toca disco). Aquí se archiva bajo la
+        carpeta de la evaluación y se publica el aviso que verá el operario, con
+        el segundo del lote y la miniatura.
+
+        Todo va en try/except: un fallo de disco no puede romper el loop de
+        procesamiento ni detener la clasificación.
+        """
+        try:
+            pendientes = self.tracker.drenar_evidencias()
+        except Exception as exc:
+            print(f"[evidencia] Error drenando la cola: {exc}")
+            return
+
+        for ev in pendientes:
+            imagen_url: str | None = None
+            try:
+                # El aviso al operario se emite SIEMPRE; lo que el flag y el tope
+                # gobiernan es solo la foto. Sin evidencia archivada el operario
+                # igual tiene que enterarse de que se desvió materia extraña.
+                if (Config.ML_EVIDENCIA_DESCONOCIDOS
+                        and self._evaluacion_id
+                        and self._evidencias_guardadas < Config.ML_EVIDENCIA_MAX_POR_LOTE):
+                    carpeta = os.path.join(Config.ML_EVIDENCIA_DIR, self._evaluacion_id)
+                    os.makedirs(carpeta, exist_ok=True)
+                    nombre = f"{uuid7()}.jpg"
+                    with open(os.path.join(carpeta, nombre), "wb") as f:
+                        f.write(ev["jpeg"])
+                    self._evidencias_guardadas += 1
+                    imagen_url = f"/resources/desconocidos/{self._evaluacion_id}/{nombre}"
+            except Exception as exc:
+                print(f"[evidencia] Error guardando recorte: {exc}")
+
+            registro_eventos.registrar(
+                tipo="objeto_desconocido",
+                mensaje="Objeto extraño detectado — desviado al canal de defecto.",
+                severidad="alerta",
+                imagen_url=imagen_url,
+                datos={
+                    "track_id": ev.get("track_id"),
+                    "ancho_px": ev.get("ancho_px"),
+                    "alto_px":  ev.get("alto_px"),
+                    "conf":     ev.get("conf"),
+                },
+            )
+
+    @property
+    def evaluacion_id(self) -> str | None:
+        """Evaluación dueña del lote en curso, o None si el monitoreo es suelto."""
+        return self._evaluacion_id
+
+    def obtener_eventos(self, desde: int = 0) -> dict:
+        """Eventos del lote posteriores al cursor, para el panel de monitoreo."""
+        eventos, cursor = registro_eventos.desde(desde)
+        return {"eventos": eventos, "cursor": cursor}
 
     def obtener_frame_streaming(self) -> bytes | None:
         """
@@ -165,8 +283,14 @@ class TrackerService:
     def obtener_conteo_enriquecido(self) -> dict:
         conteo = self.obtener_conteo_actual()
         eq = self.tracker.EQUIVALENCIAS_DEFECTO
+        desc = self.tracker.CLASE_DESCONOCIDO
+        # 'desconocido' (materia extraña: piedra, pajilla...) tiene equivalencia
+        # > 0 → cuenta como defecto y se desvía al canal DEFECTO. Se reporta
+        # además por separado para que el operario vea cuántos objetos extraños
+        # se retiraron, distinto de los granos defectuosos.
         total_defectos = sum(v for k, v in conteo.items() if eq.get(k, 0.0) > 0.0)
         total_sanos    = sum(v for k, v in conteo.items() if eq.get(k, 0.0) == 0.0)
+        total_desconocidos = conteo.get(desc, 0)
         conteo_agrupado = {
             grupo: sum(conteo.get(c, 0) for c in clases)
             for grupo, clases in self.tracker.GRUPOS_DISPLAY.items()
@@ -175,9 +299,14 @@ class TrackerService:
         segundos_sin_deteccion = round(time.time() - ts, 1) if ts is not None else None
         return {
             "conteo":                  conteo,
+            # total_defectos + total_sanos = total_granos (categorías disjuntas).
+            # total_desconocidos NO es una cuarta categoría: es el subconjunto de
+            # total_defectos que fue materia extraña (no grano defectuoso). No
+            # sumarlo aparte.
             "total_granos":            total_defectos + total_sanos,
             "total_defectos":          total_defectos,
             "total_sanos":             total_sanos,
+            "total_desconocidos":      total_desconocidos,
             "conteo_agrupado":         conteo_agrupado,
             "clases_detectadas":       len(conteo),
             "segundos_sin_deteccion":  segundos_sin_deteccion,
@@ -185,7 +314,8 @@ class TrackerService:
 
     def generar_reporte_lote(self) -> dict:
         """
-        Genera reporte de clasificación del lote actual.
+        Genera reporte de clasificación del lote actual. 'desconocido' (materia
+        extraña) entra al conteo con equivalencia 1.0, como defecto primario SCA.
 
         Returns:
             dict: {grado, defectos, apto_specialty, detalles_por_clase, ...}

@@ -14,7 +14,7 @@
     }
 
     function rellenar(d) {
-        document.getElementById('codEval').textContent           = d.codigo || `EVA-${d.evaluacion_id.slice(0, 8)}`;
+        document.getElementById('codEval').textContent           = d.codigo || '—';
         document.getElementById('caficultorNombre').textContent  = d.caficultor_nombre || '—';
         document.getElementById('metaDoc').textContent           = d.num_documento     || '—';
         document.getElementById('metaTipoCaf').textContent       = d.tipo_caficultor   || '—';
@@ -35,6 +35,8 @@
         rellenarStats(d);
         rellenarRendimiento(d);
         rellenarIncidencias(d.incidencias);
+        // Misma traza que muestra /analisis: un solo renderer compartido.
+        CoffeeEventos.render(d.eventos);
     }
 
     function rellenarStats(d) {

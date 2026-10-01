@@ -96,7 +96,12 @@ class ValorCafeCrearBloqueResponse(BaseModel):
 
 
 class ValorCafeActualizarPrecioRequest(BaseModel):
-    rango: str = Field(..., min_length=1, max_length=10, description="Rango a actualizar (debe existir hoy)")
+    rango: str = Field(
+        ...,
+        min_length=1,
+        max_length=10,
+        description="Rango a re-cotizar. Inserta un precio nuevo; no borra ni modifica los anteriores.",
+    )
     precio: float = Field(..., gt=0, description="Nuevo precio, debe ser mayor a 0")
 
     @field_validator("rango")

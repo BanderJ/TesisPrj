@@ -6,6 +6,7 @@
     <link rel="icon" type="image/png" href="/static/icon/coffee-bean_icon.png">
     <link rel="stylesheet" href="/static/css/tailwind.css">
     <link rel="stylesheet" href="/static/css/main.css">
+    <script src="/static/js/http.js"></script>
     <script src="/static/js/validators.js"></script>
 
     {% block style %}
@@ -30,10 +31,10 @@
 
             <!-- CENTER: Navigation Menu -->
             <nav class="header-center">
-                <a href="/inicio" class="nav-link active">Inicio</a>
+                <a href="/" class="nav-link active">Inicio</a>
                 <a href="/registro" class="nav-link">Registro de muestra</a>
-                <a href="/reporte" class="nav-link">Buscar muestras</a>
-                <a href="/test" class="nav-link">Test</a>
+                <a href="/reporte" class="nav-link">Buscar reportes</a>
+                <!-- <a href="/test" class="nav-link">Test</a> -->
                 <a href="/nuevo-caficultor" class="nav-link">Registrar caficultor</a>
                 {% if user and user.tipo_personal_id in [2, 3] %}
                 <a href="/valor-cafe" class="nav-link">Valor de café</a>

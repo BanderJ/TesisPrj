@@ -226,9 +226,31 @@
 		</table>
 	</div>
 
+	<!-- Traza del monitoreo: mismo contenido en analisis y en reporte -->
+	<div id="eventosSection" style="display:none;" class="analisis-section analisis-eventos">
+		<h3>Registro del monitoreo</h3>
+		<p class="analisis-note" style="margin-bottom:10px;">Mensajes que el sistema emitió durante la clasificación, con el segundo del lote en que ocurrieron. Los objetos extraños (piedras, palitos, pajilla) quedan con la foto de lo que se desvió.</p>
+		<table class="data-table">
+			<thead>
+				<tr>
+					<th>Momento</th>
+					<th>Tipo</th>
+					<th>Mensaje</th>
+					<th>Evidencia</th>
+				</tr>
+			</thead>
+			<tbody id="eventosTbody"></tbody>
+		</table>
+
+		<div class="evidencias-wrap">
+			<h4>Objetos extraños detectados</h4>
+			<div id="eventosGaleria" class="evidencias-galeria"></div>
+		</div>
+	</div>
+
 	<!-- Actions -->
 	<div class="analisis-actions">
-		<button type="button" onclick="window.location.replace('/inicio')" class="btn-export btn-neutral">
+		<button type="button" onclick="window.location.replace('/')" class="btn-export btn-neutral">
 			Ir al inicio
 		</button>
 		<button type="button" onclick="window.location.replace('/registro')" class="btn-export btn-primary-soft">
@@ -242,5 +264,6 @@
 {% block script %}
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>const EVALUACION_ID = '{{ evaluacion_id }}';</script>
+<script src="/static/js/eventos-monitoreo.js"></script>
 <script src="/static/js/analisis.js"></script>
 {% endblock %}

@@ -144,8 +144,7 @@
                 body: JSON.stringify({ rango, precio: nuevoPrecio }),
             });
             if (!res.ok) {
-                const err = await res.json();
-                CoffeeModal.error(err.detail || 'No se pudo actualizar el precio.');
+                CoffeeModal.error(await CoffeeHttp.mensajeError(res, 'No se pudo actualizar el precio.'));
                 btnGuardar.disabled = false;
                 btnGuardar.textContent = 'Guardar';
                 return;
@@ -175,8 +174,7 @@
         try {
             const res = await fetch(`/valor-cafe/eliminar-rango?rango=${encodeURIComponent(rango)}`, { method: 'DELETE' });
             if (!res.ok) {
-                const err = await res.json();
-                CoffeeModal.error(err.detail || 'No se pudo eliminar el rango.');
+                CoffeeModal.error(await CoffeeHttp.mensajeError(res, 'No se pudo eliminar el rango.'));
                 return;
             }
             tr.remove();
@@ -279,12 +277,6 @@
         }
 
         return errores;
-    }
-
-    function mensajeHttpError(data, status) {
-        if (status === 401) return 'Sesión expirada. Vuelve a iniciar sesión.';
-        if (status === 403) return 'Sin permisos para registrar precios.';
-        return data.detail || 'Error al registrar.';
     }
 
     /* ───── Formulario en bloque (dinámico) ───── */
@@ -481,7 +473,7 @@
                 body: JSON.stringify({ precios }),
             });
             if (!res.ok) {
-                CoffeeModal.error(mensajeHttpError(await res.json(), res.status));
+                CoffeeModal.error(await CoffeeHttp.mensajeError(res, 'No se pudo registrar el bloque de precios.'));
                 return;
             }
             const data = await res.json();
