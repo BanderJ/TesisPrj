@@ -36,9 +36,11 @@ class Config:
     # Velocidad PWM de la faja — DEBE coincidir con VELOCIDAD en
     # arduino/logica_hardware/logica_hardware.ino. El tiempo de viaje del grano
     # de la cámara al servo depende de ella, por eso se declara también aquí.
-    FAJA_VELOCIDAD_PWM: int = int(os.environ.get('FAJA_VELOCIDAD_PWM') or '150')
+    FAJA_VELOCIDAD_PWM: int = int(os.environ.get('FAJA_VELOCIDAD_PWM') or '255')
 
     # Calibración de referencia: a PWM=220 el grano tarda 0.5 s en llegar al servo.
+    # Medida con el motor anterior; con el JGY370 10 RPM (oct 2026) hay que volver
+    # a medir y fijar SERVO_DELAY_S en .env.
     # El tiempo de viaje es inversamente proporcional a la velocidad de la faja,
     # así que SERVO_DELAY_S se recalcula solo al cambiar FAJA_VELOCIDAD_PWM y el
     # servo no vuelve a separar el grano equivocado por un delay desactualizado.

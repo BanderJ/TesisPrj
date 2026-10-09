@@ -94,7 +94,7 @@ Guardas de navegación: una evaluación con código redirige de `/monitoreo` a `
 | Autenticación | JWT en cookie httponly `access_token`, Argon2, TTL 7 días |
 | Visión | Ultralytics YOLO26n + ByteTrack, PyTorch CUDA 13 (GPU) / ONNX Runtime (CPU) |
 | Cámara | ELP AR0234 global shutter, USB 2.0, MJPEG 1920×1080 ~90 fps |
-| Hardware | Arduino Uno: faja (puente H, pines 5/6), HC-SR04 (7/8), servo (9). Serie 9600 baud |
+| Hardware | Arduino Uno: faja (L298N + motor JGY370: ENA 5, IN1 4, IN2 3; PWM 255), HC-SR04 (7/8), servo (9). Serie 9600 baud |
 
 **Cuatro capas obligatorias** (cada feature tiene un archivo en cada una):
 

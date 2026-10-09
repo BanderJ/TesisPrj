@@ -599,13 +599,14 @@ ARDUINO_PORT=COM5
 # Velocidad de comunicación serial (por defecto: 9600)
 ARDUINO_BAUDRATE=9600
 
-# Velocidad PWM de la faja transportadora (por defecto: 150)
+# Velocidad PWM de la faja transportadora (por defecto: 255, la máxima)
 # DEBE coincidir con la constante VELOCIDAD del firmware Arduino
-FAJA_VELOCIDAD_PWM=150
+FAJA_VELOCIDAD_PWM=255
 
 # Calibración del servo separador — NO cambiar sin pruebas en banco.
 # SERVO_DELAY_S se calcula automáticamente a partir de FAJA_VELOCIDAD_PWM;
 # defínalo aquí solo si midió un valor distinto en pruebas físicas.
+# Con el motor JGY370 la referencia del cálculo (PWM 220 -> 0.5 s) ya no aplica: mida y fíjelo.
 # SERVO_DELAY_S=0.5
 # SERVO_HOLD_S=0.3
 ```
@@ -670,7 +671,9 @@ Si planea usar la faja transportadora, la balanza y el servo separador, siga est
 
 Cuando vea el mensaje "Subida completada", el firmware está instalado en Arduino.
 
-> **Importante:** la constante `VELOCIDAD` (PWM de la faja) dentro de `logica_hardware.ino` debe coincidir con `FAJA_VELOCIDAD_PWM` del `.env` (por defecto 150). Si cambia una, cambie la otra: de ella depende el tiempo de viaje del grano de la cámara al servo.
+> **Importante:** la constante `VELOCIDAD` (PWM de la faja) dentro de `logica_hardware.ino` debe coincidir con `FAJA_VELOCIDAD_PWM` del `.env` (por defecto 255, velocidad máxima). Si cambia una, cambie la otra: de ella depende el tiempo de viaje del grano de la cámara al servo.
+>
+> **Conexión del motor de la faja** (JGY370 12 V 10 RPM con driver L298N, canal A): ENA → D5 (retirar el jumper ENA del módulo), IN1 → D4, IN2 → D3, OUT1/OUT2 → motor, +12 V → fuente de 12 V, GND común con el Arduino. El sentido de giro está fijado en el firmware (`SENTIDO = -1`).
 
 ### Paso 5: Verificar comunicación (opcional)
 
@@ -681,7 +684,7 @@ Cuando vea el mensaje "Subida completada", el firmware está instalado en Arduin
 
 El protocolo que usa el sistema es por comandos de texto: `ON` / `OFF` (faja), `SERVO:DEFECTO` / `SERVO:BUENO` (separador), `PESO:` (balanza) y `LISTO:` (confirmaciones).
 
-> En `TesisPrj/arduino/test_motor/` hay un sketch auxiliar (`test_motor.ino`) para probar el motor de la faja de forma aislada, sin el firmware completo.
+> En `TesisPrj/arduino/test_motor_2/` hay un sketch auxiliar (`test_motor_2.ino`) para probar el motor de la faja (L298N + JGY370) de forma aislada, sin el firmware completo.
 
 ### Paso 6: Configurar el puerto en el `.env`
 
@@ -1003,7 +1006,7 @@ Una vez que la instalación está completa y funcional, realice las siguientes a
 - Busque la evaluación por su código en `/reporte`
 
 ### 3. Pruebas del Hardware (si tiene Arduino)
-- Pruebe el motor de la faja con `arduino/test_motor/test_motor.ino`
+- Pruebe el motor de la faja con `arduino/test_motor_2/test_motor_2.ino`
 - Cargue el firmware completo y verifique la comunicación (faja ON/OFF, balanza, servo)
 - Verifique con granos reales que el servo separa los defectuosos en el momento correcto
 - Si ajusta la velocidad de la faja, actualice `FAJA_VELOCIDAD_PWM` en el `.env` y `VELOCIDAD` en el firmware

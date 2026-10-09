@@ -31,6 +31,7 @@ del uso real en la cooperativa; **C** = mejora o deuda técnica.
 |---|---|---|---|
 | A | [ ] Iluminación difusa y exposición manual | Instalar luz sin parpadeo; fijar `CAM_EXPOSURE` (p. ej. -6 ≈ 1/64 s) para eliminar estela | INC-57 |
 | A | [ ] Bloquear zoom y foco del lente | Anotar geometría de trabajo (distancia, ancho útil). Prerrequisito del reentrenamiento | INC-56 |
+| A | [ ] Medir el tiempo de viaje cámara → servo con el motor JGY370 | La referencia de `config.py` (PWM 220 → 0.5 s) es del motor anterior. Medir a PWM 255 y fijar `SERVO_DELAY_S` en `.env` (hoy 0.5) | — |
 | B | [ ] Calibrar `ML_GATE_UMBRAL` (1.0) | Comparar el log `gate: diff media=` con faja parada y en marcha. Si salta granos: `ML_GATE_MOVIMIENTO=false` | — |
 | B | [ ] Ajustar `ML_DETECTOR_FPS` / tiles a la velocidad real de la faja | Que ByteTrack no pierda granos entre detecciones (sobreconteo por ID nuevo) | — |
 | B | [ ] Confirmar que los IDs globales no retroceden tras pausas | Prueba real con pausas largas entre granos | — |

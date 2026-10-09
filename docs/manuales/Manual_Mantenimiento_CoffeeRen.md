@@ -333,7 +333,7 @@ Debe listar las 15 tablas del sistema. Si el comando falla, el archivo está cor
 
 ### 2. El servo separa el grano equivocado (se adelanta o se atrasa)
 
-El tiempo entre que la cámara ve el grano y el servo actúa depende de la **velocidad de la faja**. El sistema lo calcula automáticamente a partir de `FAJA_VELOCIDAD_PWM` (calibración de referencia: a PWM 220, el grano tarda 0.5 s en llegar al servo).
+El tiempo entre que la cámara ve el grano y el servo actúa depende de la **velocidad de la faja**. El sistema lo calcula automáticamente a partir de `FAJA_VELOCIDAD_PWM` (calibración de referencia: a PWM 220, el grano tarda 0.5 s en llegar al servo). Esa referencia se midió con el motor anterior: con el motor JGY370 (PWM 255) el tiempo debe medirse en banco y fijarse con `SERVO_DELAY_S` en el `.env`, que tiene prioridad sobre el cálculo.
 
 **Solución:**
 1. Verifique que `FAJA_VELOCIDAD_PWM` en el `.env` coincide con la constante `VELOCIDAD` del firmware Arduino. Si alguien cambió una sin la otra, este es el problema.

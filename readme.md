@@ -26,7 +26,7 @@ CoffeeRen automatiza la evaluación de café verde mediante visión artificial:
 | **Autenticación** | JWT en cookie httponly (Argon2 para contraseñas) |
 | **ML** | YOLO26n binario (`defecto`/`verde`); GPU: PyTorch CUDA 13 con `best.pt` (FP16); CPU: `best.onnx` |
 | **Tracking** | ByteTrack + mapeo propio de IDs globales (nunca retroceden) |
-| **Hardware** | Arduino Uno: puente H (faja), HC-SR04 (tapa), servo separador |
+| **Hardware** | Arduino Uno: L298N + motor JGY370 (faja), HC-SR04 (tapa), servo separador |
 | **Cámara** | ELP AR0234 global shutter, USB 2.0, 1920×1080 MJPEG ~90 fps |
 | **Streaming** | MJPEG con OpenCV (headless) + polling de frames JPEG |
 
@@ -86,8 +86,8 @@ La app está disponible en `http://localhost:8000`. La cámara se pre-conecta al
 | `API_FACTILIZA` | `''` | Token de la API Factiliza (consulta DNI) |
 | `ARDUINO_PORT` | `COM5` | Puerto serial del Arduino |
 | `ARDUINO_BAUDRATE` | `9600` | Baudios (clones con resonador cerámico fallan a 115200) |
-| `FAJA_VELOCIDAD_PWM` | `150` | PWM de la faja — **debe coincidir** con `VELOCIDAD` en `logica_hardware.ino` |
-| `SERVO_DELAY_S` | calculado | Tiempo cámara→servo; se deriva del PWM, o se fija medido en banco |
+| `FAJA_VELOCIDAD_PWM` | `255` | PWM de la faja — **debe coincidir** con `VELOCIDAD` en `logica_hardware.ino` |
+| `SERVO_DELAY_S` | calculado | Tiempo cámara→servo; se deriva del PWM, o se fija medido en banco (tiene prioridad). Volver a medir al cambiar la velocidad o el motor |
 | `SERVO_HOLD_S` | `0.3` | Tiempo que el servo sostiene la posición DEFECTO |
 | `CAM_INDICE`, `CAM_WIDTH`, `CAM_HEIGHT`, `CAM_FPS` | auto, 1920, 1080, 90 | Selección y modo de la cámara |
 | `CAM_EXPOSURE`, `CAM_WB_TEMP` | automáticos | Exposición y balance de blancos manuales |
@@ -114,7 +114,7 @@ El proyecto sigue un patrón de **4 capas**:
 TesisPrj/
 ├── arduino/
 │   ├── logica_hardware/        # Firmware de producción (faja + HC-SR04 + servo)
-│   └── test_motor/             # Sketch de prueba aislada del motor (banco)
+│   └── test_motor_2/           # Sketch de prueba aislada del motor (banco)
 ├── docs/
 │   ├── guia/                   # Guía de contexto: empezar aquí
 │   ├── manuales/               # Instalación y mantenimiento
@@ -277,7 +277,7 @@ Tabla completa de parámetros y restricciones: [docs/guia/02-modulo-ml.md](docs/
 
 | Componente | Pin(es) | Función |
 |---|---|---|
-| Puente H (motor faja) | 5, 6 | Faja transportadora, PWM = 150 |
+| L298N canal A (motor JGY370 12 V 10 RPM) | 5 (ENA, PWM), 4 (IN1), 3 (IN2) | Faja transportadora, PWM = 255 (máxima), sentido -1 (IN2 alto). Retirar el jumper ENA del módulo |
 | HC-SR04 | 7 (TRIG), 8 (ECHO) | Verificación de tapa cerrada / muestra presente |
 | Servo separador | 9 | 0° = BUENO (reposo), 15° = DEFECTO |
 
@@ -295,9 +295,9 @@ Arduino → Backend:  LISTO:<cm> | NO_LISTO:<cm> | PESO:<g> | TARE:OK | SISTEMA:
 - Un keep-alive cada 20 s previene la suspensión USB de Windows.
 - [src/utilities/arduino_serial.py](src/utilities/arduino_serial.py) maneja el protocolo; los módulos ML nunca escriben al puerto directamente.
 
-### Sketch de prueba (`arduino/test_motor/`)
+### Sketch de prueba (`arduino/test_motor_2/`)
 
-Prueba aislada del motor (mismos pines que producción) desde el Monitor Serie: adelante/reversa/parar, ajuste de PWM y una rampa automática para medir el PWM mínimo de arranque de la faja.
+Prueba aislada del motor L298N + JGY370 (mismos pines que producción) desde el Monitor Serie: adelante/reversa/parar, ajuste de PWM y una rampa automática para medir el PWM mínimo de arranque de la faja.
 
 ## Base de datos
 
@@ -386,7 +386,7 @@ notebook en `src/ml/models/yolov26n_2cls_new/`.
 - Servidor: `uvicorn src.main:app --reload` → `http://localhost:8000`
 - Flujo completo: registro → monitoreo → finalizar → peso bueno → análisis
 - ML/hardware: capturas reales con cámara ELP + faja y servo conectados
-- Motor aislado: sketch `arduino/test_motor/` desde el Monitor Serie
+- Motor aislado: sketch `arduino/test_motor_2/` desde el Monitor Serie
 
 ## Contacto y colaboradores
 

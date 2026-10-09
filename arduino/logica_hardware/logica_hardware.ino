@@ -1,21 +1,24 @@
 #include <Servo.h>
 
 // === PINES ===
-#define MOTOR_IN1    5
-#define MOTOR_IN2    6
-#define TRIG_PIN     7
-#define ECHO_PIN     8
-#define SERVO_PIN    9
+// Motor de la faja: JGY370 12V 10 RPM (reductor sinfín autobloqueante)
+// con driver L298N, canal A. Retirar el jumper de ENA del módulo.
+#define MOTOR_ENA    5   // PWM — velocidad
+#define MOTOR_IN1    4   // sentido
+#define MOTOR_IN2    3   // sentido
+#define TRIG_PIN     7   // morado
+#define ECHO_PIN     8   // gris
+#define SERVO_PIN    9   // naranja
 
 // === AJUSTES ===
 const float DISTANCIA_UMBRAL       = 5.30;   // cm — verificación de tapa
-const int   VELOCIDAD              = 150;    // velocidad faja (0-255). ¡SINCRONIZAR con FAJA_VELOCIDAD_PWM en src/config.py! El delay del servo depende de este valor.
+const int   VELOCIDAD              = 255;    // velocidad faja (0-255; 255 = máxima).
+const int   SENTIDO                = -1;     // giro de la faja: 1 = IN1 alto, -1 = IN2 alto (validado en test_motor_2)
 const int   ANGULO_BUENO           = 0;      // servo: posición reposo — granos buenos/verdes
 const int   ANGULO_DEFECTO         = 15;     // servo: separador — granos defectuosos
 const unsigned long MS_DISTANCIA   = 100;    // reporte sensor cada 100 ms
 
 Servo  servoSeparador;
-bool   motorActivo = false;
 
 // Temporizadores millis()
 unsigned long tDistancia = 0;
@@ -26,8 +29,10 @@ String lineaSerial = "";
 void setup() {
   Serial.begin(9600);  // clones con resonador cerámico fallan a 115200
 
+  pinMode(MOTOR_ENA, OUTPUT);
   pinMode(MOTOR_IN1, OUTPUT);
   pinMode(MOTOR_IN2, OUTPUT);
+  aplicarMotor(false);
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
 
@@ -52,16 +57,7 @@ void loop() {
     }
   }
 
-  // 2. Control de motor
-  if (motorActivo) {
-    analogWrite(MOTOR_IN1, VELOCIDAD);
-    analogWrite(MOTOR_IN2, 0);
-  } else {
-    analogWrite(MOTOR_IN1, 0);
-    analogWrite(MOTOR_IN2, 0);
-  }
-
-  // 3. Reporte de distancia
+  // 2. Reporte de distancia
   if (ahora - tDistancia >= MS_DISTANCIA) {
     tDistancia = ahora;
     float dist = leerUltrasonico();
@@ -78,10 +74,10 @@ void loop() {
 
 void procesarComando(String cmd) {
   if (cmd == "ON") {
-    motorActivo = true;
+    aplicarMotor(true);
 
   } else if (cmd == "OFF") {
-    motorActivo = false;
+    aplicarMotor(false);
     servoSeparador.write(ANGULO_BUENO);
 
   } else if (cmd == "SERVO:BUENO") {
@@ -92,6 +88,20 @@ void procesarComando(String cmd) {
 
   }
   // TARE y SCALE deshabilitados — báscula HX711 retirada temporalmente
+}
+
+// L298N: velocidad por ENA (PWM), sentido por IN1/IN2. Al parar, el reductor
+// sinfín retiene la faja; no hace falta freno activo.
+void aplicarMotor(bool encender) {
+  if (!encender) {
+    analogWrite(MOTOR_ENA, 0);
+    digitalWrite(MOTOR_IN1, LOW);
+    digitalWrite(MOTOR_IN2, LOW);
+    return;
+  }
+  digitalWrite(MOTOR_IN1, SENTIDO == 1 ? HIGH : LOW);
+  digitalWrite(MOTOR_IN2, SENTIDO == 1 ? LOW : HIGH);
+  analogWrite(MOTOR_ENA, VELOCIDAD);
 }
 
 // Retorna distancia en cm. Retorna -1.0 si no hay eco.
