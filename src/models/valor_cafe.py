@@ -52,8 +52,9 @@ class ValorCafe:
         finally:
             db.close()
 
-    def obtener_resumen_rangos(self, fecha: date) -> list[dict[str, Any]]:
-        db = Connection()
+    def obtener_resumen_rangos(self, fecha: date, db: Connection | None = None) -> list[dict[str, Any]]:
+        owns_db = db is None
+        db = db or Connection()
         try:
             sql = """
                 SELECT rango, precio, registrado_en
@@ -67,26 +68,13 @@ class ValorCafe:
             """
             return db.obtener(sql, (fecha,))
         finally:
-            db.close()
-
-    def obtener_mas_reciente(self, db: Connection | None = None) -> dict[str, Any] | None:
-        """Retorna el registro de valor_cafe más reciente por fecha."""
-        owns_db = db is None
-        db = db or Connection()
-        try:
-            sql = """
-                SELECT id::text, rango, precio, fecha
-                FROM valor_cafe
-                ORDER BY fecha DESC
-                LIMIT 1
-            """
-            return db.obtener_uno(sql)
-        finally:
             if owns_db:
                 db.close()
 
-    def obtener_por_factor(self, factor: Decimal, db: Connection | None = None) -> dict[str, Any] | None:
-        """Retorna el precio más reciente cuyo rango contiene el factor de rendimiento.
+    def obtener_por_factor(
+        self, factor: Decimal, fecha: date, db: Connection | None = None
+    ) -> dict[str, Any] | None:
+        """Retorna el precio más reciente del día cuyo rango contiene el factor de rendimiento.
         El rango puede ser 'X-Y' (ej: 70-75) o un número simple 'X' (ej: 70)."""
         owns_db = db is None
         db = db or Connection()
@@ -94,12 +82,13 @@ class ValorCafe:
             sql = """
                 SELECT id::text, rango, precio, fecha
                 FROM valor_cafe
-                WHERE CAST(SPLIT_PART(rango, '-', 1) AS numeric) <= %s
+                WHERE fecha::date = %s
+                  AND CAST(SPLIT_PART(rango, '-', 1) AS numeric) <= %s
                   AND CAST(COALESCE(NULLIF(SPLIT_PART(rango, '-', 2), ''), SPLIT_PART(rango, '-', 1)) AS numeric) >= %s
                 ORDER BY fecha DESC
                 LIMIT 1
             """
-            return db.obtener_uno(sql, (factor, factor))
+            return db.obtener_uno(sql, (fecha, factor, factor))
         finally:
             if owns_db:
                 db.close()

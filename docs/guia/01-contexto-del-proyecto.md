@@ -21,7 +21,7 @@ la calidad y el pago. El conteo manual es lento y subjetivo. CoffeeRen lo automa
 3. Un modelo **YOLO** detecta cada grano y lo clasifica como `verde` (sano) o `defecto`.
 4. **ByteTrack** asigna un ID único a cada grano para no contarlo dos veces.
 5. Un **servo** desvía físicamente los granos defectuosos a otro canal.
-6. El sistema calcula el **grado SCA** del lote, el factor de rendimiento y el **pago** al caficultor.
+6. El sistema cuenta los **defectos equivalentes** del lote y calcula el factor de rendimiento y el **pago** al caficultor.
 
 ## 2. Glosario del dominio
 
@@ -39,9 +39,9 @@ la calidad y el pago. El conteo manual es lento y subjetivo. CoffeeRen lo automa
 | Valor del café | Precio por quintal según rango de factor de rendimiento (tabla `VALOR_CAFE`), registrado a diario por Gerente/Admin. |
 | SCA | Specialty Coffee Association. Su norma define defectos equivalentes y grados. |
 | Defecto equivalente | Cada clase de defecto pesa distinto (p. ej. 1 grano negro = 1 defecto; 5 granos partidos = 1 defecto). |
-| Grado | Grado 1 (Specialty) 0–15 defectos equivalentes; Grado 2 16–23; Grado 3 24 o más. |
+| Grado | No se calcula: depende del tipo de defecto (primario/secundario) y el modelo solo distingue defecto/verde. |
 | INCAL | Entidad de referencia que advierte sobre materia extraña en lotes (piedras, palitos, pajilla). |
-| Materia extraña / "desconocido" | Objeto que el modelo nunca reconoce como grano. Se desvía a defecto y suma 1.0 al grado. |
+| Materia extraña / "desconocido" | Objeto que el modelo nunca reconoce como grano. Se desvía a defecto y suma 1.0 a los defectos equivalentes. |
 | Lote (en el ML) | Sesión de conteo del tracker entre un `resetear` y el reporte final. Coincide con una evaluación. |
 
 ## 3. Flujo de una evaluación
@@ -57,7 +57,7 @@ la calidad y el pago. El conteo manual es lento y subjetivo. CoffeeRen lo automa
    │                           GET  /video/lote/conteo (1.5 s)     → conteo en vivo
    │                           GET  /video/eventos                  → bitácora del monitoreo
    │                           [servo separa defectos en paralelo]
-   │  POST  /video/lote/generar-reporte → grado SCA
+   │  POST  /video/lote/generar-reporte → defectos equivalentes
    │  PATCH /evaluacion/{id}/finalizar  → código EVA + eventos a EVENTO_MONITOREO
    ▼
 /analisis/{id}                 Evaluador pesa el grano bueno.

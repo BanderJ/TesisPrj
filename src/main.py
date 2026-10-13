@@ -24,6 +24,7 @@ from src.routes.persona import persona_router
 from src.routes.reporte import reporte_router
 from src.routes.tipo_caficultor import tipo_caficultor_router
 from src.routes.tipo_documento import tipo_documento_router
+from src.routes.bono_socio import bono_socio_router
 from src.routes.tipo_grano import tipo_grano_router
 from src.routes.tipo_personal import tipo_personal_router
 from src.routes.ubigeo import ubigeo_router
@@ -196,6 +197,7 @@ async def health() -> dict[str, str]:
 app.include_router(arduino_router)
 app.include_router(auditoria_router)
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(bono_socio_router, prefix="/bono-socio", tags=["bono-socio"])
 app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
 app.include_router(cooperativa_router)
 app.include_router(evaluacion_router, prefix="/evaluacion", tags=["evaluacion"])

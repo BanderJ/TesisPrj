@@ -1,4 +1,4 @@
-﻿{% extends "main.html" %}
+{% extends "main.html" %}
 
 {% block style %}
 <link rel="stylesheet" href="/static/css/analisis.css">
@@ -7,10 +7,9 @@
 {% block content %}
 <section class="analisis-page" id="analisisPage">
 
-	<!-- Toolbar -->
 	<div class="analisis-toolbar">
 		<div class="analisis-toolbar-title">
-			<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--primary);flex-shrink:0">
+			<svg class="analisis-toolbar-icon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
 				<rect x="3" y="3" width="18" height="18" rx="3"/>
 				<path d="M9 9h1m5 0h1M9 12h6M9 15h4"/>
 			</svg>
@@ -18,237 +17,19 @@
 		</div>
 		<div class="analisis-toolbar-actions">
 			<button class="btn-export pdf" onclick="window.print()">
-				<img src="/static/icon/pdf.png" alt="PDF">
+				<img src="/static/icon/pdf.png" alt="">
 				Exportar PDF
 			</button>
 			<button class="btn-export excel" id="btnExcel">
-				<img src="/static/icon/excel.png" alt="Excel">
+				<img src="/static/icon/excel.png" alt="">
 				Exportar Excel
 			</button>
 		</div>
 	</div>
 
-	<!-- Header card — compact horizontal -->
-	<div class="analisis-header-card">
-		<div class="analisis-header-main">
-			<p class="kicker" style="margin:0 0 2px;">Evaluación de café</p>
-			<div class="analisis-title-row">
-				<h2 id="codEval">Cargando...</h2>
-				<span class="status-badge finalizado">
-					<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
-					Finalizado
-				</span>
-			</div>
-			<p id="caficultorNombre" class="analisis-caficultor">—</p>
-		</div>
-		<div class="analisis-chips">
-			<div class="analisis-chip">
-				<span>DNI</span>
-				<strong id="metaDoc">—</strong>
-			</div>
-			<div class="analisis-chip">
-				<span>Tipo caficultor</span>
-				<strong id="metaTipoCaf">—</strong>
-			</div>
-			<div class="analisis-chip">
-				<span>Tipo de grano</span>
-				<strong id="metaGrano">—</strong>
-			</div>
-			<div class="analisis-chip">
-				<span>Peso por quintal</span>
-				<strong id="metaPesoQqGrano">—</strong>
-			</div>
-			<div class="analisis-chip">
-				<span>Registrado por</span>
-				<strong id="metaRegistradoPor">—</strong>
-			</div>
-		</div>
-	</div>
+	{% set modo = 'analisis' %}
+	{% include "partials/resumen_evaluacion.html" %}
 
-	<!-- Stats row -->
-	<div class="analisis-stats">
-		<div class="stat-card">
-			<div class="stat-card-label">Granos evaluados</div>
-			<div class="stat-card-value accent-blue" id="statGranos">—</div>
-			<div class="stat-card-sub">Total en banda</div>
-		</div>
-		<div class="stat-card">
-			<div class="stat-card-label">Defectos</div>
-			<div class="stat-card-value accent-red" id="statDefectos">—</div>
-			<div class="stat-card-sub">Detectados por IA</div>
-		</div>
-		<div class="stat-card">
-			<div class="stat-card-label">Buenos</div>
-			<div class="stat-card-value accent-green" id="statSanos">—</div>
-			<div class="stat-card-sub">Sin defecto</div>
-		</div>
-		<div class="stat-card">
-			<div class="stat-card-label">% Defecto</div>
-			<div class="stat-card-value accent-amber" id="statPctDefecto">—</div>
-			<div class="stat-card-sub">Del total evaluado</div>
-		</div>
-		<div class="stat-card">
-			<div class="stat-card-label">Tiempo de análisis</div>
-			<div class="stat-card-value" id="statTiempo">—</div>
-			<div class="stat-card-sub">Duración del monitoreo</div>
-		</div>
-	</div>
-
-	<!-- Detail grid: datos + clasificación/defectos -->
-	<div class="analisis-detail-grid">
-
-		<!-- LEFT: sample data table -->
-		<div class="analisis-section">
-			<h3>Datos de la muestra</h3>
-			<table class="data-table">
-				<tbody>
-					<tr><td>Código evaluación</td><td id="tdCodigo">—</td></tr>
-					<tr><td>Fecha</td><td id="tdFecha">—</td></tr>
-					<tr><td>N° de sacos</td><td id="tdSacos">—</td></tr>
-					<tr><td>Peso bruto</td><td id="tdPeso">—</td></tr>
-					<tr><td>Humedad</td><td id="tdHumedad">—</td></tr>
-					<tr><td>Peso de muestra</td><td id="tdPesoMuestra">—</td></tr>
-					<tr><td>Peso trillado</td><td id="tdTrillado">—</td></tr>
-					<tr><td>N° de tamiz</td><td id="tdTamiz">—</td></tr>
-					<tr><td>Peso tamizado</td><td id="tdTamizado">—</td></tr>
-				</tbody>
-			</table>
-		</div>
-
-		<!-- RIGHT: classification + defect breakdown -->
-		<div class="analisis-section">
-			<h3>Granos detectados</h3>
-
-			<!-- Classification badges -->
-			<div class="clasificacion-row">
-				<div class="clasificacion-card grado">
-					<span>Grado SCA</span>
-					<strong id="gradoSCA">—</strong>
-				</div>
-				<div class="clasificacion-card" id="specialtyCard">
-					<span>Specialty</span>
-					<strong id="specialtyVal">—</strong>
-				</div>
-				<div class="clasificacion-card">
-					<span>Peso báscula</span>
-					<strong id="pesoCaptEl">—</strong>
-				</div>
-			</div>
-
-			<!-- Distribution bars -->
-			<p class="section-sublabel">Distribución de granos</p>
-			<div class="defect-stat">
-				<div class="defect-stat-header">
-					<span>Defectos</span>
-					<strong id="dNegroVal">0</strong>
-				</div>
-				<div class="defect-track">
-					<div class="defect-bar negro" id="dNegroBar" style="width:0%"></div>
-				</div>
-			</div>
-			<div class="defect-stat">
-				<div class="defect-stat-header">
-					<span>Buenos</span>
-					<strong id="dSanoVal">0</strong>
-				</div>
-				<div class="defect-track">
-					<div class="defect-bar sano" id="dSanoBar" style="width:0%"></div>
-				</div>
-			</div>
-
-			<p class="analisis-note">
-				Los defectos son detectados automáticamente por visión artificial en tiempo real.
-			</p>
-		</div>
-	</div>
-
-	<!-- Factor de rendimiento: pendiente (input manual) o calculado -->
-	<div class="analisis-section" id="rendimientoSection">
-		<h3>Factor de rendimiento</h3>
-
-		<div id="rendimientoPendiente" style="display:none;">
-			<p class="analisis-note" style="margin-bottom:10px;">
-				Esta evaluación aún no tiene el peso de grano bueno registrado.
-				Pesa el grano bueno separado e ingresa el valor para calcular el rendimiento.
-			</p>
-			<div style="display:flex;gap:10px;max-width:480px;">
-				<input id="inputPesoBuenoAnalisis" type="number" min="0" step="1" inputmode="numeric" placeholder="Peso de grano bueno (g)"
-					style="flex:1;min-width:0;height:42px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--input);color:var(--foreground);font-size:15px;font-weight:600;">
-				<button type="button" id="btnGuardarPesoBuenoAnalisis" class="btn-export btn-primary-soft" style="white-space:nowrap;">
-					Calcular rendimiento
-				</button>
-			</div>
-			<p id="pesoBuenoHintAnalisis" style="margin:8px 0 0;font-size:12px;color:var(--muted-foreground);">Gramos enteros.</p>
-			<p id="pesoBuenoErrorAnalisis" style="display:none;margin:8px 0 0;font-size:13px;color:var(--destructive,#dc2626);"></p>
-		</div>
-
-		<div id="rendimientoCalculado" style="display:none;" class="clasificacion-row">
-			<div class="clasificacion-card grado">
-				<span>Factor rendimiento</span>
-				<strong id="rendFactor">—</strong>
-			</div>
-			<div class="clasificacion-card">
-				<span>Peso bueno</span>
-				<strong id="rendPesoBueno">—</strong>
-			</div>
-			<div class="clasificacion-card">
-				<span>Peso por quintal</span>
-				<strong id="rendPesoQq">—</strong>
-			</div>
-			<div class="clasificacion-card">
-				<span id="rendPrecioLabel">Precio quintal (S/)</span>
-				<strong id="rendPrecio">—</strong>
-			</div>
-			<div class="clasificacion-card">
-				<span>Pago (S/)</span>
-				<strong id="rendPago">—</strong>
-			</div>
-			<div class="clasificacion-card">
-				<span>Categoría</span>
-				<strong id="rendCategoria">—</strong>
-			</div>
-		</div>
-	</div>
-
-	<!-- Incidencias de tapa (visible solo si las hay) -->
-	<div id="incidenciasSection" style="display:none;" class="analisis-section analisis-incidencias">
-		<h3>Incidencias durante el monitoreo</h3>
-		<p class="analisis-note" style="margin-bottom:10px;">Se registró cada apertura de tapa durante el monitoreo (la faja no se detiene). El evaluador debe validar si el lote sigue siendo confiable.</p>
-		<table class="data-table">
-			<thead>
-				<tr>
-					<th>Apertura (s)</th>
-					<th>Cierre (s)</th>
-					<th>Duración abierta</th>
-				</tr>
-			</thead>
-			<tbody id="incidenciasTbody"></tbody>
-		</table>
-	</div>
-
-	<!-- Traza del monitoreo: mismo contenido en analisis y en reporte -->
-	<div id="eventosSection" style="display:none;" class="analisis-section analisis-eventos">
-		<h3>Registro del monitoreo</h3>
-		<p class="analisis-note" style="margin-bottom:10px;">Mensajes que el sistema emitió durante la clasificación, con el segundo del lote en que ocurrieron. Los objetos extraños (piedras, palitos, pajilla) quedan con la foto de lo que se desvió.</p>
-		<table class="data-table">
-			<thead>
-				<tr>
-					<th>Momento</th>
-					<th>Tipo</th>
-					<th>Mensaje</th>
-					<th>Evidencia</th>
-				</tr>
-			</thead>
-			<tbody id="eventosTbody"></tbody>
-		</table>
-
-		<div class="evidencias-wrap">
-			<h4>Objetos extraños detectados</h4>
-			<div id="eventosGaleria" class="evidencias-galeria"></div>
-		</div>
-	</div>
-
-	<!-- Actions -->
 	<div class="analisis-actions">
 		<button type="button" onclick="window.location.replace('/')" class="btn-export btn-neutral">
 			Ir al inicio
@@ -265,5 +46,6 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>const EVALUACION_ID = '{{ evaluacion_id }}';</script>
 <script src="/static/js/eventos-monitoreo.js"></script>
+<script src="/static/js/resumen-evaluacion.js"></script>
 <script src="/static/js/analisis.js"></script>
 {% endblock %}

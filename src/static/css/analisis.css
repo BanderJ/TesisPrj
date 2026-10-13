@@ -26,8 +26,14 @@
     font-family: var(--font-serif);
 }
 
+.analisis-toolbar-icon {
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
 .analisis-toolbar-actions {
     display: flex;
+    align-items: center;
     gap: 8px;
     flex-wrap: wrap;
 }
@@ -49,14 +55,14 @@
 }
 
 .btn-export.pdf {
-    background: color-mix(in oklab, #dc2626 12%, #ff0000cc 70%);
-    border-color: color-mix(in oklab, #dc2626 38%, var(--border) 62%);
+    background: color-mix(in oklab, var(--danger) 12%, #ff0000cc 70%);
+    border-color: color-mix(in oklab, var(--danger) 38%, var(--border) 62%);
     color: #ffffff;
 }
 
 .btn-export.excel {
     background: color-mix(in oklab, #00ff5e 12%, #043509ba 88%);
-    border-color: color-mix(in oklab, #16a34a 38%, var(--border) 62%);
+    border-color: color-mix(in oklab, var(--success) 38%, var(--border) 62%);
     color: #ffffff;
 }
 
@@ -88,8 +94,10 @@
     background: var(--card);
     padding: 14px 18px;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 24px;
 }
 
 .analisis-header-main {
@@ -130,21 +138,22 @@
 }
 
 .status-badge.finalizado {
-    background: color-mix(in oklab, #16a34a 14%, transparent 86%);
-    border: 1px solid color-mix(in oklab, #16a34a 36%, transparent 64%);
-    color: #16a34a;
+    background: color-mix(in oklab, var(--success) 14%, transparent 86%);
+    border: 1px solid color-mix(in oklab, var(--success) 36%, transparent 64%);
+    color: var(--success);
 }
 
 .status-badge.pendiente {
-    background: color-mix(in oklab, #d97706 14%, transparent 86%);
-    border: 1px solid color-mix(in oklab, #d97706 36%, transparent 64%);
-    color: #d97706;
+    background: color-mix(in oklab, var(--warning) 14%, transparent 86%);
+    border: 1px solid color-mix(in oklab, var(--warning) 36%, transparent 64%);
+    color: var(--warning);
 }
 
 /* ── Meta chips row ──────────────────────────────────────────────── */
 .analisis-chips {
     display: flex;
     flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 6px;
 }
 
@@ -173,10 +182,10 @@
     font-family: var(--font-mono);
 }
 
-/* ── Stats row — 5 cards ─────────────────────────────────────────── */
+/* ── Stats row — 4 (reporte) o 5 (análisis) indicadores ─────────── */
 .analisis-stats {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 10px;
 }
 
@@ -204,12 +213,13 @@
     line-height: 1;
     color: var(--foreground);
     font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
 }
 
-.stat-card-value.accent-green  { color: #16a34a; }
-.stat-card-value.accent-red    { color: #dc2626; }
-.stat-card-value.accent-blue   { color: #2563eb; }
-.stat-card-value.accent-amber  { color: #d97706; }
+.stat-card-value.accent-green  { color: var(--success); }
+.stat-card-value.accent-red    { color: var(--danger); }
+.stat-card-value.accent-blue   { color: var(--info); }
+.stat-card-value.accent-amber  { color: var(--warning); }
 
 .stat-card-sub {
     font-size: 11px;
@@ -276,6 +286,12 @@
     margin-bottom: 14px;
 }
 
+/* Rendimiento: las 6 cifras en una sola fila cuando hay ancho */
+.clasificacion-row--rend {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    margin-bottom: 0;
+}
+
 .clasificacion-card {
     border: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
     background: color-mix(in oklab, var(--muted) 28%, transparent 72%);
@@ -287,7 +303,7 @@
 }
 
 .clasificacion-card span {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -301,22 +317,14 @@
     color: var(--foreground);
 }
 
-.clasificacion-card.grado strong {
+.clasificacion-card.destacado strong {
     color: var(--primary);
-}
-
-.clasificacion-card.apto strong {
-    color: #16a34a;
-}
-
-.clasificacion-card.no-apto strong {
-    color: #dc2626;
 }
 
 /* ── Distribution bars ───────────────────────────────────────────── */
 .section-sublabel {
     margin: 0 0 8px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -355,12 +363,13 @@
 }
 
 .defect-bar {
+    width: 0;
     height: 100%;
     border-radius: inherit;
-    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: width var(--dur-base) var(--ease-out);
 }
 
-.defect-bar.negro { background: #dc2626; }
+.defect-bar.negro { background: var(--danger); }
 .defect-bar.sano  { background: var(--primary); }
 
 /* ── Note ────────────────────────────────────────────────────────── */
@@ -369,6 +378,48 @@
     font-size: 12px;
     color: var(--muted-foreground);
     line-height: 1.5;
+}
+
+/* Nota sobre el contenido de la sección (no al pie) */
+.analisis-note--top {
+    margin: 0 0 10px;
+}
+
+/* ── Peso de grano bueno pendiente (solo /analisis) ──────────────── */
+.peso-bueno-form {
+    display: flex;
+    gap: 10px;
+    max-width: 480px;
+}
+
+.peso-bueno-form input {
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--input);
+    color: var(--foreground);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.peso-bueno-form .btn-export {
+    height: 42px;
+    white-space: nowrap;
+}
+
+.peso-bueno-hint,
+.peso-bueno-error {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--muted-foreground);
+}
+
+.peso-bueno-error {
+    font-size: 13px;
+    color: var(--destructive);
 }
 
 /* ── Actions ─────────────────────────────────────────────────────── */
@@ -405,17 +456,7 @@
 }
 
 /* ── Responsive ──────────────────────────────────────────────────── */
-@media (max-width: 1200px) {
-    .analisis-stats {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
 @media (max-width: 900px) {
-    .analisis-stats {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
     .analisis-detail-grid {
         grid-template-columns: 1fr;
     }
@@ -432,6 +473,7 @@
 
     .analisis-chips {
         gap: 5px;
+        justify-content: flex-start;
     }
 
     .analisis-toolbar {
@@ -442,7 +484,8 @@
 
 /* ── Traza del monitoreo ────────────────────────────────────────── */
 /* Misma sección en /analisis y en /reporte: ambas cargan esta hoja. */
-.analisis-eventos th {
+.analisis-eventos th,
+.analisis-incidencias th {
     padding: 0 0 7px;
     font-size: 11px;
     font-weight: 700;
@@ -453,7 +496,14 @@
     border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent 40%);
 }
 
-/* La tabla de eventos tiene 4 columnas: anular el ancho de dos columnas. */
+/* Tablas de varias columnas: anular el ancho de la tabla de dos columnas. */
+.analisis-incidencias .data-table td {
+    width: auto;
+    font-weight: 600;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+}
+
 .analisis-eventos .data-table td:first-child {
     width: auto;
     font-variant-numeric: tabular-nums;
@@ -532,4 +582,13 @@
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     color: var(--muted-foreground);
+}
+
+/* Desglose del pago cuando la entrega tuvo beneficio de socio (CoffeePago, main.js) */
+.pago-detalle {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
 }

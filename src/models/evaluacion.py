@@ -119,16 +119,15 @@ class Evaluacion:
                     e.factor_rendimiento,
                     e.peso_por_qq,
                     e.pago,
+                    e.bono_socio,
                     vc.precio,
-                    vc.rango,
-                    c.nombre                                                AS categoria
+                    vc.rango
                 FROM evaluacion e
                 JOIN persona          p   ON p.id              = e.caficultor_id
                 JOIN tipo_caficultor  tc  ON tc.id             = e.tipo_caficultor_id
                 JOIN tipo_grano       tg  ON tg.id             = e.tipo_grano_id
                 JOIN personal         per ON per.personal_id   = e.personal_id
                 JOIN persona          pe  ON pe.id             = per.personal_id
-                LEFT JOIN categoria   c   ON c.id              = e.categoria_id
                 LEFT JOIN valor_cafe  vc  ON vc.id             = e.valor_cafe_id
             """
             if evaluacion_id is not None:
@@ -153,39 +152,20 @@ class Evaluacion:
         try:
             sql = """
                 SELECT
-                    id::text,
-                    COALESCE(TRIM(codigo), '') AS codigo,
-                    tipo_grano_id,
-                    num_sacos,
-                    peso_bruto,
-                    humedad,
-                    peso_muestra,
-                    peso_trillado
-                FROM evaluacion
-                WHERE id = %s
+                    e.id::text,
+                    COALESCE(TRIM(e.codigo), '') AS codigo,
+                    e.tipo_grano_id,
+                    e.num_sacos,
+                    e.peso_bruto,
+                    e.humedad,
+                    e.peso_muestra,
+                    e.peso_trillado,
+                    e.tipo_caficultor_id,
+                    e.factor_rendimiento
+                FROM evaluacion e
+                WHERE e.id = %s
             """
             return db.obtener_uno(sql, (evaluacion_id,))
-        finally:
-            if owns_db:
-                db.close()
-
-    def obtener_categoria_por_defectos(
-        self,
-        total_defectos: int,
-        db: Connection | None = None,
-    ) -> dict[str, Any] | None:
-        """Retorna la categoría correspondiente al total de defectos detectados."""
-        owns_db = db is None
-        db = db or Connection()
-        try:
-            sql = """
-                SELECT id, nombre
-                FROM categoria
-                WHERE cantidad_defectos >= %s
-                ORDER BY cantidad_defectos ASC
-                LIMIT 1
-            """
-            return db.obtener_uno(sql, (total_defectos,))
         finally:
             if owns_db:
                 db.close()
@@ -205,7 +185,7 @@ class Evaluacion:
         peso_neto: Decimal,
         peso_por_qq: Decimal,
         pago: Decimal,
-        categoria_id: int | None,
+        bono_socio: Decimal,
         total_defectos: int,
         db: Connection | None = None,
     ) -> dict[str, Any]:
@@ -230,7 +210,7 @@ class Evaluacion:
                     peso_neto          = %s,
                     peso_por_qq        = %s,
                     pago               = %s,
-                    categoria_id       = %s,
+                    bono_socio         = %s,
                     total_defectos     = %s,
                     fecha              = NOW()
                 WHERE id = %s
@@ -242,8 +222,8 @@ class Evaluacion:
                 peso_bueno, peso_malo,
                 factor_rendimiento, tara_saco,
                 tara_total, peso_neto,
-                peso_por_qq, pago,
-                categoria_id, total_defectos,
+                peso_por_qq, pago, bono_socio,
+                total_defectos,
                 evaluacion_id,
             )
             cursor = db.ejecutar(sql, params)

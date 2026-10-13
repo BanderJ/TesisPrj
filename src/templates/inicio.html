@@ -5,38 +5,35 @@
 {% endblock %}
 
 {% block content %}
-    <!-- Cooperativa Info Section -->
-    <section id="cooperativaSection" class="cooperativa-info-section" hidden>
-        <div class="cooperativa-banner-wrapper">
-            <img id="cooperativaImagenBanner" src="" alt="Banner de cooperativa" class="cooperativa-banner-img" hidden>
-        </div>
-        <div class="cooperativa-card">
-            <h2 id="cooperativaNombreTitulo" class="cooperativa-title">Tu Cooperativa</h2>
-            <p id="cooperativaDescripcionTexto" class="cooperativa-description"></p>
+    <!-- Banner de la cooperativa: nombre y descripción sobre la imagen -->
+    <section id="cooperativaSection" class="coop-banner" hidden>
+        <img id="cooperativaImagenBanner" src="" alt="Banner de cooperativa" class="coop-banner-img" hidden>
+        <div class="coop-banner-copy">
+            <h2 id="cooperativaNombreTitulo" class="coop-banner-title">Tu Cooperativa</h2>
+            <p id="cooperativaDescripcionTexto" class="coop-banner-desc"></p>
         </div>
     </section>
 
     <section class="control-hero reveal-up" aria-label="Centro de control CoffeeRen">
-        <div class="socio-hero">
-            <!-- <p class="hero-kicker info-text">Centro de control academico</p> -->
-            <h1 class="hero-title">Clasificacion inteligente de cafe verde</h1>
+        <header class="page-hero">
+            <h1 class="hero-title">Clasificación inteligente de café verde</h1>
             <p class="hero-description">
-                Visualiza el estado de laboratorio, monitorea lotes en proceso y coordina el flujo de clasificacion
-                por vision artificial con una interfaz orientada a precision y trazabilidad.
+                Visualiza el estado de laboratorio, monitorea lotes en proceso y coordina el flujo de clasificación
+                por visión artificial con una interfaz orientada a precisión y trazabilidad.
             </p>
-        </div>
+        </header>
 
         <div class="hero-strip">
             <article class="hero-strip-item">
-                <p class="info-text">Lotes procesados</p>
+                <p class="hero-strip-label">Lotes procesados</p>
                 <strong id="kpiLotes">—</strong>
             </article>
             <article class="hero-strip-item">
-                <p class="info-text">Rendimiento promedio</p>
+                <p class="hero-strip-label">Rendimiento promedio</p>
                 <strong id="kpiRendimiento">—</strong>
             </article>
             <article class="hero-strip-item">
-                <p class="info-text">Defectos detectados</p>
+                <p class="hero-strip-label">Defectos detectados</p>
                 <strong id="kpiDefectos">—</strong>
             </article>
         </div>
@@ -103,37 +100,42 @@
 
     <section class="workflow-section reveal-up" aria-labelledby="acciones-title">
         <h2 id="acciones-title" class="section-title">Flujo operativo</h2>
-        <p class="section-subtitle info-text">Accesos directos a los modulos criticos del sistema</p>
+        <p class="section-subtitle info-text">Accesos directos a los módulos críticos del sistema</p>
 
-        <div class="workflow-grid">
-            <article class="workflow-card">
-                <div class="workflow-badge">01</div>
-                <h3>Registrar caficultor</h3>
-                <p>Registro de productor para trazabilidad territorial y analisis por procedencia.</p>
-                <a href="/nuevo-caficultor" class="btn btn-primary workflow-btn">Registrar</a>
-            </article>
-
-            <article class="workflow-card">
-                <div class="workflow-badge">02</div>
-                <h3>Registrar socio</h3>
-                <p>Gestion de socios y consolidacion de actores vinculados a cada lote.</p>
-                <a href="/nuevo-caficultor" class="btn btn-primary workflow-btn">Convertir a socio</a>
-            </article>
-
-            <article class="workflow-card">
-                <div class="workflow-badge">03</div>
-                <h3>Realizar muestra</h3>
-                <p>Captura tecnica de pesos y datos de productor para iniciar clasificacion.</p>
-                <a href="/registro" class="btn btn-primary workflow-btn">Ir a registro</a>
-            </article>
-
-            <article class="workflow-card">
-                <div class="workflow-badge">04</div>
-                <h3>Buscar muestras</h3>
-                <p>Consulta historica por documento, fecha, rendimiento y estado de lote.</p>
-                <a href="/reporte" class="btn btn-primary workflow-btn">Buscar muestra</a>
-            </article>
-        </div>
+        <nav class="workflow-grid" aria-labelledby="acciones-title">
+            <a href="/nuevo-caficultor" class="workflow-card">
+                <span class="workflow-icon-wrap"><svg class="workflow-icon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg></span>
+                <div class="workflow-copy">
+                    <h3>Registrar caficultor</h3>
+                    <p>Registro de productor para trazabilidad territorial y análisis por procedencia.</p>
+                </div>
+                <span class="workflow-action">Registrar<svg class="workflow-arrow" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            </a>
+            <a href="/nuevo-caficultor" class="workflow-card">
+                <span class="workflow-icon-wrap"><svg class="workflow-icon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 21l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span>
+                <div class="workflow-copy">
+                    <h3>Registrar socio</h3>
+                    <p>Gestión de socios y consolidación de actores vinculados a cada lote.</p>
+                </div>
+                <span class="workflow-action">Convertir a socio<svg class="workflow-arrow" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            </a>
+            <a href="/registro" class="workflow-card">
+                <span class="workflow-icon-wrap"><svg class="workflow-icon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/></svg></span>
+                <div class="workflow-copy">
+                    <h3>Realizar muestra</h3>
+                    <p>Captura técnica de pesos y datos de productor para iniciar clasificación.</p>
+                </div>
+                <span class="workflow-action">Ir a registro<svg class="workflow-arrow" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            </a>
+            <a href="/reporte" class="workflow-card">
+                <span class="workflow-icon-wrap"><svg class="workflow-icon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></span>
+                <div class="workflow-copy">
+                    <h3>Buscar muestras</h3>
+                    <p>Consulta histórica por documento, fecha, rendimiento y estado de lote.</p>
+                </div>
+                <span class="workflow-action">Buscar muestra<svg class="workflow-arrow" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            </a>
+        </nav>
     </section>
 {% endblock %}
 

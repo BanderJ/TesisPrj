@@ -46,8 +46,15 @@ class CoffeeRenTracker:
         # confianza no debe disparar la separacion fisica del grano.
         self.SERVO_MIN_FRAMES = 2
         self.SERVO_CONF_MIN = 0.45
-        # NMS mas permisivo: no suprime cajas de granos que se tocan.
+        # yolov26n_2cls es end2end (sin NMS): Ultralytics ignora `iou` y la
+        # cabeza puede emitir la misma caja dos veces, una por clase. Este IoU
+        # lo aplica _deduplicar_tile, sin distinguir clase. Alto para no
+        # suprimir cajas de granos que se tocan.
         self.IOU_NMS = 0.80
+        # Fraccion de la caja menor que debe caer dentro de la mayor para
+        # tratarlas como el mismo grano aunque el IoU no llegue a IOU_NMS
+        # (caja anidada). Dos granos distintos nunca quedan uno dentro de otro.
+        self.IOS_CONTENIDA = 0.90
         # IoU para fusionar la caja de un grano que cae en el solape de dos tiles.
         self.NMS_ENTRE_TILES = 0.5
         # Sesgo hacia la clase sana al resolver la clase de un track: la confianza
@@ -229,18 +236,18 @@ class CoffeeRenTracker:
         # Un solo batch: en GPU es una pasada para todos los tiles; en CPU
         # equivale a las llamadas sueltas anteriores.
         resultados = self.model.predict(
-            subs, imgsz=640, conf=self.conf, iou=self.IOU_NMS,
+            subs, imgsz=640, conf=self.conf,
             device=self._device, half=self._half, verbose=False,
         )
         cajas: list[np.ndarray] = []
         for idx, ((x0, y0, x1, y1), r) in enumerate(zip(tiles, resultados)):
             if r.boxes is None or len(r.boxes) == 0:
                 continue
-            b = r.boxes.data.cpu().numpy()          # (n, 6): x1, y1, x2, y2, conf, cls
+            b = self._deduplicar_tile(r.boxes.data.cpu().numpy())  # (n, 6): x1, y1, x2, y2, conf, cls
             b[:, [0, 2]] += x0
             b[:, [1, 3]] += y0
             # 7a columna = indice de tile: _fusionar_cajas no une dos cajas del
-            # mismo tile (el NMS de YOLO ya las separo -> son granos distintos).
+            # mismo tile (_deduplicar_tile ya las separo -> son granos distintos).
             b = np.hstack([b, np.full((len(b), 1), idx, dtype=np.float32)])
             cajas.append(b)
 
@@ -251,12 +258,44 @@ class CoffeeRenTracker:
             return todas[:, :6]
         return self._fusionar_cajas(todas)[:, :6]
 
+    def _deduplicar_tile(self, cajas: np.ndarray) -> np.ndarray:
+        """NMS agnóstico a la clase dentro de un tile. Filas (x1, y1, x2, y2, conf, cls).
+
+        El modelo es end2end: no pasa por NMS y, si un grano queda cerca del
+        50/50, la cabeza emite la misma caja como 'defecto' y como 'verde'. Sin
+        este filtro ByteTrack recibe las dos: una alterna la clase del track
+        existente y la otra abre un track nuevo (el grano se cuenta dos veces).
+        Se conserva la caja más confiada; la otra se descarta si su IoU con ella
+        alcanza IOU_NMS o si queda contenida en ella (IOS_CONTENIDA)."""
+        if len(cajas) < 2:
+            return cajas
+        cajas = cajas[np.argsort(-cajas[:, 4])]
+        quedan: list[np.ndarray] = []
+        for c in cajas:
+            if not any(iou >= self.IOU_NMS or ios >= self.IOS_CONTENIDA
+                       for iou, ios in (self._iou_ios(c, q) for q in quedan)):
+                quedan.append(c)
+        return np.array(quedan, dtype=cajas.dtype)
+
+    @staticmethod
+    def _iou_ios(a: np.ndarray, b: np.ndarray) -> tuple[float, float]:
+        """IoU e IoS (intersección / área de la caja menor) de dos cajas
+        (x1, y1, x2, y2, ...). (0, 0) si no se tocan o alguna tiene área nula."""
+        ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+        iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+        inter = ix * iy
+        area_a = (a[2] - a[0]) * (a[3] - a[1])
+        area_b = (b[2] - b[0]) * (b[3] - b[1])
+        if inter <= 0 or min(area_a, area_b) <= 0:
+            return 0.0, 0.0
+        return float(inter / (area_a + area_b - inter)), float(inter / min(area_a, area_b))
+
     def _fusionar_cajas(self, cajas: np.ndarray) -> np.ndarray:
         """Une la caja de un grano partido por la costura entre dos tiles.
         Entrada/salida: filas (x1, y1, x2, y2, conf, cls, idx_tile).
 
         Solo funde cajas de tiles DISTINTOS (col 6): dos cajas del mismo tile ya
-        fueron separadas por el NMS de YOLO y son granos distintos — nunca se
+        pasaron por _deduplicar_tile y son granos distintos — nunca se
         funden, así dos granos que se tocan siguen contando por separado.
 
         Cross-tile se funden si se solapan (IoU >= NMS_ENTRE_TILES o IoS >= 0.6)
@@ -273,17 +312,11 @@ class CoffeeRenTracker:
                 for k, f in enumerate(fusion):
                     if int(c[6]) == int(f[6]):
                         continue                       # mismo tile -> granos distintos
-                    ix = max(0.0, min(c[2], f[2]) - max(c[0], f[0]))
-                    iy = max(0.0, min(c[3], f[3]) - max(c[1], f[1]))
-                    inter = ix * iy
-                    if inter <= 0:
+                    iou, ios = self._iou_ios(c, f)
+                    if iou == 0.0 or (iou < self.NMS_ENTRE_TILES and ios < 0.6):
                         continue
                     area_c = (c[2] - c[0]) * (c[3] - c[1])
                     area_f = (f[2] - f[0]) * (f[3] - f[1])
-                    iou = inter / (area_c + area_f - inter)
-                    ios = inter / min(area_c, area_f)
-                    if iou < self.NMS_ENTRE_TILES and ios < 0.6:
-                        continue
                     env = (max(c[2], f[2]) - min(c[0], f[0])) * (max(c[3], f[3]) - min(c[1], f[1]))
                     if env > 1.6 * max(area_c, area_f):
                         continue                       # fusionar agrandaría demasiado

@@ -28,6 +28,8 @@
                 selectedSection.hidden = false;
                 if (section === 'tipos-grano') {
                     cargarTiposGrano();
+                } else if (section === 'bono-socio') {
+                    cargarBonoSocio();
                 } else if (section === 'usuarios') {
                     cargarUsuarios();
                 } else if (section === 'caficultores') {
@@ -71,6 +73,7 @@
             // Mostrar secciones de admin
             if (isAdmin) {
                 document.getElementById('navTiposGrano').hidden = false;
+                document.getElementById('navBonoSocio').hidden = false;
                 document.getElementById('navUsuarios').hidden = false;
                 document.getElementById('navCaficultores').hidden = false;
                 document.getElementById('navAuditoria').hidden = false;
@@ -208,6 +211,88 @@
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
         }[c]));
     }
+
+    // === Beneficio de socio ===
+    // El backend guarda cada cambio como un registro nuevo; aquí solo se muestra.
+    function pintarBonoSocio(data) {
+        const vigente = data.vigente;
+        document.getElementById('bonoVigenteMonto').textContent =
+            vigente ? `S/ ${Number(vigente.monto).toFixed(2)}` : 'Sin configurar';
+        document.getElementById('bonoVigenteDetalle').textContent =
+            vigente ? `Desde ${vigente.fecha}${vigente.registrado_por ? ' · ' + vigente.registrado_por : ''}` : '';
+
+        const tbody = document.getElementById('bonoHistorialBody');
+        if (!data.historial.length) {
+            tbody.innerHTML = '<tr><td colspan="3" class="tabla-vacia">Todavía no hay cambios registrados</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.historial.map(h => `
+            <tr>
+                <td>${escapeHtml(h.fecha)}</td>
+                <td class="celda-num">${Number(h.monto).toFixed(2)}</td>
+                <td>${escapeHtml(h.registrado_por || '—')}</td>
+            </tr>
+        `).join('');
+    }
+
+    async function cargarBonoSocio() {
+        try {
+            const res = await fetch('/bono-socio');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cargar el beneficio de socio.'));
+            pintarBonoSocio(await res.json());
+        } catch (error) {
+            CoffeeModal.error(error.message);
+        }
+    }
+
+    const bonoInput = document.getElementById('bonoMonto');
+    const bonoHint  = document.getElementById('bonoMontoHint');
+
+    function validarBonoMonto() {
+        const valor = bonoInput.value.trim();
+        let mensaje = '';
+        if (valor === '') mensaje = 'Ingrese el monto.';
+        else if (!/^\d{1,5}(\.\d{1,2})?$/.test(valor)) mensaje = 'Use un monto válido con hasta 2 decimales.';
+        bonoHint.textContent = mensaje;
+        return !mensaje;
+    }
+
+    bonoInput.addEventListener('input', validarBonoMonto);
+
+    document.getElementById('formBonoSocio').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!validarBonoMonto()) return;
+        const monto = Number(bonoInput.value).toFixed(2);
+        const ok = await CoffeeModal.confirm({
+            title: 'Cambiar beneficio de socio',
+            message: `Las entregas de socios que se completen desde ahora recibirán S/ ${monto}. Las evaluaciones anteriores no cambian.`,
+            okText: 'Guardar',
+            cancelText: 'Cancelar',
+        });
+        if (!ok) return;
+
+        const btn = document.getElementById('btnGuardarBono');
+        const textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.textContent = 'Guardando…';
+        try {
+            const res = await fetch('/bono-socio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ monto }),
+            });
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo guardar el beneficio de socio.'));
+            pintarBonoSocio(await res.json());
+            bonoInput.value = '';
+            bonoHint.textContent = '';
+            CoffeeModal.success(`El beneficio de socio ahora es S/ ${monto} por entrega.`);
+        } catch (error) {
+            CoffeeModal.error(error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = textoOriginal;
+        }
+    });
 
     async function cargarTiposGrano() {
         const tbody = document.getElementById('tiposGranoBody');

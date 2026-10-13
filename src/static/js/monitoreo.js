@@ -265,7 +265,7 @@
 
 		// Objetos que el modelo nunca reconoció como grano (piedra, pajilla, palito):
 		// tracker.py los enmarca en azul sobre el video, el servo los desvía al canal
-		// de defecto y cuentan como materia extraña en el grado. Aquí solo se
+		// de defecto y cuentan como defecto (materia extraña). Aquí solo se
 		// mantiene el contador: el AVISO de cada objeto llega como evento del
 		// backend (con su segundo real y la foto del recorte), no se infiere
 		// restando contadores entre polls.
@@ -516,11 +516,7 @@
 				const res = await fetch('/video/lote/generar-reporte', { method: 'POST' });
 				if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo generar el reporte.'));
 				reporteActual = await res.json();
-				const { grado, total_defectos, apto_specialty } = reporteActual;
-				appendLog(
-					`Reporte: ${grado} | ${total_defectos} defectos equiv. | Specialty: ${apto_specialty ? 'Apto' : 'No apto'}`,
-					'ok',
-				);
+				appendLog(`Reporte: ${reporteActual.total_defectos} defectos equiv.`, 'ok');
 			} catch (err) {
 				appendLog('Error al generar reporte: ' + err.message, 'error');
 			}
@@ -579,8 +575,6 @@
 
 			document.getElementById('resCode').textContent     = codigo || '—';
 			document.getElementById('resGranos').textContent   = Object.values(conteoActual).reduce((a,b)=>a+b,0);
-			document.getElementById('resGrado').textContent    = reporteActual?.grado || '—';
-			document.getElementById('resSpecialty').textContent= reporteActual?.apto_specialty ? 'Apto ✓' : 'No apto';
 			document.getElementById('resPeso').textContent     = `${Number(pesoGramos).toFixed(2)} g`;
 			// Sin celda de carga no hay lectura: ocultar la fila de báscula
 			document.getElementById('resPesoRow').style.display = pesoGramos > 0 ? '' : 'none';
@@ -645,7 +639,6 @@
 				const data = await res.json();
 				document.getElementById('resFactor').textContent    = Number(data.factor_rendimiento).toFixed(2);
 				document.getElementById('resPago').textContent      = Number(data.pago).toFixed(2);
-				document.getElementById('resCategoria').textContent = data.categoria || '—';
 				document.getElementById('finRendimiento').style.display = 'block';
 				document.getElementById('finPesoForm').style.display = 'none';
 				finDescripcion.textContent = 'Rendimiento calculado. Revisa el resumen antes de continuar al análisis.';
@@ -738,8 +731,6 @@
 			const stats = {
 				totalGrains:      _totalGranos,
 				totalDefectos:    _totalDefectoGranos,
-				grado:            reporteActual?.grado || 'Sin clasificar',
-				aptEspecialty:    reporteActual?.apto_specialty || false,
 				peso_capturado:   pesoCapturado,
 				elapsedSeconds,
 				incidencias:      [...incidencias],

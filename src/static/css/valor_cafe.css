@@ -260,8 +260,8 @@
 }
 
 .badge-ok {
-    background: color-mix(in oklab, #16a34a 16%, transparent 84%);
-    color: #16a34a;
+    background: color-mix(in oklab, var(--success) 16%, transparent 84%);
+    color: var(--success);
 }
 
 .badge-no {

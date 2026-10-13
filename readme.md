@@ -130,7 +130,7 @@ TesisPrj/
 │   │   └── script.sql          # Schema PostgreSQL
 │   ├── ml/
 │   │   ├── tracker.py          # CoffeeRenTracker: tiles + YOLO + ByteTrack + IDs globales + clase por confianza
-│   │   ├── classifier.py       # Defectos equivalentes y grado SCA (3 grados)
+│   │   ├── classifier.py       # Defectos equivalentes del lote
 │   │   ├── bytetrack.yaml      # Configuración del tracker
 │   │   └── models/
 │   │       ├── yolov26n_2cls/
@@ -184,7 +184,7 @@ Las páginas `/monitoreo/{id}` y `/analisis/{id}` tienen guards de estado: una e
    [servo separa defectuosos en paralelo, sincronizado con SERVO_DELAY_S]
 
 3. FINALIZAR
-   POST  /video/lote/generar-reporte → grado SCA + defectos equivalentes
+   POST  /video/lote/generar-reporte → defectos equivalentes
    PATCH /evaluacion/{id}/finalizar  → asigna código EVA correlativo + guarda EVENTO_MONITOREO
 
 4. COMPLETAR (rendimiento)
@@ -218,7 +218,7 @@ servo_controller.py: cola de separación
     └─ Defectos consecutivos extienden el hold (sin parpadeo del servo)
     ↓
 Fin de lote → classifier.py: generar_reporte(conteo)
-    └─ defectos equivalentes SCA + grado + apto specialty
+    └─ defectos equivalentes SCA
 ```
 
 ### Modelo activo
@@ -261,13 +261,11 @@ tracker = CoffeeRenTracker(conf=0.15, model_name="yolov26n_2cls")
 
 Tabla completa de parámetros y restricciones: [docs/guia/02-modulo-ml.md](docs/guia/02-modulo-ml.md).
 
-### Grados SCA (classifier.py)
+### Defectos equivalentes (classifier.py)
 
-| Grado | Defectos equivalentes (350 g) |
-|---|---|
-| Grado 1 (Specialty) | 0 – 15 |
-| Grado 2 | 16 – 23 |
-| Grado 3 | 24 o más |
+`classifier.py` suma los defectos equivalentes del lote con las equivalencias del modelo. No
+asigna grado SCA ni aptitud Specialty: el grado depende del tipo de defecto (primario/secundario)
+y el modelo actual solo distingue `defecto`/`verde`.
 
 **Crítico:** Las equivalencias deben coincidir con los estándares SCA de Line Coffee Marañón. La validación con la cooperativa está pendiente (INC-17); referencia en [docs/defectos_sca_tabla_referencia.md](docs/defectos_sca_tabla_referencia.md).
 

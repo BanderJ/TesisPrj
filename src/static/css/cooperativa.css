@@ -40,8 +40,8 @@
 }
 
 .buscar-estado.buscando  { color: var(--primary); border-color: color-mix(in oklab, var(--primary) 38%, var(--border) 62%); background: color-mix(in oklab, var(--primary) 8%, transparent 92%); }
-.buscar-estado.encontrado { border-color: #16a34a; background: color-mix(in oklab, #16a34a 8%, transparent 92%); color: #15803d; }
-.buscar-estado.no-encontrado { border-color: #dc2626; background: color-mix(in oklab, #dc2626 8%, transparent 92%); color: #dc2626; }
+.buscar-estado.encontrado { border-color: var(--success); background: color-mix(in oklab, var(--success) 8%, transparent 92%); color: var(--success-strong); }
+.buscar-estado.no-encontrado { border-color: var(--danger); background: color-mix(in oklab, var(--danger) 8%, transparent 92%); color: var(--danger); }
 
 .buscar-spinner {
     display: inline-block;
@@ -52,8 +52,6 @@
     animation: spin 0.6s linear infinite;
     flex-shrink: 0;
 }
-
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Grid 3 columnas para campos de persona/ubicación */
 .perfil-form-row--3 {
@@ -120,13 +118,13 @@
     white-space: nowrap;
 }
 
-.audit-badge--login        { background: color-mix(in oklab, #16a34a 15%, transparent); color: #15803d; }
+.audit-badge--login        { background: color-mix(in oklab, var(--success) 15%, transparent); color: var(--success-strong); }
 .audit-badge--logout       { background: color-mix(in oklab, #6b7280 15%, transparent); color: #4b5563; }
-.audit-badge--login-fail   { background: color-mix(in oklab, #dc2626 15%, transparent); color: #dc2626; }
+.audit-badge--login-fail   { background: color-mix(in oklab, var(--danger) 15%, transparent); color: var(--danger); }
 .audit-badge--crear        { background: color-mix(in oklab, var(--primary) 15%, transparent); color: var(--primary); }
-.audit-badge--actualizar   { background: color-mix(in oklab, #2563eb 15%, transparent); color: #1d4ed8; }
-.audit-badge--desactivar   { background: color-mix(in oklab, #dc2626 12%, transparent); color: #b91c1c; }
-.audit-badge--eliminar     { background: color-mix(in oklab, #dc2626 12%, transparent); color: #b91c1c; }
+.audit-badge--actualizar   { background: color-mix(in oklab, var(--info) 15%, transparent); color: var(--info-strong); }
+.audit-badge--desactivar   { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger-strong); }
+.audit-badge--eliminar     { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger-strong); }
 .audit-badge--completar    { background: color-mix(in oklab, #7c3aed 15%, transparent); color: #6d28d9; }
 .audit-badge--default      { background: color-mix(in oklab, var(--border) 40%, transparent); color: var(--muted-foreground); }
 
@@ -219,4 +217,79 @@
 
 @media (max-width: 900px) {
     .reporte-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Beneficio de socio ── */
+.bono-vigente {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--canvas);
+}
+
+.bono-vigente-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+}
+
+.bono-vigente-monto {
+    font-size: 1.85rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary);
+}
+
+.bono-vigente-detalle {
+    font-size: 13px;
+    color: var(--muted-foreground);
+}
+
+.bono-form {
+    display: grid;
+    grid-template-columns: minmax(0, 320px) auto;
+    align-items: start;
+    gap: 12px;
+}
+
+.bono-form .btn {
+    justify-self: start;
+    margin-top: 30px;
+}
+
+.bono-form .helper-text {
+    margin: 0;
+    font-size: 12px;
+    color: var(--danger);
+}
+
+.bono-historial-titulo {
+    margin: 8px 0 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.celda-num {
+    font-variant-numeric: tabular-nums;
+}
+
+.tabla-vacia {
+    text-align: center;
+    padding: 2rem;
+    color: var(--muted-foreground);
+}
+
+@media (max-width: 640px) {
+    .bono-form {
+        grid-template-columns: 1fr;
+    }
+
+    .bono-form .btn {
+        margin-top: 0;
+    }
 }

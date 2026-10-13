@@ -1,33 +1,15 @@
-/* ── Buscar muestras ─────────────────────────────────────────────── */
-.reporte-page {
-    display: grid;
-    gap: 12px;
+/* ── Buscar reportes: misma página que /analisis más la búsqueda ─── */
+/* El resumen usa partials/resumen_evaluacion.html y los estilos de analisis.css. */
+
+/* ── Búsqueda en la barra superior ───────────────────────────────── */
+/* El buscador va junto al título; la exportación queda a la derecha. */
+.reporte-page .analisis-toolbar {
+    justify-content: flex-start;
+    gap: 10px 20px;
 }
 
-/* ── Search card — compact horizontal ───────────────────────────── */
-.reporte-search-card {
-    border-radius: 14px;
-    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent 18%);
-    background: var(--card);
-    padding: 14px 18px;
-}
-
-.reporte-search-inner {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.reporte-search-label {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.reporte-search-hint {
-    margin: 0;
-    font-size: 13px;
-    color: var(--muted-foreground);
+.reporte-page .analisis-toolbar-actions {
+    flex: 1;
 }
 
 .reporte-search-form {
@@ -37,17 +19,17 @@
 }
 
 .reporte-input {
-    width: min(100%, 220px);
-    height: 38px;
+    width: 180px;
+    height: 36px;
     padding: 0 12px;
     border-radius: 9px;
     border: 1px solid color-mix(in oklab, var(--border) 84%, transparent 16%);
-    background: color-mix(in oklab, var(--input) 94%, transparent 6%);
+    background: var(--card);
     color: var(--foreground);
     font-size: 14px;
     font-family: var(--font-mono, monospace);
     letter-spacing: 0.05em;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .reporte-input:focus {
@@ -60,57 +42,78 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    height: 38px;
+    height: 36px;
     padding: 0 16px;
     white-space: nowrap;
 }
 
-/* ── States (empty / not found) ──────────────────────────────────── */
+.reporte-export {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+    padding-left: 8px;
+    border-left: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+}
+
+/* ── Estados (vacío / no encontrado) ─────────────────────────────── */
 .reporte-state {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 52px 20px;
+    gap: 14px;
+    padding: 28px 20px;
     border-radius: 14px;
     border: 1px dashed color-mix(in oklab, var(--border) 66%, transparent 34%);
 }
 
 .reporte-state p {
     margin: 0;
+    max-width: 60ch;
     font-size: 14px;
     color: var(--muted-foreground);
-    text-align: center;
+    text-wrap: pretty;
 }
 
-/* ── Results grid ────────────────────────────────────────────────── */
-.reporte-results {
-    display: grid;
-    gap: 12px;
+.reporte-state-icon {
+    flex-shrink: 0;
+    color: var(--muted-foreground);
+    opacity: 0.45;
+}
+
+.reporte-state-icon--error {
+    color: var(--danger);
+    opacity: 0.7;
 }
 
 /* ── Print ───────────────────────────────────────────────────────── */
 @media print {
-    .reporte-search-card,
-    .analisis-actions,
-    .analisis-toolbar {
+    .reporte-search-form,
+    .reporte-export {
         display: none !important;
     }
 }
 
 /* ── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 640px) {
+    .analisis-toolbar-actions,
     .reporte-search-form {
         width: 100%;
     }
 
     .reporte-input {
         flex: 1;
-        width: 100%;
+        width: auto;
+        min-width: 0;
     }
 
-    .reporte-btn-buscar {
-        justify-content: center;
+    .reporte-export {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+    }
+
+    .reporte-state {
+        flex-direction: column;
+        text-align: center;
     }
 }

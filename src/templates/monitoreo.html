@@ -202,17 +202,14 @@
 			<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Código</p><p id="resCode" style="margin:0;font-weight:700;font-size:15px;color:var(--primary);"></p></div>
 				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Granos</p><p id="resGranos" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
-				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Grado</p><p id="resGrado" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
-				<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Specialty</p><p id="resSpecialty" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
 				<div id="resPesoRow" style="grid-column:1/-1;border-top:1px solid color-mix(in oklab,var(--border) 60%,transparent);padding-top:8px;margin-top:2px;">
 					<p style="margin:0;font-size:11px;color:var(--muted-foreground);">Peso capturado (báscula)</p>
 					<p id="resPeso" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p>
 				</div>
 				<div id="finRendimiento" style="display:none;grid-column:1/-1;border-top:1px solid color-mix(in oklab,var(--border) 60%,transparent);padding-top:8px;margin-top:2px;">
-					<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+					<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 						<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Factor rendimiento</p><p id="resFactor" style="margin:0;font-weight:700;font-size:15px;color:var(--primary);"></p></div>
 						<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Pago (S/)</p><p id="resPago" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
-						<div><p style="margin:0;font-size:11px;color:var(--muted-foreground);">Categoría</p><p id="resCategoria" style="margin:0;font-weight:700;font-size:15px;color:var(--foreground);"></p></div>
 					</div>
 				</div>
 			</div>
@@ -239,10 +236,6 @@
 		</button>
 	</div>
 </div>
-
-<style>
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
 {% endblock %}
 
 {% block script %}

@@ -120,7 +120,7 @@ const totalDefectos = Object.entries(conteo)
 const negro = (conteo['negro'] || 0) + (conteo['defecto'] || 0);
 
 // ❌ MAL: el frontend aplica umbrales de negocio
-const esEspecialty = totalDefectos <= 15;
+const conDescuento = humedad > 12;
 ```
 
 **El service debe calcular y exponer valores listos:**

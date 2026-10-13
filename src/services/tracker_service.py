@@ -30,7 +30,7 @@ class TrackerService:
     Servicio que gestiona la captura de video y procesamiento de defectos en tiempo real.
     - Captura frames desde CamaraService (1280x720 @ 60fps)
     - Procesa con CoffeeRenTracker (YOLO + ByteTrack)
-    - Calcula grado con classifier.py (SCA)
+    - Calcula los defectos equivalentes con classifier.py
     """
 
     def __init__(self, model_name: str = "yolov26n_2cls"):
@@ -318,7 +318,7 @@ class TrackerService:
         extraña) entra al conteo con equivalencia 1.0, como defecto primario SCA.
 
         Returns:
-            dict: {grado, defectos, apto_specialty, detalles_por_clase, ...}
+            dict: {total_granos_analizados, total_defectos, detalle_por_clase, resumen}
         """
         conteo = self.obtener_conteo_actual()
         return generar_reporte(conteo, self.tracker.EQUIVALENCIAS_DEFECTO)

@@ -829,3 +829,15 @@
                 CoffeeModal.error(error.message || 'No se pudieron cargar los catálogos.');
             });
     })();
+
+// Monto vigente del beneficio de socio (lo define Gerente/Admin en Cooperativa)
+(async () => {
+    const el = document.getElementById('bonoSocioMonto');
+    if (!el) return;
+    try {
+        const res = await fetch('/bono-socio');
+        if (!res.ok) return;
+        const { vigente } = await res.json();
+        if (vigente) el.textContent = `S/ ${Number(vigente.monto).toFixed(2)}`;
+    } catch { /* se queda el guion: el monto es informativo */ }
+})();

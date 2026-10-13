@@ -107,10 +107,10 @@
     stroke-width: 3;
 }
 
-.requirement.active  { color: #16a34a; }
-.requirement.inactive { color: #dc2626; }
-.requirement.active .requirement-icon  { color: #16a34a; }
-.requirement.inactive .requirement-icon { color: #dc2626; }
+.requirement.active  { color: var(--success); }
+.requirement.inactive { color: var(--danger); }
+.requirement.active .requirement-icon  { color: var(--success); }
+.requirement.inactive .requirement-icon { color: var(--danger); }
 
 /* Coincidencia de contraseña */
 .password-match {
@@ -124,10 +124,10 @@
 .match-icon { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 3; }
 
 .password-match.show    { display: flex; }
-.password-match.match   { color: #16a34a; }
-.password-match.mismatch { color: #dc2626; }
-.password-match.match .match-icon   { color: #16a34a; }
-.password-match.mismatch .match-icon { color: #dc2626; }
+.password-match.match   { color: var(--success); }
+.password-match.mismatch { color: var(--danger); }
+.password-match.match .match-icon   { color: var(--success); }
+.password-match.mismatch .match-icon { color: var(--danger); }
 
 /* Tabla de usuarios */
 .tabla-usuarios {
@@ -161,8 +161,8 @@
     font-weight: 600;
 }
 
-.estado-badge.activo   { background: color-mix(in oklab, #16a34a 12%, transparent 88%); color: #16a34a; }
-.estado-badge.inactivo { background: color-mix(in oklab, #dc2626 10%, transparent 90%); color: #dc2626; }
+.estado-badge.activo   { background: color-mix(in oklab, var(--success) 12%, transparent 88%); color: var(--success); }
+.estado-badge.inactivo { background: color-mix(in oklab, var(--danger) 10%, transparent 90%); color: var(--danger); }
 
 .btn-tabla {
     padding: 4px 10px;
@@ -176,8 +176,8 @@
 }
 
 .btn-tabla:hover       { background: color-mix(in oklab, var(--muted) 60%, transparent 40%); }
-.btn-tabla.btn-inactivar { border-color: #dc2626; color: #dc2626; }
-.btn-tabla.btn-activar   { border-color: #16a34a; color: #16a34a; }
+.btn-tabla.btn-inactivar { border-color: var(--danger); color: var(--danger); }
+.btn-tabla.btn-activar   { border-color: var(--success); color: var(--success); }
 
 .acciones-celda { display: flex; gap: 6px; align-items: center; }
 

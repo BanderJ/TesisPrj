@@ -19,7 +19,7 @@ Clasifica granos de café verde en tiempo real:
 3. Un modelo YOLO detecta cada grano y lo clasifica como `verde` (sano) o `defecto`.
 4. ByteTrack le da un ID único a cada grano para no contarlo dos veces.
 5. Un servo desvía los granos defectuosos.
-6. El sistema calcula el grado SCA del lote y el pago al caficultor.
+6. El sistema cuenta los defectos equivalentes del lote y calcula el pago al caficultor.
 
 Aplicación web: FastAPI + plantillas Jinja2 + PostgreSQL 18. Un solo desarrollador, en Windows 11.
 
@@ -172,8 +172,18 @@ El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
 - Peso bruto: como máximo `num_sacos × 70` kg y mayor que la tara `round(num_sacos × 0.25)`.
 - Humedad: número entero de 1 a 100; más de 12 % aplica descuento.
 - Rangos de precio del café: no se pueden solapar y el precio no puede bajar cuando sube el rango.
-- Grado SCA: Grado 1 (Specialty) 0–15 defectos equivalentes, Grado 2 16–23, Grado 3 24 o más.
+- Precios del día: una muestra solo se registra si hay precios de café con fecha de hoy, y el pago
+  usa el precio de hoy del rango que contiene el factor de rendimiento. Si ese rango no tiene
+  precio hoy, completar la evaluación falla hasta que se registre.
+- Grado SCA: **no se calcula ni se muestra.** Depende del tipo de defecto (primario/secundario) y
+  el modelo actual solo distingue `defecto`/`verde`. `EVALUACION.categoria_id` queda en NULL; la
+  tabla `CATEGORIA` se conserva para cuando el modelo clasifique por tipo de defecto.
 - Caficultor Socio o Externo; conversión con `PATCH /caficultor/convertir-socio/{num_documento}`.
+- Beneficio de socio: monto fijo por entrega (inicial S/ 10) que se suma al pago de un socio. Lo
+  cambian Gerente y Administrador en Cooperativa → Beneficio de socio (`POST /bono-socio`). La
+  tabla `BONO_SOCIO` es de solo inserción (el vigente es el más reciente) y cada evaluación guarda
+  el monto aplicado en `EVALUACION.bono_socio`; `pago` es el total. Un cambio nunca altera
+  evaluaciones ya completadas. Se decide con el tipo de caficultor registrado en la evaluación.
 
 ## 8. Documentación: dónde va cada cosa
 

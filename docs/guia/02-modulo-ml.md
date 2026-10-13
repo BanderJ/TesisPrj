@@ -60,10 +60,11 @@ camara_service._capture_loop          frame BGR + time.monotonic()
 tracker_service._loop_procesamiento   techo ML_DETECTOR_FPS (30) + gate de movimiento
         │
 CoffeeRenTracker.procesar_frame(frame, ts_frame)
-   1. _detectar(): grilla 3×3 con solape 200 px → UN predict() en batch (conf 0.15, iou 0.80)
-   2. _fusionar_cajas(): une el mismo grano partido entre tiles VECINOS
-   3. filtro de tamaño GRANO_MIN_PX..GRANO_MAX_PX (50..480)
-   4. BYTETracker gestionado a mano (bytetrack.yaml) → ID ByteTrack → ID global
+   1. _detectar(): grilla 3×3 con solape 320 px → UN predict() en batch (conf 0.15)
+   2. _deduplicar_tile(): NMS sin clase dentro de cada tile (IoU 0.80 o caja contenida al 90 %)
+   3. _fusionar_cajas(): une el mismo grano partido entre tiles VECINOS
+   4. filtro de tamaño GRANO_MIN_PX..GRANO_MAX_PX (50..640)
+   5. BYTETracker gestionado a mano (bytetrack.yaml) → ID ByteTrack → ID global
    5. clase por confianza acumulada del track (_resolver_clase / _resolver_clase_display)
    6. compuerta de evidencia → servo_controller.solicitar(t_referencia = primer avistamiento)
    7. recorte de evidencia si el track es "desconocido"
@@ -74,7 +75,7 @@ CoffeeRenTracker.procesar_frame(frame, ts_frame)
 
 El modelo se entrenó con **un grano por imagen ocupando 40–77 % de un cuadro de 640 px**. En un
 frame 1920×1080 reescalado a 640 cada grano queda diminuto y no se detecta. Se parte el frame en
-`TILES_X × TILES_Y` (3×3) con `TILE_SOLAPE_PX` (200) y los 9 recortes se infieren en **un solo
+`TILES_X × TILES_Y` (3×3) con `TILE_SOLAPE_PX` (320) y los 9 recortes se infieren en **un solo
 batch**. Medido en RTX 5070 Ti: 3×3 ≈ 40 ms, 2×2 ≈ 20 ms. En CPU o GTX 1050 conviene 2×2.
 Regla: `TILE_SOLAPE_PX ≥ lado máximo del grano / 2`.
 
@@ -82,8 +83,14 @@ Regla: `TILE_SOLAPE_PX ≥ lado máximo del grano / 2`.
 
 Cada caja lleva su `idx_tile`. `_fusionar_cajas()` solo une cajas de **tiles distintos**
 (IoU ≥ `NMS_ENTRE_TILES` 0.5 o IoS ≥ 0.6) y rechaza la fusión si la envolvente supera 1.6× la
-caja mayor. Dos cajas del mismo tile ya las separó el NMS de YOLO: son granos distintos que se
-tocan y nunca se funden. Esto corrigió el subconteo de granos juntos.
+caja mayor. Dos cajas del mismo tile ya pasaron por `_deduplicar_tile()`: son granos distintos
+que se tocan y nunca se funden. Esto corrigió el subconteo de granos juntos.
+
+`yolov26n_2cls` es un modelo YOLO26 *end2end* (sin NMS): Ultralytics ignora el parámetro `iou`
+y, si un grano queda cerca del 50/50, la cabeza emite la misma caja como `defecto` y como
+`verde`. Sin `_deduplicar_tile()` ByteTrack recibía las dos: una alternaba la clase del track y
+la otra abría un ID nuevo, con lo que el grano se contaba dos veces. Se conserva la caja más
+confiada.
 
 ### 4.3 IDs globales
 
@@ -105,14 +112,14 @@ ByteTrack a un `_id_global` que **nunca retrocede**. `resetear_conteo()` limpia 
 
 ### 4.5 Objeto desconocido = materia extraña
 
-`EQUIVALENCIAS_DEFECTO["desconocido"] = 1.0`: el servo lo desvía a DEFECTO y suma al grado como
-defecto primario SCA (criterio INCAL: piedras, pajilla, palitos). Se reporta aparte en
+`EQUIVALENCIAS_DEFECTO["desconocido"] = 1.0`: el servo lo desvía a DEFECTO y suma a los defectos
+equivalentes como defecto primario SCA (criterio INCAL: piedras, pajilla, palitos). Se reporta aparte en
 `total_desconocidos`. Cada desconocido se recorta del frame sin anotar y se guarda en
 `src/resources/desconocidos/{evaluacion_id}/` (`ML_EVIDENCIA_*`, tope 30 por lote). El ML solo
 recorta y encola (`drenar_evidencias()`); el service escribe a disco y emite el evento.
 
 **Riesgo abierto:** un grano real de baja confianza (granos que se tocan, mala luz) se marca
-desconocido e infla el grado. Pendiente calibrar `UMBRAL_CONF_CONOCIDO` con granos reales y
+desconocido e infla el conteo de defectos. Pendiente calibrar `UMBRAL_CONF_CONOCIDO` con granos reales y
 validar la equivalencia 1.0 con la cooperativa.
 
 ### 4.6 Servo
@@ -144,12 +151,13 @@ frame anotado, reducido a `ML_STREAM_ANCHO` (1280) con calidad `ML_STREAM_JPEG_Q
 | Parámetro | Valor | Dónde |
 |---|---|---|
 | `CONF_THRESHOLD` (piso de detección) | 0.15 | `tracker_service.py` |
-| `IOU_NMS` | 0.80 | `tracker.py` |
+| `IOU_NMS` (deduplicado sin clase por tile) | 0.80 | `tracker.py` |
+| `IOS_CONTENIDA` (caja anidada = mismo grano) | 0.90 | `tracker.py` |
 | `NMS_ENTRE_TILES` | 0.5 | `tracker.py` |
 | `MARGEN_DEFECTO` | 1.3 | `tracker.py` |
 | `SERVO_MIN_FRAMES` / `SERVO_CONF_MIN` | 2 / 0.45 | `tracker.py` |
-| `TILES_X` × `TILES_Y`, `TILE_SOLAPE_PX` | 3 × 3, 200 | `constants.py` |
-| `GRANO_MIN_PX` / `GRANO_MAX_PX` | 50 / 480 | `constants.py` |
+| `TILES_X` × `TILES_Y`, `TILE_SOLAPE_PX` | 3 × 3, 320 | `constants.py` |
+| `GRANO_MIN_PX` / `GRANO_MAX_PX` | 50 / 640 | `constants.py` |
 | `UMBRAL_CONF_CONOCIDO` / `DESCONOCIDO_MIN_FRAMES` | 0.35 / 3 | `constants.py` |
 | `EQUIVALENCIAS_DEFECTO` | defecto 1, verde 0.0, desconocido 1.0 | `constants.py` |
 | ByteTrack | high 0.20, low 0.05, new 0.20, buffer 10, match 0.8 | `bytetrack.yaml` |
@@ -164,10 +172,12 @@ frame anotado, reducido a `ML_STREAM_ANCHO` (1280) con calidad `ML_STREAM_JPEG_Q
 
 ## 6. Clasificación del lote (`classifier.py`)
 
-`generar_reporte(conteo, equivalencias)` multiplica cada clase por su equivalencia, suma y
-asigna grado: **Grado 1 (Specialty) 0–15**, **Grado 2 16–23**, **Grado 3 ≥ 24**;
-`apto_specialty = total ≤ 15`. Las equivalencias vienen del `constants.py` del modelo cargado.
-La tabla `CATEGORIA` de la BD replica los mismos tres grados.
+`generar_reporte(conteo, equivalencias)` multiplica cada clase por su equivalencia y suma el
+total de defectos equivalentes. Las equivalencias vienen del `constants.py` del modelo cargado.
+**No asigna grado SCA ni aptitud Specialty** (retirado el 2026-10-13): el grado depende del tipo
+de defecto (primario/secundario) y el modelo solo distingue `defecto`/`verde`. La tabla
+`CATEGORIA` se conserva en la BD y `EVALUACION.categoria_id` queda en NULL hasta que el modelo
+clasifique por tipo de defecto.
 
 ## 7. Rendimiento medido
 

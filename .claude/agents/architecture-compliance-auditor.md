@@ -27,7 +27,7 @@ Las skills `fastapi-architecture` y `frontend-coffeeren` ya están cargadas en t
 ## src/services/
 - Sin SQL crudo (`SELECT`/`INSERT`/`UPDATE`/`DELETE` como string) — debe delegar a `src/models/`.
 - Si escribe en 2+ tablas: crea un `Connection`, lo pasa a los models, y llama `db.commit()`/`db.rollback()` él mismo.
-- Devuelve valores ya calculados (totales, grados, aptitudes) — nunca deja que el frontend derive reglas de negocio desde datos crudos.
+- Devuelve valores ya calculados (totales, porcentajes, montos) — nunca deja que el frontend derive reglas de negocio desde datos crudos.
 
 ## src/models/
 - Toda query parametrizada (`%s` + lista de params) — cero f-strings o `.format()` con variables dentro del SQL.

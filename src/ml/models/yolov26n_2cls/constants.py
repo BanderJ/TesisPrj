@@ -4,11 +4,14 @@ Clasificación binaria: defecto vs. verde
 """
 
 # Filtro de tamaño de bounding box (píxeles, ya en coordenadas del frame completo).
-# Un grano de café en un frame 1920x1080 con la cámara a distancia de trabajo
-# ronda 120-380 px; el techo alto deja margen para tomas más cercanas y para la
-# caja envolvente que arma _fusionar_cajas al unir recortes de tiles vecinos.
+# Con la cámara montada sobre la faja JGY370 (oct 2026) un grano grande mide
+# ~455 px de lado en un frame 1920x1080. El techo deja ~40 % de margen para el
+# estiramiento por desenfoque de movimiento y para la caja envolvente que arma
+# _fusionar_cajas al unir recortes de tiles vecinos. Con 480 px un grano quieto
+# pasaba el filtro y el mismo grano en movimiento se descartaba.
+# Si se cambia la altura de la cámara, recalibrar con el rótulo gris "WxHpx".
 GRANO_MIN_PX = 50
-GRANO_MAX_PX = 480
+GRANO_MAX_PX = 640
 
 # Detección por tiles. El modelo se entrenó con 1 grano por imagen ocupando
 # ~40-77% de un frame de 640px. Sobre un frame de cámara de 1920x1080 con varios
@@ -25,15 +28,15 @@ GRANO_MAX_PX = 480
 #     en CPU conviene 2x2 o 1x1.
 TILES_X = 3
 TILES_Y = 3
-TILE_SOLAPE_PX = 200
+TILE_SOLAPE_PX = 320   # = GRANO_MAX_PX / 2
 
 # Confianza mínima acumulada (máx. sobre el track) para aceptar que un objeto
 # es un grano de café. Un track que nunca supera este umbral en toda su vida se
 # marca "objeto desconocido" (azul) = materia extraña (piedra, pajilla, palito).
 # ⚠️ Con EQUIVALENCIAS_DEFECTO["desconocido"] = 1.0, cada desconocido se desvía a
-# DEFECTO por el servo Y suma 1.0 defecto equivalente al grado SCA. Subir este
+# DEFECTO por el servo Y suma 1.0 al total de defectos equivalentes. Subir este
 # umbral marca más objetos como desconocidos: si captura granos reales de baja
-# confianza (granos que se tocan, mala luz) degrada el grado con falsos defectos.
+# confianza (granos que se tocan, mala luz) infla el conteo con falsos defectos.
 # Bajarlo deja pasar más ruido como grano. Calibrar con granos reales, no a ciegas.
 UMBRAL_CONF_CONOCIDO = 0.35
 # Frames mínimos observados antes de poder marcar un track como desconocido:
@@ -71,7 +74,7 @@ EQUIVALENCIAS_DEFECTO = {
     # otras entidades advierten materia extraña en el lote: piedras pequeñas,
     # pajilla, terrones, palitos. En SCA la materia extraña es defecto primario
     # (equivalencia 1.0 por unidad). Se desvía al canal DEFECTO por el servo y
-    # suma al grado igual que un grano defectuoso. Riesgo: un grano real de
+    # suma al total igual que un grano defectuoso. Riesgo: un grano real de
     # confianza baja (p. ej. granos que se tocan) mal rotulado infla el defecto
     # — calibrar UMBRAL_CONF_CONOCIDO y vigilar total_desconocidos.
     "desconocido": 1.0,

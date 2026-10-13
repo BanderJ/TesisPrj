@@ -102,9 +102,10 @@ class CompletarEvaluacionResponse(BaseModel):
     factor_rendimiento: Decimal
     peso_por_qq: Decimal
     pago: Decimal
+    pago_base: Decimal
+    bono_socio: Decimal
     precio: Decimal
     rango: str
-    categoria: str | None = None
 
 
 class KpisEvaluacionResponse(BaseModel):
@@ -154,6 +155,7 @@ class ResumenEvaluacionResponse(BaseModel):
     factor_rendimiento: Decimal | None = None
     peso_por_qq: Decimal | None = None
     pago: Decimal | None = None
+    pago_base: Decimal | None = None
+    bono_socio: Decimal | None = None  # None: evaluación anterior al beneficio de socio
     precio: Decimal | None = None
     rango: str | None = None
-    categoria: str | None = None

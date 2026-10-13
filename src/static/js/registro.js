@@ -319,7 +319,7 @@
 			} catch (err) {
 				const msg = err.message || 'Error inesperado. Intente nuevamente.';
 				if (msg.includes('precios de café')) {
-					CoffeeModal.warning(msg, 'Precios de café no registrados hoy');
+					CoffeePrecios.avisar();  // mismo texto que el resto, según el rol
 				} else {
 					submitErrorEl.textContent = msg;
 				}
@@ -424,6 +424,9 @@
 			.forEach(i => bloquearCaracteresNumericos(i));
 
 		startBtn.addEventListener('click', async () => {
+			// Sin precios de hoy no se puede pasar al monitoreo. Se vuelve a
+			// consultar aquí: pudieron registrarse después de abrir la página.
+			if (await CoffeePrecios.avisarSiFaltan()) return;
 			if (!validateForm()) return;
 
 			// Verificar que el sensor ultrasónico detecta la muestra en la banda
@@ -450,6 +453,11 @@
 		});
 		clearBtn.addEventListener('click', clearAll);
 
+
 		cargarTiposDocumento();
 		cargarTiposGrano();
+		// El pago se calcula con los precios del día: sin precios de hoy el
+		// backend rechaza el registro. Se avisa al abrir la página para no llenar
+		// la ficha en vano.
+		CoffeePrecios.avisarSiFaltan();
 	})();

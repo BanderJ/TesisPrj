@@ -48,7 +48,7 @@ class ValorCafeService:
         self, nuevos_rangos: list[str], excluir_rango: str | None = None
     ) -> None:
         """Rechaza un rango que se solape con uno vigente hoy o con otro del mismo
-        lote. `obtener_por_factor` elige el mas reciente por fecha cuando dos
+        lote. `obtener_por_factor` elige el mas reciente del dia cuando dos
         rangos cubren el mismo factor de rendimiento, asi que un solapamiento
         deja el precio pagado al caficultor determinado por el orden de
         insercion en vez de por el rango que realmente le corresponde.

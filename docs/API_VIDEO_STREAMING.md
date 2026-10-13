@@ -2,7 +2,7 @@
 
 Endpoints del router `src/routes/video.py`. Todas las rutas cuelgan del prefijo
 `/video`. El procesamiento (detección + ByteTrack) vive en `src/services/tracker_service.py`
-y `src/ml/tracker.py`; la clasificación por grado SCA en `src/ml/classifier.py`.
+y `src/ml/tracker.py`; el conteo de defectos equivalentes en `src/ml/classifier.py`.
 
 Modelo activo: **`yolov26n_2cls`** (2 clases: `defecto`, `verde`, más la clase derivada
 `desconocido` para materia extraña). Se carga una vez al arrancar desde
@@ -111,30 +111,21 @@ las entradas. Al finalizar la evaluación los eventos se guardan en `EVENTO_MONI
 
 ### `POST /video/lote/generar-reporte` — requiere JWT
 
-Reporte final del lote según norma SCA (base 350 g).
+Reporte final del lote: total de defectos equivalentes (equivalencias del modelo cargado).
 
 ```json
 {
   "total_granos_analizados": 28,
   "total_defectos": 8.0,
-  "grado": "Grado 1 (Specialty)",
-  "apto_specialty": true,
   "detalle_por_clase": {
     "defecto": { "granos": 8, "peso_por_grano": 1, "defectos_equivalentes": 8.0 }
   },
-  "resumen": "Lote analizado: 28 granos — 8.0 defectos equivalentes — Grado 1 (Specialty) — APTO para Specialty"
+  "resumen": "Lote analizado: 28 granos — 8.0 defectos equivalentes"
 }
 ```
 
-Tabla de grados (`src/ml/classifier.py`, 3 grados):
-
-| Defectos equivalentes | Grado |
-|---|---|
-| 0 – 15 | Grado 1 (Specialty) |
-| 16 – 23 | Grado 2 |
-| 24 o más | Grado 3 |
-
-`apto_specialty` es `true` cuando `total_defectos <= 15`.
+No incluye grado SCA ni aptitud Specialty: el grado depende del tipo de defecto y el modelo actual
+solo distingue `defecto`/`verde`.
 
 ### `POST /video/lote/resetear` — requiere JWT
 

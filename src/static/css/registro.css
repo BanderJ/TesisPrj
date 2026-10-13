@@ -5,25 +5,6 @@
     color: var(--foreground);
 }
 
-.registro-header {
-    border-radius: 16px;
-    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
-    background-color: var(--card);
-}
-
-.registro-header h1 {
-    margin: 6px 0 8px;
-    font-size: clamp(1.15rem, 1.4vw, 1.45rem);
-    font-family: var(--font-serif);
-    font-weight: 700;
-    line-height: 1.1;
-}
-
-.registro-header p {
-    margin: 0;
-    color: var(--muted-foreground);
-}
-
 .registro-form {
     display: grid;
     gap: 10px;
