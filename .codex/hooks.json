@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python 'd:\\TesisPrj\\.codex\\hooks\\config_example_reminder.py'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
