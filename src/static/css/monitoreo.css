@@ -88,7 +88,7 @@
 /* El componente de feed de cámara (.feed-card, .feed-header, .live-indicator,
    .blink-dot, .feed-frame, .camera-stream, .camera-loading, .camera-error,
    .camera-spinner, .camera-error-icon, .feed-grid-overlay + keyframes
-   liveBlink/spin) vive en main.css — lo comparten /monitoreo y /test. */
+   liveBlink/spin) vive en main.css — lo comparten /monitoreo y /prueba. */
 
 .feed-timer {
     display: flex;

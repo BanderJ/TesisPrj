@@ -155,7 +155,7 @@ Una **evaluación** es el análisis completo de un lote de café de un caficulto
 
 ### Fase 1 — Registro (`/registro`)
 
-El evaluador ingresa: documento del caficultor, número de sacos, peso bruto (máximo 70 kg por saco y **mayor que la tara** `round(num_sacos × 0.25)`, desde el 2026-09-30), humedad (**% entero, 1–100** — sin decimales, tanto en el formulario como en el schema y la columna de BD), peso de muestra, peso trillado, número de tamiz, peso tamizado y tipo de grano. Requisitos validados antes de crear:
+El evaluador ingresa: documento del caficultor, número de sacos, peso bruto (máximo 70 kg por saco y **mayor que la tara** `round(num_sacos × 0.25)`, desde el 2026-09-30), humedad (**% entero, 1–30** — sin decimales, validada en el formulario y en el schema), peso de muestra, peso trillado, número de tamiz, peso tamizado y tipo de grano. Requisitos validados antes de crear:
 - El caficultor debe existir y estar **activo**.
 - Debe haber **precios de café registrados** (sin ellos no se puede calcular el pago al finalizar).
 
@@ -171,7 +171,7 @@ Al terminar, `PATCH /evaluacion/{id}/finalizar` genera el **código EVA** (secue
 
 ### Fase 3 — Análisis y cálculo de pago (`/analisis/{evaluacion_id}`)
 
-Resumen estadístico del lote. Al **completar** (`PATCH /evaluacion/{id}/completar`) el evaluador ingresa el peso de grano bueno y el sistema deriva (con `Decimal`, redondeos a 2 decimales):
+Resumen estadístico del lote. Al **completar** (`PATCH /evaluacion/{id}/completar`) el evaluador ingresa el peso de grano bueno, que no puede superar el peso tamizado, y el sistema deriva (con `Decimal`, redondeos a 2 decimales). El precio se busca con la parte entera del factor: 65.67 corresponde al rango 60-65 y un rango simple 70 comprende de 70.00 a 70.99. El factor guardado conserva sus dos decimales.
 
 | Cálculo | Fórmula |
 |---|---|
@@ -195,6 +195,8 @@ También asigna la **categoría** (Grado 1/2/3) según `total_defectos` y el **p
 ### Búsqueda de muestras (`/reporte`)
 
 Búsqueda de una evaluación por su **código EVA** → devuelve el resumen completo (caficultor, pesos, factor, categoría, pago, incidencias).
+
+Si aún no tiene rendimiento, el botón **Calcular rendimiento** abre `/analisis/{id}` para ingresar el peso de grano bueno de la evaluación finalizada.
 
 ### Reportes estadísticos (`GET /reportes` y `GET /reportes/{codigo}`)
 
@@ -248,7 +250,7 @@ Tabla `AUDITORIA`: registra quién hizo qué (usuario, rol, acción, tabla afect
 | `/valor-cafe` | `valor_cafe.html` | Precios del café (Gerente/Admin) |
 | `/configuracion-cooperativa` | `cooperativa.html` | Datos de la cooperativa (Gerente/Admin) |
 | `/perfil` | `perfil.html` | Perfil y gestión de usuarios |
-| `/test` | `test.html` | Prueba de detección en vivo sin evaluación |
+| `/prueba` | `prueba.html` | Prueba de detección en vivo sin evaluación |
 
 ---
 
@@ -267,7 +269,7 @@ Patrón de **4 capas** — cada feature tiene un archivo en cada capa:
 - **Transacciones multi-tabla**: el service crea una `Connection`, la pasa a cada model, y hace `commit()`/`rollback()` al final, siempre con `try…finally: db.close()`.
 - **ML**: `camara_service` (captura) → `tracker_service` (hilo de procesamiento) → `CoffeeRenTracker` (YOLO+ByteTrack) → `classifier.py` (grado SCA). El modelo se carga **una sola vez** al arranque con warmup; el tracking corre en hilo aparte y las rutas solo hacen polling no bloqueante.
 - **Ciclo de vida** (`main.py` lifespan): al arrancar pre-conecta la cámara; al apagar detiene tracker, apaga la faja (`OFF`), cierra cámara, servo y serial.
-- **Restricciones calibradas físicamente** (no tocar sin permiso): `servo_controller.py`, `arduino_serial.py`, `SERVO_DELAY_S=0.5`, `SERVO_HOLD_S=0.3`, `imgsz=640`, `half` solo condicional por hardware, `track_buffer: 10`, modo emergencia `_on_camara_desconectada()`.
+- **Restricciones calibradas físicamente** (no tocar sin permiso): `servo_controller.py`, `arduino_serial.py`, `SERVO_DELAY_S=0.3`, `SERVO_HOLD_S=0.3`, `imgsz=640`, `half` solo condicional por hardware, `track_buffer: 10`, modo emergencia `_on_camara_desconectada()`.
 
 ### Tablas de la base de datos
 

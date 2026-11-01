@@ -11,7 +11,7 @@
 	const storedStats = sessionStorage.getItem('coffeeren.stats');
 	const stats = storedStats ? JSON.parse(storedStats) : null;
 
-	let pesoTrilladoMax   = null;
+	let pesoTamizadoMax   = null;
 	let totalDefectosEval = 0;
 
 	async function cargarResumen() {
@@ -60,12 +60,12 @@
 
 	// ── Factor de rendimiento pendiente: pedir el peso de grano bueno ─────────
 	function prepararPesoBueno(d) {
-		pesoTrilladoMax   = d.peso_trillado != null ? Number(d.peso_trillado) : null;
+		pesoTamizadoMax   = d.peso_tamizado != null ? Number(d.peso_tamizado) : null;
 		totalDefectosEval = d.total_defectos ?? stats?.totalDefectos ?? 0;
-		if (pesoTrilladoMax !== null) {
-			document.getElementById('inputPesoBuenoAnalisis').max = Math.floor(pesoTrilladoMax);
+		if (pesoTamizadoMax !== null) {
+			document.getElementById('inputPesoBuenoAnalisis').max = Math.floor(pesoTamizadoMax);
 			document.getElementById('pesoBuenoHintAnalisis').textContent =
-				`Gramos enteros. Máximo: ${pesoTrilladoMax} g (peso trillado).`;
+				`Gramos enteros. Máximo: ${Math.floor(pesoTamizadoMax)} g (peso tamizado).`;
 		}
 	}
 
@@ -75,7 +75,7 @@
 		const btn     = document.getElementById('btnGuardarPesoBuenoAnalisis');
 		errorEl.hidden = true;
 
-		const validacion = CoffeeValidators.pesoBueno(input.value, pesoTrilladoMax);
+		const validacion = CoffeeValidators.pesoBueno(input.value, pesoTamizadoMax);
 		if (!validacion.valido) {
 			errorEl.textContent = validacion.mensaje;
 			errorEl.hidden = false;

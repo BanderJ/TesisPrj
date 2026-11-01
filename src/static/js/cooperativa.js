@@ -166,7 +166,7 @@
         const peso = parseFloat(document.getElementById('modalTipoPeso').value);
 
         if (!nombre || isNaN(peso) || peso <= 0) {
-            CoffeeModal.warning('Completa nombre y peso válido');
+            CoffeeModal.warning('Completa el nombre y un peso válido.');
             return;
         }
 
@@ -456,7 +456,7 @@
             formCrearUsuario.reset();
             crearUsuarioPreview.value = '';
             document.getElementById('buscarEstado').className = 'buscar-estado';
-            document.getElementById('buscarEstado').innerHTML = '<span>Ingresa el documento para buscar datos de la persona</span>';
+            document.getElementById('buscarEstado').innerHTML = '<span>Ingresa el documento para buscar datos de la persona.</span>';
             btnGuardarUsuario.textContent = 'Crear usuario';
         } else {
             titulo.textContent = 'Editar usuario';
@@ -593,11 +593,11 @@
     // Generar preview de usuario: primera letra nombre + apellido paterno + primera letra apellido materno
     function generarUsuarioPreview() {
         if (modoModal !== 'crear') return;
-        const nombre = crearNombre.value.trim();
-        const apePaterno = crearApePaterno.value.trim();
-        const apeMaterno = crearApeMaterno.value.trim();
+        const [nombre, apePaterno, apeMaterno] = [crearNombre, crearApePaterno, crearApeMaterno].map(
+            (input) => input.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s/g, '').toLowerCase()
+        );
         crearUsuarioPreview.value = (nombre && apePaterno && apeMaterno)
-            ? (nombre[0] + apePaterno + apeMaterno[0]).toLowerCase()
+            ? nombre[0] + apePaterno + apeMaterno[0]
             : '';
     }
 
@@ -729,18 +729,22 @@
         const confirmar   = document.getElementById('crearConfirmarContrasena').value;
 
         if (!nombre || !apePaterno || !apeMaterno || !sexo || !fechaNac || !tipoPersonal) {
-            CoffeeModal.warning('Completa todos los campos requeridos');
+            CoffeeModal.warning('Completa todos los campos requeridos.');
             return;
         }
 
         if (modoModal === 'crear') {
+            if (crearUsuarioPreview.value.length > 30) {
+                CoffeeModal.warning('El nombre de usuario generado supera 30 caracteres; revise el nombre y los apellidos antes de crear la cuenta.');
+                return;
+            }
             const tipoDoc = parseInt(crearTipoDocumento.value);
             const numDoc  = crearNumDocumento.value.trim();
             if (!tipoDoc || !numDoc || !clave) {
-                CoffeeModal.warning('Completa tipo de documento, número de documento y contraseña');
+                CoffeeModal.warning('Completa el tipo de documento, el número de documento y la contraseña.');
                 return;
             }
-            if (clave !== confirmar) { CoffeeModal.warning('Las contraseñas no coinciden'); return; }
+            if (clave !== confirmar) { CoffeeModal.warning('Las contraseñas no coinciden.'); return; }
 
             const btnLabel = btnGuardarUsuario.innerHTML;
             btnGuardarUsuario.disabled = true;
@@ -757,7 +761,8 @@
                     }),
                 });
                 if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo crear el usuario.'));
-                CoffeeModal.success('Usuario creado correctamente');
+                const data = await res.json();
+                CoffeeModal.success(`Usuario creado correctamente: ${data.usuario}`);
                 cerrarModal();
                 cargarUsuarios();
             } catch (e) {
@@ -769,7 +774,7 @@
 
         } else {
             // Editar
-            if (clave && clave !== confirmar) { CoffeeModal.warning('Las contraseñas no coinciden'); return; }
+            if (clave && clave !== confirmar) { CoffeeModal.warning('Las contraseñas no coinciden.'); return; }
 
             const btnLabel = btnGuardarUsuario.innerHTML;
             btnGuardarUsuario.disabled = true;
@@ -873,7 +878,7 @@
         badge.style.cssText = badgeStyle;
 
         const campos = [
-            { label: 'N° Documento',     valor: c.num_documento },
+            { label: 'N.º de documento',     valor: c.num_documento },
             { label: 'Sexo',             valor: c.sexo === 'M' ? 'Masculino' : c.sexo === 'F' ? 'Femenino' : c.sexo || '—' },
             { label: 'Fecha de nacimiento', valor: c.fecha_nacimiento || '—' },
             { label: 'Teléfono',         valor: c.telefono || '—' },
@@ -1083,7 +1088,7 @@
                             <tr style="background:color-mix(in oklab,var(--muted) 30%,transparent);">
                                 <th style="text-align:left;padding:6px 10px;font-size:11px;font-weight:600;color:var(--muted-foreground);">Campo</th>
                                 <th style="text-align:left;padding:6px 10px;font-size:11px;font-weight:600;color:#dc2626;">Antes</th>
-                                <th style="text-align:left;padding:6px 10px;font-size:11px;font-weight:600;color:#16a34a;">Despues</th>
+                                <th style="text-align:left;padding:6px 10px;font-size:11px;font-weight:600;color:#16a34a;">Después</th>
                             </tr>
                         </thead>
                         <tbody>${filas}</tbody>

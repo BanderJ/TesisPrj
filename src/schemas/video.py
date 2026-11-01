@@ -6,7 +6,7 @@ from src.utilities.uuid_utils import UUID_PATTERN
 
 
 class IniciarMonitoreoRequest(BaseModel):
-    """Arranque del monitoreo. El id de evaluación es opcional: la vista /test
+    """Arranque del monitoreo. El id de evaluación es opcional: la vista /prueba
     monitorea sin evaluación asociada y entonces no se archiva evidencia."""
 
     evaluacion_id: str | None = Field(None, pattern=UUID_PATTERN)

@@ -85,12 +85,12 @@
                 return {
                     maxLength: 8,
                     soloNumeros: true,
-                    hint: 'DNI: exactamente 8 digitos numericos.',
-                    placeholder: 'Ingrese 8 digitos de DNI',
-                    validationMessage: 'Para DNI se requieren 8 digitos numericos.',
+                    hint: 'DNI: exactamente 8 dígitos numéricos.',
+                    placeholder: 'Ingrese 8 dígitos de DNI',
+                    validationMessage: 'Para DNI se requieren 8 dígitos numéricos.',
                     regex: /^\d{8}$/,
                     longitudesAutoBusqueda: [8],
-                    autoSearchMessage: 'Complete los 8 digitos del DNI para iniciar la busqueda.',
+                    autoSearchMessage: 'Complete los 8 dígitos del DNI para iniciar la búsqueda.',
                 };
             }
 
@@ -98,24 +98,24 @@
                 return {
                     maxLength: 12,
                     soloNumeros: false,
-                    hint: 'Pasaporte/Carnet: 8 a 12 caracteres alfanumericos.',
+                    hint: 'Pasaporte/Carnet: 8 a 12 caracteres alfanuméricos.',
                     placeholder: 'Ingrese 8-12 caracteres',
-                    validationMessage: 'Para Pasaporte/Carnet se requieren de 8 a 12 caracteres alfanumericos.',
+                    validationMessage: 'Para Pasaporte/Carnet se requieren de 8 a 12 caracteres alfanuméricos.',
                     regex: /^[A-Za-z0-9]{8,12}$/,
                     longitudesAutoBusqueda: [8, 9, 10, 11, 12],
-                    autoSearchMessage: 'Complete entre 8 y 12 caracteres para iniciar la busqueda.',
+                    autoSearchMessage: 'Complete entre 8 y 12 caracteres para iniciar la búsqueda.',
                 };
             }
 
             return {
                 maxLength: 12,
                 soloNumeros: false,
-                hint: 'Documento entre 8 y 12 caracteres alfanumericos.',
+                hint: 'Documento entre 8 y 12 caracteres alfanuméricos.',
                 placeholder: 'Ingrese documento (8 a 12 caracteres)',
-                validationMessage: 'Documento invalido. Use de 8 a 12 caracteres alfanumericos.',
+                validationMessage: 'Documento inválido. Use de 8 a 12 caracteres alfanuméricos.',
                 regex: /^[A-Za-z0-9]{8,12}$/,
                 longitudesAutoBusqueda: [8, 12],
-                autoSearchMessage: 'Complete 8 o 12 caracteres para iniciar la busqueda.',
+                autoSearchMessage: 'Complete 8 o 12 caracteres para iniciar la búsqueda.',
             };
         }
 
@@ -404,7 +404,7 @@
                 const dataAPI = await respAPI.json();
                 if (!dataAPI.encontrado) { clearRegistroBanner(); return; }
                 await autollenarDesdeDni(dataAPI);
-                setRegistroBanner('Datos completados automaticamente desde RENIEC. Verifica y completa los campos faltantes.', 'success');
+                setRegistroBanner('Datos completados automáticamente desde RENIEC. Verifica y completa los campos faltantes.', 'success');
                 timerBannerReniec = setTimeout(() => { clearRegistroBanner(); timerBannerReniec = null; }, 5000);
             } catch (_) {
                 clearRegistroBanner();

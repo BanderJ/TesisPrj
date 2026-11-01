@@ -25,6 +25,6 @@ def password_validate(password: str) -> tuple[bool, str]:
 
     for passed, message in rules:
         if not passed:
-            return False, f"La contraseña debe contener {message}"
+            return False, f"La contraseña debe contener {message}."
 
     return True, "Contraseña válida"

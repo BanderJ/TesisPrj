@@ -80,7 +80,7 @@ Guardas de navegación: una evaluación con código redirige de `/monitoreo` a `
 | `/reporte` | `reporte.html` | Sesión |
 | `/nuevo-caficultor` | `caficultor.html` | Sesión |
 | `/perfil` | `perfil.html` | Sesión |
-| `/test` | `test.html` | Sesión — prueba de detección en vivo sin evaluación |
+| `/prueba` | `prueba.html` | Sesión — prueba de detección en vivo sin evaluación |
 | `/valor-cafe` | `valor_cafe.html` | Gerente / Administrador |
 | `/configuracion-cooperativa` | `cooperativa.html` | Gerente / Administrador |
 
@@ -133,7 +133,7 @@ monitoreo por evaluación, escrita en la misma transacción que el código EVA).
 - Documento: DNI exactamente 8 dígitos; Pasaporte/Carnet de Extranjería 8–12 alfanuméricos
   (`src/utilities/documento_validador.py`, compartido por caficultor y persona).
 - Mayoría de edad (18) para registrar personas.
-- Humedad: entero 1–100. Más de 12 % aplica castigo proporcional al peso neto.
+- Humedad: entero 1–30. Más de 12 % aplica castigo proporcional al peso neto.
 - Peso bruto ≤ `num_sacos × 70 kg` y **mayor que la tara** `round(num_sacos × 0.25)` (desde 2026-09-30).
 - Rangos de precio sin solapamiento y con precio no decreciente.
 - Ante cualquier umbral o regla que el usuario no haya dado: **preguntar antes de implementar**.

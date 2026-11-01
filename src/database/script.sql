@@ -1961,14 +1961,12 @@ INSERT INTO UBIGEO (ubigeo, departamento, provincia, distrito) VALUES ('250304',
 INSERT INTO UBIGEO (ubigeo, departamento, provincia, distrito) VALUES ('250305', 'Ucayali', 'Padre Abad', 'Alexander von Humboldt');
 INSERT INTO UBIGEO (ubigeo, departamento, provincia, distrito) VALUES ('250401', 'Ucayali', 'Purus', 'Purus');
 
---- INSERTS PRUEBA PARA COOPERATIVAS
+--- INSERTS PRUEBA PARA COOPERATIVA
 INSERT INTO COOPERATIVA (nombre, codigo, ubicacion, telefono, correo, descripcion, estado, fecha_registro, ubigeo_id)
-VALUES ('Cooperativa Line Coffee Marañón', 'LCM001', 'Lonya Grande, Utcubamba, Amazonas', '941234567', 'info@linecoffee.pe', 'Cooperativa de café de Marañón', 'A', CURRENT_TIMESTAMP, '010101');
-INSERT INTO COOPERATIVA (nombre, codigo, ubicacion, telefono, correo, descripcion, estado, fecha_registro, ubigeo_id)
-VALUES ('Cooperativa Cafetalera Norte', 'CCN001', 'Bagua Grande, Amazonas, Amazonas', '942345678', 'contacto@ccnorte.pe', 'Cooperativa de café del norte', 'A', CURRENT_TIMESTAMP, '010102');
+VALUES ('Cooperativa Agraria Line Coffee Marañón', 'LCM001', 'Lonya Grande, Utcubamba, Amazonas', '941234567', 'info@linecoffee.pe', 'Cooperativa de café de Marañón', 'A', CURRENT_TIMESTAMP, '010101');
 
 --- INSERTS DE PRUEBA PARA CREDENCIALES
---- ADMIHNISTRADOR
+--- ADMINISTRADOR
 INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('Camilo', 'Super', 'Root', 'M', '1990-08-20', 1, '01010101', '926607008', 'A', (
     SELECT id FROM COOPERATIVA WHERE codigo = 'LCM001' LIMIT 1
 ));

@@ -304,11 +304,11 @@ const CoffeeValidators = (() => {
         return { cargarDepartamentos, seleccionar, getUbigeo: () => $dist.value || null };
     }
 
-    // ── 6. Peso de grano bueno (gramos enteros, tope = peso trillado) ──
+    // ── 6. Peso de grano bueno (gramos enteros, tope = peso tamizado) ──
 
     /**
      * @param {string|number} valor      — valor ingresado por el usuario
-     * @param {number|null}   maxGramos  — peso trillado (tope), o null si no se conoce
+     * @param {number|null}   maxGramos  — peso tamizado (tope), o null si no se conoce
      * @returns {{valido: boolean, peso?: number, mensaje?: string}}
      */
     function pesoBueno(valor, maxGramos = null) {

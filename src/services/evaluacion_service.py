@@ -93,7 +93,7 @@ class EvaluacionService:
 
             return RegistrarEvaluacionResponse(
                 registrado=True,
-                mensaje="Evaluacion registrada correctamente.",
+                mensaje="Evaluación registrada correctamente.",
                 data=EvaluacionData(
                     evaluacion_id=fila["id"],
                     codigo="",
@@ -149,6 +149,7 @@ class EvaluacionService:
 
             peso_muestra   = Decimal(str(eva["peso_muestra"]))
             peso_trillado  = Decimal(str(eva["peso_trillado"]))
+            peso_tamizado  = Decimal(str(eva["peso_tamizado"]))
             peso_bruto     = Decimal(str(eva["peso_bruto"]))
             num_sacos      = int(eva["num_sacos"])
             peso_qq_ref    = Decimal(str(grano["peso_qq"]))
@@ -158,9 +159,9 @@ class EvaluacionService:
             divisor = peso_muestra / 100
 
             peso_bueno = Decimal(payload.peso_bueno).quantize(Decimal("0.01"))
-            if peso_bueno > peso_trillado:
+            if peso_bueno > peso_tamizado:
                 raise ValueError(
-                    f"El peso de grano bueno ({payload.peso_bueno} g) no puede superar el peso trillado ({peso_trillado} g)."
+                    f"El peso de grano bueno ({payload.peso_bueno} g) no puede superar el peso tamizado ({peso_tamizado} g)."
                 )
 
             peso_cascara       = (peso_muestra - peso_trillado).quantize(Decimal("0.01"))
@@ -169,7 +170,9 @@ class EvaluacionService:
             peso_malo          = (peso_trillado - peso_bueno).quantize(Decimal("0.01"))
 
             # El precio se elige entre los de hoy, según el rango que contiene el
-            # factor de rendimiento.
+            # factor de rendimiento. Los rangos son enteros, así que se busca con la
+            # parte entera del factor, sin redondear: 65.52 no llega a 66 y cae en
+            # 60-65. El factor que se guarda conserva sus decimales.
             valor_cafe = self.valor_cafe_model.obtener_por_factor(factor_rendimiento, date.today(), db)
             if not valor_cafe:
                 raise ValueError(
@@ -291,7 +294,7 @@ class EvaluacionService:
 
         return FinalizarEvaluacionResponse(
             finalizado=True,
-            mensaje="Evaluacion finalizada correctamente.",
+            mensaje="Evaluación finalizada correctamente.",
             evaluacion_id=fila["id"],
             codigo=fila["codigo"].strip(),
         )

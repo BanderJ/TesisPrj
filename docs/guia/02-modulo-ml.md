@@ -129,7 +129,7 @@ validar la equivalencia 1.0 con la cooperativa.
 - El delay se cuenta desde el **timestamp de captura** del primer avistamiento, no desde el fin
   de la inferencia: la latencia de GPU/CPU no desplaza el disparo.
 - `servo_controller` extiende el hold con defectos consecutivos y reintenta 3 veces cada comando.
-- `SERVO_DELAY_S=0.5` (fijado en `.env`) y `SERVO_HOLD_S=0.3`: calibrados físicamente.
+- `SERVO_DELAY_S=0.3` (fijado en `.env`, motor JGY370 a PWM 255) y `SERVO_HOLD_S=0.3`: calibrados físicamente.
 
 ### 4.7 Cadencia y gate de movimiento
 
@@ -212,7 +212,7 @@ SNI 01-2907-2008, no SCA; si se usa, solo como ejemplos extra de `verde` y con a
 ## 9. Restricciones absolutas (no cambiar sin permiso explícito del usuario)
 
 - `src/utilities/servo_controller.py` y `src/utilities/arduino_serial.py`: no modificar.
-- `SERVO_DELAY_S=0.5`, `SERVO_HOLD_S=0.3`: calibrados físicamente.
+- `SERVO_DELAY_S=0.3`, `SERVO_HOLD_S=0.3`: calibrados físicamente.
 - `TrackerService._on_camara_desconectada()`: modo emergencia, no tocar.
 - `imgsz=640` y la estructura de hilos productor (cámara) / consumidor (tracker).
 - `half` solo condicional por compute capability.

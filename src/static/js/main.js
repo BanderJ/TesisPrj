@@ -73,7 +73,7 @@
             const progress   = document.getElementById('cm-progress');
             let _timer           = null;
             let _hideTimer       = null;
-            let _confirmResolve  = null;
+            let _closeResolve    = null;
 
             const _abierto = () => overlay.getAttribute('aria-hidden') === 'false';
 
@@ -84,9 +84,9 @@
 
             function close(result = false) {
                 clearTimeout(_timer);
-                if (_confirmResolve) {
-                    _confirmResolve(result);
-                    _confirmResolve = null;
+                if (_closeResolve) {
+                    _closeResolve(result);
+                    _closeResolve = null;
                 }
                 _resetButtons();
                 overlay.classList.add('is-closing');
@@ -119,7 +119,7 @@
 
             function show({ type = 'info', message = '', title = '', duration = 5500 }) {
                 clearTimeout(_timer);
-                _confirmResolve = null;
+                _closeResolve = null;
                 _prepare(type, 'info', message, title);
                 _resetButtons();
                 _animate();
@@ -131,12 +131,13 @@
 
                 _timer = setTimeout(() => close(false), duration);
                 setTimeout(() => okBtn.focus(), 80);
+                return new Promise(resolve => { _closeResolve = resolve; });
             }
 
             function confirm({ type = 'warning', message = '', title = '', okText = 'Sí', cancelText = 'No' }) {
                 return new Promise(resolve => {
                     clearTimeout(_timer);
-                    _confirmResolve = resolve;
+                    _closeResolve = resolve;
                     _prepare(type, 'warning', message, title);
 
                     okBtn.textContent     = okText;

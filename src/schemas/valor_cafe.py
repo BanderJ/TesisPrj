@@ -9,7 +9,7 @@ _RANGO_RE = re.compile(r'^\d+(-\d+)?$')
 def _validar_formato_rango(v: str) -> str:
     r = v.strip()
     if not r:
-        raise ValueError("El rango no puede estar vacío")
+        raise ValueError("El rango no puede estar vacío.")
     if not _RANGO_RE.match(r):
         raise ValueError("Formato inválido. Use número (ej: 70) o rango X-Y (ej: 60-65)")
     if '-' in r:

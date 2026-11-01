@@ -14,7 +14,7 @@ async def listar_tipo_grano() -> list[TipoGranoResponse]:
     try:
         return tipo_grano_service.listar_tipos_grano()
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo obtener los tipos de grano.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron obtener los tipos de grano.") from exc
 
 
 @tipo_grano_router.post("/crear", response_model=TipoGranoResponse, status_code=status.HTTP_201_CREATED)

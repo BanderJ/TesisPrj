@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from src.services.auth_service import auth_service
 from src.services.auditoria_service import auditoria_service
 from src.utilities.request_utils import get_client_ip
@@ -19,7 +19,7 @@ async def login_get(request: Request):
 
 
 @auth.post("/login")
-async def login_post(request: Request, usuario: str = Form(...), clave: str = Form(...)):
+async def login_post(request: Request, usuario: str = Form(...), clave: str = Form(...)) -> Response:
     token = request.cookies.get("access_token")
     if auth_service.sesion_activa(token):
         return RedirectResponse(url="/", status_code=303)
@@ -36,13 +36,13 @@ async def login_post(request: Request, usuario: str = Form(...), clave: str = Fo
             descripcion=f"Inicio de sesión exitoso: {login_response.usuario}",
             ip_cliente=get_client_ip(request),
         )
-        response = RedirectResponse(url="/", status_code=303)
+        response = RedirectResponse(url="/?bienvenida=1", status_code=303)
         response.set_cookie(key="access_token", value=login_response.token, httponly=True)
         return response
 
     auditoria_service.registrar(
         accion="LOGIN_FALLIDO",
-        descripcion=f"Intento de login fallido para usuario: {usuario}",
+        descripcion=f"Intento fallido de inicio de sesión del usuario: {usuario}",
         ip_cliente=get_client_ip(request),
     )
     return templates.TemplateResponse(

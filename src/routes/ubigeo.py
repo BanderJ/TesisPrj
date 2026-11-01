@@ -16,7 +16,7 @@ async def listar_departamentos() -> list[DepartamentoResponse]:
     try:
         return ubigeo_service.listar_departamentos()
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo obtener los departamentos.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron obtener los departamentos.") from exc
 
 
 @ubigeo_router.get("/provincias", response_model=list[ProvinciaResponse])
@@ -28,7 +28,7 @@ async def listar_provincias(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo obtener las provincias.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron obtener las provincias.") from exc
 
 
 @ubigeo_router.get("/distritos", response_model=list[DistritoResponse])
@@ -40,4 +40,4 @@ async def listar_distritos(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo obtener los distritos.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron obtener los distritos.") from exc

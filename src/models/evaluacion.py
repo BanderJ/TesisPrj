@@ -161,6 +161,7 @@ class Evaluacion:
                     e.peso_muestra,
                     e.peso_trillado,
                     e.tipo_caficultor_id,
+                    e.peso_tamizado,
                     e.factor_rendimiento
                 FROM evaluacion e
                 WHERE e.id = %s

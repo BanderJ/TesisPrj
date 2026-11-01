@@ -58,7 +58,7 @@ async def cambios_diarios(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo obtener los cambios diarios.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron obtener los cambios diarios.") from exc
 
 
 @valor_cafe_router.get("/resumen-rangos", response_model=ValorCafeResumenRangosResponse)
@@ -144,4 +144,4 @@ async def crear_valor_cafe_bloque(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo registrar los precios en bloque.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron registrar los precios en bloque.") from exc

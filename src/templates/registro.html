@@ -5,9 +5,12 @@
 {% endblock %}
 
 {% block content %}
-<section class="registro-page" aria-label="Registro de muestra de cafe">
+<section class="registro-page" aria-label="Registro de muestra de café">
 	<header class="page-hero">
-		<h1 class="hero-title">Registro de muestra</h1>
+		<div class="registro-heading">
+			<h1 class="hero-title">Registro de muestra</h1>
+			<a href="/prueba" class="btn registro-prueba">Prueba</a>
+		</div>
 		<p class="hero-description">Completa la ficha tecnica para iniciar clasificacion. El monitoreo se abrira en una vista dedicada.</p>
 	</header>
 
@@ -82,7 +85,7 @@
 				<div class="form-row form-row--2">
 					<div class="field-group">
 						<label for="humedad">Humedad (%)</label>
-						<input id="humedad" name="humedad" type="number" min="1" max="100" step="1" required placeholder="Ejemplo: 13">
+						<input id="humedad" name="humedad" type="number" min="1" max="30" step="1" required placeholder="Ejemplo: 13">
 						<p id="humedadHint" class="helper-text" aria-live="polite"></p>
 					</div>
 
@@ -120,7 +123,7 @@
 
 		<div class="action-row">
 			<button type="button" id="clearFormBtn" class="btn btn-outline">Limpiar formulario</button>
-			<button type="button" id="startMonitoringBtn" class="btn btn-primary">Iniciar clasificacion y monitoreo</button>
+			<button type="button" id="startMonitoringBtn" class="btn btn-primary">Iniciar clasificación y monitoreo</button>
 		</div>
 		<p id="submitError" class="helper-text helper-error" style="text-align:center;margin-top:.5rem;" aria-live="polite"></p>
 	</form>

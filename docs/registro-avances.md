@@ -283,6 +283,8 @@ No avanzar a Fase 3 sin completar Fase 2. Dataset_1 (3,480 imágenes) es el fund
 
 ## 2026-09-04 - Inventario inicial de archivos potencialmente redundantes
 
+> Referencias de la plantilla y la ruta de prueba actualizadas a `prueba.html` y `/prueba` el 2026-11-01.
+
 ### Contexto
 Se inicio una auditoria minuciosa para identificar archivos sin uso, duplicados,
 legado o generados. El objetivo de esta etapa es documentar evidencia y riesgos;
@@ -300,7 +302,7 @@ no se autoriza ni se realiza ninguna eliminacion en este bloque.
   utilidades, templates y recursos enlazados por las vistas forman parte del
   sistema activo y no deben marcarse como innecesarios por ausencia de referencias
   textuales simples.
-- Se confirmo que `/test` esta conectado a `src/main.py`, `test.html`, `test.js`
+- Se confirmo que `/prueba` esta conectado a `src/main.py`, `prueba.html`, `test.js`
   y `test.css`; es una vista de diagnostico autenticada y no un archivo huerfano.
 - Se verificaron referencias del sketch `arduino/test_motor/test_motor.ino` en
   `readme.md` y `Manual_Instalacion_CoffeeRen.md`; es soporte de banco valido.
@@ -308,7 +310,7 @@ no se autoriza ni se realiza ninguna eliminacion en este bloque.
 ### Archivos impactados
 - `docs/registro-avances.md`
 - `src/main.py`
-- `src/templates/test.html`
+- `src/templates/prueba.html`
 - `src/static/js/test.js`
 - `src/static/css/test.css`
 - `arduino/test_motor/test_motor.ino`
@@ -337,7 +339,7 @@ no se autoriza ni se realiza ninguna eliminacion en este bloque.
 | `scripts/generar_doc_video.py` | Genera documentacion Word del subsistema de video/Arduino y no participa en runtime. | Soporte documental no automatico | Bajo/medio: verificar si el documento de salida existe y si se requiere regenerarlo. |
 | `src/config-example.py` | Es referenciado por el manual de instalacion, pero contiene valores historicos distintos a `src/config.py`. | Plantilla de configuracion desactualizada | Medio: actualizar o retirar despues de confirmar el procedimiento de instalacion. |
 | `docs/API_VIDEO_STREAMING.md` | Conserva referencias a `yolov8n`, `best.pt` y resolucion 1280x720/60, mientras el estado actual documenta `yolov26n_2cls`, ONNX y 1920x1080/90. | Documentacion relevante pero desactualizada | Medio: no eliminar; corregir en una tarea documental separada. |
-| `src/templates/test.html` y sus recursos | Ruta `/test` y referencias desde `main.html`; la vista reutiliza endpoints `/video/*`. | Activo de diagnostico | Alto: no eliminar sin decidir retirar la vista de pruebas. |
+| `src/templates/prueba.html` y sus recursos | Ruta `/prueba` y referencias desde `main.html`; la vista reutiliza endpoints `/video/*`. | Activo de diagnostico | Alto: no eliminar sin decidir retirar la vista de pruebas. |
 | `arduino/test_motor/test_motor.ino` | Referenciado por README y manual de instalacion; prueba aislada de hardware. | Soporte valido | Bajo: no eliminar. |
 | `src/database/inserts_valor_cafe.txt` | Archivo de 314 lineas para datos SQL; no se encontro referencia automatica. | Soporte de carga manual, uso no confirmado | Medio: revisar contenido y relacion con `src/database/script.sql`. |
 | `.pyc`, `.env`, `best.pt`, ejecutable Tailwind | Archivos ignorados o locales, generados/operativos y fuera del conjunto versionado. | Artefactos locales | Bajo para el codigo; no deben mezclarse con candidatos funcionales. |

@@ -8,7 +8,7 @@ class RegistrarEvaluacionRequest(BaseModel):
     num_documento: str = Field(..., pattern=r"^[A-Za-z0-9]{8,12}$")
     num_sacos: int = Field(..., ge=1)
     peso_bruto: Decimal = Field(..., gt=0)
-    humedad: int = Field(..., ge=1, le=100)
+    humedad: int = Field(..., ge=1, le=30)
     peso_muestra: Decimal = Field(..., ge=100)
     peso_trillado: Decimal = Field(..., gt=0)
     num_tamiz: int = Field(..., ge=1)

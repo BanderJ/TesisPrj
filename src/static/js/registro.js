@@ -106,23 +106,23 @@
 			const nombreTipo = normalizarTexto(tiposDocumento.get(Number(tipoId || 0)) || '');
 			if (nombreTipo === 'dni') return {
 				maxLength: 8, soloNumeros: true,
-				hint: 'DNI: exactamente 8 digitos numericos.',
-				placeholder: 'Ingrese 8 digitos de DNI',
-				validationMessage: 'Para DNI se requieren 8 digitos numericos.',
+				hint: 'DNI: exactamente 8 dígitos numéricos.',
+				placeholder: 'Ingrese 8 dígitos de DNI',
+				validationMessage: 'Para DNI se requieren 8 dígitos numéricos.',
 				regex: /^\d{8}$/, longitudesAutoBusqueda: [8],
 			};
 			if (nombreTipo === 'pasaporte' || nombreTipo === 'carnet de extranjeria') return {
 				maxLength: 12, soloNumeros: false,
-				hint: 'Pasaporte/Carnet: 8 a 12 caracteres alfanumericos.',
+				hint: 'Pasaporte/Carnet: 8 a 12 caracteres alfanuméricos.',
 				placeholder: 'Ingrese 8-12 caracteres',
-				validationMessage: 'Para Pasaporte/Carnet se requieren de 8 a 12 caracteres alfanumericos.',
+				validationMessage: 'Para Pasaporte/Carnet se requieren de 8 a 12 caracteres alfanuméricos.',
 				regex: /^[A-Za-z0-9]{8,12}$/, longitudesAutoBusqueda: [8, 9, 10, 11, 12],
 			};
 			return {
 				maxLength: 12, soloNumeros: false,
-				hint: 'Documento entre 8 y 12 caracteres alfanumericos.',
+				hint: 'Documento entre 8 y 12 caracteres alfanuméricos.',
 				placeholder: 'Ingrese documento (8 a 12 caracteres)',
-				validationMessage: 'Documento invalido. Use de 8 a 12 caracteres alfanumericos.',
+				validationMessage: 'Documento inválido. Use de 8 a 12 caracteres alfanuméricos.',
 				regex: /^[A-Za-z0-9]{8,12}$/, longitudesAutoBusqueda: [8, 12],
 			};
 		}
@@ -273,7 +273,7 @@
 			const taraTotal = calcularTara(parseInt(numSacosInput.value, 10));
 			if (parseFloat(pesoTotalInput.value) <= taraTotal) return rechazar(`El peso total debe ser mayor a la tara de los sacos: ${taraTotal} kg (${numSacosInput.value} sacos × 0.25 kg). Verifique el peso total o el número de sacos.`, pesoTotalInput);
 			if (!esEnteroPositivo(humedadInput.value))    return rechazar('La humedad debe ser un número entero (sin decimales).', humedadInput);
-			if (parseInt(humedadInput.value, 10) > 100)   return rechazar('La humedad no puede superar 100%.', humedadInput);
+			if (parseInt(humedadInput.value, 10) > 30)    return rechazar('La humedad no puede superar 30%.', humedadInput);
 			if (!esFloatPositivo(pm))                     return rechazar('Seleccione un peso de muestra (100, 150, 200, 250 o 300 gr.).', pesoMuestraInput);
 			if (!esFloatPositivo(pt))                     return rechazar('El peso trillado debe ser un número positivo (en gr.).', pesoTrilladoInput);
 			if (pt === pm)                                return rechazar('El peso trillado debe ser diferente al peso de muestra.', pesoTrilladoInput);
@@ -324,7 +324,7 @@
 					submitErrorEl.textContent = msg;
 				}
 				startBtn.disabled = false;
-				startBtn.textContent = 'Iniciar clasificacion y monitoreo';
+				startBtn.textContent = 'Iniciar clasificación y monitoreo';
 			}
 		}
 
@@ -396,7 +396,7 @@
 		humedadInput.addEventListener('input', () => {
 			if (!humedadInput.value)              { setHint(humedadHint, ''); return; }
 			if (!esEnteroPositivo(humedadInput.value)) setHint(humedadHint, 'Debe ser un número entero (sin decimales).', true);
-			else if (parseInt(humedadInput.value, 10) > 100) setHint(humedadHint, 'La humedad no puede superar 100%.', true);
+			else if (parseInt(humedadInput.value, 10) > 30) setHint(humedadHint, 'La humedad no puede superar 30%.', true);
 			else                                   setHint(humedadHint, '');
 		});
 
@@ -439,13 +439,13 @@
 				if (!estado.listo) {
 					CoffeeModal.warning(estado.mensaje || 'Debe cerrar la tapa luego de haber ingresado los granos de café para continuar al monitoreo.');
 					startBtn.disabled = false;
-					startBtn.textContent = 'Iniciar clasificacion y monitoreo';
+					startBtn.textContent = 'Iniciar clasificación y monitoreo';
 					return;
 				}
 			} catch {
 				CoffeeModal.warning('No se pudo verificar el sensor Arduino. Revise la conexión USB.');
 				startBtn.disabled = false;
-				startBtn.textContent = 'Iniciar clasificacion y monitoreo';
+				startBtn.textContent = 'Iniciar clasificación y monitoreo';
 				return;
 			}
 
@@ -459,5 +459,17 @@
 		// El pago se calcula con los precios del día: sin precios de hoy el
 		// backend rechaza el registro. Se avisa al abrir la página para no llenar
 		// la ficha en vano.
-		CoffeePrecios.avisarSiFaltan();
+		async function mostrarAvisosRegistro() {
+			if (localStorage.getItem('coffeeren.pruebaPendiente') === '1') {
+				localStorage.removeItem('coffeeren.pruebaPendiente');
+				await CoffeeModal.info(
+					'Antes de iniciar el monitoreo, se recomienda comprobar el sistema mediante el botón Prueba.',
+					'Prueba del sistema'
+				);
+			}
+
+			await CoffeePrecios.avisarSiFaltan();
+		}
+
+		mostrarAvisosRegistro();
 	})();

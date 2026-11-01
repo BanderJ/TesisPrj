@@ -5,15 +5,15 @@
 {% endblock %}
 
 {% block content %}
-<section class="socio-page grid gap-3" aria-label="Flujo de registro y conversion de caficultores">
+<section class="socio-page grid gap-3" aria-label="Flujo de registro y conversión de caficultores">
     <header class="page-hero">
-        <h1 class="hero-title">Registro y conversion de caficultores</h1>
+        <h1 class="hero-title">Registro y conversión de caficultores</h1>
         <p class="hero-description">
-            Gestiona en una sola pantalla el registro de nuevos caficultores y su conversion a socio activo.
+            Gestiona en una sola pantalla el registro de nuevos caficultores y su conversión a socio activo.
         </p>
     </header>
 
-    <section class="decision-grid" aria-label="Seleccion de flujo">
+    <section class="decision-grid" aria-label="Selección de flujo">
         <article class="decision-card" id="cardNuevo">
             <h2>Nuevo Registro</h2>
             <img class="decision-media" src="/resources/nuevo_caficultor2.jpg" alt="Nuevo caficultor en proceso de registro" loading="lazy">
@@ -23,8 +23,8 @@
 
         <article class="decision-card" id="cardConversion">
             <!-- <p class="flow-tag info-text">Flujo B</p> -->
-            <h2>Conversion a Socio</h2>
-            <img class="decision-media" src="/resources/conversion_socio2.jpg" alt="Caficultor en conversion a socio" loading="lazy">
+            <h2>Conversión a Socio</h2>
+            <img class="decision-media" src="/resources/conversion_socio2.jpg" alt="Caficultor en conversión a socio" loading="lazy">
             <p class="info-text">Convertir caficultor externo existente en socio activo.</p>
             <button type="button" id="btnSelectConversion" class="btn btn-primary flow-btn">Seleccionar</button>
         </article>
@@ -46,7 +46,7 @@
                         </select>
                     </div>
                     <div class="field-group">
-                        <label for="numDocumento">Numero de documento</label>
+                        <label for="numDocumento">Número de documento</label>
                         <input id="numDocumento" name="numDocumento" type="text" maxlength="12" required placeholder="Ingrese documento">
                         <p id="docHint" class="helper-text info-text">Selecciona primero el tipo de documento.</p>
                     </div>
@@ -55,15 +55,15 @@
                 <div class="form-row form-row--3">
                     <div class="field-group">
                         <label for="nombre">Nombre</label>
-                        <input id="nombre" name="nombre" type="text" required maxlength="50" placeholder="Ej: Luis">
+                        <input id="nombre" name="nombre" type="text" required maxlength="50" placeholder="Ej.: Luis">
                     </div>
                     <div class="field-group">
                         <label for="apePaterno">Apellido paterno</label>
-                        <input id="apePaterno" name="apePaterno" type="text" required maxlength="30" placeholder="Ej: Garcia">
+                        <input id="apePaterno" name="apePaterno" type="text" required maxlength="30" placeholder="Ej.: García">
                     </div>
                     <div class="field-group">
                         <label for="apeMaterno">Apellido materno</label>
-                        <input id="apeMaterno" name="apeMaterno" type="text" required maxlength="30" placeholder="Ej: Ilimo">
+                        <input id="apeMaterno" name="apeMaterno" type="text" required maxlength="30" placeholder="Ej.: Ilimo">
                     </div>
                 </div>
 
@@ -81,8 +81,8 @@
                         <input id="fechaNacimiento" name="fechaNacimiento" type="date" required>
                     </div>
                     <div class="field-group">
-                        <label for="telefono">Telefono</label>
-                        <input id="telefono" name="telefono" type="text" maxlength="9" inputmode="numeric" placeholder="Ej: 987654321">
+                        <label for="telefono">Teléfono</label>
+                        <input id="telefono" name="telefono" type="text" maxlength="9" inputmode="numeric" placeholder="Ej.: 987654321">
                     </div>
                 </div>
 
@@ -125,15 +125,15 @@
         <div id="registroBanner" class="alert-banner is-hidden" role="status" aria-live="polite">
             <p id="registroBannerText" class="info-text"></p>
             <button type="button" id="btnAccionConversion" class="banner-btn is-hidden">
-                Desea convertirlo a Socio ahora mismo?
+                ¿Desea convertirlo a socio ahora mismo?
             </button>
         </div>
     </section>
 
     <section id="panelConversion" class="flow-panel" aria-hidden="true">
         <div class="panel-head">
-            <h3>Conversion de caficultor a socio</h3>
-            <p class="info-text">Busca automaticamente por tipo y documento cuando se complete la longitud valida.</p>
+            <h3>Conversión de caficultor a socio</h3>
+            <p class="info-text">Busca automáticamente por tipo y documento cuando se complete la longitud válida.</p>
         </div>
 
         <div class="conversion-info-stack">
@@ -168,7 +168,7 @@
                     </select>
                 </div>
                 <div class="field-group">
-                    <label for="buscarDocumento">Numero de documento</label>
+                    <label for="buscarDocumento">Número de documento</label>
                     <input id="buscarDocumento" name="buscarDocumento" type="text" maxlength="12" placeholder="Ingrese documento">
                     <p id="conversionDocHint" class="helper-text info-text">Selecciona primero el tipo de documento.</p>
                 </div>

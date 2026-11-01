@@ -83,7 +83,7 @@
 		};
 		cameraStream.onerror = () => {
 			clearTimeout(streamTimeout);
-			if (activo) mostrarErrorCamara('No se pudo conectar con el stream de video.');
+			if (activo) mostrarErrorCamara('No se pudo conectar con el video.');
 		};
 		// cache-buster para forzar una conexión MJPEG nueva en cada arranque
 		cameraStream.src = '/video/stream?t=' + Date.now();
@@ -191,7 +191,7 @@
 				iniciarStream();
 				conteoInterval = setInterval(refrescarConteo, 1500);
 				estadoBotones(true);
-				setStatus('Detección ya estaba activa. Reconectado al stream.');
+				setStatus('La detección ya estaba activa. Se restableció la transmisión de video.');
 				refrescarConteo();
 			} else {
 				mostrarFeed('idle');

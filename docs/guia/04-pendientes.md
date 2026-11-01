@@ -31,7 +31,8 @@ del uso real en la cooperativa; **C** = mejora o deuda técnica.
 |---|---|---|---|
 | A | [ ] Iluminación difusa y exposición manual | Instalar luz sin parpadeo; fijar `CAM_EXPOSURE` (p. ej. -6 ≈ 1/64 s) para eliminar estela | INC-57 |
 | A | [ ] Bloquear zoom y foco del lente | Anotar geometría de trabajo (distancia, ancho útil). Prerrequisito del reentrenamiento | INC-56 |
-| A | [ ] Medir el tiempo de viaje cámara → servo con el motor JGY370 | La referencia de `config.py` (PWM 220 → 0.5 s) es del motor anterior. Medir a PWM 255 y fijar `SERVO_DELAY_S` en `.env` (hoy 0.5) | — |
+| A | [x] Tiempo de viaje cámara → servo con el motor JGY370 (2026-10-25) | `SERVO_DELAY_S = 0.3` en `.env` (antes 0.5, del motor anterior) | — |
+| A | [ ] Recalibrar `SERVO_DELAY_S` tras bajar la velocidad de la faja a PWM 90 | El valor de 0.3 s se midió a PWM 255. El responsable debe medir con el prototipo el tiempo de viaje cámara → servo a PWM 90 para recalibrar `SERVO_DELAY_S`. | — |
 | B | [ ] Calibrar `ML_GATE_UMBRAL` (1.0) | Comparar el log `gate: diff media=` con faja parada y en marcha. Si salta granos: `ML_GATE_MOVIMIENTO=false` | — |
 | B | [ ] Ajustar `ML_DETECTOR_FPS` / tiles a la velocidad real de la faja | Que ByteTrack no pierda granos entre detecciones (sobreconteo por ID nuevo) | — |
 | B | [ ] Confirmar que los IDs globales no retroceden tras pausas | Prueba real con pausas largas entre granos | — |
@@ -55,15 +56,20 @@ del uso real en la cooperativa; **C** = mejora o deuda técnica.
 |---|---|---|---|
 | B | [ ] Migrar bases existentes | Ejecutar el `CREATE TABLE EVENTO_MONITOREO` (+ índice y FK) y `ALTER TABLE evaluacion ALTER COLUMN peso_neto TYPE numeric(7,2)` en cada base creada antes del 22-sep | — |
 | B | [ ] Credenciales de BD fuera del código | `src/config.py` ya no se versiona, pero la contraseña sigue como literal; moverla a `.env` antes de desplegar | INC-11 |
+| B | [x] Alinear código con las decisiones del manual (2026-10-30; revisión 2026-10-31) | Peso bueno limitado por tamizado; cálculo pendiente accesible desde reportes; precio por `floor(FR)`; usuario con una inicial materna, normalización y límite de 30 caracteres sin truncar; humedad 1–30; tildes y ayuda corregidas. Revisión: C5 incluye 0 y 12.5, PCB-05 aclara el doble y la comprobación SQL; Word de caja negra sincronizado con el 30/10 sin repetir sus pruebas y con portada, guía y pendientes conservados. | `docs/manuales/INSTRUCCIONES_CAMBIOS_CODIGO.md` |
 | C | [ ] Automatizar la descarga de `best.pt` | Hoy es manual desde Google Drive | INC-39 |
+| C | [x] Actualizar la plantilla y la ruta de prueba renombradas (2026-11-01; sin commit) | La ruta autenticada `/prueba` carga `prueba.html`; referencias documentales actualizadas y recursos JS/CSS comprobados. | — |
+| C | [x] Acceso a prueba desde Registro de muestra (2026-11-01; sin commit) | Botón «Prueba» a la derecha del título, enlazado a `/prueba`, ampliado a 132 × 52 px, texto de 16 px y fondo marrón de la paleta existente. Disposición y contraste verificados en vista previa a 1280, 390 y 320 px, en claro y oscuro; navegación verificada antes del ajuste visual. | — |
+| C | [x] Saludo personalizado tras iniciar sesión (2026-11-01; sin commit) | Inicio muestra «Bienvenido, nombre» una sola vez tras autenticar; espera el cierre del saludo antes del aviso de precios pendientes. Sintaxis JS y 11 escenarios simulados aprobados; pendiente verificar el login en la aplicación. | — |
+| C | [x] Recomendación de prueba una vez por inicio de sesión (2026-11-01; sin commit) | Para todos los roles: el login habilita la recomendación y la primera visita a Registro consume una marca compartida entre pestañas. Al volver o recargar no se repite; los precios se consultan siempre. Sintaxis JS y comportamiento simulado aprobados; sin ejecutar el login real. | — |
 | C | [ ] Revisar visibilidad de reportes | `/reporte` (búsqueda EVA) es para toda sesión; `/reportes` (estadísticos) exige Gerente/Admin. Confirmar que es lo deseado | — |
 
 ## 5. Documentación y repositorio
 
 | Prio | Pendiente | Detalle |
 |---|---|---|
-| B | [ ] Regenerar los `.docx` de los manuales | Las fuentes Markdown se movieron a `docs/manuales/` y se actualizaron; `convert_md_to_docx.py` ya apunta allí. `INSTALACION.md` se eliminó por duplicar el Manual de Instalación |
-| C | [ ] Manual de Usuario sin fuente Markdown | Lo genera `generar_manual_completo.py` (ruta absoluta `d:\TesisPrj\...`); migrarlo a `docs/manuales/Manual_Usuario_CoffeeRen.md` |
+| B | [ ] Regenerar los `.docx` de instalación y mantenimiento | `python convert_md_to_docx.py` convierte todos los `.md` de `docs/manuales/` (o los que se le pasen). `INSTALACION.md` se eliminó por duplicar el Manual de Instalación |
+| C | [x] Manual de Usuario sin fuente Markdown | Resuelto: el Manual de Usuario se mantiene solo en Word (`docs/manuales/Manual_Usuario_CoffeeRen.docx`), sin fuente Markdown ni conversión; `generar_manual_completo.py` eliminado el 2026-10-27. |
 | C | [x] Documentos citados que ya no están en el repo | Resuelto 2026-09-30: la sección de referencias del registro de incidencias y `docs/documentacion/README.md` indican el commit para recuperarlos |
-| C | [x] Limpieza de la raíz (2026-09-30) | Eliminados `corrida.log` y `latencia.log` (volcados de consola) y `*.log` añadido a `.gitignore`. Se conservan `check_model.py`, `convert_md_to_docx.py` y `generar_manual_completo.py` (herramientas en uso); podrían moverse a `scripts/` |
+| C | [x] Limpieza de la raíz (2026-09-30) | Eliminados `corrida.log` y `latencia.log` (volcados de consola) y `*.log` añadido a `.gitignore`. Se conservan `check_model.py` y `convert_md_to_docx.py` (herramientas en uso); podrían moverse a `scripts/`. `generar_manual_completo.py` se eliminó el 2026-10-27 |
 | C | [ ] `docs/defectos_sca_tabla_referencia.md` | Tabla pensada para 17 clases; actualizar cuando la cooperativa valide la tabla oficial |

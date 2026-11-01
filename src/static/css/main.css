@@ -1230,7 +1230,7 @@ body.dark {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   FEED DE CÁMARA — compartido entre /monitoreo y /test
+   FEED DE CÁMARA — compartido entre /monitoreo y /prueba
    El contenedor debe darle una altura acotada a .feed-card
    (flex column); .feed-frame ocupa el espacio restante.
    ───────────────────────────────────────────────────────────── */

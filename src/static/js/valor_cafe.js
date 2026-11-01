@@ -296,12 +296,12 @@
         fila.innerHTML = `
             <div class="field-group">
                 <label for="fr_${idx}">Rango</label>
-                <input id="fr_${idx}" type="text" class="fila-rango" placeholder="Ej: 60-65 o 70" maxlength="10" autocomplete="off">
+                <input id="fr_${idx}" type="text" class="fila-rango" placeholder="Ej.: 60-65 o 70" maxlength="10" autocomplete="off">
                 <p class="campo-error-msg fila-rango-error"></p>
             </div>
             <div class="field-group">
                 <label for="fp_${idx}">Precio (S/.)</label>
-                <input id="fp_${idx}" type="number" class="fila-precio" step="0.01" min="0.01" placeholder="Ej: 750.00">
+                <input id="fp_${idx}" type="number" class="fila-precio" step="0.01" min="0.01" placeholder="Ej.: 750.00">
                 <p class="campo-error-msg fila-precio-error"></p>
             </div>
             <button type="button" class="btn-remove-fila" title="Eliminar fila" aria-label="Eliminar fila">

@@ -73,9 +73,15 @@ uvicorn src.main:app --reload            # http://localhost:8000
 ./tailwindcss-windows-x64.exe -i src/static/css/input.css -o src/static/css/tailwind.css --watch
 ```
 
-No hay suite de tests automatizados (solo `tests/verificacion_incremento_1.py`). Verifica a mano:
-que la app arranque, que el flujo registro → monitoreo → análisis funcione y, para cambios de
-Python, `python -m py_compile <archivo>`.
+No hay suite de tests unitarios. Hay tres verificaciones: `tests/verificacion_incremento_1.py`, las
+pruebas de caja negra de `tests/caja_negra/` (Playwright + pytest, casos PCN-XX de la tesis):
+`python -m pytest tests/caja_negra` con la app corriendo y precios de café con fecha de hoy, y
+`python -m tests.caja_negra.generar_fichas` para el Word de fichas. Crean usuarios y evaluaciones
+de prueba: solo contra la base de desarrollo. Las pruebas de caja blanca de `tests/caja_blanca/`
+(casos PCB-XX, pytest + pytest-cov) no usan BD ni hardware: `python -m tests.caja_blanca.ejecutar`
+corre cada caso con cobertura de ramas y guarda la evidencia, y `python -m tests.caja_blanca.generar_fichas`
+arma el Word. Los helpers comunes de las fichas están en `tests/fichas_word.py`. Verifica a mano que la app arranque, que el flujo
+registro → monitoreo → análisis funcione y, para cambios de Python, `python -m py_compile <archivo>`.
 
 ## 5. Reglas del código
 
@@ -155,7 +161,7 @@ El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
 ### Prohibido cambiar sin permiso explícito del usuario
 
 - `src/utilities/servo_controller.py` y `src/utilities/arduino_serial.py`.
-- `SERVO_DELAY_S = 0.5` y `SERVO_HOLD_S = 0.3` (calibrados en el hardware).
+- `SERVO_DELAY_S = 0.3` (en `.env`, motor JGY370) y `SERVO_HOLD_S = 0.3` (calibrados en el hardware).
 - `TrackerService._on_camara_desconectada()` (modo de emergencia).
 - `imgsz=640` y la estructura de hilos (cámara productora, tracker consumidor).
 - `half`: solo condicional por hardware; nunca forzar FP16 (rompe la GTX 1050 Mobile).
@@ -170,11 +176,13 @@ El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
 - Documento: DNI exactamente 8 dígitos; Pasaporte o Carnet de Extranjería 8 a 12 caracteres
   alfanuméricos (`src/utilities/documento_validador.py`).
 - Peso bruto: como máximo `num_sacos × 70` kg y mayor que la tara `round(num_sacos × 0.25)`.
-- Humedad: número entero de 1 a 100; más de 12 % aplica descuento.
+- Humedad: número entero de 1 a 30; más de 12 % aplica descuento.
 - Rangos de precio del café: no se pueden solapar y el precio no puede bajar cuando sube el rango.
 - Precios del día: una muestra solo se registra si hay precios de café con fecha de hoy, y el pago
-  usa el precio de hoy del rango que contiene el factor de rendimiento. Si ese rango no tiene
-  precio hoy, completar la evaluación falla hasta que se registre.
+  usa el precio de hoy del rango que contiene el factor de rendimiento. Los rangos son enteros y
+  el rango se busca con la parte entera del factor, sin redondear (65.52 cae en 60-65 porque no
+  llega a 66); el factor guardado conserva sus decimales. Si ese rango no tiene precio hoy,
+  completar la evaluación falla hasta que se registre.
 - Grado SCA: **no se calcula ni se muestra.** Depende del tipo de defecto (primario/secundario) y
   el modelo actual solo distingue `defecto`/`verde`. `EVALUACION.categoria_id` queda en NULL; la
   tabla `CATEGORIA` se conserva para cuando el modelo clasifique por tipo de defecto.
@@ -194,7 +202,8 @@ El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
 | Incidencias formales (leerlo entero antes de editarlo) | `docs/incidencias/incidencia_proyecto.md` |
 | API de video | `docs/API_VIDEO_STREAMING.md` |
 | Cámara | `docs/hardware-camara.md` |
-| Manuales de instalación y mantenimiento | `docs/manuales/` |
+| Manual de usuario (solo Word, sin fuente Markdown ni conversión) | `docs/manuales/Manual_Usuario_CoffeeRen.docx` |
+| Manuales de instalación y mantenimiento (`.md` → `.docx` con `convert_md_to_docx.py`) | `docs/manuales/` |
 | Evidencias de indicadores de tesis | `docs/evidencias/` |
 
 Al terminar un cambio relevante: agrega una línea a `docs/guia/05-historial-de-cambios.md`,

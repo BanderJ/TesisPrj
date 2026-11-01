@@ -2,6 +2,12 @@
 .venv/
 __pycache__/
 
+#Excluir resultados de cobertura y pruebas
+.coverage
+htmlcov/
+coverage.json
+junit.xml
+
 #Excluir archivos de entorno y configuración
 .env
 

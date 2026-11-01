@@ -81,7 +81,7 @@ async def actualizar_datos_personales(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo actualizar los datos.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron actualizar los datos.") from exc
 
 
 @perfil.patch("/cambiar-contrasena")
@@ -121,7 +121,7 @@ async def listar_usuarios(
     try:
         return {"usuarios": perfil_service.listar_usuarios()}
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo listar los usuarios.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron listar los usuarios.") from exc
 
 
 @perfil.get("/usuarios/{personal_id}")

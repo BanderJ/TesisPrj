@@ -102,7 +102,7 @@
 					}
 					frameTimeout = setTimeout(refrescarFrame, 33);
 				} catch {
-					if (isFirstFrame) { clearTimeout(connectTimeout); mostrarErrorCamara('No se pudo conectar con el stream de video'); }
+					if (isFirstFrame) { clearTimeout(connectTimeout); mostrarErrorCamara('No se pudo conectar con el video.'); }
 				}
 			};
 
@@ -512,7 +512,7 @@
 
 		async function generarReporte() {
 			try {
-				appendLog('Generando reporte ...');
+				appendLog('Generando reporte...');
 				const res = await fetch('/video/lote/generar-reporte', { method: 'POST' });
 				if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo generar el reporte.'));
 				reporteActual = await res.json();
@@ -556,7 +556,7 @@
 				: 'Finalizando monitoreo...';
 			finDescripcion.textContent = automatico
 				? 'No se detectaron nuevos granos en los últimos 10 segundos. El sistema detuvo el proceso y está guardando los resultados.'
-				: 'Por favor espera mientras se guardan los datos y se genera el reporte.';
+				: 'Por favor, espera mientras se guardan los datos y se genera el reporte.';
 			[1,2,3].forEach(_pasoPendiente);
 			finSpinner.style.display = 'block';
 			finCheck.style.display   = 'none';
@@ -750,7 +750,7 @@
 				const { codigo } = await res.json();
 				_pasoOk(3);
 				sessionStorage.removeItem('coffeeren.evaluacion');
-				appendLog(`Evaluacion finalizada. Código: ${codigo}`, 'ok');
+				appendLog(`Evaluación finalizada. Código: ${codigo}`, 'ok');
 				history.replaceState(null, '', '/registro');
 				completarOverlay(codigo, pesoCapturado);
 			} catch (err) {

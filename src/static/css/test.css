@@ -1,7 +1,7 @@
 /* ── Página de prueba de detección ──────────────────────────────── */
 /* El feed de cámara (.feed-card, .feed-frame, .camera-*, .live-indicator)
    se estiliza en main.css — es compartido con /monitoreo. Aquí solo el
-   layout propio de /test y el panel de conteo en vivo. */
+   layout propio de /prueba y el panel de conteo en vivo. */
 
 .test-page {
     display: flex;

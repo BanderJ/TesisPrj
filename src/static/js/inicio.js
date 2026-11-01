@@ -7,7 +7,7 @@
             const data = await res.json();
             const section = document.getElementById('cooperativaSection');
 
-            document.getElementById('cooperativaNombreTitulo').textContent = data.nombre || 'Tu Cooperativa';
+            document.getElementById('cooperativaNombreTitulo').textContent = data.nombre || 'Tu cooperativa';
             document.getElementById('cooperativaDescripcionTexto').textContent = data.descripcion || 'Cooperativa registrada en el sistema';
 
             if (data.imagen_url) {
@@ -41,8 +41,21 @@
 
     cargarKpis();
 
-    // Aviso al ingresar: sin precios de café registrados hoy.
-    CoffeePrecios.avisarSiFaltan();
+    async function mostrarAvisosInicio() {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('bienvenida') === '1') {
+            // Una recomendación de prueba pendiente por cada inicio de sesión.
+            localStorage.setItem('coffeeren.pruebaPendiente', '1');
+            // Consumir el saludo para que no se repita al recargar o volver a Inicio.
+            url.searchParams.delete('bienvenida');
+            window.history.replaceState(window.history.state, '', url);
+            await CoffeeModal.success('Ha iniciado sesión correctamente.', `Bienvenido, ${INICIO_NOMBRE_USUARIO}`);
+        }
+        await CoffeePrecios.avisarSiFaltan();
+    }
+
+    mostrarAvisosInicio();
+
 
     (() => {
         const RANGO_COLORS = ['#22c55e', '#f59e0b', '#818cf8', '#f472b6', '#2dd4bf'];
@@ -306,7 +319,7 @@ ${hitHtml}`;
                         if (pa.data && payload.data.length) {
                             const maxHoy = Math.max(...payload.data.map(d => d.precio));
                             const pct = ((maxHoy - pa.data.precio) / pa.data.precio) * 100;
-                            priceChangeEl.textContent = `${pct>=0?'+':''}${pct.toFixed(1)}% respecto al dia anterior`;
+                            priceChangeEl.textContent = `${pct>=0?'+':''}${pct.toFixed(1)}% respecto al día anterior`;
                             priceChangeEl.classList.toggle('negative', pct < 0);
                         } else {
                             priceChangeEl.textContent = 'Sin comparativo de ayer';
@@ -380,7 +393,7 @@ ${hitHtml}`;
 
             } catch {
                 chartEmptyEl.hidden      = false;
-                chartEmptyEl.textContent = 'Error al cargar los datos del grafico';
+                chartEmptyEl.textContent = 'Error al cargar los datos del gráfico.';
             }
         }
 

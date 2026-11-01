@@ -165,7 +165,7 @@ TesisPrj/
 | `/valor-cafe` | `valor_cafe.html` | Gestión de precios de café | Gerente/Admin |
 | `/configuracion-cooperativa` | `cooperativa.html` | Datos de la cooperativa | Gerente/Admin |
 | `/perfil` | `perfil.html` | Perfil propio y gestión de usuarios | JWT |
-| `/test` | `test.html` | Prueba de detección en vivo sin evaluación | JWT |
+| `/prueba` | `prueba.html` | Prueba de detección en vivo sin evaluación | JWT |
 
 Las páginas `/monitoreo/{id}` y `/analisis/{id}` tienen guards de estado: una evaluación finalizada redirige a análisis y viceversa.
 

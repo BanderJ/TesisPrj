@@ -74,7 +74,7 @@ class ValorCafe:
     def obtener_por_factor(
         self, factor: Decimal, fecha: date, db: Connection | None = None
     ) -> dict[str, Any] | None:
-        """Retorna el precio más reciente del día cuyo rango contiene el factor de rendimiento.
+        """Retorna el precio más reciente del día cuyo rango contiene la parte entera del factor.
         El rango puede ser 'X-Y' (ej: 70-75) o un número simple 'X' (ej: 70)."""
         owns_db = db is None
         db = db or Connection()
@@ -83,8 +83,8 @@ class ValorCafe:
                 SELECT id::text, rango, precio, fecha
                 FROM valor_cafe
                 WHERE fecha::date = %s
-                  AND CAST(SPLIT_PART(rango, '-', 1) AS numeric) <= %s
-                  AND CAST(COALESCE(NULLIF(SPLIT_PART(rango, '-', 2), ''), SPLIT_PART(rango, '-', 1)) AS numeric) >= %s
+                  AND CAST(SPLIT_PART(rango, '-', 1) AS numeric) <= FLOOR(%s::numeric)
+                  AND CAST(COALESCE(NULLIF(SPLIT_PART(rango, '-', 2), ''), SPLIT_PART(rango, '-', 1)) AS numeric) >= FLOOR(%s::numeric)
                 ORDER BY fecha DESC
                 LIMIT 1
             """

@@ -7,9 +7,9 @@
 {% block content %}
     <!-- Banner de la cooperativa: nombre y descripción sobre la imagen -->
     <section id="cooperativaSection" class="coop-banner" hidden>
-        <img id="cooperativaImagenBanner" src="" alt="Banner de cooperativa" class="coop-banner-img" hidden>
+        <img id="cooperativaImagenBanner" src="" alt="Imagen de la cooperativa" class="coop-banner-img" hidden>
         <div class="coop-banner-copy">
-            <h2 id="cooperativaNombreTitulo" class="coop-banner-title">Tu Cooperativa</h2>
+            <h2 id="cooperativaNombreTitulo" class="coop-banner-title">Tu cooperativa</h2>
             <p id="cooperativaDescripcionTexto" class="coop-banner-desc"></p>
         </div>
     </section>
@@ -45,7 +45,7 @@
                 <h2 id="board-title" class="section-title">Precio del café según rendimiento</h2>
                 <!-- <p class="section-subtitle info-text">Historial por rango de rendimiento del café verde</p> -->
             </div>
-            <div class="period-tabs" id="periodTabs" role="group" aria-label="Periodo del grafico">
+            <div class="period-tabs" id="periodTabs" role="group" aria-label="Periodo del gráfico">
                 <button class="period-tab is-active" data-period="dia">Hoy</button>
                 <button class="period-tab" data-period="mes">Este mes</button>
                 <button class="period-tab" data-period="año">Este año</button>
@@ -65,7 +65,7 @@
                 </ul>
             </article>
 
-            <article class="curve-card" aria-label="Grafico de precios">
+            <article class="curve-card" aria-label="Gráfico de precios">
                 <div class="chart-top">
                     <div class="rango-legend" id="rangoLegend">
                         <button class="legend-chip is-active" data-rango="">Todos los rangos</button>
@@ -88,12 +88,12 @@
             <article class="board-metric-card">
                 <h3>Rangos registrados hoy</h3>
                 <p id="kpiRangos">—</p>
-                <small class="info-text">Categorias de cafe activas</small>
+                <small class="info-text">Categorías de café activas</small>
             </article>
             <article class="board-metric-card">
-                <h3>Precio minimo hoy</h3>
+                <h3>Precio mínimo hoy</h3>
                 <p id="kpiPrecioMin">—</p>
-                <small class="info-text">Rango de menor valor del dia</small>
+                <small class="info-text">Rango de menor valor del día</small>
             </article>
         </div>
     </section>
@@ -122,7 +122,7 @@
             <a href="/registro" class="workflow-card">
                 <span class="workflow-icon-wrap"><svg class="workflow-icon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/></svg></span>
                 <div class="workflow-copy">
-                    <h3>Realizar muestra</h3>
+                    <h3>Registrar muestra</h3>
                     <p>Captura técnica de pesos y datos de productor para iniciar clasificación.</p>
                 </div>
                 <span class="workflow-action">Ir a registro<svg class="workflow-arrow" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
@@ -130,15 +130,16 @@
             <a href="/reporte" class="workflow-card">
                 <span class="workflow-icon-wrap"><svg class="workflow-icon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></span>
                 <div class="workflow-copy">
-                    <h3>Buscar muestras</h3>
+                    <h3>Buscar reportes</h3>
                     <p>Consulta histórica por documento, fecha, rendimiento y estado de lote.</p>
                 </div>
-                <span class="workflow-action">Buscar muestra<svg class="workflow-arrow" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+                <span class="workflow-action">Buscar reportes<svg class="workflow-arrow" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
             </a>
         </nav>
     </section>
 {% endblock %}
 
 {% block script %}
+<script>const INICIO_NOMBRE_USUARIO = {{ user.nombre | tojson }};</script>
 <script src="/static/js/inicio.js"></script>
 {% endblock %}

@@ -43,8 +43,8 @@ class Config:
     FAJA_VELOCIDAD_PWM: int = int(os.environ.get('FAJA_VELOCIDAD_PWM') or '255')
 
     # Calibración de referencia: a PWM=220 el grano tarda 0.5 s en llegar al servo.
-    # Medida con el motor anterior; con el JGY370 10 RPM (oct 2026) hay que volver
-    # a medir y fijar SERVO_DELAY_S en .env.
+    # Medida con el motor anterior. Con el JGY370 10 RPM (oct 2026) el valor se fija
+    # en .env: SERVO_DELAY_S=0.3.
     # El tiempo de viaje es inversamente proporcional a la velocidad de la faja,
     # así que SERVO_DELAY_S se recalcula solo al cambiar FAJA_VELOCIDAD_PWM y el
     # servo no vuelve a separar el grano equivocado por un delay desactualizado.

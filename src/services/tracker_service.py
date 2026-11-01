@@ -64,7 +64,7 @@ class TrackerService:
 
         Args:
             evaluacion_id: evaluación dueña del lote, para archivar evidencias y
-                eventos. None = monitoreo suelto (vista /test), sin persistencia.
+                eventos. None = monitoreo suelto (vista /prueba), sin persistencia.
 
         Returns:
             bool: True si inició exitosamente, False si error

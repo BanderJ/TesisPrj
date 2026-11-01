@@ -162,7 +162,7 @@ async def obtener_frame():
     """
     frame_jpeg = tracker_service.obtener_frame_streaming()
     if frame_jpeg is None:
-        raise HTTPException(status_code=503, detail="No hay ningún frame disponible todavía.")
+        raise HTTPException(status_code=503, detail="Todavía no hay ninguna imagen disponible.")
 
     return Response(
         content=frame_jpeg,

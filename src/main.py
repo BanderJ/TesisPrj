@@ -297,13 +297,13 @@ async def monitoreo(
     return response
 
 
-@app.get("/test")
+@app.get("/prueba")
 async def test_deteccion(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
     """Vista de prueba: verificar la cámara y observar la detección del modelo en vivo,
     sin registrar una muestra ni una evaluación. Reutiliza los endpoints /video/*."""
     return templates.TemplateResponse(
         request=request,
-        name="test.html",
+        name="prueba.html",
         context={"request": request, "user": user},
     )
 

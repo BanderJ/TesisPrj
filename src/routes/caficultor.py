@@ -24,7 +24,7 @@ async def listar_caficultores(
     try:
         return caficultor_service.listar_caficultores()
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo listar los caficultores.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron listar los caficultores.") from exc
 
 
 @caficultor_router.get("/consultar/{num_documento}", response_model=ObtenerDatosResponse)
