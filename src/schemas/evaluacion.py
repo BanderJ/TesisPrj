@@ -6,11 +6,14 @@ from pydantic import BaseModel, Field, model_validator
 # Peso de un saco vacío. La tara del lote es num_sacos × este valor, sin redondear:
 # se resta tal cual del peso bruto. Lo usan este schema y EvaluacionService.completar.
 TARA_POR_SACO_KG = Decimal("0.25")
+# Tamaño máximo de lote que se registra (regla del responsable, 2026-11-02). Con
+# 30 sacos el peso bruto (≤ 2100 kg) y el pago caben en numeric(7, 2).
+MAX_SACOS_POR_LOTE = 30
 
 
 class RegistrarEvaluacionRequest(BaseModel):
     num_documento: str = Field(..., pattern=r"^[A-Za-z0-9]{8,12}$")
-    num_sacos: int = Field(..., ge=1)
+    num_sacos: int = Field(..., ge=1, le=MAX_SACOS_POR_LOTE)
     peso_bruto: Decimal = Field(..., gt=0)
     humedad: int = Field(..., ge=1, le=30)
     peso_muestra: Decimal = Field(..., ge=100)

@@ -24,11 +24,18 @@ const unsigned long MS_DISTANCIA   = 100;    // reporte sensor cada 100 ms
 // llega durante la medición ya no espera hasta 30 ms para ejecutarse.
 // Sin eco en ese tiempo se informa NO_LISTO:-1.00, igual que antes.
 const unsigned long ECO_TIMEOUT_US = 5000;
+// Watchdog de la faja: con el motor encendido, el backend escribe una línea vacía
+// cada 1 s (LATIDO_FAJA_S en arduino_serial.py). Si pasan MS_SIN_HOST_MAX sin
+// recibir ningún byte (backend caído, USB desconectado), la faja se apaga para que
+// los granos no sigan pasando sin clasificar. Tres latidos perdidos seguidos.
+const unsigned long MS_SIN_HOST_MAX = 3000;
 
 Servo  servoSeparador;
 
 // Temporizadores millis()
 unsigned long tDistancia = 0;
+unsigned long tUltimoHost = 0;   // último byte recibido del backend
+bool motorEncendido = false;
 
 // Buffer para leer líneas serial sin bloquear. Tope de longitud: si llega
 // basura sin '\n', la línea no crece hasta agotar los 2 KB de SRAM. El comando
@@ -59,6 +66,7 @@ void loop() {
   // 1. Leer comandos del backend (no-bloqueante, carácter a carácter)
   while (Serial.available() > 0) {
     char c = (char)Serial.read();
+    tUltimoHost = millis();
     if (c == '\n') {
       lineaSerial.trim();
       if (lineaSerial.length() > 0) procesarComando(lineaSerial);
@@ -70,7 +78,13 @@ void loop() {
     // es un comando válido y procesarComando la ignora.
   }
 
-  // 2. Reporte de distancia
+  // 2. Watchdog: sin noticias del backend, la faja no sigue girando sola.
+  if (motorEncendido && millis() - tUltimoHost > MS_SIN_HOST_MAX) {
+    aplicarMotor(false);
+    servoSeparador.write(ANGULO_BUENO);
+  }
+
+  // 3. Reporte de distancia
   if (ahora - tDistancia >= MS_DISTANCIA) {
     tDistancia = ahora;
     float dist = leerUltrasonico();
@@ -106,6 +120,7 @@ void procesarComando(String cmd) {
 // L298N: velocidad por ENA (PWM), sentido por IN1/IN2. Al parar, el reductor
 // sinfín retiene la faja; no hace falta freno activo.
 void aplicarMotor(bool encender) {
+  motorEncendido = encender;
   if (!encender) {
     analogWrite(MOTOR_ENA, 0);
     digitalWrite(MOTOR_IN1, LOW);

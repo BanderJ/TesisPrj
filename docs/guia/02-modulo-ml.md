@@ -129,6 +129,11 @@ validar la equivalencia 1.0 con la cooperativa.
 - El delay se cuenta desde el **timestamp de captura** del primer avistamiento, no desde el fin
   de la inferencia: la latencia de GPU/CPU no desplaza el disparo.
 - `servo_controller` extiende el hold con defectos consecutivos y reintenta 3 veces cada comando.
+- La cola del servo es un heap ordenado por `t_referencia + SERVO_DELAY_S` (2026-11-02): un grano
+  visto antes se separa antes aunque haya juntado evidencia después que otro. Antes la cola seguía
+  el orden de inserción y el grano adelantado esperaba al que tenía delante.
+- Watchdog de la faja (2026-11-02): con el motor encendido `arduino_serial` escribe una línea vacía
+  cada 1 s; el firmware apaga la faja si pasan 3 s sin recibir nada (backend caído o USB suelto).
 - `SERVO_DELAY_S=0.3` (fijado en `.env`, motor JGY370 a PWM 255) y `SERVO_HOLD_S=0.3`: calibrados físicamente.
 
 ### 4.7 Cadencia y gate de movimiento

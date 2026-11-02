@@ -179,6 +179,7 @@ El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
 
 - Documento: DNI exactamente 8 dígitos; Pasaporte o Carnet de Extranjería 8 a 12 caracteres
   alfanuméricos (`src/utilities/documento_validador.py`).
+- Número de sacos: entero de 1 a 30 por lote (`MAX_SACOS_POR_LOTE`, `src/schemas/evaluacion.py`).
 - Peso bruto: como máximo `num_sacos × 70` kg y mayor que la tara `num_sacos × 0.25` kg. La tara
   no se redondea nunca (2 sacos = 0.50 kg): se resta tal cual del peso bruto. El peso por saco
   está en `TARA_POR_SACO_KG` (`src/schemas/evaluacion.py`).
