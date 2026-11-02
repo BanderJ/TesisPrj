@@ -2,6 +2,7 @@
 
 {% block style %}
     <link rel="stylesheet" href="/static/css/perfil.css">
+    <link rel="stylesheet" href="/static/css/analisis.css">
     <link rel="stylesheet" href="/static/css/cooperativa.css">
 {% endblock %}
 
@@ -358,25 +359,73 @@
 
             <!-- SECCIÓN 6: Reportes -->
             <section id="reportes" class="perfil-section" hidden>
-                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">
+                <div class="reportes-cabecera">
                     <div>
-                        <h2 class="perfil-section-title" style="border-bottom:none;padding-bottom:0;margin-bottom:4px;">Reportes</h2>
-                        <p class="perfil-section-description" id="reporteDescripcion" style="margin:0;"></p>
+                        <h2 class="perfil-section-title">Reportes</h2>
+                        <p class="perfil-section-description" id="reporteDescripcion"></p>
                     </div>
-                    <div class="field-group" style="min-width:260px;">
+                    <div class="field-group">
                         <label for="selectReporte">Reporte</label>
                         <select id="selectReporte"></select>
                     </div>
                 </div>
 
-                <div id="reporteContainer">
-                    <p style="text-align:center;padding:2rem;color:var(--muted-foreground);">Cargando reporte...</p>
+                <form id="formFiltrosReporte" class="perfil-form" hidden>
+                    <div class="form-row form-row--2">
+                        <div class="field-group">
+                            <label for="reporteDesde">Desde</label>
+                            <input type="date" id="reporteDesde">
+                        </div>
+                        <div class="field-group">
+                            <label for="reporteHasta">Hasta (incluido)</label>
+                            <input type="date" id="reporteHasta">
+                        </div>
+                    </div>
+                    <div class="form-row form-row--2">
+                        <div class="field-group">
+                            <label for="reporteBusqueda">Caficultor</label>
+                            <input type="search" id="reporteBusqueda" maxlength="200" placeholder="Nombre, apellidos o documento">
+                        </div>
+                        <div class="field-group">
+                            <label for="reporteTipo">Tipo en la entrega</label>
+                            <select id="reporteTipo">
+                                <option value="">Socios y externos</option>
+                                <option value="Socio">Socio</option>
+                                <option value="Externo">Externo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="btnFiltrarReporte">Consultar</button>
+                        <button type="button" class="btn btn-secondary" id="btnLimpiarReporte">Limpiar filtros</button>
+                    </div>
+                </form>
+                <p id="reporteFiltroError" class="helper-text reporte-error" role="alert" hidden></p>
+                <div id="reporteContainer" aria-live="polite">
+                    <p class="reporte-estado">Seleccione un reporte para consultar sus datos.</p>
+                </div>
+                <div id="reportePaginacion" class="reporte-paginacion" hidden>
+                    <p id="reportePaginaTexto" aria-live="polite"></p>
+                    <button type="button" class="btn btn-secondary" id="reporteAnterior">Anterior</button>
+                    <button type="button" class="btn btn-secondary" id="reporteSiguiente">Siguiente</button>
                 </div>
             </section>
 
         </main>
     </div>
 </div>
+
+<dialog id="modalReporteEvaluacion" class="reporte-detalle-modal" aria-labelledby="reporteDetalleTitulo">
+    <div class="reporte-detalle-cabecera">
+        <h2 id="reporteDetalleTitulo">Detalle de evaluación</h2>
+        <button type="button" id="cerrarReporteDetalle" class="btn btn-secondary" autofocus>Cerrar detalle</button>
+    </div>
+    <p id="reporteDetalleEstado" class="reporte-estado" role="status">Cargando evaluación…</p>
+    <div id="reporteDetalleResumen" class="analisis-page" hidden>
+        {% set modo = 'detalle' %}
+        {% include "partials/resumen_evaluacion.html" %}
+    </div>
+</dialog>
 
 <!-- MODAL: Detalle de Auditoría -->
 <div id="modalAudit" style="display:none;position:fixed;inset:0;z-index:9000;align-items:flex-start;justify-content:center;padding:1.5rem;background:rgba(0,0,0,0.48);backdrop-filter:blur(3px);overflow-y:auto;">
@@ -602,5 +651,7 @@
 <script>const MI_PERSONAL_ID = '{{ user.personal_id }}';</script>
 <script src="/static/js/lib/echarts.min.js"></script>
 <script src="/static/js/coffee-report.js"></script>
+<script src="/static/js/eventos-monitoreo.js"></script>
+<script src="/static/js/resumen-evaluacion.js"></script>
 <script src="/static/js/cooperativa.js"></script>
 {% endblock %}

@@ -32,9 +32,10 @@
             <!-- CENTER: Navigation Menu -->
             <nav class="header-center">
                 <a href="/" class="nav-link active">Inicio</a>
+                {% if user and user.tipo_personal_id == 1 %}
                 <a href="/registro" class="nav-link">Registro de muestra</a>
+                {% endif %}
                 <a href="/reporte" class="nav-link">Buscar reportes</a>
-                <!-- <a href="/prueba" class="nav-link">Prueba</a> -->
                 <a href="/nuevo-caficultor" class="nav-link">Registrar caficultor</a>
                 {% if user and user.tipo_personal_id in [2, 3] %}
                 <a href="/valor-cafe" class="nav-link">Valor de café</a>

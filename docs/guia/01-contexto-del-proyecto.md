@@ -144,7 +144,7 @@ monitoreo por evaluación, escrita en la misma transacción que el código EVA).
 python -m venv .venv && source .venv/Scripts/activate
 pip install -r requirements.txt            # incluye instrucciones del build CUDA de torch
 cp src/config-example.py src/config.py     # y poner la contraseña real de PostgreSQL
-psql -U postgres -d tesis_prj -f src/database/script.sql
+psql -X -v ON_ERROR_STOP=1 -U postgres -d tesis_prj -f src/database/script.sql
 uvicorn src.main:app --reload              # http://localhost:8000
 ./tailwindcss-windows-x64.exe -i src/static/css/input.css -o src/static/css/tailwind.css --watch
 ```

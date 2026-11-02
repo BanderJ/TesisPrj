@@ -483,7 +483,8 @@ class CoffeeRenTracker:
             cv2.rectangle(frame_anotado, (x1, y1), (x2, y2), color, grosor)
 
             nombre = "objeto desconocido" if clase == self.CLASE_DESCONOCIDO else clase
-            label = f"#{track_id} {nombre} {conf_score:.2%} {w}x{h}px"
+            ### label = f"#{track_id} {nombre} {conf_score:.2%} {w}x{h}px"
+            label = f"#{track_id} {nombre}"
             (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
             cv2.rectangle(frame_anotado, (x1, y1 - th - 8), (x1 + tw + 4, y1 - 2), color, -1)
             cv2.putText(frame_anotado, label, (x1 + 2, y1 - 4),

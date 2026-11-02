@@ -172,9 +172,7 @@ class EvaluacionService:
             peso_malo          = (peso_trillado - peso_bueno).quantize(Decimal("0.01"))
 
             # El precio se elige entre los de hoy, según el rango que contiene el
-            # factor de rendimiento. Los rangos son enteros, así que se busca con la
-            # parte entera del factor, sin redondear: 65.52 no llega a 66 y cae en
-            # 60-65. El factor que se guarda conserva sus decimales.
+            # factor de rendimiento.
             valor_cafe = self.valor_cafe_model.obtener_por_factor(factor_rendimiento, date.today(), db)
             if not valor_cafe:
                 raise ValueError(

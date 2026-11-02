@@ -28,15 +28,15 @@ Corregido en el código:
 | 2.1 Credenciales | `src/config.py` fuera del índice; `SECRET_KEY` obligatoria (≥ 32 caracteres, no de ejemplo); contraseña retirada de `reset_db.ps1` y de `docs/registro-avances.md`. **Falta cambiar la contraseña**: sigue en el historial. |
 | 2.2 Conteo desde el navegador | Al finalizar, el servidor toma el conteo de `tracker_service.conteo_de_evaluacion()`; si el lote no es el de la evaluación, responde 409. `/completar` ya no recibe `total_defectos`. |
 | 2.3 Video sin sesión | `/video/stream`, `/frame` y `/status` exigen sesión. `/resources` sigue público (ver pendientes). |
-| 2.4 Código EVA | `UNIQUE`, secuencia `evaluacion_codigo_seq`, `FOR UPDATE` y reintento sin reescribir la fila ni duplicar eventos. Migración: `src/database/migracion_revision_2026_11.sql`. |
+| 2.4 Código EVA | `UNIQUE`, secuencia `evaluacion_codigo_seq`, `FOR UPDATE` y reintento sin reescribir la fila ni duplicar eventos. Estructura consolidada en el SQL único `src/database/script.sql`. |
 | 2.5 Event loop | 59 rutas sin `await` pasaron a `def`. |
 | 2.7 Cookie y login | `samesite="lax"`, `max_age` de 7 días, `datetime.now(timezone.utc)`, `cuenta_habilitada` falla cerrada. |
 | 2.9 Humedad | Sin cambio de código: el responsable confirmó que se divide entre `100 − H` a propósito. Queda escrito en `AGENTS.md` sección 7. |
-| 2.10 Precio en `float4` | Columna a `numeric(7, 2)` (misma migración); el schema limita el precio a 99 999,99. |
+| 2.10 Precio en `float4` | Columna a `numeric(7, 2)` en `src/database/script.sql`; el schema limita el precio a 99 999,99. |
 | 2.11 Códigos HTTP | En evaluación: 404 solo si no existe (`NoEncontradoError`), 400 reglas de negocio, 409 al finalizar sin conteo. |
 | 2.12 Subida de imágenes | Lógica en `cooperativa_service`; formato verificado con Pillow; se lee como máximo 5 MB + 1 byte; se borra el logo reemplazado. |
 | 3.8 Buffer serie | Tope de 32 caracteres con memoria reservada. |
-| 2.9 Redondeo de la tara | El responsable confirmó que la tara no se redondea: `num_sacos × 0.25` kg tal cual (2 sacos = 0.50 kg). `tara_total` pasa a `numeric(7, 2)` (`src/database/migracion_tara_sin_redondeo.sql`); schema, service y `registro.js` usan el mismo cálculo. |
+| 2.9 Redondeo de la tara | El responsable confirmó que la tara no se redondea: `num_sacos × 0.25` kg tal cual (2 sacos = 0.50 kg). El SQL único `src/database/script.sql` define `tara_total` como `numeric(7, 2)`; schema, service y `registro.js` usan el mismo cálculo. La base de desarrollo existente conserva la columna entera hasta que el responsable la reconstruya. |
 | 3.2 `pulseIn` | Timeout de 5000 µs (antes 30 000): el umbral de la tapa es 5.30 cm y el loop queda bloqueado como máximo 5 ms. Falta comprobar en el prototipo que siga apareciendo `LISTO:` con la tapa cerrada. |
 | 4.3 / 4.4 Notebook y rutas | `deterministic=True`, `results.save_dir`, versiones impresas y `metadata.json` con SHA-256 de `best.pt`; rutas de `main.py` y de evidencias ancladas al proyecto. |
 

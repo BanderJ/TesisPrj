@@ -39,6 +39,7 @@ from src.utilities.jwt_required import (
     RequerirLoginException,
     obtener_usuario_actual,
     require_admin_o_gerente,
+    require_evaluador
 )
 from src.utilities.jwt_utils import validar_clave_secreta
 
@@ -238,7 +239,7 @@ def inicio_alias(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> Redirec
 
 
 @app.get("/registro")
-def registro(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
+def registro(request: Request, user: dict[str, Any] = Depends(require_evaluador)) -> Any:
     """Página de registro de muestras."""
     return templates.TemplateResponse(
         request=request,

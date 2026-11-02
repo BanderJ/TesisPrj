@@ -1157,47 +1157,171 @@
 
     // === Reportes ===
     let reportesIniciados = false;
+    let catalogoReportes = [];
+    let reportePagina = 1;
+    let reporteConsulta = null;
+    let filtrosReporteAplicados = new URLSearchParams();
+    const selectReporte = document.getElementById('selectReporte');
+    const formFiltrosReporte = document.getElementById('formFiltrosReporte');
+    const btnFiltrarReporte = document.getElementById('btnFiltrarReporte');
+
+    function estadoReporte(mensaje) {
+        const p = document.createElement('p');
+        p.className = 'reporte-estado';
+        p.textContent = mensaje;
+        document.getElementById('reporteContainer').replaceChildren(p);
+    }
 
     async function inicializarReportes() {
-        const select = document.getElementById('selectReporte');
-
         if (!reportesIniciados) {
-            reportesIniciados = true;
             try {
                 const res = await fetch('/reportes');
                 if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cargar el catálogo de reportes.'));
-                const catalogo = await res.json();
-                catalogo.forEach(r => {
+                catalogoReportes = await res.json();
+                selectReporte.replaceChildren();
+                catalogoReportes.forEach(r => {
                     const option = document.createElement('option');
                     option.value = r.codigo;
                     option.textContent = r.titulo;
-                    select.appendChild(option);
+                    selectReporte.appendChild(option);
                 });
-                select.addEventListener('change', () => cargarReporte(select.value));
+                reportesIniciados = true;
             } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('reporteContainer').innerHTML =
-                    `<p style="text-align:center;padding:2rem;color:var(--destructive);">${error.message}</p>`;
+                estadoReporte(error.message);
                 return;
             }
         }
-
-        if (select.value) cargarReporte(select.value);
+        cargarReporte();
     }
 
-    async function cargarReporte(codigo) {
+    async function cargarReporte(pagina = 1, aplicarFiltros = true) {
+        const codigo = selectReporte.value;
+        const meta = catalogoReportes.find(r => r.codigo === codigo);
+        if (!meta) return;
+        reporteConsulta?.abort();
+        reporteConsulta = null;
         const container = document.getElementById('reporteContainer');
+        const errorFiltro = document.getElementById('reporteFiltroError');
+        errorFiltro.hidden = true;
+        document.getElementById('reportePaginacion').hidden = true;
+        container.setAttribute('aria-busy', 'false');
+        btnFiltrarReporte.disabled = false;
+        btnFiltrarReporte.textContent = 'Consultar';
+        estadoReporte('Cargando reporte…');
+        formFiltrosReporte.hidden = !meta.admite_filtros;
+        document.getElementById('reporteDescripcion').textContent = meta.descripcion;
+        if (aplicarFiltros) {
+            if (meta.admite_filtros && !formFiltrosReporte.reportValidity()) {
+                estadoReporte('Revise las fechas y vuelva a consultar el reporte.');
+                return;
+            }
+            filtrosReporteAplicados = new URLSearchParams();
+            if (meta.admite_filtros) {
+                const campos = { desde: 'reporteDesde', hasta: 'reporteHasta', busqueda: 'reporteBusqueda', tipo_caficultor: 'reporteTipo' };
+                Object.entries(campos).forEach(([clave, id]) => {
+                    const valor = document.getElementById(id).value.trim();
+                    if (valor) filtrosReporteAplicados.set(clave, valor);
+                });
+            }
+        }
+        const consulta = new AbortController();
+        reporteConsulta = consulta;
+        const params = new URLSearchParams(filtrosReporteAplicados);
+        params.set('pagina', pagina);
+        container.setAttribute('aria-busy', 'true');
+        btnFiltrarReporte.disabled = true;
+        btnFiltrarReporte.textContent = 'Consultando…';
         try {
-            const res = await fetch(`/reportes/${encodeURIComponent(codigo)}`);
+            const res = await fetch(`/reportes/${encodeURIComponent(codigo)}?${params}`, { signal: consulta.signal });
             if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cargar el reporte.'));
             const reporte = await res.json();
-            document.getElementById('reporteDescripcion').textContent = reporte.descripcion || '';
-            CoffeeReport.render(container, reporte);
+            if (consulta.signal.aborted) return;
+            CoffeeReport.render(container, reporte, { verDetalle: abrirDetalleReporte });
+            reportePagina = reporte.pagina;
+            const total = reporte.total_filas;
+            const paginacion = document.getElementById('reportePaginacion');
+            paginacion.hidden = total == null;
+            if (total != null) {
+                const paginas = Math.max(1, Math.ceil(total / reporte.por_pagina));
+                document.getElementById('reportePaginaTexto').textContent = `${total} registros · Página ${reportePagina} de ${paginas}`;
+                document.getElementById('reporteAnterior').disabled = reportePagina <= 1;
+                document.getElementById('reporteSiguiente').disabled = reportePagina >= paginas;
+            }
         } catch (error) {
-            console.error('Error:', error);
-            container.innerHTML = `<p style="text-align:center;padding:2rem;color:var(--destructive);">${error.message}</p>`;
+            if (consulta.signal.aborted) return;
+            estadoReporte('No se pudo cargar el reporte. Revise los filtros y vuelva a consultar.');
+            errorFiltro.textContent = error.message;
+            errorFiltro.hidden = false;
+        }
+        finally {
+            if (reporteConsulta === consulta) {
+                container.setAttribute('aria-busy', 'false');
+                btnFiltrarReporte.disabled = false;
+                btnFiltrarReporte.textContent = 'Consultar';
+            }
         }
     }
+
+    selectReporte.addEventListener('change', () => cargarReporte());
+    formFiltrosReporte.addEventListener('submit', e => {
+        e.preventDefault();
+        cargarReporte();
+    });
+    const reporteDesde = document.getElementById('reporteDesde');
+    const reporteHasta = document.getElementById('reporteHasta');
+    function validarFechasReporte() {
+        reporteHasta.setCustomValidity(reporteDesde.value && reporteHasta.value && reporteDesde.value > reporteHasta.value
+            ? 'La fecha final debe ser igual o posterior a la fecha inicial.' : '');
+    }
+    reporteDesde.addEventListener('input', validarFechasReporte);
+    reporteHasta.addEventListener('input', validarFechasReporte);
+    document.getElementById('btnLimpiarReporte').addEventListener('click', () => {
+        formFiltrosReporte.reset();
+        validarFechasReporte();
+        cargarReporte();
+    });
+    document.getElementById('reporteAnterior').addEventListener('click', () => cargarReporte(reportePagina - 1, false));
+    document.getElementById('reporteSiguiente').addEventListener('click', () => cargarReporte(reportePagina + 1, false));
+
+    const modalReporte = document.getElementById('modalReporteEvaluacion');
+    let detalleReporteConsulta = null;
+    let overflowAntesReporte = '';
+    async function abrirDetalleReporte(fila) {
+        detalleReporteConsulta?.abort();
+        const consulta = new AbortController();
+        detalleReporteConsulta = consulta;
+        const estado = document.getElementById('reporteDetalleEstado');
+        const resumen = document.getElementById('reporteDetalleResumen');
+        document.getElementById('reporteDetalleTitulo').textContent = `Detalle de ${fila.codigo}`;
+        estado.textContent = 'Cargando evaluación…';
+        estado.hidden = false;
+        resumen.hidden = true;
+        overflowAntesReporte = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        modalReporte.showModal();
+        try {
+            const res = await fetch(`/evaluacion/${encodeURIComponent(fila.evaluacion_id)}/resumen`, { signal: consulta.signal });
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cargar el detalle de la evaluación.'));
+            const data = await res.json();
+            if (consulta.signal.aborted) return;
+            CoffeeResumen.pintar(data);
+            estado.hidden = true;
+            resumen.hidden = false;
+        } catch (error) {
+            if (!consulta.signal.aborted) estado.textContent = error.message;
+        }
+    }
+    document.getElementById('cerrarReporteDetalle').addEventListener('click', () => modalReporte.close());
+    modalReporte.addEventListener('click', e => {
+        if (e.target === modalReporte) {
+            const rect = modalReporte.getBoundingClientRect();
+            if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) modalReporte.close();
+        }
+    });
+    modalReporte.addEventListener('close', () => {
+        detalleReporteConsulta?.abort();
+        document.body.style.overflow = overflowAntesReporte;
+    });
 
     // Inicializar
     async function inicializarCrearUsuario() {

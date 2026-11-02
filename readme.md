@@ -53,13 +53,18 @@ pip install -r requirements.txt
 copy src\config-example.py src\config.py
 #    y opcionalmente variables en .env (ver sección "Configuración")
 
-# 4. Crear schema de base de datos
-psql -U postgres -d tesis_prj -f src/database/script.sql
+# 4. Reconstruir el esquema y los datos iniciales (elimina los datos anteriores)
+psql -X -v ON_ERROR_STOP=1 -U postgres -d tesis_prj -f src/database/script.sql
 
 # 5. Pesos del modelo YOLO en src/ml/models/yolov26n_2cls/
 # → best.onnx  ya viene en el repositorio (se usa en CPU)
 # → best.pt    descargar de Google Drive (se usa en GPU, FP16)
 ```
+
+`src/database/script.sql` es el único SQL de reconstrucción e incluye todos los cambios
+de estructura y los datos iniciales. Ejecuta todo en una transacción. En PowerShell también
+puedes usar `.\reset_db.ps1`, que detiene la ejecución ante errores y resuelve la ruta del SQL
+desde la carpeta del proyecto. La base `tesis_prj` debe existir antes de ejecutarlo.
 
 ## Ejecución
 

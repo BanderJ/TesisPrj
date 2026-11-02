@@ -57,7 +57,7 @@ Copilot): [AGENTS.md](../../AGENTS.md). `CLAUDE.md` y `GEMINI.md` lo importan y
   2026-07-08 (commit `787a7ac`). Cualquier documento que lo mencione está desactualizado.
 - **Inferencia:** GPU (RTX 5070 Ti, `torch 2.12.0+cu130`) con `best.pt` en FP16; CPU con `best.onnx`.
 - **Cámara:** ELP AR0234 global shutter, USB 2.0, 1920×1080 MJPEG ~90 fps, backend Media Foundation.
-- **Base de datos:** PostgreSQL 18, BD `tesis_prj`, UUIDv7 nativo. Esquema en `src/database/script.sql`.
+- **Base de datos:** PostgreSQL 18, BD `tesis_prj`, UUIDv7 nativo. Único SQL de reconstrucción: `src/database/script.sql` (esquema y datos iniciales, en una transacción). `reset_db.ps1` lo ejecuta con parada ante errores. Reconstruir elimina los datos anteriores.
 - **Configuración:** `src/config.py` (gitignored) ↔ `src/config-example.py` (publicado). Todo cambio se replica en ambos.
 - **Problema abierto principal:** el modelo confunde granos sanos con defecto (~40 % en pruebas en vivo)
   por *domain gap* entre las fotos de entrenamiento (celular) y la cámara de producción (ELP).

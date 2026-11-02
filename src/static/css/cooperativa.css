@@ -195,6 +195,70 @@
 
 /* ==================== Reportes ==================== */
 
+.reportes-cabecera {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+    align-items: end;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+#reportes { min-width: 0; }
+#reportes .reportes-cabecera .perfil-section-title { margin-bottom: 8px; }
+#reportes .reportes-cabecera .perfil-section-description { margin: 0; }
+#formFiltrosReporte { margin-bottom: 20px; }
+#reporteContainer { min-width: 0; }
+#reporteContainer .tabla-usuarios-wrapper { min-width: 0; overflow-x: auto; }
+.reporte-error { color: var(--danger-strong); }
+.reporte-estado { padding: 24px 12px; color: var(--muted-foreground); text-align: center; }
+
+.reporte-indicadores {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0 0 16px;
+    border-block: 1px solid var(--border);
+}
+.reporte-indicadores > div { padding: 16px; }
+.reporte-indicadores > div + div { border-left: 1px solid var(--border); }
+.reporte-indicadores dt { color: var(--muted-foreground); font-size: 12px; }
+.reporte-indicadores dd { margin: 6px 0 0; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.reporte-paginacion { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.reporte-paginacion p { flex: 1; min-width: 160px; margin: 0; color: var(--muted-foreground); }
+
+.reporte-detalle-modal {
+    width: calc(100% - 48px);
+    max-width: none;
+    max-height: calc(100dvh - 48px);
+    margin: auto;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--canvas);
+    color: var(--foreground);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.reporte-detalle-modal::backdrop { background: rgb(0 0 0 / 48%); }
+.reporte-detalle-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.reporte-detalle-cabecera h2 { margin: 0; font-size: 18px; }
+.reporte-detalle-cabecera .btn { flex-shrink: 0; }
+.reporte-detalle-modal table { width: 100%; }
+
+@media (max-width: 768px) {
+    .reportes-cabecera { grid-template-columns: 1fr; }
+    .reporte-indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .reporte-indicadores > div:nth-child(3) { border-left: 0; }
+    .reporte-indicadores > div:nth-child(n + 3) { border-top: 1px solid var(--border); }
+}
+@media (max-width: 640px) {
+    .reporte-detalle-modal { width: calc(100% - 16px); max-height: calc(100dvh - 16px); padding: 12px; }
+    .reporte-detalle-cabecera { align-items: flex-start; }
+    .reporte-detalle-cabecera h2 { font-size: 16px; }
+    .reporte-detalle-modal .analisis-eventos,
+    .reporte-detalle-modal .analisis-incidencias { overflow-x: auto; }
+    .reporte-indicadores > div { padding: 12px 8px; }
+}
+
 .reporte-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -204,7 +268,7 @@
 }
 
 .reporte-grid--solo-tabla {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .reporte-grafico {
@@ -216,7 +280,7 @@
 }
 
 @media (max-width: 900px) {
-    .reporte-grid { grid-template-columns: 1fr; }
+    .reporte-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ── Beneficio de socio ── */

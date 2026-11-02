@@ -130,7 +130,9 @@
 		<p class="analisis-note analisis-note--top">
 			Esta evaluación aún no tiene el peso de grano bueno registrado.
 		</p>
+		{% if modo == 'reporte' %}
 		<a id="btnCalcularRendimiento" class="btn btn-primary">Calcular rendimiento</a>
+		{% endif %}
 		{% endif %}
 	</div>
 
