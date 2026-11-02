@@ -37,6 +37,12 @@ Corregido en el código:
 | 2.12 Subida de imágenes | Lógica en `cooperativa_service`; formato verificado con Pillow; se lee como máximo 5 MB + 1 byte; se borra el logo reemplazado. |
 | 3.8 Buffer serie | Tope de 32 caracteres con memoria reservada. |
 | 2.9 Redondeo de la tara | El responsable confirmó que la tara no se redondea: `num_sacos × 0.25` kg tal cual (2 sacos = 0.50 kg). `tara_total` pasa a `numeric(7, 2)` (`src/database/migracion_tara_sin_redondeo.sql`); schema, service y `registro.js` usan el mismo cálculo. |
+| 1.2 Cola del servo | Heap ordenado por instante de ejecución (permiso del responsable, 2026-11-02). |
+| 2.8 Topes de lote | Máximo 30 sacos por lote (regla del responsable): schema (`MAX_SACOS_POR_LOTE`), formulario y `max` del input. Con 30 sacos el peso bruto y el pago caben en `numeric(7, 2)`. |
+| 3.1 Watchdog de la faja | El backend escribe una línea vacía cada 1 s con la faja encendida; el firmware la apaga tras 3 s sin recibir nada. No es un comando nuevo: la línea vacía ya era el keep-alive. |
+| 3.4 DTR | Al abrir el puerto se espera la primera línea del firmware (hasta 3 s) antes de enviar comandos. |
+| 3.5 Estado sin hora | Cada lectura guarda su instante; un `LISTO` de más de 1 s ya no da la tapa por cerrada. |
+| 3.6 Hilos de keep-alive | Un único hilo para todo el proceso y reconexión con lock. |
 | 3.2 `pulseIn` | Timeout de 5000 µs (antes 30 000): el umbral de la tapa es 5.30 cm y el loop queda bloqueado como máximo 5 ms. Falta comprobar en el prototipo que siga apareciendo `LISTO:` con la tapa cerrada. |
 | 4.3 / 4.4 Notebook y rutas | `deterministic=True`, `results.save_dir`, versiones impresas y `metadata.json` con SHA-256 de `best.pt`; rutas de `main.py` y de evidencias ancladas al proyecto. |
 
@@ -44,15 +50,13 @@ Pendiente, con el motivo:
 
 | Hallazgo | Motivo |
 |---|---|
-| 1.2, 1.3 Cola y hold del servo | `servo_controller.py` requiere permiso explícito. |
+| 1.3 Grano sano durante el hold | Queda como limitación física conocida (un solo servo); falta decidir si se registra como evento. |
 | 1.4 Clase del servo frente a la del conteo | Cambia cómo se cuenta: decisión del responsable. |
 | 1.6 Geometría de tiles | Hay que medir recall y latencia con la cámara real antes de cambiarla. |
 | 1.8 Anotación a resolución completa | Mejora menor de rendimiento; se deja para después de medir. |
 | 2.3 `/resources` público | Las evidencias necesitan una ruta autenticada propia; el logo de la cooperativa se usa también fuera de sesión. |
 | 2.6 Pool de conexiones | Necesita prueba de carga para fijar el tamaño del pool sin agotar conexiones. |
 | 2.7 Rol leído del JWT y límite de intentos | El rol desde la BD cambia la prueba PCB-02; el límite de intentos necesita un número que debe fijar el responsable. |
-| 2.8 Topes de lote | Regla de negocio: falta el tamaño máximo de lote. |
-| 3.1, 3.4, 3.5, 3.6 Watchdog, DTR, estado sin hora, hilos | Tocan `arduino_serial.py` o el protocolo: requieren permiso. |
 | 3.3 Velocidad de la faja | Ya registrado como pendiente A (recalibrar `SERVO_DELAY_S` a PWM 90). |
 | 4.1 Versiones fijadas | Hay que hacer `pip freeze` en la laptop de producción con el `torch+cu130` real. |
 | 4.2, 4.5 Notebook v6 y métricas sobre fotos ELP | Requieren archivos y etiquetas que están en Google Drive. |

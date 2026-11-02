@@ -56,6 +56,9 @@
 		// Tara total = sacos × 0.25 kg, sin redondear (igual que el backend:
 		// TARA_POR_SACO_KG en src/schemas/evaluacion.py). Solo se fija a 2 decimales.
 		const TARA_POR_SACO_KG = 0.25;
+		// Tope de sacos por lote: igual que MAX_SACOS_POR_LOTE en src/schemas/evaluacion.py.
+		const MAX_SACOS        = 30;
+		const esNumSacosValido = (v) => esEnteroPositivo(v) && Number(v) <= MAX_SACOS;
 		const calcularTara     = (sacos) => redondear2(sacos * TARA_POR_SACO_KG);
 
 		function forzarEntero(input) {
@@ -263,7 +266,7 @@
 			const pm = parseFloat(pesoMuestraInput.value);
 			const pz = parseFloat(pesoTamizadoInput.value);
 
-			if (!esEnteroPositivo(numSacosInput.value))   return rechazar('El número de sacos debe ser un entero positivo (mínimo 1).', numSacosInput);
+			if (!esNumSacosValido(numSacosInput.value))   return rechazar(`El número de sacos debe ser un entero entre 1 y ${MAX_SACOS}.`, numSacosInput);
 			if (!esFloatPositivo(pesoTotalInput.value))   return rechazar('El peso total debe ser un número positivo (en kg).', pesoTotalInput);
 			const maxPesoTotal = parseInt(numSacosInput.value, 10) * 70;
 			if (parseFloat(pesoTotalInput.value) > maxPesoTotal) return rechazar(`El peso total no puede superar ${maxPesoTotal} kg (${numSacosInput.value} sacos × 70 kg).`, pesoTotalInput);
@@ -366,7 +369,7 @@
 		});
 
 		numSacosInput.addEventListener('input', () => {
-			validarInline(numSacosInput, esEnteroPositivo, numSacosHint, 'Debe ser un entero positivo (mínimo 1).');
+			validarInline(numSacosInput, esNumSacosValido, numSacosHint, `Debe ser un entero entre 1 y ${MAX_SACOS}.`);
 			pesoTotalInput.dispatchEvent(new Event('input'));
 		});
 
