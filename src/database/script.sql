@@ -33,6 +33,7 @@ DROP TABLE IF EXISTS UBIGEO CASCADE;
 DROP TABLE IF EXISTS VALOR_CAFE CASCADE;
 DROP TABLE IF EXISTS AUDITORIA CASCADE;
 DROP TABLE IF EXISTS EVENTO_MONITOREO CASCADE;
+DROP SEQUENCE IF EXISTS evaluacion_codigo_seq;
 
 CREATE TABLE AUDITORIA (id uuid DEFAULT uuidv7() NOT NULL, personal_id uuid, usuario varchar(30), tipo_personal_id int2, rol varchar(50), accion varchar(60) NOT NULL, tabla_afectada varchar(50), registro_id varchar(100), descripcion text, datos_anteriores jsonb, datos_nuevos jsonb, ip_cliente varchar(45), fecha_hora timestamp NOT NULL DEFAULT NOW(), PRIMARY KEY (id));
 CREATE INDEX idx_auditoria_fecha_hora ON AUDITORIA (fecha_hora DESC);
@@ -46,7 +47,7 @@ CREATE TABLE CAFICULTOR (caficultor_id uuid DEFAULT uuidv7(), tipo_caficultor_id
 CREATE TABLE CATEGORIA (id SERIAL NOT NULL, nombre varchar(10) NOT NULL, cantidad_defectos int4 NOT NULL, PRIMARY KEY (id));
 CREATE TABLE COOPERATIVA (id uuid DEFAULT uuidv7(), nombre varchar(100) NOT NULL, codigo varchar(20) NOT NULL, ubicacion varchar(255) NOT NULL UNIQUE, telefono char(9) NOT NULL, correo varchar(255) NOT NULL, descripcion varchar(255) NOT NULL, imagen_url varchar(255), estado char(1) NOT NULL, fecha_registro timestamp NOT NULL DEFAULT NOW(), ubigeo_id char(6), PRIMARY KEY (id));
 CREATE TABLE DETALLE_EVALUACION (id uuid DEFAULT uuidv7(), cantidad int4 NOT NULL, evaluacion_id uuid DEFAULT uuidv7(), tipo_defecto_id int2 NOT NULL, PRIMARY KEY (id));
-CREATE TABLE EVALUACION (id uuid DEFAULT uuidv7(), codigo char(10), personal_id uuid NOT NULL, caficultor_id uuid NOT NULL, tipo_caficultor_id int2 NOT NULL, valor_cafe_id uuid, num_sacos int2 NOT NULL, peso_bruto numeric(7, 2) NOT NULL, humedad int2 NOT NULL, peso_muestra numeric(7, 2) NOT NULL, peso_trillado numeric(7, 2) NOT NULL, peso_cascara numeric(7, 2), peso_cascara_total numeric(7, 2), num_tamiz int2 NOT NULL, peso_tamizado numeric(7, 2) NOT NULL, peso_bueno numeric(7, 2), peso_malo numeric(7, 2), factor_rendimiento numeric(7, 2), tara_saco numeric(3, 2), tara_total int2, peso_neto numeric(7, 2), peso_por_qq numeric(7, 2), pago numeric(7, 2), fecha timestamp, tipo_grano_id int4 NOT NULL, categoria_id int4, total_defectos int4, total_buenos int4, incidencias jsonb, bono_socio numeric(7, 2), PRIMARY KEY (id));
+CREATE TABLE EVALUACION (id uuid DEFAULT uuidv7(), codigo char(10) UNIQUE, personal_id uuid NOT NULL, caficultor_id uuid NOT NULL, tipo_caficultor_id int2 NOT NULL, valor_cafe_id uuid, num_sacos int2 NOT NULL, peso_bruto numeric(7, 2) NOT NULL, humedad int2 NOT NULL, peso_muestra numeric(7, 2) NOT NULL, peso_trillado numeric(7, 2) NOT NULL, peso_cascara numeric(7, 2), peso_cascara_total numeric(7, 2), num_tamiz int2 NOT NULL, peso_tamizado numeric(7, 2) NOT NULL, peso_bueno numeric(7, 2), peso_malo numeric(7, 2), factor_rendimiento numeric(7, 2), tara_saco numeric(3, 2), tara_total int2, peso_neto numeric(7, 2), peso_por_qq numeric(7, 2), pago numeric(7, 2), fecha timestamp, tipo_grano_id int4 NOT NULL, categoria_id int4, total_defectos int4, total_buenos int4, incidencias jsonb, bono_socio numeric(7, 2), PRIMARY KEY (id));
 CREATE TABLE EVENTO_MONITOREO (id uuid DEFAULT uuidv7(), evaluacion_id uuid NOT NULL, segundo int4 NOT NULL, tipo varchar(30) NOT NULL, severidad varchar(10) NOT NULL, mensaje text NOT NULL, imagen_url varchar(255), datos jsonb, fecha timestamp NOT NULL DEFAULT NOW(), PRIMARY KEY (id));
 CREATE TABLE PERSONA (id uuid DEFAULT uuidv7(), nombre varchar(50) NOT NULL, ape_paterno varchar(30) NOT NULL, ape_materno varchar(30) NOT NULL, sexo char(1) NOT NULL, fecha_nacimiento date NOT NULL, tipo_documento_id int2 NOT NULL, num_documento varchar(12) NOT NULL UNIQUE, telefono char(9), ubigeo char(6), estado char(1) NOT NULL, cooperativa_id uuid DEFAULT uuidv7(), correo varchar(100), PRIMARY KEY (id));
 CREATE TABLE PERSONAL (personal_id uuid DEFAULT uuidv7(), tipo_personal_id int2 NOT NULL, usuario varchar(30) NOT NULL UNIQUE, clave varchar(255) NOT NULL, estado char(1) NOT NULL, fecha_registro timestamp NOT NULL DEFAULT NOW(), PRIMARY KEY (personal_id));
@@ -56,7 +57,7 @@ CREATE TABLE TIPO_DOCUMENTO (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, PR
 CREATE TABLE TIPO_GRANO (id SERIAL NOT NULL, nombre varchar(20) NOT NULL UNIQUE, peso_qq numeric(5, 2) NOT NULL, PRIMARY KEY (id));
 CREATE TABLE TIPO_PERSONAL (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, PRIMARY KEY (id));
 CREATE TABLE UBIGEO (ubigeo char(6) NOT NULL, departamento varchar(50) NOT NULL, provincia varchar(50) NOT NULL, distrito varchar(50) NOT NULL, PRIMARY KEY (ubigeo));
-CREATE TABLE VALOR_CAFE (id uuid DEFAULT uuidv7(), rango varchar(20) NOT NULL, precio float4 NOT NULL, fecha timestamp NOT NULL, PRIMARY KEY (id));
+CREATE TABLE VALOR_CAFE (id uuid DEFAULT uuidv7(), rango varchar(20) NOT NULL, precio numeric(7, 2) NOT NULL, fecha timestamp NOT NULL, PRIMARY KEY (id));
 ALTER TABLE COOPERATIVA ADD CONSTRAINT FKCOOPERATIV906320 FOREIGN KEY (ubigeo_id) REFERENCES UBIGEO (ubigeo);
 ALTER TABLE PERSONA ADD CONSTRAINT FKPERSONA823055 FOREIGN KEY (cooperativa_id) REFERENCES COOPERATIVA (id);
 ALTER TABLE EVALUACION ADD CONSTRAINT FKEVALUACION667001 FOREIGN KEY (tipo_caficultor_id) REFERENCES TIPO_CAFICULTOR (id);
@@ -76,6 +77,8 @@ ALTER TABLE PERSONAL ADD CONSTRAINT FKPERSONAL26887 FOREIGN KEY (tipo_personal_i
 ALTER TABLE EVENTO_MONITOREO ADD CONSTRAINT FKEVENTO_MON178049 FOREIGN KEY (evaluacion_id) REFERENCES EVALUACION (id);
 ALTER TABLE BONO_SOCIO ADD CONSTRAINT FKBONO_SOCIO_PERSONAL FOREIGN KEY (personal_id) REFERENCES PERSONAL (personal_id);
 CREATE INDEX idx_evento_monitoreo_evaluacion ON EVENTO_MONITOREO (evaluacion_id, segundo);
+-- Correlativo del codigo EVA (EVA0000001...). Atomico: dos finalizaciones simultaneas no repiten numero.
+CREATE SEQUENCE evaluacion_codigo_seq;
 
 --- INSERTS TABLAS MAESTRAS
 INSERT INTO TIPO_CAFICULTOR (nombre) VALUES ('Socio'), ('Externo');

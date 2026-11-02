@@ -26,7 +26,9 @@ _cargar_env_file()
 
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'your_secret_key_here'
+    # Firma de los JWT. Sin valor por defecto: la app no arranca si falta en
+    # .env o si es un texto de ejemplo (ver validar_clave_secreta en jwt_utils.py).
+    SECRET_KEY: str = os.environ.get('SECRET_KEY') or ''
     USER = 'postgres'
     PASSWORD = 'CAMBIA_ESTO_por_tu_password_de_postgres'
     HOST = 'localhost'

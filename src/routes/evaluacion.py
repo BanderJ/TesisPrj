@@ -14,6 +14,8 @@ from src.schemas.evaluacion import (
 )
 from src.services.auditoria_service import auditoria_service
 from src.services.evaluacion_service import EvaluacionService
+from src.services.tracker_service import tracker_service
+from src.utilities.errores import NoEncontradoError
 from src.utilities.jwt_required import obtener_usuario_actual
 from src.utilities.request_utils import get_client_ip
 from src.utilities.uuid_utils import UUID_PATTERN
@@ -29,7 +31,7 @@ evaluacion_service = EvaluacionService()
     response_model=RegistrarEvaluacionResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def registrar_evaluacion(
+def registrar_evaluacion(
     request: Request,
     payload: RegistrarEvaluacionRequest,
     usuario: dict[str, Any] = Depends(obtener_usuario_actual),
@@ -59,7 +61,7 @@ async def registrar_evaluacion(
     "/kpis",
     response_model=KpisEvaluacionResponse,
 )
-async def obtener_kpis(
+def obtener_kpis(
     _: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> KpisEvaluacionResponse:
     try:
@@ -73,7 +75,7 @@ async def obtener_kpis(
     "/buscar",
     response_model=ResumenEvaluacionResponse,
 )
-async def buscar_evaluacion_por_codigo(
+def buscar_evaluacion_por_codigo(
     codigo: str = Query(..., min_length=1, max_length=10),
     _: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> ResumenEvaluacionResponse:
@@ -87,7 +89,7 @@ async def buscar_evaluacion_por_codigo(
     "/{evaluacion_id}/resumen",
     response_model=ResumenEvaluacionResponse,
 )
-async def obtener_resumen_evaluacion(
+def obtener_resumen_evaluacion(
     evaluacion_id: str = Path(..., pattern=UUID_PATTERN),
     _: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> ResumenEvaluacionResponse:
@@ -103,7 +105,7 @@ async def obtener_resumen_evaluacion(
     "/{evaluacion_id}/completar",
     response_model=CompletarEvaluacionResponse,
 )
-async def completar_evaluacion(
+def completar_evaluacion(
     request: Request,
     payload: CompletarEvaluacionRequest,
     evaluacion_id: str = Path(..., pattern=UUID_PATTERN),
@@ -123,14 +125,16 @@ async def completar_evaluacion(
             ip_cliente=get_client_ip(request),
         )
         return result
-    except ValueError as exc:
+    except NoEncontradoError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail="No se pudo procesar la solicitud.") from exc
 
 
 @evaluacion_router.get("/{evaluacion_id}/estado")
-async def obtener_estado_evaluacion(
+def obtener_estado_evaluacion(
     evaluacion_id: str = Path(..., pattern=UUID_PATTERN),
     _: dict[str, Any] = Depends(obtener_usuario_actual),
 ) -> dict[str, str | None]:
@@ -144,7 +148,7 @@ async def obtener_estado_evaluacion(
     "/{evaluacion_id}/finalizar",
     response_model=FinalizarEvaluacionResponse,
 )
-async def finalizar_evaluacion(
+def finalizar_evaluacion(
     request: Request,
     payload: FinalizarEvaluacionRequest,
     evaluacion_id: str = Path(..., pattern=UUID_PATTERN),
@@ -152,12 +156,10 @@ async def finalizar_evaluacion(
 ) -> FinalizarEvaluacionResponse:
     try:
         incidencias = [inc.model_dump() for inc in payload.incidencias] if payload.incidencias else None
-        result = evaluacion_service.finalizar_evaluacion(
-            evaluacion_id,
-            total_defectos=payload.total_defectos,
-            total_buenos=payload.total_buenos,
-            incidencias=incidencias,
-        )
+        conteo_lote = tracker_service.conteo_de_evaluacion(evaluacion_id)
+        result = evaluacion_service.finalizar_evaluacion(evaluacion_id, conteo_lote, incidencias)
+        if result.ya_finalizada:
+            return result  # reintento: la finalización ya quedó auditada
         n = len(incidencias) if incidencias else 0
         descripcion = (
             f"Evaluación {result.codigo} finalizada con {n} incidencia(s) de tapa abierta."
@@ -175,14 +177,16 @@ async def finalizar_evaluacion(
             descripcion=descripcion,
             datos_nuevos={
                 "codigo": result.codigo,
-                "total_defectos": payload.total_defectos,
-                "total_buenos": payload.total_buenos,
+                "total_defectos": result.total_defectos,
+                "total_buenos": result.total_buenos,
                 "incidencias": incidencias,
             },
             ip_cliente=get_client_ip(request),
         )
         return result
-    except ValueError as exc:
+    except NoEncontradoError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail="No se pudo finalizar la evaluación.") from exc

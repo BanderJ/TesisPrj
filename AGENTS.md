@@ -75,7 +75,9 @@ uvicorn src.main:app --reload            # http://localhost:8000
 
 No hay suite de tests unitarios. Hay tres verificaciones: `tests/verificacion_incremento_1.py`, las
 pruebas de caja negra de `tests/caja_negra/` (Playwright + pytest, casos PCN-XX de la tesis):
-`python -m pytest tests/caja_negra` con la app corriendo y precios de café con fecha de hoy, y
+`python -m pytest tests/caja_negra` con la app corriendo, la cámara conectada (la precondición
+abre y cierra un monitoreo para que el servidor tenga el conteo del lote) y precios de café con
+fecha de hoy, y
 `python -m tests.caja_negra.generar_fichas` para el Word de fichas. Crean usuarios y evaluaciones
 de prueba: solo contra la base de desarrollo. Las pruebas de caja blanca de `tests/caja_blanca/`
 (casos PCB-XX, pytest + pytest-cov) no usan BD ni hardware: `python -m tests.caja_blanca.ejecutar`
@@ -122,7 +124,9 @@ a cada model (`db: Connection = None`) y al final hace `commit()` o `rollback()`
 `src/config-example.py`, una plantilla. **Todo cambio en `src/config.py` se copia en
 `src/config-example.py` en el mismo momento**, con los secretos reemplazados por un texto de
 ejemplo. Los dos archivos deben tener los mismos atributos en la clase `Config`. Las variables
-de `.env` tienen prioridad sobre los valores por defecto.
+de `.env` tienen prioridad sobre los valores por defecto. `SECRET_KEY` no tiene valor por
+defecto: va en `.env` y la app no arranca si falta, si mide menos de 32 caracteres o si es un
+texto de ejemplo (`validar_clave_secreta` en `src/utilities/jwt_utils.py`).
 
 ### 5.5 Autenticación y permisos
 
@@ -176,7 +180,13 @@ El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
 - Documento: DNI exactamente 8 dígitos; Pasaporte o Carnet de Extranjería 8 a 12 caracteres
   alfanuméricos (`src/utilities/documento_validador.py`).
 - Peso bruto: como máximo `num_sacos × 70` kg y mayor que la tara `round(num_sacos × 0.25)`.
-- Humedad: número entero de 1 a 30; más de 12 % aplica descuento.
+- Humedad: número entero de 1 a 30; más de 12 % aplica descuento:
+  `peso_neto × (H − 12) / (100 − H)`. Se divide entre `100 − H` (no `100 − 12`) a propósito:
+  regla confirmada por el responsable el 2026-11-02.
+- Conteo del lote: al finalizar, el servidor guarda el conteo de su tracker
+  (`tracker_service.conteo_de_evaluacion`); el navegador no lo envía. Si el lote en memoria no
+  es el de esa evaluación, la finalización se rechaza.
+- Código EVA: correlativo de la secuencia `evaluacion_codigo_seq`, único (`UNIQUE`).
 - Rangos de precio del café: no se pueden solapar y el precio no puede bajar cuando sube el rango.
 - Precios del día: una muestra solo se registra si hay precios de café con fecha de hoy, y el pago
   usa el precio de hoy del rango que contiene el factor de rendimiento. Los rangos son enteros y

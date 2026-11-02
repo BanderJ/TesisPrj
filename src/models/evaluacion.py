@@ -3,20 +3,17 @@ from decimal import Decimal
 from typing import Any
 
 from src.database.bd import Connection
+from src.utilities.errores import NoEncontradoError
 
 
 class Evaluacion:
     def _generar_codigo(self, db: Connection) -> str:
-        """Genera el siguiente correlativo EVA0000001 basado en el maximo existente."""
-        sql = """
-            SELECT COALESCE(
-                MAX(CAST(SUBSTRING(codigo FROM 4) AS INTEGER)), 0
-            ) + 1 AS siguiente
-            FROM evaluacion
-            WHERE codigo ~ '^EVA[0-9]{7}$'
-        """
-        row = db.obtener_uno(sql)
-        return f"EVA{int(row['siguiente']):07d}" if row else "EVA0000001"
+        """Siguiente correlativo EVA0000001. La secuencia es atómica: dos
+        finalizaciones simultáneas nunca reciben el mismo número."""
+        row = db.obtener_uno(
+            "SELECT 'EVA' || LPAD(nextval('evaluacion_codigo_seq')::text, 7, '0') AS codigo"
+        )
+        return row["codigo"]
 
     def registrar(
         self,
@@ -165,6 +162,7 @@ class Evaluacion:
                     e.factor_rendimiento
                 FROM evaluacion e
                 WHERE e.id = %s
+                FOR UPDATE
             """
             return db.obtener_uno(sql, (evaluacion_id,))
         finally:
@@ -187,7 +185,6 @@ class Evaluacion:
         peso_por_qq: Decimal,
         pago: Decimal,
         bono_socio: Decimal,
-        total_defectos: int,
         db: Connection | None = None,
     ) -> dict[str, Any]:
         """Actualiza la evaluacion con todos los campos derivados. Genera codigo si aún no tiene."""
@@ -212,7 +209,6 @@ class Evaluacion:
                     peso_por_qq        = %s,
                     pago               = %s,
                     bono_socio         = %s,
-                    total_defectos     = %s,
                     fecha              = NOW()
                 WHERE id = %s
                 RETURNING id::text, TRIM(codigo) AS codigo, pago, peso_por_qq, factor_rendimiento
@@ -224,13 +220,12 @@ class Evaluacion:
                 factor_rendimiento, tara_saco,
                 tara_total, peso_neto,
                 peso_por_qq, pago, bono_socio,
-                total_defectos,
                 evaluacion_id,
             )
             cursor = db.ejecutar(sql, params)
             row = cursor.fetchone()
             if not row:
-                raise ValueError("Evaluación no encontrada.")
+                raise NoEncontradoError("Evaluación no encontrada.")
             fila = dict(row)
             if owns_db:
                 db.commit()
@@ -274,19 +269,24 @@ class Evaluacion:
         """Genera el codigo EVA correlativo y lo asigna a la evaluacion. Retorna id y codigo.
 
         Idempotente: si la evaluacion ya tiene codigo (reintento de red o doble
-        submit hacia /finalizar) reutiliza el existente en vez de generar otro
-        y dejar huerfano el que ya vio/imprimio el operador.
+        submit hacia /finalizar) devuelve el existente sin tocar la fila, asi no
+        se sobrescriben el conteo ni la fecha de una evaluacion ya cerrada. La
+        fila se bloquea (FOR UPDATE) para que dos finalizaciones simultaneas de
+        la misma evaluacion no generen dos codigos.
         """
         owns_db = db is None
         db = db or Connection()
         try:
             existente = db.obtener_uno(
-                "SELECT TRIM(codigo) AS codigo FROM evaluacion WHERE id = %s",
+                "SELECT TRIM(codigo) AS codigo, total_defectos, total_buenos "
+                "FROM evaluacion WHERE id = %s FOR UPDATE",
                 (evaluacion_id,),
             )
             if existente is None:
-                raise ValueError("Evaluacion no encontrada.")
-            codigo = existente.get("codigo") or self._generar_codigo(db)
+                raise NoEncontradoError("Evaluacion no encontrada.")
+            if existente.get("codigo"):
+                return {**existente, "id": evaluacion_id, "ya_finalizada": True}
+            codigo = self._generar_codigo(db)
             incidencias_json = json.dumps(incidencias) if incidencias else None
             sql = """
                 UPDATE evaluacion
@@ -296,12 +296,12 @@ class Evaluacion:
                     total_buenos   = %s,
                     incidencias    = %s::jsonb
                 WHERE id = %s
-                RETURNING id::text, codigo
+                RETURNING id::text, codigo, total_defectos, total_buenos
             """
             cursor = db.ejecutar(sql, (codigo, total_defectos, total_buenos, incidencias_json, evaluacion_id))
             row = cursor.fetchone()
             if not row:
-                raise ValueError("Evaluacion no encontrada.")
+                raise NoEncontradoError("Evaluacion no encontrada.")
             fila = dict(row)
             if owns_db:
                 db.commit()

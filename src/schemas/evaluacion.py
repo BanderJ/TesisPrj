@@ -76,8 +76,8 @@ class IncidenciaTapa(BaseModel):
 
 
 class FinalizarEvaluacionRequest(BaseModel):
-    total_defectos: int | None = Field(None, ge=0)
-    total_buenos: int | None = Field(None, ge=0)
+    # El conteo de granos lo toma el servidor del tracker; aquí solo llegan las
+    # aperturas de tapa que observó el monitoreo.
     incidencias: list[IncidenciaTapa] | None = None
 
 
@@ -86,10 +86,14 @@ class FinalizarEvaluacionResponse(BaseModel):
     mensaje: str
     evaluacion_id: str
     codigo: str
+    # Conteo guardado en la evaluación (lo que quedó en la BD, no lo que envió el cliente).
+    total_defectos: int | None = None
+    total_buenos: int | None = None
+    # True si la evaluación ya estaba finalizada y la llamada fue un reintento.
+    ya_finalizada: bool = False
 
 
 class CompletarEvaluacionRequest(BaseModel):
-    total_defectos: int = Field(..., ge=0)
     # Gramos enteros — ingresado manualmente por el evaluador (sin celda de carga)
     peso_bueno: int = Field(..., ge=0)
 

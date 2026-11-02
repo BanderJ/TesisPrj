@@ -8,7 +8,7 @@ _persona_service = PersonaService()
 
 
 @persona_router.get("/consultar/{num_documento}", response_model=DniConsultaResponse)
-async def consultar_persona(num_documento: str) -> DniConsultaResponse:
+def consultar_persona(num_documento: str) -> DniConsultaResponse:
     try:
         return _persona_service.consultar_por_documento(num_documento)
     except Exception as exc:

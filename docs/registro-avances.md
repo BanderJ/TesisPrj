@@ -474,7 +474,7 @@ como plantilla; al instalar se copia a `src/config.py`.
 
 ### Limpieza aplicada (2026-09-06, continuacion)
 - `.claude/settings.json`: eliminada la regla de permiso que contenia
-  `$env:PGPASSWORD = 'And1150'` (query psql puntual de introspeccion, sin valor
+  la contraseña de PostgreSQL en `$env:PGPASSWORD` (query psql puntual de introspeccion, sin valor
   para conservar). El working tree ya no tiene la contrasena en `.claude/`.
 - `.claude/settings.local.json`: agregado a `.gitignore` y `git rm --cached`
   (ajustes personales de permisos; no debe compartirse). El archivo sigue local.
@@ -484,7 +484,7 @@ como plantilla; al instalar se copia a `src/config.py`.
   que el hook viaje en el commit.
 
 ### Pendientes
-- La contrasena `And1150` sigue en el HISTORIAL de Git (`src/config.py` y
+- La contrasena de PostgreSQL sigue en el HISTORIAL de Git (`src/config.py` y
   `.claude/settings.json` en commits anteriores). Retirarla requiere reescribir
   historia (git filter-repo / BFG) y force-push; disruptivo con ramas y remoto
   compartido — decidir por separado.

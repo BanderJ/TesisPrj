@@ -24,7 +24,7 @@ valor_cafe_service = ValorCafeService()
 
 
 @valor_cafe_router.get("/historial", response_model=ValorCafeHistorialResponse)
-async def historial_dia(
+def historial_dia(
     fecha: date | None = Query(default=None, description="Fecha a consultar (YYYY-MM-DD). Default: hoy"),
     rango: str | None = Query(default=None, description="Filtrar por rango de cafe"),
     _: dict = Depends(obtener_usuario_actual),
@@ -36,7 +36,7 @@ async def historial_dia(
 
 
 @valor_cafe_router.get("/maximo-dia", response_model=ValorCafeMaximoResponse)
-async def maximo_dia(
+def maximo_dia(
     fecha: date | None = Query(default=None, description="Fecha a consultar (YYYY-MM-DD). Default: hoy"),
     _: dict = Depends(obtener_usuario_actual),
 ) -> ValorCafeMaximoResponse:
@@ -47,7 +47,7 @@ async def maximo_dia(
 
 
 @valor_cafe_router.get("/cambios-diarios", response_model=ValorCafeCambiosDiariosResponse)
-async def cambios_diarios(
+def cambios_diarios(
     desde: date | None = Query(default=None, description="Fecha inicio (YYYY-MM-DD). Default: hace 30 dias"),
     hasta: date | None = Query(default=None, description="Fecha fin (YYYY-MM-DD). Default: hoy"),
     rango: str | None = Query(default=None, description="Filtrar por rango de cafe"),
@@ -62,7 +62,7 @@ async def cambios_diarios(
 
 
 @valor_cafe_router.get("/resumen-rangos", response_model=ValorCafeResumenRangosResponse)
-async def resumen_rangos(
+def resumen_rangos(
     fecha: date | None = Query(default=None, description="Fecha a consultar (YYYY-MM-DD). Default: hoy"),
     _: dict = Depends(obtener_usuario_actual),
 ) -> ValorCafeResumenRangosResponse:
@@ -73,7 +73,7 @@ async def resumen_rangos(
 
 
 @valor_cafe_router.patch("/actualizar-precio", response_model=ValorCafeActualizarPrecioResponse)
-async def actualizar_precio_rango(
+def actualizar_precio_rango(
     request: Request,
     data: ValorCafeActualizarPrecioRequest,
     user: dict = Depends(require_admin_o_gerente),
@@ -98,7 +98,7 @@ async def actualizar_precio_rango(
 
 
 @valor_cafe_router.delete("/eliminar-rango", response_model=ValorCafeEliminarRangoResponse)
-async def eliminar_rango(
+def eliminar_rango(
     request: Request,
     rango: str = Query(..., min_length=1, max_length=10, description="Rango a eliminar del día actual"),
     user: dict = Depends(require_admin_o_gerente),
@@ -123,7 +123,7 @@ async def eliminar_rango(
 
 
 @valor_cafe_router.post("/crear-bloque", response_model=ValorCafeCrearBloqueResponse)
-async def crear_valor_cafe_bloque(
+def crear_valor_cafe_bloque(
     request: Request,
     data: ValorCafeCrearBloqueRequest,
     user: dict = Depends(require_admin_o_gerente),

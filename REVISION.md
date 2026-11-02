@@ -13,6 +13,53 @@ Severidad:
   operación.
 - **Menor:** deuda técnica, incoherencia o mejora de mantenibilidad.
 
+## Estado al 2026-11-02 (después de las correcciones)
+
+Corregido en el código:
+
+| Hallazgo | Qué se hizo |
+|---|---|
+| 1.1 Gate de movimiento | La referencia solo se actualiza cuando el frame pasa a inferencia. Falta validarlo en banco (pendiente A en `docs/guia/04-pendientes.md`). |
+| 1.5 Reinicio de lote | Época de lote: un frame que empezó antes del reinicio no escribe en el lote nuevo; ByteTrack se reinicia solo desde su hilo. |
+| 1.7 Log por frame | Resumen cada 2 s. |
+| 1.9 Reproceso de frame | Se respeta el retorno de `esperar_frame()`. |
+| 1.10 Comentarios | Corregidos el de `CONF_THRESHOLD` y los docstrings de resolución. El comentario de `EQUIVALENCIAS_DEFECTO` (0,83 frente a 1) sigue a la espera de la cooperativa. |
+| 1.11 Constantes | Las constantes del modelo son obligatorias; si falta una, el arranque falla con su nombre. |
+| 2.1 Credenciales | `src/config.py` fuera del índice; `SECRET_KEY` obligatoria (≥ 32 caracteres, no de ejemplo); contraseña retirada de `reset_db.ps1` y de `docs/registro-avances.md`. **Falta cambiar la contraseña**: sigue en el historial. |
+| 2.2 Conteo desde el navegador | Al finalizar, el servidor toma el conteo de `tracker_service.conteo_de_evaluacion()`; si el lote no es el de la evaluación, responde 409. `/completar` ya no recibe `total_defectos`. |
+| 2.3 Video sin sesión | `/video/stream`, `/frame` y `/status` exigen sesión. `/resources` sigue público (ver pendientes). |
+| 2.4 Código EVA | `UNIQUE`, secuencia `evaluacion_codigo_seq`, `FOR UPDATE` y reintento sin reescribir la fila ni duplicar eventos. Migración: `src/database/migracion_revision_2026_11.sql`. |
+| 2.5 Event loop | 59 rutas sin `await` pasaron a `def`. |
+| 2.7 Cookie y login | `samesite="lax"`, `max_age` de 7 días, `datetime.now(timezone.utc)`, `cuenta_habilitada` falla cerrada. |
+| 2.9 Humedad | Sin cambio de código: el responsable confirmó que se divide entre `100 − H` a propósito. Queda escrito en `AGENTS.md` sección 7. |
+| 2.10 Precio en `float4` | Columna a `numeric(7, 2)` (misma migración); el schema limita el precio a 99 999,99. |
+| 2.11 Códigos HTTP | En evaluación: 404 solo si no existe (`NoEncontradoError`), 400 reglas de negocio, 409 al finalizar sin conteo. |
+| 2.12 Subida de imágenes | Lógica en `cooperativa_service`; formato verificado con Pillow; se lee como máximo 5 MB + 1 byte; se borra el logo reemplazado. |
+| 3.8 Buffer serie | Tope de 32 caracteres con memoria reservada. |
+| 4.3 / 4.4 Notebook y rutas | `deterministic=True`, `results.save_dir`, versiones impresas y `metadata.json` con SHA-256 de `best.pt`; rutas de `main.py` y de evidencias ancladas al proyecto. |
+
+Pendiente, con el motivo:
+
+| Hallazgo | Motivo |
+|---|---|
+| 1.2, 1.3 Cola y hold del servo | `servo_controller.py` requiere permiso explícito. |
+| 1.4 Clase del servo frente a la del conteo | Cambia cómo se cuenta: decisión del responsable. |
+| 1.6 Geometría de tiles | Hay que medir recall y latencia con la cámara real antes de cambiarla. |
+| 1.8 Anotación a resolución completa | Mejora menor de rendimiento; se deja para después de medir. |
+| 2.3 `/resources` público | Las evidencias necesitan una ruta autenticada propia; el logo de la cooperativa se usa también fuera de sesión. |
+| 2.6 Pool de conexiones | Necesita prueba de carga para fijar el tamaño del pool sin agotar conexiones. |
+| 2.7 Rol leído del JWT y límite de intentos | El rol desde la BD cambia la prueba PCB-02; el límite de intentos necesita un número que debe fijar el responsable. |
+| 2.8 Topes de lote | Regla de negocio: falta el tamaño máximo de lote. |
+| 2.9 Redondeo de la tara | Falta confirmar si 0,5 se redondea hacia arriba (hoy `round()` de Python: 2 sacos → 0 kg, 10 sacos → 2 kg). |
+| 3.1, 3.4, 3.5, 3.6 Watchdog, DTR, estado sin hora, hilos | Tocan `arduino_serial.py` o el protocolo: requieren permiso. |
+| 3.2 `pulseIn` | El nuevo timeout depende de la distancia real de la tapa abierta; falta ese dato. |
+| 3.3 Velocidad de la faja | Ya registrado como pendiente A (recalibrar `SERVO_DELAY_S` a PWM 90). |
+| 4.1 Versiones fijadas | Hay que hacer `pip freeze` en la laptop de producción con el `torch+cu130` real. |
+| 4.2, 4.5 Notebook v6 y métricas sobre fotos ELP | Requieren archivos y etiquetas que están en Google Drive. |
+| 5.1 Pruebas nuevas | Solo se ajustaron PCB-09 y la precondición de caja negra; las pruebas nuevas quedan para después. |
+
+---
+
 Varios hallazgos tocan elementos que `AGENTS.md` (sección 6) declara intocables sin permiso
 (`servo_controller.py`, `arduino_serial.py`, protocolo serie, umbrales). Se marcan con
 **[requiere permiso]**: la sugerencia queda para que el autor decida, no para aplicarla

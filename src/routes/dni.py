@@ -10,7 +10,7 @@ _dni_service = DniService()
 
 
 @dni_router.get("/consultar/{dni}", response_model=DniConsultaResponse)
-async def consultar_dni(
+def consultar_dni(
     dni: Annotated[str, Path(pattern=r"^\d{8}$", description="Número de DNI de 8 dígitos")],
 ) -> DniConsultaResponse:
     try:

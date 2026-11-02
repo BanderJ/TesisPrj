@@ -11,7 +11,7 @@ Modelo activo: **`yolov26n_2cls`** (2 clases: `defecto`, `verde`, más la clase 
 
 ## Endpoints
 
-### `GET /video/stream` — sin autenticación
+### `GET /video/stream` — requiere sesión
 
 Stream MJPEG en vivo con los frames anotados (cajas rojas para `defecto`, verdes
 para `verde`, azules para `objeto desconocido`, etiqueta `#id clase conf% WxHpx` y
@@ -29,17 +29,19 @@ contador total). El frame se reduce a `ML_STREAM_ANCHO` (1280 px) con calidad JP
 </script>
 ```
 
-### `GET /video/frame` — sin autenticación
+### `GET /video/frame` — requiere sesión
 
 Último frame procesado como JPEG individual (`image/jpeg`). Alternativa al stream
 para refrescos puntuales.
 
 - `503` si todavía no hay frame disponible.
 
-### `GET /video/status` — sin autenticación
+### `GET /video/status` — requiere sesión
 
-Estado del sistema de monitoreo. Se usa sin token para diagnóstico y para que el
-frontend detecte desconexión de cámara.
+Estado del sistema de monitoreo. El frontend lo consulta para detectar desconexión
+de cámara. Desde el 2026-11-02 los tres endpoints de lectura de video exigen la cookie
+`access_token`, como el resto de la API (`AGENTS.md`, sección 5.5); el navegador la envía
+sola en `<img src="/video/stream">` y en `fetch` del mismo origen.
 
 ```json
 {

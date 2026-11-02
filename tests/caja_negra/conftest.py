@@ -229,13 +229,19 @@ def precios_de_hoy() -> None:
         pytest.exit("No hay precios de café con la fecha de hoy en la base de desarrollo.", returncode=2)
 
 
-def evaluacion_finalizada(api: httpx.Client, total_defectos: int = 0, total_buenos: int = 0) -> dict[str, Any]:
+def evaluacion_finalizada(api: httpx.Client) -> dict[str, Any]:
     """Precondición de PCN-11 a PCN-15 y PCN-22 a PCN-24: muestra registrada
-    (MUESTRA_BASE) y monitoreo finalizado. Devuelve evaluacion_id y codigo."""
+    (MUESTRA_BASE) y monitoreo finalizado. Devuelve evaluacion_id y codigo.
+
+    El conteo que se guarda al finalizar lo toma el servidor de su tracker, así
+    que se abre y se cierra un monitoreo de la evaluación (necesita la cámara
+    conectada); sin granos en la faja el lote queda con 0 defectos y 0 sanos."""
     r = api.post("/evaluacion/registrar", json=MUESTRA_BASE)
     assert r.status_code == 201, f"Registro de la precondición falló: {r.status_code} {r.text}"
     evaluacion_id = r.json()["data"]["evaluacion_id"]
-    r = api.patch(f"/evaluacion/{evaluacion_id}/finalizar",
-                  json={"total_defectos": total_defectos, "total_buenos": total_buenos})
+    r = api.post("/video/iniciar", json={"evaluacion_id": evaluacion_id})
+    assert r.status_code == 200, f"Iniciar el monitoreo de la precondición falló: {r.status_code} {r.text}"
+    api.post("/video/detener")
+    r = api.patch(f"/evaluacion/{evaluacion_id}/finalizar", json={})
     assert r.status_code == 200, f"Finalizar la precondición falló: {r.status_code} {r.text}"
     return {"evaluacion_id": evaluacion_id, "codigo": r.json()["codigo"]}

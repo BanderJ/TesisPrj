@@ -22,7 +22,7 @@ video_router = APIRouter(prefix="/video", tags=["video"])
 
 
 @video_router.get("/stream")
-async def stream_mjpeg():
+async def stream_mjpeg(_: dict = Depends(obtener_usuario_actual)) -> StreamingResponse:
     """
     Streaming MJPEG del monitoreo en vivo.
     Retorna un stream de frames anotados (defectos en ROJO, estadísticas en tiempo real).
@@ -54,11 +54,11 @@ async def stream_mjpeg():
 
 
 # ============================================================
-# RUTAS DE CONTROL (requieren autenticación)
+# RUTAS DE CONTROL
 # ============================================================
 
 @video_router.post("/iniciar")
-async def iniciar_captura(
+def iniciar_captura(
     payload: IniciarMonitoreoRequest | None = None,
     _: dict = Depends(obtener_usuario_actual),
 ) -> dict:
@@ -92,7 +92,7 @@ async def iniciar_captura(
 
 
 @video_router.post("/detener")
-async def detener_captura(_: dict = Depends(obtener_usuario_actual)):
+def detener_captura(_: dict = Depends(obtener_usuario_actual)) -> dict:
     """Detiene la captura y streaming de video."""
     tracker_service.detener()
     return {
@@ -106,7 +106,7 @@ async def detener_captura(_: dict = Depends(obtener_usuario_actual)):
 # ============================================================
 
 @video_router.get("/eventos", response_model=EventosMonitoreoResponse)
-async def obtener_eventos_monitoreo(
+def obtener_eventos_monitoreo(
     desde: int = Query(0, ge=0),
     _: dict = Depends(obtener_usuario_actual),
 ) -> dict:
@@ -115,12 +115,12 @@ async def obtener_eventos_monitoreo(
 
 
 @video_router.get("/lote/conteo")
-async def obtener_conteo_lote(_: dict = Depends(obtener_usuario_actual)):
+def obtener_conteo_lote(_: dict = Depends(obtener_usuario_actual)) -> dict:
     return tracker_service.obtener_conteo_enriquecido()
 
 
 @video_router.post("/lote/generar-reporte")
-async def generar_reporte_lote(_: dict = Depends(obtener_usuario_actual)) -> dict:
+def generar_reporte_lote(_: dict = Depends(obtener_usuario_actual)) -> dict:
     """
     Genera el reporte final del lote actual.
 
@@ -135,7 +135,7 @@ async def generar_reporte_lote(_: dict = Depends(obtener_usuario_actual)) -> dic
 
 
 @video_router.post("/lote/resetear")
-async def resetear_lote(_: dict = Depends(obtener_usuario_actual)):
+def resetear_lote(_: dict = Depends(obtener_usuario_actual)) -> dict:
     """
     Resetea el conteo de granos para iniciar análisis de un nuevo lote.
 
@@ -155,7 +155,7 @@ async def resetear_lote(_: dict = Depends(obtener_usuario_actual)):
 # ============================================================
 
 @video_router.get("/frame")
-async def obtener_frame():
+def obtener_frame(_: dict = Depends(obtener_usuario_actual)) -> Response:
     """
     Retorna el último frame procesado como JPEG individual.
     Usado para refrescar continuamente la imagen en el frontend.
@@ -171,7 +171,7 @@ async def obtener_frame():
 
 
 @video_router.get("/status")
-async def obtener_status():
+def obtener_status(_: dict = Depends(obtener_usuario_actual)) -> dict:
     """Retorna el estado actual del sistema de monitoreo, incluyendo errores de cámara."""
     estado_error = tracker_service.obtener_estado_error()
     return {

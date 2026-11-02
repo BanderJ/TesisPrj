@@ -9,20 +9,20 @@ arduino_router = APIRouter(prefix="/arduino", tags=["arduino"])
 
 
 @arduino_router.get("/estado")
-async def estado_arduino(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
+def estado_arduino(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
     return arduino_service.obtener_estado()
 
 
 @arduino_router.get("/peso")
-async def obtener_peso(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
+def obtener_peso(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
     return arduino_service.obtener_peso()
 
 
 @arduino_router.post("/motor/iniciar")
-async def iniciar_motor(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
+def iniciar_motor(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
     return arduino_service.iniciar_motor()
 
 
 @arduino_router.post("/motor/detener")
-async def detener_motor(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
+def detener_motor(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
     return arduino_service.detener_motor()

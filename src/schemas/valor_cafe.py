@@ -62,7 +62,7 @@ class ValorCafeResumenRangosResponse(BaseModel):
 
 class ValorCafeCrearRequest(BaseModel):
     rango: str = Field(..., description="Número simple (ej: 70) o rango X-Y (ej: 60-65)")
-    precio: float = Field(..., gt=0, description="Precio debe ser mayor a 0")
+    precio: float = Field(..., gt=0, le=99999.99, description="Precio debe ser mayor a 0")  # numeric(7, 2)
 
     @field_validator("rango")
     @classmethod
@@ -102,7 +102,7 @@ class ValorCafeActualizarPrecioRequest(BaseModel):
         max_length=10,
         description="Rango a re-cotizar. Inserta un precio nuevo; no borra ni modifica los anteriores.",
     )
-    precio: float = Field(..., gt=0, description="Nuevo precio, debe ser mayor a 0")
+    precio: float = Field(..., gt=0, le=99999.99, description="Nuevo precio, debe ser mayor a 0")  # numeric(7, 2)
 
     @field_validator("rango")
     @classmethod

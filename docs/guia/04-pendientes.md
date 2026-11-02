@@ -33,7 +33,7 @@ del uso real en la cooperativa; **C** = mejora o deuda técnica.
 | A | [ ] Bloquear zoom y foco del lente | Anotar geometría de trabajo (distancia, ancho útil). Prerrequisito del reentrenamiento | INC-56 |
 | A | [x] Tiempo de viaje cámara → servo con el motor JGY370 (2026-10-25) | `SERVO_DELAY_S = 0.3` en `.env` (antes 0.5, del motor anterior) | — |
 | A | [ ] Recalibrar `SERVO_DELAY_S` tras bajar la velocidad de la faja a PWM 90 | El valor de 0.3 s se midió a PWM 255. El responsable debe medir con el prototipo el tiempo de viaje cámara → servo a PWM 90 para recalibrar `SERVO_DELAY_S`. | — |
-| B | [ ] Calibrar `ML_GATE_UMBRAL` (1.0) | Comparar el log `gate: diff media=` con faja parada y en marcha. Si salta granos: `ML_GATE_MOVIMIENTO=false` | — |
+| A | [ ] Validar el gate de movimiento corregido (2026-11-02) y calibrar `ML_GATE_UMBRAL` (1.0) | Ahora compara contra el último frame inferido. Pasar un lote de cantidad conocida con `ML_GATE_MOVIMIENTO=true` y `false` y comparar el conteo; revisar el log `gate: diff media=` con faja parada y en marcha | `REVISION.md` 1.1 |
 | B | [ ] Ajustar `ML_DETECTOR_FPS` / tiles a la velocidad real de la faja | Que ByteTrack no pierda granos entre detecciones (sobreconteo por ID nuevo) | — |
 | B | [ ] Confirmar que los IDs globales no retroceden tras pausas | Prueba real con pausas largas entre granos | — |
 | B | [ ] Medir FPS y CPU/GPU con cámara + faja en marcha | Lo medido de CPU (~25 %) fue con frames sintéticos | — |
@@ -55,7 +55,9 @@ del uso real en la cooperativa; **C** = mejora o deuda técnica.
 | Prio | Pendiente | Detalle | Ref. |
 |---|---|---|---|
 | B | [ ] Migrar bases existentes | Ejecutar el `CREATE TABLE EVENTO_MONITOREO` (+ índice y FK) y `ALTER TABLE evaluacion ALTER COLUMN peso_neto TYPE numeric(7,2)` en cada base creada antes del 22-sep | — |
-| B | [ ] Credenciales de BD fuera del código | `src/config.py` ya no se versiona, pero la contraseña sigue como literal; moverla a `.env` antes de desplegar | INC-11 |
+| A | [ ] Cambiar la contraseña de PostgreSQL | `src/config.py` se retiró del índice de Git el 2026-11-02 (seguía versionado pese al `.gitignore`) y `reset_db.ps1` ya no la contiene, pero la contraseña anterior sigue en el historial. Cambiarla en PostgreSQL y en el `src/config.py` local | INC-11, `REVISION.md` 2.1 |
+| A | [ ] Ejecutar `src/database/migracion_revision_2026_11.sql` en cada base existente | Código EVA `UNIQUE` con secuencia y `VALOR_CAFE.precio` a `numeric(7, 2)`. Antes, correr la consulta de duplicados del encabezado | `REVISION.md` 2.4, 2.10 |
+| B | [ ] Pendientes de la revisión técnica que requieren permiso o decisión | Ver la sección «Estado» de `REVISION.md`: cola del servo, watchdog de la faja, DTR, redondeo de la tara, topes de lote, pool de conexiones | `REVISION.md` |
 | B | [x] Alinear código con las decisiones del manual (2026-10-30; revisión 2026-10-31) | Peso bueno limitado por tamizado; cálculo pendiente accesible desde reportes; precio por `floor(FR)`; usuario con una inicial materna, normalización y límite de 30 caracteres sin truncar; humedad 1–30; tildes y ayuda corregidas. Revisión: C5 incluye 0 y 12.5, PCB-05 aclara el doble y la comprobación SQL; Word de caja negra sincronizado con el 30/10 sin repetir sus pruebas y con portada, guía y pendientes conservados. | `docs/manuales/INSTRUCCIONES_CAMBIOS_CODIGO.md` |
 | C | [ ] Automatizar la descarga de `best.pt` | Hoy es manual desde Google Drive | INC-39 |
 | C | [x] Actualizar la plantilla y la ruta de prueba renombradas (2026-11-01; sin commit) | La ruta autenticada `/prueba` carga `prueba.html`; referencias documentales actualizadas y recursos JS/CSS comprobados. | — |

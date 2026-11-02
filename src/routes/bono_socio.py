@@ -11,7 +11,7 @@ bono_socio_service = BonoSocioService()
 
 
 @bono_socio_router.get("", response_model=BonoSocioResponse)
-async def obtener_bono_socio(_: dict = Depends(obtener_usuario_actual)) -> BonoSocioResponse:
+def obtener_bono_socio(_: dict = Depends(obtener_usuario_actual)) -> BonoSocioResponse:
     try:
         return bono_socio_service.obtener()
     except Exception as exc:
@@ -19,7 +19,7 @@ async def obtener_bono_socio(_: dict = Depends(obtener_usuario_actual)) -> BonoS
 
 
 @bono_socio_router.post("", response_model=BonoSocioResponse)
-async def actualizar_bono_socio(
+def actualizar_bono_socio(
     request: Request,
     payload: BonoSocioActualizarRequest,
     user: dict = Depends(require_admin_o_gerente),

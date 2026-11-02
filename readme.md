@@ -80,7 +80,7 @@ La app está disponible en `http://localhost:8000`. La cámara se pre-conecta al
 
 | Variable | Default | Descripción |
 |---|---|---|
-| `SECRET_KEY` | — | Firma JWT (cambiarla invalida los tokens existentes) |
+| `SECRET_KEY` | — (obligatoria) | Firma JWT, mínimo 32 caracteres. Sin ella la app no arranca. Cambiarla invalida los tokens existentes |
 | `API_FACTILIZA` | `''` | Token de la API Factiliza (consulta DNI) |
 | `ARDUINO_PORT` | `COM5` | Puerto serial del Arduino |
 | `ARDUINO_BAUDRATE` | `9600` | Baudios (clones con resonador cerámico fallan a 115200) |

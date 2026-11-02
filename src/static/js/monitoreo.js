@@ -586,7 +586,6 @@
 
 		// ── Peso de grano bueno (ingreso manual) + factor de rendimiento ──────
 		let pesoTamizadoMax   = null;
-		let totalDefectosFinal = 0;
 
 		async function mostrarFormPesoBueno() {
 			document.getElementById('finPesoForm').style.display = 'block';
@@ -631,7 +630,7 @@
 				const res = await fetch(`/evaluacion/${EVALUACION_ID}/completar`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ total_defectos: totalDefectosFinal, peso_bueno: peso }),
+					body: JSON.stringify({ peso_bueno: peso }),
 				});
 				if (!res.ok) {
 					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo calcular el rendimiento.'));
@@ -724,9 +723,9 @@
 			detenerStream();
 
 			// Totales calculados por el backend en /video/lote/conteo — el frontend no
-			// conoce nombres de clases ni decide qué cuenta como defecto.
+			// conoce nombres de clases ni decide qué cuenta como defecto. Solo se usan
+			// para mostrar: el conteo que se guarda lo toma el servidor al finalizar.
 			const _totalDefectoGranos = totalDefectosActual;
-			totalDefectosFinal = _totalDefectoGranos;
 			const _totalGranos = reporteActual?.total_granos_analizados || 0;
 			const stats = {
 				totalGrains:      _totalGranos,
@@ -742,7 +741,7 @@
 				const res = await fetch(`/evaluacion/${EVALUACION_ID}/finalizar`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ total_defectos: _totalDefectoGranos, total_buenos: _totalGranos - _totalDefectoGranos, incidencias }),
+					body: JSON.stringify({ incidencias }),
 				});
 				if (!res.ok) {
 					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo finalizar la evaluación.'));

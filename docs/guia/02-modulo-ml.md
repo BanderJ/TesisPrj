@@ -135,8 +135,11 @@ validar la equivalencia 1.0 con la cooperativa.
 
 - `ML_DETECTOR_FPS` (30): techo; los frames intermedios se descartan. Bajarlo mucho hace que
   el grano se desplace demasiado entre detecciones y ByteTrack le asigne un ID nuevo (sobreconteo).
-- `tracker.hay_movimiento()`: miniatura 160×90 en gris; si la diferencia media con la anterior
-  es menor que `ML_GATE_UMBRAL` (1.0) no se infiere (faja quieta = 0 % GPU). El tracker loguea
+- `tracker.hay_movimiento()`: miniatura 160×90 en gris; si la diferencia media con el último
+  frame **que pasó a inferencia** es menor que `ML_GATE_UMBRAL` (1.0) no se infiere (faja
+  quieta = 0 % GPU). Hasta el 2026-11-02 se comparaba con el frame inmediatamente anterior y,
+  con la faja lenta del JGY370, la diferencia entre dos frames seguidos podía no llegar nunca
+  al umbral aunque la faja estuviera en marcha. El tracker loguea
   `gate: diff media=` cada 2 s para calibrar. Si el alimentador no es una faja continua:
   `ML_GATE_MOVIMIENTO=false`.
 

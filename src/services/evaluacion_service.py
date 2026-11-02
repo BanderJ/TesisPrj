@@ -19,6 +19,7 @@ from src.schemas.evaluacion import (
     RegistrarEvaluacionResponse,
     ResumenEvaluacionResponse,
 )
+from src.utilities.errores import NoEncontradoError
 from src.utilities.eventos_monitoreo import registro_eventos
 
 
@@ -125,7 +126,7 @@ class EvaluacionService:
     def obtener_resumen_evaluacion(self, evaluacion_id: str) -> ResumenEvaluacionResponse:
         fila = self.evaluacion_model.obtener_resumen(evaluacion_id=evaluacion_id)
         if not fila:
-            raise ValueError("No se encontró la evaluación.")
+            raise NoEncontradoError("No se encontró la evaluación.")
         return self._armar_resumen(fila)
 
     def completar_evaluacion(
@@ -137,7 +138,7 @@ class EvaluacionService:
         try:
             eva = self.evaluacion_model.obtener_para_completar(evaluacion_id, db)
             if not eva:
-                raise ValueError("No se encontró la evaluación.")
+                raise NoEncontradoError("No se encontró la evaluación.")
             # Una evaluación ya completada no se recalcula: su pago y su beneficio de
             # socio quedan fijos aunque cambien los precios o el monto del beneficio.
             if eva.get("factor_rendimiento") is not None:
@@ -215,7 +216,6 @@ class EvaluacionService:
                 peso_por_qq=peso_por_qq,
                 pago=pago,
                 bono_socio=bono_socio,
-                total_defectos=payload.total_defectos,
                 db=db,
             )
             db.commit()
@@ -264,24 +264,38 @@ class EvaluacionService:
     def finalizar_evaluacion(
         self,
         evaluacion_id: str,
-        total_defectos: int | None = None,
-        total_buenos: int | None = None,
+        conteo_lote: dict[str, Any] | None,
         incidencias: list | None = None,
     ) -> FinalizarEvaluacionResponse:
-        """Genera y asigna el codigo EVA y persiste la traza del monitoreo.
+        """Genera y asigna el codigo EVA y persiste el conteo y la traza del monitoreo.
+
+        El conteo sale del tracker del servidor (conteo_lote), no del navegador.
+        conteo_lote es None cuando el lote en memoria no es el de esta evaluacion
+        (otro monitoreo empezo despues o el servidor se reinicio): en ese caso no
+        hay un conteo confiable que guardar y se rechaza la finalizacion. La
+        respuesta lleva el conteo guardado en la fila y si ya estaba finalizada.
 
         Codigo y eventos se escriben en una sola transaccion: una evaluacion
         finalizada sin su traza, o una traza sin evaluacion cerrada, dejarian el
         historial incoherente.
         """
+        if conteo_lote is None:
+            raise ValueError(
+                "El conteo de este lote ya no está en el monitoreo del servidor. "
+                "Vuelva a iniciar el monitoreo de la muestra para registrar su conteo."
+            )
         db = Connection()
         try:
             fila = self.evaluacion_model.asignar_codigo(
-                evaluacion_id, total_defectos, total_buenos, incidencias, db=db
+                evaluacion_id,
+                conteo_lote.get("total_defectos"),
+                conteo_lote.get("total_sanos"),
+                incidencias,
+                db=db,
             )
-            # Solo la traza de ESTE lote: si el tracker ya arrancó otra evaluación
-            # sus eventos no pertenecen a esta.
-            if registro_eventos.evaluacion_id == evaluacion_id:
+            # Un reintento sobre una evaluacion ya finalizada no vuelve a guardar
+            # la traza (quedaria duplicada).
+            if not fila.get("ya_finalizada") and registro_eventos.evaluacion_id == evaluacion_id:
                 self.evento_model.registrar_lote(
                     evaluacion_id, registro_eventos.todos(), db=db
                 )
@@ -297,4 +311,7 @@ class EvaluacionService:
             mensaje="Evaluación finalizada correctamente.",
             evaluacion_id=fila["id"],
             codigo=fila["codigo"].strip(),
+            total_defectos=fila.get("total_defectos"),
+            total_buenos=fila.get("total_buenos"),
+            ya_finalizada=bool(fila.get("ya_finalizada")),
         )

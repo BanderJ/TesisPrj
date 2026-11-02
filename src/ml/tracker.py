@@ -113,6 +113,9 @@ class CoffeeRenTracker:
             _cfg_bt = IterableSimpleNamespace(**yaml.safe_load(_f))
         self._bytetracker = BYTETracker(args=_cfg_bt)
         self._reset_bytetrack = False
+        # Época del lote: resetear_conteo la incrementa. Un frame que empezó en
+        # una época anterior no escribe en el conteo del lote nuevo.
+        self._epoca_lote = 0
 
         # Warmup: inicializa CUDA/ONNX con predict() — NO usar track(persist=False) aquí.
         # track(persist=False) registra un callback permanent que recrea ByteTrack
@@ -159,6 +162,7 @@ class CoffeeRenTracker:
         # 3x3 a 30 fps son cientos de líneas/s de E/S síncrona en el hilo del
         # tracker, que frena el pipeline justo en lo que se está midiendo.
         self._debug_descarte_ts = 0.0
+        self._log_conteo_ts = 0.0
 
     # ── Helpers de inicialización ─────────────────────────────────────────────
 
@@ -187,19 +191,19 @@ class CoffeeRenTracker:
         sys.modules[spec.name] = mod
         spec.loader.exec_module(mod)
 
-        self.CLASES                = mod.CLASES
-        self.COLORES               = mod.COLORES
-        self.EQUIVALENCIAS_DEFECTO = mod.EQUIVALENCIAS_DEFECTO
-        self.GRANO_MIN_PX          = getattr(mod, "GRANO_MIN_PX", 8)
-        self.GRANO_MAX_PX          = getattr(mod, "GRANO_MAX_PX", 200)
-        self.GRUPOS_DISPLAY        = getattr(mod, "GRUPOS_DISPLAY", {})
-        # Grilla de tiles para la inferencia. 1x1 = frame completo (sin tiling).
-        self.TILES_X               = getattr(mod, "TILES_X", 1)
-        self.TILES_Y               = getattr(mod, "TILES_Y", 1)
-        self.TILE_SOLAPE_PX        = getattr(mod, "TILE_SOLAPE_PX", 96)
-        self.CLASE_DESCONOCIDO      = getattr(mod, "CLASE_DESCONOCIDO", "desconocido")
-        self.UMBRAL_CONF_CONOCIDO  = getattr(mod, "UMBRAL_CONF_CONOCIDO", 0.0)
-        self.DESCONOCIDO_MIN_FRAMES = getattr(mod, "DESCONOCIDO_MIN_FRAMES", 3)
+        # Sin valores por defecto: si falta una constante, el arranque falla con
+        # un mensaje claro en vez de seguir con valores de otra cámara o modelo.
+        requeridas = (
+            "CLASES", "COLORES", "EQUIVALENCIAS_DEFECTO", "GRANO_MIN_PX", "GRANO_MAX_PX",
+            "TILES_X", "TILES_Y", "TILE_SOLAPE_PX", "CLASE_DESCONOCIDO",
+            "UMBRAL_CONF_CONOCIDO", "DESCONOCIDO_MIN_FRAMES",
+        )
+        faltan = [nombre for nombre in requeridas if not hasattr(mod, nombre)]
+        if faltan:
+            raise AttributeError(f"Faltan constantes en {constants_path}: {', '.join(faltan)}")
+        for nombre in requeridas:
+            setattr(self, nombre, getattr(mod, nombre))
+        self.GRUPOS_DISPLAY = getattr(mod, "GRUPOS_DISPLAY", {})
 
     # ── Detección ────────────────────────────────────────────────────────────
 
@@ -339,27 +343,35 @@ class CoffeeRenTracker:
     # ── Pipeline principal ────────────────────────────────────────────────────
 
     def hay_movimiento(self, frame: np.ndarray) -> bool:
-        """True si el frame cambió respecto al último evaluado. Se compara una
-        miniatura 160x90 en gris: por debajo de ML_GATE_UMBRAL (diferencia media
-        de intensidad) la faja está quieta y no vale la pena correr YOLO.
-        El primer frame siempre cuenta como movimiento."""
+        """True si el frame cambió respecto al último frame que pasó a inferencia.
+        Se compara una miniatura 160x90 en gris: por debajo de ML_GATE_UMBRAL
+        (diferencia media de intensidad) la faja está quieta y no vale la pena
+        correr YOLO. El primer frame siempre cuenta como movimiento.
+
+        La referencia solo se actualiza cuando el frame pasa el gate. Si se
+        actualizara en cada llamada, una faja lenta (JGY370, 10 RPM) nunca
+        acumularía diferencia entre dos frames consecutivos y la inferencia se
+        omitiría con la faja en marcha."""
         gris = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), (160, 90))
-        previo, self._gris_movimiento = self._gris_movimiento, gris
-        if previo is None:
+        if self._gris_movimiento is None:
+            self._gris_movimiento = gris
             return True
-        diff = float(np.mean(cv2.absdiff(gris, previo)))
+        diff = float(np.mean(cv2.absdiff(gris, self._gris_movimiento)))
         ahora = time.monotonic()
         if ahora - self._gate_log_ts > 2.0:
             self._gate_log_ts = ahora
             print(f"gate: diff media={diff:.2f} (umbral={Config.ML_GATE_UMBRAL})")
-        return diff >= Config.ML_GATE_UMBRAL
+        if diff >= Config.ML_GATE_UMBRAL:
+            self._gris_movimiento = gris
+            return True
+        return False
 
     def procesar_frame(self, frame: np.ndarray, ts_frame: float | None = None) -> bytes | None:
         """
         Procesa un frame con ByteTrack y retorna JPEG anotado.
 
         Args:
-            frame: Frame BGR de OpenCV (1280x720 @ 60fps)
+            frame: Frame BGR de OpenCV (resolución de Config.CAM_WIDTH x CAM_HEIGHT)
             ts_frame: time.monotonic() de captura del frame. El servo se programa
                       desde este instante para descontar la latencia de inferencia.
 
@@ -373,9 +385,14 @@ class CoffeeRenTracker:
         # que t_toma - ts_frame es lo que el frame espero en cola.
         t_toma = time.monotonic()
 
+        with self.lock:
+            epoca = self._epoca_lote
+            reiniciar = self._reset_bytetrack
+            self._reset_bytetrack = False
+
         try:
-            if self._reset_bytetrack:
-                self._reset_bytetrack = False
+            if reiniciar:
+                # ByteTrack solo se toca desde este hilo.
                 self._bytetracker.reset()
             dets = self._detectar(frame)                 # (N, 6) en coords del frame completo
             t_inf1 = time.monotonic()
@@ -417,6 +434,10 @@ class CoffeeRenTracker:
                 continue
 
             with self.lock:
+                if epoca != self._epoca_lote:
+                    # El lote se reinició mientras se procesaba este frame: sus
+                    # tracks son del lote anterior y no se cuentan en el nuevo.
+                    break
                 # Mapping bytetrack_id → id_global: garantiza que el contador
                 # nunca retrocede aunque ByteTrack reinicie su secuencia interna.
                 if bytetrack_id not in self._bytetrack_a_global:
@@ -477,18 +498,28 @@ class CoffeeRenTracker:
         if detecciones_count > 0:
             self.ultima_deteccion_frame_ts = time.time()
 
-        if total_granos > 0 and detecciones_count > 0:
-            with self.lock:
-                conteo_debug = self._calcular_conteo_final()
-            print(f"Detecciones: {detecciones_count} | Total únicos: {total_granos} | {conteo_debug}")
-        elif detecciones_count == 0:
-            print(f"Frame procesado sin detecciones (cajas crudas: {len(dets)})")
+        # Resumen en consola cada 2 s, no por frame: imprimir 30 veces por segundo
+        # frena este hilo, que es el que se cronometra para el indicador de latencia.
+        ahora_log = time.monotonic()
+        if ahora_log - self._log_conteo_ts > 2.0:
+            self._log_conteo_ts = ahora_log
+            if detecciones_count > 0:
+                with self.lock:
+                    conteo_debug = self._calcular_conteo_final()
+                print(f"Detecciones: {detecciones_count} | Total únicos: {total_granos} | {conteo_debug}")
+            else:
+                print(f"Frame procesado sin detecciones (cajas crudas: {len(dets)})")
 
         # Limpieza de IDs globales que ya salieron del frame y no tienen servo pendiente
         bt_activos = {int(pista[4]) for pista in tracks}
         with self.lock:
             ids_global_activos = {self._bytetrack_a_global[bt] for bt in bt_activos if bt in self._bytetrack_a_global}
-            ids_a_limpiar = set(self.conteo_ids_confianza.keys()) - ids_global_activos - self._ids_servados
+            # Si el lote se reinició durante este frame, sus tracks no son del lote
+            # nuevo: no hay nada que limpiar.
+            ids_a_limpiar = (
+                set(self.conteo_ids_confianza.keys()) - ids_global_activos - self._ids_servados
+                if epoca == self._epoca_lote else set()
+            )
             for tid in ids_a_limpiar:
                 if Config.ML_DEBUG_SERVO:
                     # Estos tracks se van sin haber accionado el servo: nunca
@@ -549,11 +580,12 @@ class CoffeeRenTracker:
             self._ts_primer_avistamiento = {}
             self._bytetrack_a_global = {}
             self._id_global = 0
-        # El hilo de procesamiento resetea ByteTrack en el próximo frame (evita
-        # tocar el tracker desde otro hilo mientras corre procesar_frame).
-        self._reset_bytetrack = True
+            self._epoca_lote += 1
+            # El hilo de procesamiento resetea ByteTrack en el próximo frame (evita
+            # tocar el tracker desde otro hilo mientras corre procesar_frame).
+            self._reset_bytetrack = True
+            self._gris_movimiento = None
         self.ultima_deteccion_frame_ts = None
-        self._gris_movimiento = None
         servo_controller.limpiar_cola()
         medidor_latencia.resetear()
 

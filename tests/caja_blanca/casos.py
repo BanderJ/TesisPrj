@@ -257,14 +257,15 @@ CASOS: dict[str, dict[str, Any]] = {
         "funcion": "Evaluacion.asignar_codigo(), llamada por EvaluacionService.finalizar_evaluacion()",
         "modulo_cov": "src.models.evaluacion",
         "funciones_cov": ["Evaluacion.asignar_codigo", "Evaluacion._generar_codigo"],
-        "preparar": "Simular la conexión: evaluación sin código y último correlativo EVA0000041.",
+        "preparar": "Simular la conexión: evaluación sin código y secuencia evaluacion_codigo_seq en 41.",
         "fragmento": [
-            ("return f\"EVA{int(row['siguiente']):07d}\"", "return f\"EVA{int(row['siguiente']):07d}\"", 0),
+            ("row = db.obtener_uno(", "return row[\"codigo\"]", 0),
             ("existente = db.obtener_uno(", "incidencias_json = json.dumps", 0),
         ],
         "marcas": [
-            ("return f\"EVA{int(row['siguiente']):07d}\"", "# C1: siguiente correlativo"),
-            ("codigo = existente.get(\"codigo\") or self._generar_codigo(db)", "# C1: sin código / C2: lo reutiliza"),
+            ("return row[\"codigo\"]", "# C1: siguiente correlativo"),
+            ("if existente.get(\"codigo\"):", "# C2: lo reutiliza"),
+            ("codigo = self._generar_codigo(db)", "# C1: sin código"),
         ],
         "obtenido": {
             "C1": "genera EVA0000042 y guarda total_defectos = 12, total_buenos = 88 e incidencias",

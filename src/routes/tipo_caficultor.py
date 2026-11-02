@@ -9,7 +9,7 @@ tipo_caficultor_service = TipoCaficultorService()
 
 
 @tipo_caficultor_router.get("/listar", response_model=list[TipoCaficultorResponse])
-async def listar_tipo_caficultor() -> list[TipoCaficultorResponse]:
+def listar_tipo_caficultor() -> list[TipoCaficultorResponse]:
     try:
         return tipo_caficultor_service.listar_tipos_caficultor()
     except Exception as exc:

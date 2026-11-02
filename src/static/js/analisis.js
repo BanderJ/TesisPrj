@@ -12,7 +12,6 @@
 	const stats = storedStats ? JSON.parse(storedStats) : null;
 
 	let pesoTamizadoMax   = null;
-	let totalDefectosEval = 0;
 
 	async function cargarResumen() {
 		try {
@@ -61,7 +60,6 @@
 	// ── Factor de rendimiento pendiente: pedir el peso de grano bueno ─────────
 	function prepararPesoBueno(d) {
 		pesoTamizadoMax   = d.peso_tamizado != null ? Number(d.peso_tamizado) : null;
-		totalDefectosEval = d.total_defectos ?? stats?.totalDefectos ?? 0;
 		if (pesoTamizadoMax !== null) {
 			document.getElementById('inputPesoBuenoAnalisis').max = Math.floor(pesoTamizadoMax);
 			document.getElementById('pesoBuenoHintAnalisis').textContent =
@@ -89,7 +87,7 @@
 			const res = await fetch(`/evaluacion/${EVALUACION_ID}/completar`, {
 				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ total_defectos: totalDefectosEval, peso_bueno: peso }),
+				body: JSON.stringify({ peso_bueno: peso }),
 			});
 			if (!res.ok) {
 				throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo calcular el rendimiento.'));

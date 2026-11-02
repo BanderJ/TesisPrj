@@ -4,6 +4,12 @@ No usan la base de datos ni hardware: los models, la conexión, el detector YOLO
 ByteTrack y el puerto serie del Arduino se reemplazan con mocks. El servo
 (servo_controller.py) y el Arduino (arduino_serial.py) no se modifican.
 """
+import os
+
+# Antes de importar src: SECRET_KEY ya no tiene valor por defecto. Las pruebas
+# firman tokens con esta clave propia, sin depender del .env del equipo.
+os.environ.setdefault("SECRET_KEY", "clave-solo-para-pruebas-de-caja-blanca-0123456789")
+
 from decimal import Decimal, ROUND_FLOOR
 from typing import Any, Callable, Iterator
 from unittest.mock import MagicMock, patch

@@ -18,17 +18,23 @@ from src.utilities.uuid_utils import uuid7
 
 # Piso de confianza que YOLO usa para emitir una deteccion. Bajo a proposito:
 # ByteTrack asocia y sostiene los tracks con sus propios umbrales (bytetrack.yaml)
-# y el conteo final filtra por voto de mayoria + conf promedio (>= 0.45). Un piso
+# y el conteo final resuelve cada track por confianza acumulada por clase
+# (MARGEN_DEFECTO) y marca 'desconocido' lo que nunca supera
+# UMBRAL_CONF_CONOCIDO (tracker.py, _resolver_clase_display). Un piso
 # alto aqui mataba la etapa de recuperacion de baja confianza de ByteTrack y hacia
 # que los granos que se tocan (menor conf por ambiguedad) no se dibujaran.
 # El servo se protege aparte con la compuerta de evidencia del tracker.
 CONF_THRESHOLD = 0.15
 
+# Raíz del proyecto: ML_EVIDENCIA_DIR relativo se resuelve desde aquí, no desde
+# el directorio donde se lanzó uvicorn.
+_RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 class TrackerService:
     """
     Servicio que gestiona la captura de video y procesamiento de defectos en tiempo real.
-    - Captura frames desde CamaraService (1280x720 @ 60fps)
+    - Captura frames desde CamaraService (resolución y fps de Config.CAM_*)
     - Procesa con CoffeeRenTracker (YOLO + ByteTrack)
     - Calcula los defectos equivalentes con classifier.py
     """
@@ -172,8 +178,10 @@ class TrackerService:
                 )
                 break
 
-            # Esperar nuevo frame y obtener BGR directo (sin ciclo JPEG)
-            camara_service.esperar_frame(timeout=1.0)
+            # Esperar nuevo frame y obtener BGR directo (sin ciclo JPEG). Si vence
+            # el timeout no hay frame nuevo: no se reprocesa el anterior.
+            if not camara_service.esperar_frame(timeout=1.0):
+                continue
             frame, ts_frame = camara_service.obtener_frame_bgr()
             if frame is None:
                 continue
@@ -233,7 +241,7 @@ class TrackerService:
                 if (Config.ML_EVIDENCIA_DESCONOCIDOS
                         and self._evaluacion_id
                         and self._evidencias_guardadas < Config.ML_EVIDENCIA_MAX_POR_LOTE):
-                    carpeta = os.path.join(Config.ML_EVIDENCIA_DIR, self._evaluacion_id)
+                    carpeta = os.path.join(_RAIZ, Config.ML_EVIDENCIA_DIR, self._evaluacion_id)
                     os.makedirs(carpeta, exist_ok=True)
                     nombre = f"{uuid7()}.jpg"
                     with open(os.path.join(carpeta, nombre), "wb") as f:
@@ -311,6 +319,14 @@ class TrackerService:
             "clases_detectadas":       len(conteo),
             "segundos_sin_deteccion":  segundos_sin_deteccion,
         }
+
+    def conteo_de_evaluacion(self, evaluacion_id: str) -> dict | None:
+        """Conteo del lote en memoria si pertenece a esta evaluación; None si el
+        tracker ya trabaja con otro lote o se reinició. Es la única fuente del
+        conteo que se guarda al finalizar: el navegador no lo envía."""
+        if self._evaluacion_id != evaluacion_id:
+            return None
+        return self.obtener_conteo_enriquecido()
 
     def generar_reporte_lote(self) -> dict:
         """

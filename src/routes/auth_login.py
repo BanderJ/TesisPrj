@@ -3,6 +3,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse, Response
 from src.services.auth_service import auth_service
 from src.services.auditoria_service import auditoria_service
+from src.utilities.jwt_utils import DIAS_SESION
 from src.utilities.request_utils import get_client_ip
 import os
 
@@ -11,7 +12,7 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), ".
 auth = APIRouter()
 
 @auth.get("/login")
-async def login_get(request: Request):
+def login_get(request: Request) -> Response:
     token = request.cookies.get("access_token")
     if auth_service.sesion_activa(token):
         return RedirectResponse(url="/", status_code=303)
@@ -19,7 +20,7 @@ async def login_get(request: Request):
 
 
 @auth.post("/login")
-async def login_post(request: Request, usuario: str = Form(...), clave: str = Form(...)) -> Response:
+def login_post(request: Request, usuario: str = Form(...), clave: str = Form(...)) -> Response:
     token = request.cookies.get("access_token")
     if auth_service.sesion_activa(token):
         return RedirectResponse(url="/", status_code=303)
@@ -37,7 +38,15 @@ async def login_post(request: Request, usuario: str = Form(...), clave: str = Fo
             ip_cliente=get_client_ip(request),
         )
         response = RedirectResponse(url="/?bienvenida=1", status_code=303)
-        response.set_cookie(key="access_token", value=login_response.token, httponly=True)
+        # samesite="lax": el navegador no envía la cookie en POST/PATCH iniciados
+        # desde otro sitio (CSRF). max_age igual a la vigencia del JWT.
+        response.set_cookie(
+            key="access_token",
+            value=login_response.token,
+            httponly=True,
+            samesite="lax",
+            max_age=DIAS_SESION * 24 * 3600,
+        )
         return response
 
     auditoria_service.registrar(
@@ -53,7 +62,7 @@ async def login_post(request: Request, usuario: str = Form(...), clave: str = Fo
 
 
 @auth.get("/logout")
-async def logout(request: Request):
+def logout(request: Request) -> Response:
     token_cookie = request.cookies.get("access_token")
     if token_cookie:
         from src.utilities.jwt_utils import verificar_token

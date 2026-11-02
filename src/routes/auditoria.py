@@ -11,7 +11,7 @@ auditoria_router = APIRouter(prefix="/auditoria", tags=["auditoria"])
 
 
 @auditoria_router.get("", response_model=AuditoriaListResponse)
-async def listar_auditoria(
+def listar_auditoria(
     usuario: str | None = Query(default=None),
     tipo_personal_id: int | None = Query(default=None),
     accion: str | None = Query(default=None),
@@ -43,7 +43,7 @@ async def listar_auditoria(
 
 
 @auditoria_router.get("/usuarios")
-async def listar_usuarios_auditados(
+def listar_usuarios_auditados(
     _: dict = Depends(require_admin_o_gerente),
 ) -> dict:
     try:
@@ -53,7 +53,7 @@ async def listar_usuarios_auditados(
 
 
 @auditoria_router.get("/acciones")
-async def listar_acciones(
+def listar_acciones(
     _: dict = Depends(require_admin_o_gerente),
 ) -> dict:
     try:

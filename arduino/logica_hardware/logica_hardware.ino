@@ -23,11 +23,15 @@ Servo  servoSeparador;
 // Temporizadores millis()
 unsigned long tDistancia = 0;
 
-// Buffer para leer líneas serial sin bloquear
+// Buffer para leer líneas serial sin bloquear. Tope de longitud: si llega
+// basura sin '\n', la línea no crece hasta agotar los 2 KB de SRAM. El comando
+// más largo del protocolo (SERVO:DEFECTO) tiene 13 caracteres.
+const unsigned int MAX_LINEA_SERIAL = 32;
 String lineaSerial = "";
 
 void setup() {
   Serial.begin(9600);  // clones con resonador cerámico fallan a 115200
+  lineaSerial.reserve(MAX_LINEA_SERIAL);  // un solo bloque de memoria, sin fragmentar
 
   pinMode(MOTOR_ENA, OUTPUT);
   pinMode(MOTOR_IN1, OUTPUT);
@@ -52,9 +56,11 @@ void loop() {
       lineaSerial.trim();
       if (lineaSerial.length() > 0) procesarComando(lineaSerial);
       lineaSerial = "";
-    } else {
+    } else if (lineaSerial.length() < MAX_LINEA_SERIAL) {
       lineaSerial += c;
     }
+    // Pasado el tope se descartan caracteres hasta el próximo '\n': esa línea no
+    // es un comando válido y procesarComando la ignora.
   }
 
   // 2. Reporte de distancia
