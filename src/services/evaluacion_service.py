@@ -18,6 +18,7 @@ from src.schemas.evaluacion import (
     RegistrarEvaluacionRequest,
     RegistrarEvaluacionResponse,
     ResumenEvaluacionResponse,
+    TARA_POR_SACO_KG,
 )
 from src.utilities.errores import NoEncontradoError
 from src.utilities.eventos_monitoreo import registro_eventos
@@ -154,7 +155,7 @@ class EvaluacionService:
             peso_bruto     = Decimal(str(eva["peso_bruto"]))
             num_sacos      = int(eva["num_sacos"])
             peso_qq_ref    = Decimal(str(grano["peso_qq"]))
-            tara_saco      = Decimal("0.25")
+            tara_saco      = TARA_POR_SACO_KG
             humedad        = Decimal(str(eva["humedad"]))
 
             divisor = peso_muestra / 100
@@ -181,8 +182,9 @@ class EvaluacionService:
                     f"({factor_rendimiento}). Registra ese rango en 'Valor de café'."
                 )
             precio = Decimal(str(valor_cafe["precio"]))
-            tara_total         = int(round(num_sacos * float(tara_saco)))
-            peso_neto          = (peso_bruto - Decimal(tara_total)).quantize(Decimal("0.01"))
+            # Tara sin redondear: 2 sacos restan 0.50 kg, 10 sacos restan 2.50 kg.
+            tara_total         = (num_sacos * tara_saco).quantize(Decimal("0.01"))
+            peso_neto          = (peso_bruto - tara_total).quantize(Decimal("0.01"))
 
             if humedad > Decimal("12.00"):
                 humedad_exceso    = humedad - Decimal("12.00")

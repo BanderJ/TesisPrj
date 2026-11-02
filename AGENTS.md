@@ -179,7 +179,9 @@ El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
 
 - Documento: DNI exactamente 8 dígitos; Pasaporte o Carnet de Extranjería 8 a 12 caracteres
   alfanuméricos (`src/utilities/documento_validador.py`).
-- Peso bruto: como máximo `num_sacos × 70` kg y mayor que la tara `round(num_sacos × 0.25)`.
+- Peso bruto: como máximo `num_sacos × 70` kg y mayor que la tara `num_sacos × 0.25` kg. La tara
+  no se redondea nunca (2 sacos = 0.50 kg): se resta tal cual del peso bruto. El peso por saco
+  está en `TARA_POR_SACO_KG` (`src/schemas/evaluacion.py`).
 - Humedad: número entero de 1 a 30; más de 12 % aplica descuento:
   `peso_neto × (H − 12) / (100 − H)`. Se divide entre `100 − H` (no `100 − 12`) a propósito:
   regla confirmada por el responsable el 2026-11-02.

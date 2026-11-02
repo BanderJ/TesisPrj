@@ -134,7 +134,7 @@ monitoreo por evaluación, escrita en la misma transacción que el código EVA).
   (`src/utilities/documento_validador.py`, compartido por caficultor y persona).
 - Mayoría de edad (18) para registrar personas.
 - Humedad: entero 1–30. Más de 12 % aplica castigo proporcional al peso neto.
-- Peso bruto ≤ `num_sacos × 70 kg` y **mayor que la tara** `round(num_sacos × 0.25)` (desde 2026-09-30).
+- Peso bruto ≤ `num_sacos × 70 kg` y **mayor que la tara** `num_sacos × 0.25` kg (desde 2026-09-30; sin redondeo desde 2026-11-02).
 - Rangos de precio sin solapamiento y con precio no decreciente.
 - Ante cualquier umbral o regla que el usuario no haya dado: **preguntar antes de implementar**.
 

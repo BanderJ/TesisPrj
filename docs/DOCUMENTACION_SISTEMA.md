@@ -155,7 +155,7 @@ Una **evaluación** es el análisis completo de un lote de café de un caficulto
 
 ### Fase 1 — Registro (`/registro`)
 
-El evaluador ingresa: documento del caficultor, número de sacos, peso bruto (máximo 70 kg por saco y **mayor que la tara** `round(num_sacos × 0.25)`, desde el 2026-09-30), humedad (**% entero, 1–30** — sin decimales, validada en el formulario y en el schema), peso de muestra, peso trillado, número de tamiz, peso tamizado y tipo de grano. Requisitos validados antes de crear:
+El evaluador ingresa: documento del caficultor, número de sacos, peso bruto (máximo 70 kg por saco y **mayor que la tara** `num_sacos × 0.25` kg, desde el 2026-09-30; sin redondeo desde el 2026-11-02), humedad (**% entero, 1–30** — sin decimales, validada en el formulario y en el schema), peso de muestra, peso trillado, número de tamiz, peso tamizado y tipo de grano. Requisitos validados antes de crear:
 - El caficultor debe existir y estar **activo**.
 - Debe haber **precios de café registrados** (sin ellos no se puede calcular el pago al finalizar).
 

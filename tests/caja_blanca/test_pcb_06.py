@@ -1,7 +1,7 @@
 """PCB-06 · EvaluacionService.completar_evaluacion(): castigo por humedad y peso por quintal (C1, C2 y C3).
 
 Datos: 4 sacos, peso bruto 200.00 kg, Pergamino (55.20 kg/qq), precio del rango S/ 2000,
-caficultor Externo (sin beneficio de socio). Tara = round(4 × 0.25) = 1; peso neto = 199.00.
+caficultor Externo (sin beneficio de socio). Tara = 4 × 0.25 = 1.00 (sin redondeo); peso neto = 199.00.
 Los esperados salen de las fórmulas de la sección 5 de DOCUMENTACION_SISTEMA.md.
 """
 from decimal import Decimal

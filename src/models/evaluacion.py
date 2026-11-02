@@ -180,7 +180,7 @@ class Evaluacion:
         peso_malo: Decimal,
         factor_rendimiento: Decimal,
         tara_saco: Decimal,
-        tara_total: int,
+        tara_total: Decimal,
         peso_neto: Decimal,
         peso_por_qq: Decimal,
         pago: Decimal,

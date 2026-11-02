@@ -177,7 +177,7 @@ CASOS: dict[str, dict[str, Any]] = {
         "funciones_cov": ["EvaluacionService.completar_evaluacion"],
         "preparar": "Simular una evaluación de 4 sacos y 200.00 kg, Pergamino (55.20 kg/qq), caficultor Externo y precio S/ 2000.",
         "fragmento": [
-            ("tara_total         = int(round", "pago_base   = (peso_por_qq * precio)", 0),
+            ("tara_total         = (num_sacos * tara_saco)", "pago_base   = (peso_por_qq * precio)", 0),
         ],
         "marcas": [
             ("if humedad > Decimal(\"12.00\"):", "# C2"),

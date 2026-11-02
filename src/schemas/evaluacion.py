@@ -3,6 +3,10 @@ from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field, model_validator
 
+# Peso de un saco vacío. La tara del lote es num_sacos × este valor, sin redondear:
+# se resta tal cual del peso bruto. Lo usan este schema y EvaluacionService.completar.
+TARA_POR_SACO_KG = Decimal("0.25")
+
 
 class RegistrarEvaluacionRequest(BaseModel):
     num_documento: str = Field(..., pattern=r"^[A-Za-z0-9]{8,12}$")
@@ -28,11 +32,11 @@ class RegistrarEvaluacionRequest(BaseModel):
             )
         # Mismo cálculo de tara que EvaluacionService.completar: si el peso total no la
         # supera, el peso neto sale <= 0 y el pago se calcula negativo.
-        tara_total = int(round(self.num_sacos * 0.25))
+        tara_total = self.num_sacos * TARA_POR_SACO_KG
         if self.peso_bruto <= tara_total:
             raise ValueError(
                 f"El peso total debe ser mayor a la tara de los sacos: {tara_total} kg "
-                f"({self.num_sacos} sacos × 0.25 kg). Verifique el peso total o el número de sacos."
+                f"({self.num_sacos} sacos × {TARA_POR_SACO_KG} kg). Verifique el peso total o el número de sacos."
             )
         if self.peso_muestra not in self.PESOS_MUESTRA_VALIDOS:
             raise ValueError("El peso de muestra debe ser 100, 150, 200, 250 o 300 gr.")

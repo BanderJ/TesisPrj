@@ -342,7 +342,7 @@ finally:
 |---|---|---|
 | DNI (Persona) | Exactamente 8 dígitos | [src/utilities/documento_validador.py](src/utilities/documento_validador.py) |
 | Pasaporte / Carnet | 8–12 caracteres alfanuméricos | [src/utilities/documento_validador.py](src/utilities/documento_validador.py) |
-| Peso bruto | ≤ `num_sacos × 70` kg y mayor que la tara `round(num_sacos × 0.25)` | [src/schemas/evaluacion.py](src/schemas/evaluacion.py) |
+| Peso bruto | ≤ `num_sacos × 70` kg y mayor que la tara `num_sacos × 0.25` kg, sin redondeo | [src/schemas/evaluacion.py](src/schemas/evaluacion.py) |
 | Humedad | Entero 1–100 | [src/schemas/evaluacion.py](src/schemas/evaluacion.py) |
 | Peso de grano bueno | Entero en gramos, ≤ peso tamizado | backend valida en `/evaluacion/{id}/completar` |
 

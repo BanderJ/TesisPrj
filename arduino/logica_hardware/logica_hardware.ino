@@ -17,6 +17,13 @@ const int   SENTIDO                = -1;     // giro de la faja: 1 = IN1 alto, -
 const int   ANGULO_BUENO           = 0;      // servo: posición reposo — granos buenos/verdes
 const int   ANGULO_DEFECTO         = 15;     // servo: separador — granos defectuosos
 const unsigned long MS_DISTANCIA   = 100;    // reporte sensor cada 100 ms
+// Timeout del eco del ultrasónico. Solo importa saber si la tapa está a menos de
+// DISTANCIA_UMBRAL (5.30 cm, eco de ~310 µs): cualquier lectura mayor ya es NO_LISTO.
+// 5000 µs alcanzan ~85 cm más el retardo con que el sensor levanta ECHO tras el
+// disparo, y bloquean el loop como máximo 5 ms en vez de 30 ms: un SERVO:DEFECTO que
+// llega durante la medición ya no espera hasta 30 ms para ejecutarse.
+// Sin eco en ese tiempo se informa NO_LISTO:-1.00, igual que antes.
+const unsigned long ECO_TIMEOUT_US = 5000;
 
 Servo  servoSeparador;
 
@@ -117,7 +124,7 @@ float leerUltrasonico() {
   digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
-  long dur = pulseIn(ECHO_PIN, HIGH, 30000);
+  long dur = pulseIn(ECHO_PIN, HIGH, ECO_TIMEOUT_US);
   if (dur == 0) return -1.0;
   return dur * 0.0343 / 2.0;
 }

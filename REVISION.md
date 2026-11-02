@@ -36,6 +36,8 @@ Corregido en el código:
 | 2.11 Códigos HTTP | En evaluación: 404 solo si no existe (`NoEncontradoError`), 400 reglas de negocio, 409 al finalizar sin conteo. |
 | 2.12 Subida de imágenes | Lógica en `cooperativa_service`; formato verificado con Pillow; se lee como máximo 5 MB + 1 byte; se borra el logo reemplazado. |
 | 3.8 Buffer serie | Tope de 32 caracteres con memoria reservada. |
+| 2.9 Redondeo de la tara | El responsable confirmó que la tara no se redondea: `num_sacos × 0.25` kg tal cual (2 sacos = 0.50 kg). `tara_total` pasa a `numeric(7, 2)` (`src/database/migracion_tara_sin_redondeo.sql`); schema, service y `registro.js` usan el mismo cálculo. |
+| 3.2 `pulseIn` | Timeout de 5000 µs (antes 30 000): el umbral de la tapa es 5.30 cm y el loop queda bloqueado como máximo 5 ms. Falta comprobar en el prototipo que siga apareciendo `LISTO:` con la tapa cerrada. |
 | 4.3 / 4.4 Notebook y rutas | `deterministic=True`, `results.save_dir`, versiones impresas y `metadata.json` con SHA-256 de `best.pt`; rutas de `main.py` y de evidencias ancladas al proyecto. |
 
 Pendiente, con el motivo:
@@ -50,9 +52,7 @@ Pendiente, con el motivo:
 | 2.6 Pool de conexiones | Necesita prueba de carga para fijar el tamaño del pool sin agotar conexiones. |
 | 2.7 Rol leído del JWT y límite de intentos | El rol desde la BD cambia la prueba PCB-02; el límite de intentos necesita un número que debe fijar el responsable. |
 | 2.8 Topes de lote | Regla de negocio: falta el tamaño máximo de lote. |
-| 2.9 Redondeo de la tara | Falta confirmar si 0,5 se redondea hacia arriba (hoy `round()` de Python: 2 sacos → 0 kg, 10 sacos → 2 kg). |
 | 3.1, 3.4, 3.5, 3.6 Watchdog, DTR, estado sin hora, hilos | Tocan `arduino_serial.py` o el protocolo: requieren permiso. |
-| 3.2 `pulseIn` | El nuevo timeout depende de la distancia real de la tapa abierta; falta ese dato. |
 | 3.3 Velocidad de la faja | Ya registrado como pendiente A (recalibrar `SERVO_DELAY_S` a PWM 90). |
 | 4.1 Versiones fijadas | Hay que hacer `pip freeze` en la laptop de producción con el `torch+cu130` real. |
 | 4.2, 4.5 Notebook v6 y métricas sobre fotos ELP | Requieren archivos y etiquetas que están en Google Drive. |
