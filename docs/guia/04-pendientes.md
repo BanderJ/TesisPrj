@@ -68,8 +68,8 @@ del uso real en la cooperativa; **C** = mejora o deuda técnica.
 
 | Prio | Pendiente | Detalle |
 |---|---|---|
-| B | [ ] Regenerar los `.docx` de instalación y mantenimiento | `python convert_md_to_docx.py` convierte todos los `.md` de `docs/manuales/` (o los que se le pasen). `INSTALACION.md` se eliminó por duplicar el Manual de Instalación |
+| B | [x] Conservar solo el Manual de Usuario como manual de entrega (2026-11-01; sin commit) | Retirados los otros manuales, su conversor y las referencias asociadas. Se conserva el Word de usuario, su respaldo y sus archivos de apoyo. |
 | C | [x] Manual de Usuario sin fuente Markdown | Resuelto: el Manual de Usuario se mantiene solo en Word (`docs/manuales/Manual_Usuario_CoffeeRen.docx`), sin fuente Markdown ni conversión; `generar_manual_completo.py` eliminado el 2026-10-27. |
 | C | [x] Documentos citados que ya no están en el repo | Resuelto 2026-09-30: la sección de referencias del registro de incidencias y `docs/documentacion/README.md` indican el commit para recuperarlos |
-| C | [x] Limpieza de la raíz (2026-09-30) | Eliminados `corrida.log` y `latencia.log` (volcados de consola) y `*.log` añadido a `.gitignore`. Se conservan `check_model.py` y `convert_md_to_docx.py` (herramientas en uso); podrían moverse a `scripts/`. `generar_manual_completo.py` se eliminó el 2026-10-27 |
+| C | [x] Limpieza de la raíz (2026-09-30) | Eliminados `corrida.log` y `latencia.log` (volcados de consola) y `*.log` añadido a `.gitignore`. Se conserva `check_model.py` como herramienta de diagnóstico. `generar_manual_completo.py` se eliminó el 2026-10-27. |
 | C | [ ] `docs/defectos_sca_tabla_referencia.md` | Tabla pensada para 17 clases; actualizar cuando la cooperativa valide la tabla oficial |

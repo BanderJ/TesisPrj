@@ -248,4 +248,4 @@ Cambiar cualquiera de estos valores requiere aprobación del usuario.
 - Cerrar o actualizar en `docs/incidencias/incidencia_proyecto.md`: INC-63 (evaluación formal)
   e INC-65 (domain gap).
 - Agregar una entrada en `docs/registro-avances.md` y en [05-historial-de-cambios.md](05-historial-de-cambios.md).
-- Actualizar el Manual de Mantenimiento si el procedimiento cambió.
+- Actualizar esta guía si el procedimiento cambió.

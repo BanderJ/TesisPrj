@@ -298,5 +298,5 @@ No existe suite de tests (solo `tests/verificacion_incremento_1.py`). `best.onnx
 - `docs/hardware-camara.md` — cámara ELP y calibración
 - `docs/defectos_sca_tabla_referencia.md` — tabla de equivalencias SCA (pendiente de validación oficial)
 - `docs/documentacion/` — documentos de tesis (referencia histórica: describen el plan de mayo-junio)
-- `docs/manuales/` — manuales de instalación y mantenimiento
+- `docs/manuales/Manual_Usuario_CoffeeRen.docx` — único manual de entrega, mantenido directamente en Word
 - `AGENTS.md` — reglas de desarrollo para cualquier asistente de IA (`CLAUDE.md` y `GEMINI.md` lo importan)

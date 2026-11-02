@@ -202,8 +202,7 @@ El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
 | Incidencias formales (leerlo entero antes de editarlo) | `docs/incidencias/incidencia_proyecto.md` |
 | API de video | `docs/API_VIDEO_STREAMING.md` |
 | Cámara | `docs/hardware-camara.md` |
-| Manual de usuario (solo Word, sin fuente Markdown ni conversión) | `docs/manuales/Manual_Usuario_CoffeeRen.docx` |
-| Manuales de instalación y mantenimiento (`.md` → `.docx` con `convert_md_to_docx.py`) | `docs/manuales/` |
+| Único manual de entrega: usuario (solo Word, sin fuente Markdown ni conversión) | `docs/manuales/Manual_Usuario_CoffeeRen.docx` |
 | Evidencias de indicadores de tesis | `docs/evidencias/` |
 
 Al terminar un cambio relevante: agrega una línea a `docs/guia/05-historial-de-cambios.md`,

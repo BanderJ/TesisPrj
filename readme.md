@@ -61,8 +61,6 @@ psql -U postgres -d tesis_prj -f src/database/script.sql
 # → best.pt    descargar de Google Drive (se usa en GPU, FP16)
 ```
 
-Guía completa de despliegue: [Manual_Instalacion_CoffeeRen.md](docs/manuales/Manual_Instalacion_CoffeeRen.md).
-
 ## Ejecución
 
 ```powershell
@@ -117,7 +115,7 @@ TesisPrj/
 │   └── test_motor_2/           # Sketch de prueba aislada del motor (banco)
 ├── docs/
 │   ├── guia/                   # Guía de contexto: empezar aquí
-│   ├── manuales/               # Instalación y mantenimiento
+│   ├── manuales/               # Manual de usuario en Word y archivos de apoyo
 │   ├── incidencias/            # Registro formal de incidencias
 │   ├── evidencias/             # Ensayos de latencia (indicadores de tesis)
 │   ├── DOCUMENTACION_SISTEMA.md
@@ -374,7 +372,7 @@ notebook en `src/ml/models/yolov26n_2cls_new/`.
 | [docs/hardware-camara.md](docs/hardware-camara.md) | Ficha técnica y calibración de la cámara |
 | [docs/incidencias/incidencia_proyecto.md](docs/incidencias/incidencia_proyecto.md) | Registro de incidencias |
 | [docs/defectos_sca_tabla_referencia.md](docs/defectos_sca_tabla_referencia.md) | Tabla de referencia de defectos SCA |
-| [docs/manuales/](docs/manuales/) | Manuales de instalación y mantenimiento |
+| [Manual de usuario](docs/manuales/Manual_Usuario_CoffeeRen.docx) | Único manual de entrega, mantenido directamente en Word |
 | [AGENTS.md](AGENTS.md) | Reglas de desarrollo para cualquier asistente de IA (Claude, GPT, Gemini, Copilot) |
 
 ## Testing

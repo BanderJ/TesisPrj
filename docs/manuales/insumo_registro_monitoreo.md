@@ -228,7 +228,7 @@ El indicador **Faja** cambia solo al arrancar y al detener la faja; no se consul
 | "No se pudo iniciar la faja. Verifique la conexión Arduino." (`arduino_service.py:71`, `monitoreo.js:434`) | La faja no arrancó | Revisar cable y alimentación del Arduino |
 | "No se pudo detener la faja. Verifique la conexión Arduino." (`monitoreo.js:444`) | Falla la orden de parada | Revisar el Arduino; apagar la faja a mano si sigue andando |
 | Arduino sin conexión o sin respuesta | **No hay mensaje en el registro**: solo cambia el indicador a "Arduino: sin conexión" o "Arduino: sin respuesta". Mientras dure, no se registran aperturas de tapa (`monitoreo.js:407-409`) | Revisar el cable USB del Arduino |
-| Error al cargar el modelo | **No hay mensaje en pantalla.** El modelo se carga una vez al arrancar el servidor; si falta el archivo, el servidor no arranca (`src/ml/tracker.py:93`, `:180`) y la página no abre | Avisar al responsable técnico (Manual de Mantenimiento) |
+| Error al cargar el modelo | **No hay mensaje en pantalla.** El modelo se carga una vez al arrancar el servidor; si falta el archivo, el servidor no arranca (`src/ml/tracker.py:93`, `:180`) y la página no abre | Avisar al responsable técnico |
 | "Generando reporte ..." (`monitoreo.js:515`) | Al finalizar | Queda detrás de la ventana de finalización |
 | "Reporte: {N} defectos equiv." (`monitoreo.js:519`) | Al finalizar | Ídem |
 | "Error al generar reporte: " + motivo (`monitoreo.js:521`) | Falla el reporte al finalizar | Ídem |

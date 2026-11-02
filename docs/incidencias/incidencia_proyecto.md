@@ -447,7 +447,7 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Área:** Detección / ML / Infraestructura.
 - **Qué se detectó:** los archivos `best.pt` / `best.onnx` (varios MB) no deben ir al repositorio, pero sin ellos la app no arranca.
 - **Causa raíz:** límite práctico de tamaño en Git para binarios que cambian con cada reentrenamiento.
-- **Solución:** los pesos se distribuyen por Google Drive y se colocan en `src/ml/models/{modelo}/`; el tracker prueba `best.onnx` primero y cae a `best.pt`. Documentado en los manuales de instalación.
+- **Solución:** los pesos se distribuyen por Google Drive y se colocan en `src/ml/models/{modelo}/`; el tracker prueba `best.onnx` primero y cae a `best.pt`.
 - **Gravedad:** Media. **Estado:** Mitigada (requiere paso manual en cada instalación).
 - **Evidencia:** commit `0c06b79` (2026-06-15); `CLAUDE.md`; `docs/DOCUMENTACION_SISTEMA.md`.
 
@@ -562,13 +562,13 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Gravedad:** Media. **Estado:** Resuelta.
 - **Evidencia:** commit `dcf68a8` (2026-07-04).
 
-### INC-52 · Manuales con datos obsoletos
+### INC-52 · Documentación de infraestructura con datos obsoletos
 - **Área:** Documentación.
-- **Qué se detectó:** los manuales referían la base de datos como `coffeeren`, no exigían PostgreSQL 18 y omitían la descarga de los pesos del modelo.
+- **Qué se detectó:** la documentación refería la base de datos como `coffeeren`, no exigía PostgreSQL 18 y omitía la descarga de los pesos del modelo.
 - **Causa raíz:** la documentación no se actualizó al ritmo de los cambios de infraestructura.
-- **Solución:** se corrigió: la BD es `tesis_prj`, se requiere PostgreSQL 18 (el esquema usa `uuidv7()` nativo), baudrate Arduino 9600, y la instalación debe incluir la descarga de `best.onnx` a `src/ml/models/yolov26n_2cls/` (sin él la app no arranca). Se añadieron los manuales de instalación y mantenimiento y `docs/DOCUMENTACION_SISTEMA.md`.
+- **Solución:** se corrigió: la BD es `tesis_prj`, se requiere PostgreSQL 18 (el esquema usa `uuidv7()` nativo), baudrate Arduino 9600, y la instalación debe incluir la descarga de `best.onnx` a `src/ml/models/yolov26n_2cls/` (sin él la app no arranca). Se añadió `docs/DOCUMENTACION_SISTEMA.md`.
 - **Gravedad:** Media. **Estado:** Resuelta.
-- **Evidencia:** commits `199e023` (2026-07-11), `33d8584` (2026-07-11); memoria de manuales y documentación.
+- **Evidencia:** commits `199e023` (2026-07-11), `33d8584` (2026-07-11); `docs/DOCUMENTACION_SISTEMA.md`.
 
 ### INC-53 · Cámara cae a YUY2 (~9 fps) por no fijar MJPEG antes del primer `read()`
 - **Área:** Cámara (CRISP-ML(Q) Fase 6, validación técnica local).
@@ -721,7 +721,7 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 4. **Umbrales de confianza bajos + filtros posteriores (ByteTrack, votación por mayoría, compuerta de evidencia) dan mejor recall que un umbral alto.** En control de calidad se prefiere el falso positivo (INC-14, INC-54, INC-55).
 5. **El hardware de bajo costo impone su realidad.** Los clones de Arduino con resonador cerámico forzaron el pesaje manual (INC-44); el lente varifocal barato obliga a un protocolo de bloqueo y calibración (INC-56).
 6. **PowerShell en Windows introduce trampas propias** (BOM UTF-8, codificaciones): preferir herramientas que escriban UTF-8 sin BOM (INC-21, INC-25).
-7. **La documentación se desactualiza rápido.** Nombre de la BD, versión de PostgreSQL, baudrate y la necesidad de descargar los pesos del modelo estuvieron mal en los manuales hasta el Sprint 4 (INC-52).
+7. **La documentación se desactualiza rápido.** Nombre de la BD, versión de PostgreSQL, baudrate y la necesidad de descargar los pesos del modelo estuvieron mal documentados hasta el Sprint 4 (INC-52).
 8. **El código muerto se acumula por capas.** Scaffolding de CRUD que la UI nunca usó, endpoints reemplazados sin borrar y utilidades sin cablear se arrastraron hasta que una auditoría cruzada de endpoints contra consumidores los sacó (INC-50, INC-59). Conviene revisar "¿esto lo llama alguien?" al cerrar cada funcionalidad, no solo al final.
 9. **Un catálogo central de mensajes no siempre ayuda (INC-60).** Un módulo `utilities/mensajes.py` con constantes y helpers solo paga si los textos se repiten de verdad; si cada mensaje aparece una sola vez, agrega indirección (leer la ruta + saltar al catálogo + reconstruir la plantilla) sin quitar duplicación. Lo que sí escala es el handler que normaliza el formato de salida (`RequestValidationError` → `detail` string) y un único extractor en el frontend; el texto se queda como literal donde se lanza.
 10. **Los criterios de calidad y gobierno de ML definidos en la planificación no sobreviven automáticamente a un cronograma ajustado con un solo desarrollador.** IRA con experto, control de fuga de datos por hash, seguimiento de experimentos con MLflow, la Fase 4 formal (matriz de confusión, pruebas de robustez) y el monitoreo de deriva en producción quedaron todos planificados en el backlog inicial pero sin ejecutar (INC-62, INC-63, INC-64): sin un responsable dedicado a QA, estas actividades se posponen frente a las que bloquean la demo funcional. Quedan como deuda de aseguramiento de calidad a saldar antes de un despliegue real con la cooperativa.

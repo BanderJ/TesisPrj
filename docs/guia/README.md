@@ -36,7 +36,7 @@ Copilot): [AGENTS.md](../../AGENTS.md). `CLAUDE.md` y `GEMINI.md` lo importan y
 | [docs/LIBRERIAS.md](../LIBRERIAS.md) | Qué hace cada librería del `requirements.txt` y dónde se usa. |
 | [docs/incidencias/incidencia_proyecto.md](../incidencias/incidencia_proyecto.md) | Registro formal de incidencias INC-01…INC-68 organizado por los 4 sprints de `CRONOGRAMA.xlsx`. |
 | [docs/evidencias/](../evidencias/) | Evidencia de indicadores de tesis: ensayo de latencia (≤ 200 ms) y CSV crudos. |
-| [docs/manuales/](../manuales/) | Manual de Usuario: solo [Manual_Usuario_CoffeeRen.docx](../manuales/Manual_Usuario_CoffeeRen.docx), sin fuente Markdown ni conversión. Instalación y mantenimiento: fuentes Markdown de los `.docx`, convertidas con `convert_md_to_docx.py`. |
+| [docs/manuales/](../manuales/) | Único manual de entrega: [Manual_Usuario_CoffeeRen.docx](../manuales/Manual_Usuario_CoffeeRen.docx), mantenido directamente en Word, con sus archivos de apoyo. |
 | [docs/registro-avances.md](../registro-avances.md) | Bitácora de avances por fecha (destino por defecto de la skill `documentacion-informes`). |
 | [docs/guion-video-sustentacion.md](../guion-video-sustentacion.md) | Guion del video de sustentación (rúbrica de 20 criterios). |
 | `docs/CRONOGRAMA.xlsx` | Cronograma vigente: 4 sprints, 8 semanas, hitos 30/50/100 %. |
