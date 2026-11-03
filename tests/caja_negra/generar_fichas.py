@@ -68,6 +68,8 @@ def llenar_ficha(tbl, caso: dict[str, Any], resultado: dict[str, Any] | None) ->
         poner_valor(celda(tbl, 15, 0), 1, resultado.get("observaciones") or "", molde_run)
         marcar(celda(tbl, 14, 1), [resultado["veredicto"]])
         marcar(celda(tbl, 15, 1), resultado["evidencia"])
+    elif caso.get("Nota"):
+        poner_valor(celda(tbl, 15, 0), 1, caso["Nota"], molde_run)
 
     quitar_guias(tbl)
     no_partir(tbl)
@@ -92,6 +94,14 @@ def generar() -> Path:
                 if codigo in manuales:
                     fichas_manuales[codigo] = copy.deepcopy(tabla._tbl)
         sect_pr = conservar_introduccion(doc, (plantilla, *fichas_manuales.values()))
+        aprobados = sum(resultados.get(c["Código"], {}).get("veredicto") == "Aprobado" for c in casos)
+        fallidos = sum(resultados.get(c["Código"], {}).get("veredicto") == "Fallido" for c in casos)
+        actualizar_valores_portada(doc, {
+            "Alcance": f"{len(casos)} casos ({casos[0]['Código']} a {casos[-1]['Código']})",
+            "Casos aprobados": f"{aprobados} de {len(casos)}",
+            "Casos fallidos": str(fallidos),
+            "Casos pendientes": str(len(casos) - aprobados - fallidos),
+        })
         if resultados:
             actualizar_valores_portada(doc, {
                 "Fecha de ejecución": next(iter(resultados.values()))["fecha"],
@@ -111,8 +121,10 @@ def generar() -> Path:
             llenar_ficha(tbl, caso, resultado)
         elementos.append(tbl)
         imagen = CARPETA / "evidencias" / f"{codigo}.png"
-        if resultado and imagen.exists():
-            elementos.extend(agregar_evidencia(doc, codigo, imagen))
+        if imagen.exists():
+            elementos.extend(agregar_evidencia(
+                doc, codigo, imagen, pie=f"Figura {codigo}. {caso['Caso de prueba']}"
+            ))
         else:
             # Página editable para incorporar la evidencia que falta.
             elementos.append(salto_de_pagina(doc))

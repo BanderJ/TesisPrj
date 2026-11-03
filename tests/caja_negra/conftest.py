@@ -230,7 +230,7 @@ def precios_de_hoy() -> None:
 
 
 def evaluacion_finalizada(api: httpx.Client) -> dict[str, Any]:
-    """Precondición de PCN-11 a PCN-15 y PCN-22 a PCN-24: muestra registrada
+    """Precondición de PCN-11 a PCN-15 y PCN-20 a PCN-22: muestra registrada
     (MUESTRA_BASE) y monitoreo finalizado. Devuelve evaluacion_id y codigo.
 
     El conteo que se guarda al finalizar lo toma el servidor de su tracker, así

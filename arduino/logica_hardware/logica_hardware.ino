@@ -12,7 +12,7 @@
 
 // === AJUSTES ===
 const float DISTANCIA_UMBRAL       = 5.30;   // cm — verificación de tapa
-const int   VELOCIDAD              = 80;    // velocidad faja (0-255; 255 = máxima).
+const int   VELOCIDAD              = 90;    // velocidad faja (0-255; 255 = máxima).
 const int   SENTIDO                = -1;     // giro de la faja: 1 = IN1 alto, -1 = IN2 alto (validado en test_motor_2)
 const int   ANGULO_BUENO           = 0;      // servo: posición reposo — granos buenos/verdes
 const int   ANGULO_DEFECTO         = 30;     // servo: separador — ajuste probado en servito.ino
