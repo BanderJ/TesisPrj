@@ -31,31 +31,35 @@
 		texto('tdTamizado',    conUnidad(d.peso_tamizado, ' gr'));
 	}
 
-	/** Totales del lote: indicadores y barras de distribución. */
+	/** Totales del lote: indicadores y gráfico circular de distribución. */
 	function conteo(defectos, buenos) {
+		const disponible = defectos != null && buenos != null;
+		const total = disponible ? defectos + buenos : 0;
+		const pctDefectos = total > 0 ? (defectos / total) * 100 : 0;
+		const pctBuenos = total > 0 ? 100 - pctDefectos : 0;
+		const porcentaje = valor => `${numero(Number(valor.toFixed(1)))}%`;
+		texto('grainTotal', disponible ? numero(total) : '—');
+		texto('grainChartState', disponible ? (total > 0 ? 'Granos evaluados' : 'Sin granos') : 'Sin conteo');
+		texto('dNegroVal', disponible ? numero(defectos) : '—');
+		texto('dSanoVal', disponible ? numero(buenos) : '—');
+		texto('dNegroPct', disponible ? porcentaje(pctDefectos) : '—');
+		texto('dSanoPct', disponible ? porcentaje(pctBuenos) : '—');
+		$('grainGoodArc').setAttribute('stroke-dasharray', total > 0 ? '100 0' : '0 100');
+		$('grainDefectArc').setAttribute('stroke-dasharray', `${pctDefectos} ${100 - pctDefectos}`);
+		$('grainChart').setAttribute('aria-label', !disponible
+			? 'No hay un conteo disponible para esta evaluación.'
+			: total === 0 ? 'Sin granos detectados en esta evaluación.'
+				: `${numero(total)} granos evaluados: ${numero(defectos)} defectos (${porcentaje(pctDefectos)}) y ${numero(buenos)} buenos (${porcentaje(pctBuenos)}).`);
 		// Sin totales (evaluación sin monitoreo): limpiar lo de una búsqueda anterior.
-		if (defectos == null || buenos == null) {
+		if (!disponible) {
 			['statGranos', 'statDefectos', 'statSanos', 'statPctDefecto'].forEach((id) => texto(id, '—'));
-			texto('dNegroVal', '0');
-			texto('dSanoVal', '0');
-			$('dNegroBar').style.width = '0%';
-			$('dSanoBar').style.width  = '0%';
 			return;
 		}
-		const total = defectos + buenos;
-		const pct   = total > 0 ? Math.round((defectos / total) * 100) : 0;
 
 		texto('statGranos',     numero(total));
 		texto('statDefectos',   numero(defectos));
 		texto('statSanos',      numero(buenos));
-		texto('statPctDefecto', `${pct}%`);
-		texto('dNegroVal',      numero(defectos));
-		texto('dSanoVal',       numero(buenos));
-
-		requestAnimationFrame(() => {
-			$('dNegroBar').style.width = `${pct}%`;
-			$('dSanoBar').style.width  = `${total > 0 ? 100 - pct : 0}%`;
-		});
+		texto('statPctDefecto', `${Math.round(pctDefectos)}%`);
 	}
 
 	/** Pinta el rendimiento calculado. Devuelve false si la evaluación aún no lo tiene. */

@@ -152,7 +152,13 @@ def agregar_evidencia(
     p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p_img.paragraph_format.space_before = Pt(6)
     p_img.paragraph_format.keep_with_next = True
-    p_img.add_run().add_picture(str(imagen), width=Cm(ancho_cm))
+    figura = p_img.add_run().add_picture(str(imagen), width=Cm(ancho_cm))
+    seccion = doc.sections[-1]
+    # Reservar espacio para el pie; una evidencia alta no se puede partir.
+    alto_util = seccion.page_height - seccion.top_margin - seccion.bottom_margin - Pt(24)
+    if figura.height > alto_util:
+        figura.width = int(figura.width * alto_util / figura.height)
+        figura.height = alto_util
     p_pie = doc.add_paragraph()
     p_pie.alignment = WD_ALIGN_PARAGRAPH.CENTER
     r_pie = p_pie.add_run(pie or f"Figura {codigo}. Evidencia de la prueba")

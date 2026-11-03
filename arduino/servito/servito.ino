@@ -14,9 +14,10 @@
   de arranque de un servo. Alimentarlo con una fuente de 5 V aparte, uniendo
   los GND.
 
-  Usa los MISMOS valores que logica_hardware.ino (pin, ANGULO_BUENO,
-  ANGULO_DEFECTO, HOLD = SERVO_HOLD_S del backend). No toca motor, ultrasónico
-  ni báscula.
+  Comparte pin, ANGULO_BUENO y ANGULO_DEFECTO con logica_hardware.ino.
+  HOLD_MS solo controla los pulsos manuales P/C. En modo backend, Python
+  controla la duración mediante SERVO_HOLD_S y envía SERVO:BUENO para volver.
+  No toca motor, ultrasónico ni báscula.
 
   ── Modo manual ─────────────────────────────────────────────────────────
   Cargar el sketch, abrir Monitor Serie a 9600 baud (fin de línea: NL) y
@@ -24,7 +25,7 @@
 
     D     → posición DEFECTO (ANGULO_DEFECTO)
     B     → posición BUENO (ANGULO_BUENO)
-    P     → pulso como en producción: DEFECTO, sostiene HOLD_MS, vuelve a BUENO
+    P     → pulso manual: DEFECTO, sostiene HOLD_MS, vuelve a BUENO
     C     → 10 pulsos seguidos (uno cada segundo) para ver si es constante
     G<n>  → mover a un ángulo exacto, ej: G30 (0-180), para hallar el ángulo
             que de verdad saca el grano de la faja
@@ -38,10 +39,11 @@
     - LED enciende y el servo se mueve  → backend y servo bien.
     - LED enciende y el servo NO se mueve → falla física (ver modo manual).
     - LED no enciende                    → el backend no envía el comando
-      (revisar la consola: líneas [servo-debug] y [ArduinoSerial]).
+      (revisar [servo-debug] con ML_DEBUG_SERVO=true y los errores [ArduinoSerial];
+      no se registra cada envío exitoso del servo ni su instante).
   La faja no arranca con este sketch: mover el grano a mano bajo la cámara.
 
-  Si el ángulo que funciona no es 15, cambiar ANGULO_DEFECTO aquí y en
+  Si se vuelve a ajustar el ángulo, mantener ANGULO_DEFECTO igual aquí y en
   logica_hardware.ino.
 */
 
@@ -51,8 +53,8 @@
 #define LED_PIN    13  // LED de la placa: aviso de comando recibido
 
 const int ANGULO_BUENO   = 0;    // igual que logica_hardware.ino
-const int ANGULO_DEFECTO = 15;   // igual que logica_hardware.ino
-const unsigned long HOLD_MS     = 300;   // = SERVO_HOLD_S (0.3 s) del backend
+const int ANGULO_DEFECTO = 30;   // igual que logica_hardware.ino
+const unsigned long HOLD_MS     = 300;   // 0.3 s, solo para pulsos manuales P/C
 const unsigned long LED_AVISO_MS = 1000;
 
 Servo servoSeparador;
@@ -153,7 +155,7 @@ void procesarComando(String cmd) {
   }
 }
 
-// Mismo movimiento que hace el backend por un grano defectuoso.
+// Pulso manual bloqueante; el backend controla su propia duración.
 void pulso() {
   mover(ANGULO_DEFECTO);
   delay(HOLD_MS);

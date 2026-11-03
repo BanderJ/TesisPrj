@@ -76,7 +76,7 @@
 		</table>
 	</div>
 
-	<div class="analisis-section">
+	<div class="analisis-section analisis-section--granos">
 		<h3>Granos detectados</h3>
 		{% if modo == 'analisis' %}
 		<div class="clasificacion-row" id="pesoCaptRow" hidden>
@@ -88,19 +88,32 @@
 		{% endif %}
 
 		<p class="section-sublabel">Distribución de granos</p>
-		<div class="defect-stat">
-			<div class="defect-stat-header">
-				<span>Defectos</span>
-				<strong id="dNegroVal">0</strong>
+		<div class="grain-distribution">
+			<div class="grain-chart" id="grainChart" role="img" aria-label="No hay un conteo disponible para esta evaluación.">
+				<svg viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+					<circle class="grain-chart-track" cx="100" cy="100" r="78"/>
+					<g transform="rotate(-90 100 100)">
+						<circle class="grain-chart-good" id="grainGoodArc" cx="100" cy="100" r="78" pathLength="100" stroke-dasharray="0 100"/>
+						<circle class="grain-chart-defect" id="grainDefectArc" cx="100" cy="100" r="78" pathLength="100" stroke-dasharray="0 100"/>
+					</g>
+				</svg>
+				<div class="grain-chart-center" aria-hidden="true">
+					<strong id="grainTotal">—</strong>
+					<span id="grainChartState">Sin conteo</span>
+				</div>
 			</div>
-			<div class="defect-track"><div class="defect-bar negro" id="dNegroBar"></div></div>
-		</div>
-		<div class="defect-stat">
-			<div class="defect-stat-header">
-				<span>Buenos</span>
-				<strong id="dSanoVal">0</strong>
-			</div>
-			<div class="defect-track"><div class="defect-bar sano" id="dSanoBar"></div></div>
+			<ul class="grain-legend" aria-label="Distribución de granos por categoría">
+				<li>
+					<span class="grain-legend-dot grain-legend-dot--defect" aria-hidden="true"></span>
+					<span>Defectos</span>
+					<div class="grain-legend-value"><strong id="dNegroVal">—</strong><span id="dNegroPct">—</span></div>
+				</li>
+				<li>
+					<span class="grain-legend-dot grain-legend-dot--good" aria-hidden="true"></span>
+					<span>Buenos</span>
+					<div class="grain-legend-value"><strong id="dSanoVal">—</strong><span id="dSanoPct">—</span></div>
+				</li>
+			</ul>
 		</div>
 
 		<p class="analisis-note">

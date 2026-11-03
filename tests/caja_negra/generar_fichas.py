@@ -113,6 +113,10 @@ def generar() -> Path:
         imagen = CARPETA / "evidencias" / f"{codigo}.png"
         if resultado and imagen.exists():
             elementos.extend(agregar_evidencia(doc, codigo, imagen))
+        else:
+            # Página editable para incorporar la evidencia que falta.
+            elementos.append(salto_de_pagina(doc))
+            elementos.append(doc.add_paragraph()._p)
 
     for e in elementos:
         sect_pr.addprevious(e)

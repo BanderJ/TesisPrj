@@ -54,9 +54,9 @@ def por_camino(texto: str, caminos: list[str]) -> dict[str, str]:
     comunes: list[str] = []
     propios: dict[str, list[str]] = {c: [] for c in caminos}
     for linea in (l.strip() for l in str(texto).split("\n") if l.strip()):
-        m = re.match(r"^(C\d(?:\s*y\s*C\d)*)\s*:\s*(.*)$", linea)
+        m = re.match(r"^(C\d+(?:\s*y\s*C\d+)*)\s*:\s*(.*)$", linea)
         if m:
-            for c in re.findall(r"C\d", m.group(1)):
+            for c in re.findall(r"C\d+", m.group(1)):
                 propios[c].append(m.group(2))
         else:
             comunes.append(linea)

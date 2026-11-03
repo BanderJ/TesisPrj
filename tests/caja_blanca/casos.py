@@ -94,14 +94,22 @@ CASOS: dict[str, dict[str, Any]] = {
         "preparar": "Armar los datos de una muestra válida (300 g de muestra, 240 g trillado) y sus variantes.",
         "fragmento": [
             ("peso_bruto: Decimal = Field", "peso_tamizado: Decimal = Field", 0),
-            ("@model_validator", "def validar_pesos", 0),
-            ("if self.peso_trillado > Decimal(\"0.83\")", "return self", 0),
+            ("@model_validator", "return self", 0),
         ],
         "marcas": [
             ("peso_bruto: Decimal = Field", "# C2: peso <= 0"),
+            ("peso_trillado: Decimal = Field", "# C9: hasta 2 decimales"),
+            ("peso_tamizado: Decimal = Field", "# C9: hasta 2 decimales"),
             ("humedad: int = Field", "# C5: humedad <= 30"),
-            ("if self.peso_trillado > Decimal(\"0.83\")", "# C3"),
+            ("if self.peso_bruto > max_peso_bruto:", "# C13"),
+            ("if self.peso_bruto <= tara_total:", "# C14"),
+            ("if self.peso_muestra not in self.PESOS_MUESTRA_VALIDOS:", "# C10"),
+            ("if self.peso_trillado == self.peso_muestra:", "# C11"),
+            ("if self.peso_trillado > self.peso_muestra:", "# C12"),
+            ("if self.peso_trillado * 100 > self.MAX_PORCENTAJE_TRILLADO", "# C3 / C8"),
             ("if self.peso_tamizado > self.peso_trillado:", "# C4"),
+            ("if self.peso_trillado * 100 <= self.MIN_PORCENTAJE_TRILLADO", "# C6"),
+            ("if self.peso_tamizado * 100 <= self.MIN_PORCENTAJE_TAMIZADO", "# C7"),
             ("return self", "# C1"),
         ],
         "obtenido": {
@@ -110,8 +118,17 @@ CASOS: dict[str, dict[str, Any]] = {
             "C3": "ValidationError: \"El peso trillado no puede superar el 83% del peso de muestra\" (83 % de 300 g = 249 g)",
             "C4": "ValidationError: \"El peso tamizado no puede ser mayor al peso trillado\"",
             "C5": "humedad = 30 aceptada; 31 rechazada (less_than_equal, le = 30); 0 rechazada (greater_than_equal, ge = 1); 12.5 rechazada por no ser entera (int_from_float)",
+            "C6": "se rechazan 1 g, 10 g, el 60 % exacto y un valor inferior para las cinco muestras permitidas; se acepta 0.01 g por encima",
+            "C7": "se rechazan tamizados de 1 g, 10 g, el 80 % exacto y valores inferiores; se aceptan pesos superiores y el peso trillado completo, incluidos límites decimales",
+            "C8": "se acepta el 83 % exacto del peso de muestra y se rechaza 0.01 g por encima para las cinco muestras permitidas",
+            "C9": "se rechazan 180.001 g trillados y 192.001 g tamizados por exceder dos decimales, evitando que numeric(7,2) los redondee al mínimo excluido",
+            "C10": "se rechaza una muestra de 125 g: solo se admiten 100, 150, 200, 250 o 300 g",
+            "C11": "se rechazan 300 g trillados para una muestra de 300 g por igualdad",
+            "C12": "se rechazan 300.01 g trillados para una muestra de 300 g por superarla",
+            "C13": "con 4 sacos se aceptan 280.00 kg y se rechazan 280.01 kg (máximo 70 kg por saco)",
+            "C14": "con 4 sacos y tara 1.00 kg se rechazan 0.99 y 1.00 kg; se aceptan 1.01 kg",
         },
-        "observaciones": "El mensaje de C3 no indica el máximo en gramos. C5: el límite de humedad se valida en Field, antes de validar_pesos(), igual que el peso positivo de C2.",
+        "observaciones": "C2/C5/C9 se validan en Field antes de validar_pesos(). C6/C7: mínimos estrictos de 60 % y 80 %, incluido el valor exacto y 0.01 g por encima. C8: máximo inclusivo de 83 %. C10–C14 completan las ramas del validador con las reglas vigentes de muestra, trillado, peso bruto y tara, sin nuevos umbrales.",
     },
     "PCB-04": {
         "archivo": "src/services/evaluacion_service.py",
@@ -177,6 +194,7 @@ CASOS: dict[str, dict[str, Any]] = {
         "funciones_cov": ["EvaluacionService.completar_evaluacion"],
         "preparar": "Simular una evaluación de 4 sacos y 200.00 kg, Pergamino (55.20 kg/qq), caficultor Externo y precio S/ 2000.",
         "fragmento": [
+            ("tara_saco      = TARA_POR_SACO_KG", "tara_saco      = TARA_POR_SACO_KG", 0),
             ("tara_total         = (num_sacos * tara_saco)", "pago_base   = (peso_por_qq * precio)", 0),
         ],
         "marcas": [
@@ -236,7 +254,7 @@ CASOS: dict[str, dict[str, Any]] = {
             ("def _se_superponen", "return a[0] <= b[1]", 0),
             ("if _se_superponen(parsed, parsed_previo):", "raise ValueError(", 0),
             ("if precio_actual < precio_prev:", "raise ValueError(", 0),
-            ("def crear_precios_bloque", "filas = self.model.crear_bloque", 0),
+            ("def crear_precios_bloque", "return ValorCafeCrearBloqueResponse", 0),
         ],
         "marcas": [
             ("if _se_superponen(parsed, parsed_previo):", "# C2"),
@@ -259,7 +277,7 @@ CASOS: dict[str, dict[str, Any]] = {
         "funciones_cov": ["Evaluacion.asignar_codigo", "Evaluacion._generar_codigo"],
         "preparar": "Simular la conexión: evaluación sin código y secuencia evaluacion_codigo_seq en 41.",
         "fragmento": [
-            ("row = db.obtener_uno(", "return row[\"codigo\"]", 0),
+            ("def _generar_codigo", "return row[\"codigo\"]", 0),
             ("existente = db.obtener_uno(", "incidencias_json = json.dumps", 0),
         ],
         "marcas": [
@@ -303,18 +321,19 @@ CASOS: dict[str, dict[str, Any]] = {
     },
     "PCB-11": {
         "archivo": "src/ml/tracker.py",
-        "funcion": "CoffeeRenTracker.procesar_frame() (filtro de tamaño)",
+        "funcion": "CoffeeRenTracker._es_tamano_grano(), llamado por procesar_frame()",
         "modulo_cov": "src.ml.tracker",
-        "funciones_cov": ["CoffeeRenTracker.procesar_frame"],
+        "funciones_cov": ["CoffeeRenTracker._es_tamano_grano", "CoffeeRenTracker.procesar_frame"],
         "preparar": "Crear el tracker con el modelo YOLO, ByteTrack y el servo simulados; armar cajas de 49, 50, 640 y 641 px.",
         "fragmento": [
+            ("def _es_tamano_grano", "and self.GRANO_MIN_PX <= h <= self.GRANO_MAX_PX)", 0),
             ("for pista in tracks:", "for pista in tracks:", 0),
-            ("# Filtro de tamaño: descarta", "and self.GRANO_MIN_PX <= h <= self.GRANO_MAX_PX):", 0),
+            ("# Filtro de tamaño: descarta", "if not self._es_tamano_grano(w, h):", 0),
             ("continue", "continue", 0),
             ("self.conteo_ids_confianza[track_id].append", "self.conteo_ids_confianza[track_id].append", 0),
         ],
         "marcas": [
-            ("if not (self.GRANO_MIN_PX <= w <= self.GRANO_MAX_PX", "# C2: < 50 / C3: > 640"),
+            ("if not self._es_tamano_grano(w, h):", "# C2: < 50 / C3: > 640"),
             ("self.conteo_ids_confianza[track_id].append", "# C1"),
         ],
         "obtenido": {

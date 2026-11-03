@@ -158,6 +158,7 @@ Una **evaluación** es el análisis completo de un lote de café de un caficulto
 El evaluador ingresa: documento del caficultor, número de sacos, peso bruto (máximo 70 kg por saco y **mayor que la tara** `num_sacos × 0.25` kg, desde el 2026-09-30; sin redondeo desde el 2026-11-02), humedad (**% entero, 1–30** — sin decimales, validada en el formulario y en el schema), peso de muestra, peso trillado, número de tamiz, peso tamizado y tipo de grano. Requisitos validados antes de crear:
 - El caficultor debe existir y estar **activo**.
 - Debe haber **precios de café registrados** (sin ellos no se puede calcular el pago al finalizar).
+- Peso trillado **mayor al 60 % y como máximo 83 %** de la muestra; peso tamizado **mayor al 80 % del trillado y sin superarlo** (2026-11-03). La API exige hasta dos decimales en ambos pesos, conforme a `numeric(7, 2)`, para evitar que el almacenamiento los redondee a un mínimo excluido. Las ayudas y el envío del formulario comparten la validación y reciben los porcentajes del schema.
 
 La evaluación se crea **sin código** (estado "activa").
 
@@ -270,7 +271,7 @@ Patrón de **4 capas** — cada feature tiene un archivo en cada capa:
 - **Transacciones multi-tabla**: el service crea una `Connection`, la pasa a cada model, y hace `commit()`/`rollback()` al final, siempre con `try…finally: db.close()`.
 - **ML**: `camara_service` (captura) → `tracker_service` (hilo de procesamiento) → `CoffeeRenTracker` (YOLO+ByteTrack) → `classifier.py` (grado SCA). El modelo se carga **una sola vez** al arranque con warmup; el tracking corre en hilo aparte y las rutas solo hacen polling no bloqueante.
 - **Ciclo de vida** (`main.py` lifespan): al arrancar pre-conecta la cámara; al apagar detiene tracker, apaga la faja (`OFF`), cierra cámara, servo y serial.
-- **Restricciones calibradas físicamente** (no tocar sin permiso): `servo_controller.py`, `arduino_serial.py`, `SERVO_DELAY_S=0.3`, `SERVO_HOLD_S=0.3`, `imgsz=640`, `half` solo condicional por hardware, `track_buffer: 10`, modo emergencia `_on_camara_desconectada()`.
+- **Restricciones de hardware y calibración** (no tocar sin permiso): `servo_controller.py`, `arduino_serial.py`, `SERVO_DELAY_S=0.3`, `SERVO_HOLD_S=0.3`, `imgsz=640`, `half` solo condicional por hardware, `track_buffer: 10`, modo emergencia `_on_camara_desconectada()`. Hold devuelto a 0.3 s por el responsable el 2026-11-03 (con 0.2 s el servo actuaba muy rápido para los defectos); pendiente de validar en producción.
 
 ### Tablas de la base de datos
 

@@ -35,6 +35,7 @@ from src.services.tracker_service import tracker_service
 from src.utilities.arduino_serial import arduino_serial
 from src.utilities.servo_controller import servo_controller
 from src.services.evaluacion_service import EvaluacionService
+from src.schemas.evaluacion import RegistrarEvaluacionRequest
 from src.utilities.jwt_required import (
     RequerirLoginException,
     obtener_usuario_actual,
@@ -244,7 +245,7 @@ def registro(request: Request, user: dict[str, Any] = Depends(require_evaluador)
     return templates.TemplateResponse(
         request=request,
         name="registro.html",
-        context={"request": request, "user": user},
+        context={"request": request, "user": user, "limites_pesos": RegistrarEvaluacionRequest},
     )
 
 

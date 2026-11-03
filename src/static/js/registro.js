@@ -248,17 +248,35 @@
 			} catch (err) { console.error('cargarTiposGrano:', err); }
 		}
 
-		function actualizarHintLimite(hijoInput, padreInput, hintEl, labelPadre, factor = 1) {
-			if (!hijoInput.value) return setHint(hintEl, '');
-			if (!esFloatPositivo(hijoInput.value)) return setHint(hintEl, 'Debe ser un número positivo (gr.).', true);
-			const valor  = parseFloat(hijoInput.value);
-			const limite = parseFloat(padreInput.value) * factor;
-			if (esFloatPositivo(limite) && valor > limite)
-				setHint(hintEl, `No puede superar ${labelPadre} (${redondear2(limite).toFixed(2)} gr.)`, true);
-			else if (esFloatPositivo(limite))
-				setHint(hintEl, `Máximo: ${redondear2(limite).toFixed(2)} gr.`);
-			else
-				setHint(hintEl, '');
+		function validarPesoRelacionado(hijoInput, padreInput) {
+			const minimo = Number(hijoInput.dataset.porcentajeMinimo);
+			const maximo = Number(hijoInput.dataset.porcentajeMaximo || 100);
+			const nombre = hijoInput.dataset.nombrePeso;
+			const referencia = hijoInput.dataset.referenciaPeso;
+			const regla = maximo === 100
+				? `Mayor al ${minimo}% del ${referencia}, sin superarlo.`
+				: `Mayor al ${minimo}% y como máximo ${maximo}% del ${referencia}.`;
+			if (!hijoInput.value) return { mensaje: regla, esError: false };
+			if (!esFloatPositivo(hijoInput.value))
+				return { mensaje: `El peso ${nombre} debe ser un número positivo (gr.).`, esError: true };
+			if (!esFloatPositivo(padreInput.value)) return { mensaje: regla, esError: false };
+			// El formulario envía dos decimales: comparar centésimas evita errores
+			// de coma flotante justo en los límites porcentuales.
+			const valor = Math.round(parseFloat(hijoInput.value) * 100);
+			const base = Math.round(parseFloat(padreInput.value) * 100);
+			const formatearLimite = porcentaje => (base * porcentaje / 10000).toFixed(4).replace(/0{1,2}$/, '');
+			if (valor * 100 <= base * minimo)
+				return { mensaje: `El peso ${nombre} debe ser mayor al ${minimo}% del ${referencia} (${formatearLimite(minimo)} gr.).`, esError: true };
+			if (valor * 100 > base * maximo)
+				return { mensaje: maximo === 100
+					? `El peso ${nombre} no puede ser mayor al ${referencia} (${formatearLimite(maximo)} gr.).`
+					: `El peso ${nombre} no puede superar el ${maximo}% del ${referencia} (${formatearLimite(maximo)} gr.).`, esError: true };
+			return { mensaje: `${regla} Máximo: ${(base * maximo / 10000).toFixed(2)} gr.`, esError: false };
+		}
+
+		function actualizarHintLimite(hijoInput, padreInput, hintEl) {
+			const { mensaje, esError } = validarPesoRelacionado(hijoInput, padreInput);
+			setHint(hintEl, mensaje, esError);
 		}
 
 		function validarCamposMuestra() {
@@ -278,10 +296,12 @@
 			if (!esFloatPositivo(pt))                     return rechazar('El peso trillado debe ser un número positivo (en gr.).', pesoTrilladoInput);
 			if (pt === pm)                                return rechazar('El peso trillado debe ser diferente al peso de muestra.', pesoTrilladoInput);
 			if (pt > pm)                                  return rechazar('El peso trillado no puede ser mayor al peso de muestra.', pesoTrilladoInput);
-			if (pt > 0.83 * pm)                           return rechazar('El peso trillado no puede superar el 83% del peso de muestra.', pesoTrilladoInput);
+			const trillado = validarPesoRelacionado(pesoTrilladoInput, pesoMuestraInput);
+			if (trillado.esError)                        return rechazar(trillado.mensaje, pesoTrilladoInput);
 			if (!esEnteroPositivo(numTamizInput.value))   return rechazar('El número de tamiz debe ser un entero positivo (mínimo 1).', numTamizInput);
 			if (!esFloatPositivo(pz))                     return rechazar('El peso tamizado debe ser un número positivo (en gr.).', pesoTamizadoInput);
-			if (pz > pt)                                  return rechazar('El peso tamizado no puede ser mayor al peso trillado.', pesoTamizadoInput);
+			const tamizado = validarPesoRelacionado(pesoTamizadoInput, pesoTrilladoInput);
+			if (tamizado.esError)                        return rechazar(tamizado.mensaje, pesoTamizadoInput);
 			return true;
 		}
 
@@ -402,16 +422,16 @@
 
 		pesoMuestraInput.addEventListener('input', () => {
 			setHint(pesoMuestraHint, '');
-			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput, pesoTrilladoHint, 'el 83% del peso de muestra', 0.83);
+			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput, pesoTrilladoHint);
 		});
 
 		pesoTrilladoInput.addEventListener('input', () => {
-			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput, pesoTrilladoHint, 'el 83% del peso de muestra', 0.83);
-			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint, 'el peso trillado');
+			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput, pesoTrilladoHint);
+			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint);
 		});
 
 		pesoTamizadoInput.addEventListener('input', () =>
-			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint, 'el peso trillado'));
+			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint));
 
 		forzarEntero(numSacosInput);
 		forzarEntero(humedadInput);

@@ -165,6 +165,17 @@ class CoffeeRenTracker:
         # tracker, que frena el pipeline justo en lo que se está midiendo.
         self._debug_descarte_ts = 0.0
         self._log_conteo_ts = 0.0
+        # Diagnóstico de granos juntos (ML_DEBUG_SERVO): cajas de grano que
+        # _deduplicar_tile eliminó a causa de una caja fuera de rango (un grupo
+        # > GRANO_MAX_PX o una caja < GRANO_MIN_PX dentro del grano). Las del
+        # frame actual se dibujan; el resto se acumula para un resumen en
+        # consola cada 2 s.
+        self._debug_suprimidas: list[np.ndarray] = []
+        self._debug_frames = 0
+        self._debug_grupos = 0
+        self._debug_n_suprimidas = 0
+        self._debug_ejemplo = ""
+        self._debug_grupos_ts = 0.0
 
     # ── Helpers de inicialización ─────────────────────────────────────────────
 
@@ -246,10 +257,16 @@ class CoffeeRenTracker:
             device=self._device, half=self._half, verbose=False,
         )
         cajas: list[np.ndarray] = []
+        self._debug_suprimidas = []
         for idx, ((x0, y0, x1, y1), r) in enumerate(zip(tiles, resultados)):
             if r.boxes is None or len(r.boxes) == 0:
                 continue
-            b = self._deduplicar_tile(r.boxes.data.cpu().numpy())  # (n, 6): x1, y1, x2, y2, conf, cls
+            supresiones: list[tuple[np.ndarray, np.ndarray]] | None = (
+                [] if Config.ML_DEBUG_SERVO else None
+            )
+            b = self._deduplicar_tile(r.boxes.data.cpu().numpy(), supresiones)  # (n, 6): x1, y1, x2, y2, conf, cls
+            if supresiones is not None:
+                self._registrar_supresion_debug(b, supresiones, x0, y0)
             b[:, [0, 2]] += x0
             b[:, [1, 3]] += y0
             # 7a columna = indice de tile: _fusionar_cajas no une dos cajas del
@@ -257,6 +274,8 @@ class CoffeeRenTracker:
             b = np.hstack([b, np.full((len(b), 1), idx, dtype=np.float32)])
             cajas.append(b)
 
+        if Config.ML_DEBUG_SERVO:
+            self._log_supresion_debug()
         if not cajas:
             return np.zeros((0, 6), dtype=np.float32)
         todas = np.vstack(cajas)                    # (N, 7)
@@ -264,7 +283,8 @@ class CoffeeRenTracker:
             return todas[:, :6]
         return self._fusionar_cajas(todas)[:, :6]
 
-    def _deduplicar_tile(self, cajas: np.ndarray) -> np.ndarray:
+    def _deduplicar_tile(self, cajas: np.ndarray,
+                         supresiones: list[tuple[np.ndarray, np.ndarray]] | None = None) -> np.ndarray:
         """NMS agnóstico a la clase dentro de un tile. Filas (x1, y1, x2, y2, conf, cls).
 
         El modelo es end2end: no pasa por NMS y, si un grano queda cerca del
@@ -272,16 +292,77 @@ class CoffeeRenTracker:
         este filtro ByteTrack recibe las dos: una alterna la clase del track
         existente y la otra abre un track nuevo (el grano se cuenta dos veces).
         Se conserva la caja más confiada; la otra se descarta si su IoU con ella
-        alcanza IOU_NMS o si queda contenida en ella (IOS_CONTENIDA)."""
+        alcanza IOU_NMS o si queda contenida en ella (IOS_CONTENIDA).
+
+        Si se pasa `supresiones`, se le agrega cada par (caja descartada, caja
+        que la descartó); lo usa el diagnóstico de ML_DEBUG_SERVO."""
         if len(cajas) < 2:
             return cajas
         cajas = cajas[np.argsort(-cajas[:, 4])]
         quedan: list[np.ndarray] = []
         for c in cajas:
-            if not any(iou >= self.IOU_NMS or ios >= self.IOS_CONTENIDA
-                       for iou, ios in (self._iou_ios(c, q) for q in quedan)):
+            supresora = None
+            for q in quedan:
+                iou, ios = self._iou_ios(c, q)
+                if iou >= self.IOU_NMS or ios >= self.IOS_CONTENIDA:
+                    supresora = q
+                    break
+            if supresora is None:
                 quedan.append(c)
+            elif supresiones is not None:
+                supresiones.append((c, supresora))
         return np.array(quedan, dtype=cajas.dtype)
+
+    def _es_tamano_grano(self, w: float, h: float) -> bool:
+        """True si una caja de w x h px está en el rango de tamaño de un grano."""
+        return (self.GRANO_MIN_PX <= w <= self.GRANO_MAX_PX
+                and self.GRANO_MIN_PX <= h <= self.GRANO_MAX_PX)
+
+    def _registrar_supresion_debug(self, quedan: np.ndarray,
+                                   supresiones: list[tuple[np.ndarray, np.ndarray]],
+                                   x0: int, y0: int) -> None:
+        """Diagnóstico (ML_DEBUG_SERVO): anota las cajas de tamaño de grano que
+        _deduplicar_tile eliminó a causa de una caja de grupo, es decir, una caja
+        fuera del rango de grano que el filtro de tamaño descarta después. Si hay
+        supresiones, los granos que se tocan sí se detectan pero se pierden en la
+        deduplicación; si no las hay, el modelo solo marca el grupo."""
+        self._debug_grupos += sum(
+            1 for q in quedan if max(q[2] - q[0], q[3] - q[1]) > self.GRANO_MAX_PX
+        )
+        for c, g in supresiones:
+            w, h = c[2] - c[0], c[3] - c[1]
+            if not self._es_tamano_grano(w, h) or self._es_tamano_grano(g[2] - g[0], g[3] - g[1]):
+                continue
+            caja = c.copy()
+            caja[[0, 2]] += x0
+            caja[[1, 3]] += y0
+            self._debug_suprimidas.append(caja)
+            self._debug_n_suprimidas += 1
+            # La supresora también puede ser una caja menor que GRANO_MIN_PX
+            # dentro del grano, con más confianza que él.
+            supresora = f"{int(g[2] - g[0])}x{int(g[3] - g[1])}px conf={g[4]:.2f}"
+            grano = f"grano {int(w)}x{int(h)}px conf={c[4]:.2f}"
+            if max(g[2] - g[0], g[3] - g[1]) > self.GRANO_MAX_PX:
+                self._debug_ejemplo = f"grupo {supresora} contiene {grano}"
+            else:
+                self._debug_ejemplo = f"caja chica {supresora} dentro de {grano}"
+
+    def _log_supresion_debug(self) -> None:
+        """Resumen de _registrar_supresion_debug en consola, como máximo cada 2 s."""
+        self._debug_frames += 1
+        ahora = time.monotonic()
+        if ahora - self._debug_grupos_ts <= 2.0:
+            return
+        if self._debug_grupos or self._debug_n_suprimidas:
+            linea =(f"[det-debug] {self._debug_frames} frames: {self._debug_grupos} cajas de grupo "
+                     f"(> {self.GRANO_MAX_PX}px), {self._debug_n_suprimidas} cajas de grano "
+                     f"suprimidas por una caja fuera de rango")
+            if self._debug_n_suprimidas:
+                linea += f". Ej.: {self._debug_ejemplo}"
+            print(linea)
+        self._debug_grupos_ts = ahora
+        self._debug_frames = self._debug_grupos = self._debug_n_suprimidas = 0
+        self._debug_ejemplo = ""
 
     @staticmethod
     def _iou_ios(a: np.ndarray, b: np.ndarray) -> tuple[float, float]:
@@ -408,6 +489,14 @@ class CoffeeRenTracker:
         frame_anotado = frame.copy()
         detecciones_count = 0
 
+        # Diagnóstico: granos detectados que la deduplicación eliminó a causa de
+        # una caja fuera de rango (en magenta, debajo de las cajas de los tracks).
+        for c in self._debug_suprimidas:
+            sx1, sy1, sx2, sy2 = map(int, c[:4])
+            cv2.rectangle(frame_anotado, (sx1, sy1), (sx2, sy2), (255, 0, 255), 1)
+            cv2.putText(frame_anotado, f"sup {c[4]:.2f}", (sx1, max(sy1 - 4, 12)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 1)
+
         # tracks: filas (x1, y1, x2, y2, bytetrack_id, conf, cls, idx_deteccion)
         for pista in tracks:
             detecciones_count += 1
@@ -419,8 +508,7 @@ class CoffeeRenTracker:
 
             # Filtro de tamaño: descarta objetos fuera del rango de un grano
             w, h = x2 - x1, y2 - y1
-            if not (self.GRANO_MIN_PX <= w <= self.GRANO_MAX_PX
-                    and self.GRANO_MIN_PX <= h <= self.GRANO_MAX_PX):
+            if not self._es_tamano_grano(w, h):
                 # Calibración: dibujar el descartado en gris con sus dimensiones
                 # para ajustar GRANO_MIN_PX / GRANO_MAX_PX en constants.py
                 cv2.rectangle(frame_anotado, (x1, y1), (x2, y2), (128, 128, 128), 1)

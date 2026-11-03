@@ -12,10 +12,10 @@
 
 // === AJUSTES ===
 const float DISTANCIA_UMBRAL       = 5.30;   // cm — verificación de tapa
-const int   VELOCIDAD              = 90;    // velocidad faja (0-255; 255 = máxima).
+const int   VELOCIDAD              = 80;    // velocidad faja (0-255; 255 = máxima).
 const int   SENTIDO                = -1;     // giro de la faja: 1 = IN1 alto, -1 = IN2 alto (validado en test_motor_2)
 const int   ANGULO_BUENO           = 0;      // servo: posición reposo — granos buenos/verdes
-const int   ANGULO_DEFECTO         = 15;     // servo: separador — granos defectuosos
+const int   ANGULO_DEFECTO         = 30;     // servo: separador — ajuste probado en servito.ino
 const unsigned long MS_DISTANCIA   = 100;    // reporte sensor cada 100 ms
 // Timeout del eco del ultrasónico. Solo importa saber si la tapa está a menos de
 // DISTANCIA_UMBRAL (5.30 cm, eco de ~310 µs): cualquier lectura mayor ya es NO_LISTO.

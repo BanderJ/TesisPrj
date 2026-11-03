@@ -134,7 +134,8 @@ validar la equivalencia 1.0 con la cooperativa.
   el orden de inserción y el grano adelantado esperaba al que tenía delante.
 - Watchdog de la faja (2026-11-02): con el motor encendido `arduino_serial` escribe una línea vacía
   cada 1 s; el firmware apaga la faja si pasan 3 s sin recibir nada (backend caído o USB suelto).
-- `SERVO_DELAY_S=0.3` (fijado en `.env`, motor JGY370 a PWM 255) y `SERVO_HOLD_S=0.3`: calibrados físicamente.
+- `SERVO_DELAY_S=0.3` (fijado en `.env`, medido con el motor JGY370 a PWM 255; pendiente de recalibrar a PWM 90).
+- `SERVO_HOLD_S=0.3`: el 2026-11-03 se probó 0.2 s y se devolvió a 0.3 s porque el servo actuaba muy rápido para los defectos; pendiente de validar con el flujo real. `HOLD_MS` de `servito` (solo pulsos manuales) también es 300 ms. Ángulos del firmware: BUENO=0°, DEFECTO=30°.
 
 ### 4.7 Cadencia y gate de movimiento
 
@@ -158,6 +159,7 @@ frame anotado, reducido a `ML_STREAM_ANCHO` (1280) con calidad `ML_STREAM_JPEG_Q
 
 | Parámetro | Valor | Dónde |
 |---|---|---|
+| `SERVO_DELAY_S` / `SERVO_HOLD_S` | 0.3 s / 0.3 s | `.env` / `config.py` (hold devuelto a 0.3 s el 2026-11-03) |
 | `CONF_THRESHOLD` (piso de detección) | 0.15 | `tracker_service.py` |
 | `IOU_NMS` (deduplicado sin clase por tile) | 0.80 | `tracker.py` |
 | `IOS_CONTENIDA` (caja anidada = mismo grano) | 0.90 | `tracker.py` |
@@ -173,7 +175,7 @@ frame anotado, reducido a `ML_STREAM_ANCHO` (1280) con calidad `ML_STREAM_JPEG_Q
 | `ML_GATE_MOVIMIENTO` / `ML_GATE_UMBRAL` | true / 1.0 | `config.py` / `.env` |
 | `ML_MAX_THREADS_CPU` | 4 | `config.py` / `.env` |
 | `ML_STREAM_ANCHO` / `ML_STREAM_JPEG_QUALITY` | 1280 / 80 | `config.py` / `.env` |
-| `ML_DEBUG_SERVO` | false | `config.py` / `.env` |
+| `ML_DEBUG_SERVO` | false | `config.py` / `.env` (en `true` también registra las cajas de grano que la deduplicación eliminó a causa de una caja fuera de rango, un grupo > `GRANO_MAX_PX` o una caja < `GRANO_MIN_PX` dentro del grano: magenta en el video y `[det-debug]` en consola) |
 | `ML_EVIDENCIA_DESCONOCIDOS` / `_MAX_POR_LOTE` / `_DIR` | true / 30 / `src/resources/desconocidos` | `config.py` / `.env` |
 | `ML_MEDIR_LATENCIA` / `_OBJETIVO_MS` / `_ITERACIONES` / `_DIR` | false / 200 / 50 / `docs/evidencias` | `config.py` / `.env` |
 | `CAM_INDICE`, `CAM_WIDTH/HEIGHT/FPS`, `CAM_EXPOSURE`, `CAM_AUTO_EXPOSURE_MANUAL`, `CAM_WB_TEMP` | auto, 1920×1080@90, AEC, 0.25, AWB | `config.py` / `.env` |
@@ -220,7 +222,7 @@ SNI 01-2907-2008, no SCA; si se usa, solo como ejemplos extra de `verde` y con a
 ## 9. Restricciones absolutas (no cambiar sin permiso explícito del usuario)
 
 - `src/utilities/servo_controller.py` y `src/utilities/arduino_serial.py`: no modificar.
-- `SERVO_DELAY_S=0.3`, `SERVO_HOLD_S=0.3`: calibrados físicamente.
+- `SERVO_DELAY_S=0.3`, `SERVO_HOLD_S=0.3`: valores protegidos; el hold se probó en 0.2 s y volvió a 0.3 s el 2026-11-03, requiere validación en producción.
 - `TrackerService._on_camara_desconectada()`: modo emergencia, no tocar.
 - `imgsz=640` y la estructura de hilos productor (cámara) / consumidor (tracker).
 - `half` solo condicional por compute capability.

@@ -17,14 +17,17 @@ class RegistrarEvaluacionRequest(BaseModel):
     peso_bruto: Decimal = Field(..., gt=0)
     humedad: int = Field(..., ge=1, le=30)
     peso_muestra: Decimal = Field(..., ge=100)
-    peso_trillado: Decimal = Field(..., gt=0)
+    peso_trillado: Decimal = Field(..., gt=0, decimal_places=2)
     num_tamiz: int = Field(..., ge=1)
-    peso_tamizado: Decimal = Field(..., gt=0)
+    peso_tamizado: Decimal = Field(..., gt=0, decimal_places=2)
     tipo_grano_id: int = Field(..., ge=1)
 
     PESOS_MUESTRA_VALIDOS: ClassVar[set[Decimal]] = {
         Decimal("100"), Decimal("150"), Decimal("200"), Decimal("250"), Decimal("300")
     }
+    MIN_PORCENTAJE_TRILLADO: ClassVar[int] = 60
+    MAX_PORCENTAJE_TRILLADO: ClassVar[int] = 83
+    MIN_PORCENTAJE_TAMIZADO: ClassVar[int] = 80
 
     @model_validator(mode="after")
     def validar_pesos(self) -> "RegistrarEvaluacionRequest":
@@ -47,10 +50,14 @@ class RegistrarEvaluacionRequest(BaseModel):
             raise ValueError("El peso trillado debe ser diferente al peso de muestra")
         if self.peso_trillado > self.peso_muestra:
             raise ValueError("El peso trillado no puede ser mayor al peso de muestra")
-        if self.peso_trillado > Decimal("0.83") * self.peso_muestra:
+        if self.peso_trillado * 100 <= self.MIN_PORCENTAJE_TRILLADO * self.peso_muestra:
+            raise ValueError("El peso trillado debe ser mayor al 60% del peso de muestra")
+        if self.peso_trillado * 100 > self.MAX_PORCENTAJE_TRILLADO * self.peso_muestra:
             raise ValueError("El peso trillado no puede superar el 83% del peso de muestra")
         if self.peso_tamizado > self.peso_trillado:
             raise ValueError("El peso tamizado no puede ser mayor al peso trillado")
+        if self.peso_tamizado * 100 <= self.MIN_PORCENTAJE_TAMIZADO * self.peso_trillado:
+            raise ValueError("El peso tamizado debe ser mayor al 80% del peso trillado")
         return self
 
 

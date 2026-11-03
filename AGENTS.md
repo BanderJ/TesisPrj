@@ -173,7 +173,7 @@ El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
 ### Prohibido cambiar sin permiso explícito del usuario
 
 - `src/utilities/servo_controller.py` y `src/utilities/arduino_serial.py`.
-- `SERVO_DELAY_S = 0.3` (en `.env`, motor JGY370) y `SERVO_HOLD_S = 0.3` (calibrados en el hardware).
+- `SERVO_DELAY_S = 0.3` (en `.env`, motor JGY370) y `SERVO_HOLD_S = 0.3` (devuelto a 0.3 el 2026-11-03: con 0.2 el servo actuaba muy rápido para los defectos; pendiente de validar en producción).
 - `TrackerService._on_camara_desconectada()` (modo de emergencia).
 - `imgsz=640` y la estructura de hilos (cámara productora, tracker consumidor).
 - `half`: solo condicional por hardware; nunca forzar FP16 (rompe la GTX 1050 Mobile).
@@ -194,6 +194,9 @@ El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
 - Humedad: número entero de 1 a 30; más de 12 % aplica descuento:
   `peso_neto × (H − 12) / (100 − H)`. Se divide entre `100 − H` (no `100 − 12`) a propósito:
   regla confirmada por el responsable el 2026-11-02.
+- Pesos al registrar muestras (regla del responsable, 2026-11-03): trillado **mayor al 60 % y
+  como máximo 83 %** de la muestra; tamizado **mayor al 80 % del trillado y sin superarlo**.
+  Ambos admiten hasta dos decimales, conforme a `numeric(7, 2)`; los mínimos son estrictos.
 - Conteo del lote: al finalizar, el servidor guarda el conteo de su tracker
   (`tracker_service.conteo_de_evaluacion`); el navegador no lo envía. Si el lote en memoria no
   es el de esa evaluación, la finalización se rechaza.
