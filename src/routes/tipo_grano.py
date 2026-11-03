@@ -3,13 +3,13 @@ from fastapi import APIRouter, HTTPException, Depends, status
 
 from src.schemas.tipo_grano import TipoGranoResponse, TipoGranoCreate, TipoGranoUpdate
 from src.services.tipo_grano_service import TipoGranoService
-from src.utilities.jwt_required import require_admin_o_gerente
+from src.utilities.jwt_required import obtener_usuario_actual, require_gerente
 
 tipo_grano_router = APIRouter()
 tipo_grano_service = TipoGranoService()
 
 
-@tipo_grano_router.get("/listar", response_model=list[TipoGranoResponse])
+@tipo_grano_router.get("/listar", response_model=list[TipoGranoResponse], dependencies=[Depends(obtener_usuario_actual)])
 def listar_tipo_grano() -> list[TipoGranoResponse]:
     try:
         return tipo_grano_service.listar_tipos_grano()
@@ -20,7 +20,7 @@ def listar_tipo_grano() -> list[TipoGranoResponse]:
 @tipo_grano_router.post("/crear", response_model=TipoGranoResponse, status_code=status.HTTP_201_CREATED)
 def crear_tipo_grano(
     payload: TipoGranoCreate,
-    _: dict[str, Any] = Depends(require_admin_o_gerente)
+    _: dict[str, Any] = Depends(require_gerente)
 ) -> TipoGranoResponse:
     try:
         return tipo_grano_service.crear_tipo_grano(payload)
@@ -34,7 +34,7 @@ def crear_tipo_grano(
 def actualizar_tipo_grano(
     tipo_grano_id: int,
     payload: TipoGranoUpdate,
-    _: dict[str, Any] = Depends(require_admin_o_gerente)
+    _: dict[str, Any] = Depends(require_gerente)
 ) -> TipoGranoResponse:
     try:
         return tipo_grano_service.actualizar_tipo_grano(tipo_grano_id, payload)
@@ -47,7 +47,7 @@ def actualizar_tipo_grano(
 @tipo_grano_router.delete("/{tipo_grano_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_tipo_grano(
     tipo_grano_id: int,
-    _: dict[str, Any] = Depends(require_admin_o_gerente)
+    _: dict[str, Any] = Depends(require_gerente)
 ) -> None:
     try:
         tipo_grano_service.eliminar_tipo_grano(tipo_grano_id)

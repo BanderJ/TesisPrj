@@ -241,7 +241,8 @@ def evaluacion_finalizada(api: httpx.Client) -> dict[str, Any]:
     evaluacion_id = r.json()["data"]["evaluacion_id"]
     r = api.post("/video/iniciar", json={"evaluacion_id": evaluacion_id})
     assert r.status_code == 200, f"Iniciar el monitoreo de la precondición falló: {r.status_code} {r.text}"
-    api.post("/video/detener")
+    r = api.post("/video/detener", json={"evaluacion_id": evaluacion_id})
+    assert r.status_code == 200, f"Detener el monitoreo de la precondición falló: {r.status_code} {r.text}"
     r = api.patch(f"/evaluacion/{evaluacion_id}/finalizar", json={})
     assert r.status_code == 200, f"Finalizar la precondición falló: {r.status_code} {r.text}"
     return {"evaluacion_id": evaluacion_id, "codigo": r.json()["codigo"]}

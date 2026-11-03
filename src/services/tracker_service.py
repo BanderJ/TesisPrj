@@ -6,9 +6,12 @@ Coordina CamaraService (captura de frames) con CoffeeRenTracker (procesamiento Y
 import os
 import threading
 import time
+from typing import Literal
 
 from src.config import Config
 from src.services.camara_service import camara_service
+from src.services.evaluacion_service import EvaluacionService
+from src.schemas.evaluacion import FinalizarEvaluacionResponse
 from src.ml.tracker import CoffeeRenTracker
 from src.ml.classifier import generar_reporte
 from src.utilities.arduino_serial import arduino_serial
@@ -39,7 +42,7 @@ class TrackerService:
     - Calcula los defectos equivalentes con classifier.py
     """
 
-    def __init__(self, model_name: str = "yolov26n_2cls"):
+    def __init__(self, model_name: str = "yolov26n_2cls") -> None:
         self.model_name = model_name
         self.conf = CONF_THRESHOLD
 
@@ -50,6 +53,7 @@ class TrackerService:
         self.activo = False
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
+        self._control_lock = threading.Lock()
 
         # Último frame anotado (JPEG)
         self._frame_anotado: bytes | None = None
@@ -64,7 +68,7 @@ class TrackerService:
         self._evaluacion_id: str | None = None
         self._evidencias_guardadas: int = 0
 
-    def iniciar(self, evaluacion_id: str | None = None) -> bool:
+    def iniciar(self, evaluacion_id: str | None = None, tipo_personal_id: int = 0) -> bool:
         """
         Inicia el procesamiento YOLO. La cámara ya debe estar conectada desde el arranque.
 
@@ -75,9 +79,13 @@ class TrackerService:
         Returns:
             bool: True si inició exitosamente, False si error
         """
-        with self._lock:
+        with self._control_lock, self._lock:
+            self._validar_control_evaluacion(evaluacion_id, tipo_personal_id)
             if self.activo:
+                if evaluacion_id != self._evaluacion_id:
+                    raise ValueError("Hay una captura de Prueba activa. Deténla antes de iniciar la evaluación.")
                 return True
+            reanudar = self._evaluacion_id is not None
 
             # Limpiar estado de error previo al reiniciar
             self._camara_desconectada = False
@@ -93,17 +101,14 @@ class TrackerService:
 
             print("Cámara disponible")
 
-            # Resetear conteo y ByteTrack para nueva sesión (IDs empezarán desde 1)
-            self.tracker.resetear_conteo()
-
-            # Lote nuevo: el registro de eventos arranca su reloj aquí, de modo
-            # que el segundo de cada evento sea relativo al inicio real del lote.
-            self._evaluacion_id = evaluacion_id
-            self._evidencias_guardadas = 0
-            registro_eventos.iniciar_lote(evaluacion_id)
+            if not reanudar:
+                self.tracker.resetear_conteo()
+                self._evaluacion_id = evaluacion_id
+                self._evidencias_guardadas = 0
+                registro_eventos.iniciar_lote(evaluacion_id)
             registro_eventos.registrar(
                 tipo="inicio",
-                mensaje=f"Monitoreo iniciado — modelo {self.model_name}.",
+                mensaje="Monitoreo reanudado." if reanudar else "Monitoreo iniciado.",
                 severidad="ok",
             )
 
@@ -160,7 +165,6 @@ class TrackerService:
         el frame casi no cambió (faja detenida). Menos inferencia = menos
         GPU/CPU sin perder precisión de conteo.
         """
-        t_anterior = time.time()
         frame_count = 0
         intervalo_min = 1.0 / Config.ML_DETECTOR_FPS if Config.ML_DETECTOR_FPS > 0 else 0.0
         t_ultima_inferencia = 0.0
@@ -210,9 +214,7 @@ class TrackerService:
                     print(f"TrackerService: procesados {frame_count} frames")
                 with self._lock:
                     self._frame_anotado = frame_anotado_jpeg
-                    # Actualizar FPS
-                    self.tracker._actualizar_fps(t_anterior)
-                    t_anterior = time.time()
+                    self.tracker._actualizar_fps()
             else:
                 print("Tracker retornó None para frame_anotado_jpeg")
 
@@ -288,6 +290,10 @@ class TrackerService:
     def obtener_conteo_actual(self) -> dict[str, int]:
         return self.tracker.obtener_conteo()
 
+    def obtener_fps(self) -> float:
+        """FPS de procesamiento del modelo: frames procesados en el último segundo."""
+        return self.tracker.obtener_fps()
+
     def obtener_conteo_enriquecido(self) -> dict:
         conteo = self.obtener_conteo_actual()
         eq = self.tracker.EQUIVALENCIAS_DEFECTO
@@ -338,6 +344,59 @@ class TrackerService:
         """
         conteo = self.obtener_conteo_actual()
         return generar_reporte(conteo, self.tracker.EQUIVALENCIAS_DEFECTO)
+
+    def _validar_control_evaluacion(self, evaluacion_id: str | None, tipo_personal_id: int) -> None:
+        if self._evaluacion_id is not None and evaluacion_id != self._evaluacion_id:
+            raise ValueError(
+                "El lote pertenece a una evaluación. Detén o reinicia su monitoreo "
+                "desde la página de esa evaluación."
+            )
+        if (self._evaluacion_id is not None or evaluacion_id is not None) and tipo_personal_id != 1:
+            raise PermissionError("Solo el Evaluador puede controlar el monitoreo de una evaluación.")
+
+    def _liberar_evaluacion(self, evaluacion_id: str) -> None:
+        if self._evaluacion_id == evaluacion_id:
+            self._evaluacion_id = None
+
+    def finalizar_evaluacion(
+        self, evaluacion_id: str, incidencias: list[dict] | None = None,
+    ) -> FinalizarEvaluacionResponse:
+        """Conserva el lote hasta persistirlo; un error permite reintentar sin perder conteo."""
+        with self._control_lock:
+            if self._evaluacion_id == evaluacion_id and self.activo:
+                self.detener()
+            conteo = self.conteo_de_evaluacion(evaluacion_id)
+            evaluaciones = EvaluacionService()
+            if conteo is None and evaluaciones.verificar_estado(evaluacion_id) == "finalizada":
+                conteo = {}  # El model devuelve el resultado ya guardado sin recalcularlo.
+            resultado = evaluaciones.finalizar_evaluacion(evaluacion_id, conteo, incidencias)
+            self._liberar_evaluacion(evaluacion_id)
+            return resultado
+
+    def controlar_lote(
+        self,
+        accion: Literal["detener", "resetear"],
+        evaluacion_id: str | None,
+        tipo_personal_id: int,
+        *,
+        descartar_lote: bool = False,
+    ) -> dict[str, int] | None:
+        """Valida el lote y serializa el control HTTP con el arranque de otro monitoreo."""
+        with self._control_lock:
+            self._validar_control_evaluacion(evaluacion_id, tipo_personal_id)
+            if descartar_lote:
+                if tipo_personal_id != 1:
+                    raise PermissionError("Solo el Evaluador puede descartar un lote.")
+                if accion != "detener" or evaluacion_id is None or evaluacion_id != self._evaluacion_id:
+                    raise ValueError("El lote que se quiere descartar ya no está asociado a esa evaluación.")
+            if accion == "detener":
+                self.detener()
+                if descartar_lote:
+                    self.tracker.resetear_conteo()
+                    self._liberar_evaluacion(evaluacion_id)
+                return None
+            self.resetear_lote()
+            return self.obtener_conteo_actual()
 
     def resetear_lote(self) -> None:
         """Resetea el conteo para iniciar análisis de un nuevo lote."""

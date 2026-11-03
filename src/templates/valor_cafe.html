@@ -14,11 +14,11 @@
     </header>
 
     <!-- Panel: rangos ya registrados hoy -->
-    <section id="panelRangosHoy" class="valor-cafe-content" aria-label="Rangos registrados hoy" style="display:none">
+    <section id="panelRangosHoy" class="valor-cafe-content" aria-label="Rangos activos de hoy" style="display:none">
         <article class="card valor-cafe-card" style="grid-column:1/-1">
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
                 <div>
-                    <h3>Rangos registrados hoy</h3>
+                    <h3>Rangos activos de hoy</h3>
                     <p class="info-text" id="subtituloRangosHoy">—</p>
                 </div>
                 <button type="button" id="btnRefrescarRangos" class="btn btn-secondary" style="width:auto">
@@ -29,6 +29,7 @@
                 </button>
             </div>
             <div id="tablaRangosHoy" style="overflow-x:auto;margin-top:.75rem"></div>
+            <p class="info-text">Para cambiar los límites de un rango, desactívalo y registra los nuevos rangos. Los precios utilizados en evaluaciones anteriores se conservan.</p>
         </article>
     </section>
 
@@ -114,10 +115,20 @@
                     <li><strong>56</strong> → S/. 760</li>
                     <li><strong>57-60</strong> → S/. 790</li>
                 </ul>
-                <p class="info-text" style="margin-top:0.75rem;">Los rangos no son fijos. Cada día puede tener distintos rangos.</p>
+                <p class="info-text" style="margin-top:0.75rem;">Los rangos pueden cambiar durante el día. Solo los rangos activos se utilizan para calcular nuevas evaluaciones.</p>
             </div>
         </article>
     </section>
+    <details id="historialPreciosHoy" class="card valor-cafe-card valor-cafe-historial">
+        <summary>Historial de precios de hoy</summary>
+        <p class="info-text">Incluye todas las versiones de precio, también las de rangos desactivados. Cada evaluación conserva el precio que utilizó al completarse.</p>
+        <div class="historial-precios-wrap">
+            <table class="historial-precios">
+                <thead><tr><th>Registrado</th><th>Rango</th><th>Precio (S/)</th><th>Estado del rango</th></tr></thead>
+                <tbody id="historialPreciosBody"><tr><td colspan="4">Abra el historial para consultar los precios de hoy.</td></tr></tbody>
+            </table>
+        </div>
+    </details>
 </section>
 {% endblock %}
 

@@ -225,14 +225,15 @@ Tabla `AUDITORIA`: registra quién hizo qué (usuario, rol, acción, tabla afect
 |---|---|---|
 | **Caficultores** | `/nuevo-caficultor` — listar, consultar por documento, crear, convertir a socio | Validación de documento + RENIEC |
 | **Cooperativa** | `/configuracion-cooperativa` — ver y editar la cooperativa propia + subida de imagen | Datos institucionales, ubigeo. Imagen: solo jpg/jpeg/png/webp/gif, máx. 5 MB |
-| **Valor del café** | `/valor-cafe` — historial, máximo del día, cambios diarios, resumen por rangos, crear bloque, actualizar precio, eliminar rango | Solo Gerente/Administrador; los rangos determinan el precio del pago (ver reglas de validación abajo) |
+| **Valor del café** | `/valor-cafe` — historial, máximo del día, cambios diarios, resumen por rangos activos, crear bloque, actualizar precio, desactivar rango (`PATCH /desactivar-rango`) | Solo Gerente/Administrador; desactivar conserva UUID, historial y referencias de evaluaciones. El cálculo del pago usa precios activos del día. |
 | **Tipos de grano** | API `/tipo-grano` — CRUD | Nombre + peso por quintal |
 | **Ubigeo** | API `/ubigeo` — departamentos/provincias/distritos del Perú | Tabla precargada completa |
 | **Tablas maestras** | `/tipo-caficultor`, `/tipo-documento`, `/tipo-personal` — solo lectura | Sembradas en `script.sql` |
 
 **Reglas de validación de rangos de precio** (`src/services/valor_cafe_service.py`, aplicadas tanto al crear un bloque de precios como al re-cotizar uno individual):
-- **Sin solapamiento**: dos rangos no pueden compartir ningún valor de factor de rendimiento, ni siquiera un límite (`60-65` y `65-70` se consideran solapados porque ambos incluyen el 65). Evita que `obtener_por_factor()` tenga que elegir de forma ambigua entre dos precios para el mismo factor.
+- **Sin solapamiento**: dos rangos activos del día no pueden compartir ningún valor de factor de rendimiento, ni siquiera un límite (`60-65` y `65-70` se consideran solapados porque ambos incluyen el 65). Evita que `obtener_por_factor()` tenga que elegir de forma ambigua entre dos precios para el mismo factor.
 - **Precio no decreciente por rango**: el precio no puede bajar conforme sube el rango (un lote con mejor rendimiento nunca paga menos que uno con peor rendimiento). Se valida contra la tabla de precios vigente del día, no solo contra el lote que se está enviando.
+- **Reemplazo explícito**: para cambiar `50-60` por `50-54` y `55-60`, primero se confirma la desactivación del rango anterior. Se retiran de uso todas sus versiones de hoy; permanecen en el historial y en las evaluaciones que las referencian. Las evaluaciones completadas no se recalculan y las pendientes pueden completarse después con un precio activo del día del cálculo. La creación, edición y desactivación comparten una transacción con bloqueo para evitar cambios incompatibles entre pestañas.
 
 ---
 

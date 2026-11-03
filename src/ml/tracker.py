@@ -152,7 +152,9 @@ class CoffeeRenTracker:
         self._bytetrack_a_global: dict[int, int] = {}
 
         # Estadísticas y debug
-        self.fps_actual = 0.0
+        # Instantes de los frames procesados; el FPS es cuántos caen en el último
+        # segundo. maxlen cubre de sobra el techo de la cámara (~90 fps).
+        self._fps_tiempos: deque[float] = deque(maxlen=256)
         self.ultima_deteccion_frame_ts: float | None = None
 
         # Gate de movimiento: miniatura en gris del último frame evaluado.
@@ -492,7 +494,7 @@ class CoffeeRenTracker:
 
         # Overlay de estadísticas
         total_granos = len(self.conteo_ids_confianza)
-        stats_text = f"Granos: {total_granos} | FPS: {self.fps_actual:.1f} | Detecciones: {detecciones_count}"
+        stats_text = f"Granos: {total_granos} | Detecciones: {detecciones_count}"
         cv2.putText(frame_anotado, stats_text, (15, 35),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
 
@@ -743,10 +745,14 @@ class CoffeeRenTracker:
 
         return {clase: len(ids) for clase, ids in conteo_por_clase.items()}
 
-    def _actualizar_fps(self, t_anterior: float) -> float:
-        """Actualiza el FPS y retorna el nuevo tiempo anterior."""
-        t_actual = time.time()
-        delta = t_actual - t_anterior
-        if delta > 0:
-            self.fps_actual = 1.0 / delta
-        return t_actual
+    def _actualizar_fps(self) -> None:
+        """Registra el instante de un frame procesado."""
+        self._fps_tiempos.append(time.monotonic())
+
+    def obtener_fps(self) -> float:
+        """Frames procesados en el último segundo (ventana deslizante): tras una
+        pausa de la faja baja a 0 y no conserva el valor anterior."""
+        ahora = time.monotonic()
+        # list() copia la deque de una vez: el hilo de procesamiento puede
+        # seguir agregando mientras la ruta de estado la lee.
+        return float(sum(1 for t in list(self._fps_tiempos) if ahora - t <= 1.0))

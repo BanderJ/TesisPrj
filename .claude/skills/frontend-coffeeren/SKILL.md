@@ -346,7 +346,7 @@ Flujo de finalización:
 1. `PATCH /evaluacion/{id}/finalizar` → asigna el código EVA.
 2. El evaluador ingresa el peso bueno.
 3. `PATCH /evaluacion/{id}/completar` con `{ total_defectos, peso_bueno }` → `codigo`,
-   `factor_rendimiento`, `pago`, `pago_base`, `bono_socio`, `peso_por_qq`, `precio`, `rango`.
+   `factor_rendimiento`, `peso_neto`, `pago`, `pago_base`, `bono_socio`, `peso_por_qq`, `precio`, `rango`.
 4. Navegar a `/analisis/{evaluacion_id}`.
 
 ---

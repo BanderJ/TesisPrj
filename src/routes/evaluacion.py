@@ -16,7 +16,7 @@ from src.services.auditoria_service import auditoria_service
 from src.services.evaluacion_service import EvaluacionService
 from src.services.tracker_service import tracker_service
 from src.utilities.errores import NoEncontradoError
-from src.utilities.jwt_required import obtener_usuario_actual
+from src.utilities.jwt_required import obtener_usuario_actual, require_evaluador
 from src.utilities.request_utils import get_client_ip
 from src.utilities.uuid_utils import UUID_PATTERN
 
@@ -34,7 +34,7 @@ evaluacion_service = EvaluacionService()
 def registrar_evaluacion(
     request: Request,
     payload: RegistrarEvaluacionRequest,
-    usuario: dict[str, Any] = Depends(obtener_usuario_actual),
+    usuario: dict[str, Any] = Depends(require_evaluador),
 ) -> RegistrarEvaluacionResponse:
     try:
         personal_id: str = str(usuario["personal_id"])
@@ -109,7 +109,7 @@ def completar_evaluacion(
     request: Request,
     payload: CompletarEvaluacionRequest,
     evaluacion_id: str = Path(..., pattern=UUID_PATTERN),
-    usuario: dict[str, Any] = Depends(obtener_usuario_actual),
+    usuario: dict[str, Any] = Depends(require_evaluador),
 ) -> CompletarEvaluacionResponse:
     try:
         result = evaluacion_service.completar_evaluacion(evaluacion_id, payload)
@@ -152,12 +152,11 @@ def finalizar_evaluacion(
     request: Request,
     payload: FinalizarEvaluacionRequest,
     evaluacion_id: str = Path(..., pattern=UUID_PATTERN),
-    usuario: dict[str, Any] = Depends(obtener_usuario_actual),
+    usuario: dict[str, Any] = Depends(require_evaluador),
 ) -> FinalizarEvaluacionResponse:
     try:
         incidencias = [inc.model_dump() for inc in payload.incidencias] if payload.incidencias else None
-        conteo_lote = tracker_service.conteo_de_evaluacion(evaluacion_id)
-        result = evaluacion_service.finalizar_evaluacion(evaluacion_id, conteo_lote, incidencias)
+        result = tracker_service.finalizar_evaluacion(evaluacion_id, incidencias)
         if result.ya_finalizada:
             return result  # reintento: la finalización ya quedó auditada
         n = len(incidencias) if incidencias else 0

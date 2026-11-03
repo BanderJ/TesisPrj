@@ -88,7 +88,8 @@
             if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo realizar la búsqueda. Intente de nuevo.'));
             const d = await res.json();
             CoffeeResumen.pintar(d);
-            document.getElementById('btnCalcularRendimiento').href = `/analisis/${encodeURIComponent(d.evaluacion_id)}`;
+            const btnCalcular = document.getElementById('btnCalcularRendimiento');
+            if (btnCalcular) btnCalcular.href = `/analisis/${encodeURIComponent(d.evaluacion_id)}`;
             mostrarEstado('results');
         } catch (err) {
             mostrarEstado('empty');

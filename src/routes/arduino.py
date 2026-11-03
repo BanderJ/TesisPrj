@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Depends
 
 from src.services.arduino_service import arduino_service
-from src.utilities.jwt_required import obtener_usuario_actual
+from src.utilities.jwt_required import obtener_usuario_actual, require_evaluador
 
 arduino_router = APIRouter(prefix="/arduino", tags=["arduino"])
 
@@ -19,7 +19,7 @@ def obtener_peso(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[st
 
 
 @arduino_router.post("/motor/iniciar")
-def iniciar_motor(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
+def iniciar_motor(_: dict[str, Any] = Depends(require_evaluador)) -> dict[str, Any]:
     return arduino_service.iniciar_motor()
 
 

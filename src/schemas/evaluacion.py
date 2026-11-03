@@ -111,6 +111,7 @@ class CompletarEvaluacionResponse(BaseModel):
     evaluacion_id: str
     codigo: str
     factor_rendimiento: Decimal
+    peso_neto: Decimal
     peso_por_qq: Decimal
     pago: Decimal
     pago_base: Decimal
@@ -162,6 +163,7 @@ class ResumenEvaluacionResponse(BaseModel):
     # Campos de rendimiento — NULL hasta que se complete la evaluación
     total_defectos: int | None = None
     total_buenos: int | None = None
+    peso_neto: Decimal | None = None
     peso_bueno: Decimal | None = None
     factor_rendimiento: Decimal | None = None
     peso_por_qq: Decimal | None = None

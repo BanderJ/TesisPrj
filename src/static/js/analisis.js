@@ -59,9 +59,11 @@
 
 	// ── Factor de rendimiento pendiente: pedir el peso de grano bueno ─────────
 	function prepararPesoBueno(d) {
+		const input = document.getElementById('inputPesoBuenoAnalisis');
+		if (!input) return;
 		pesoTamizadoMax   = d.peso_tamizado != null ? Number(d.peso_tamizado) : null;
 		if (pesoTamizadoMax !== null) {
-			document.getElementById('inputPesoBuenoAnalisis').max = Math.floor(pesoTamizadoMax);
+			input.max = Math.floor(pesoTamizadoMax);
 			document.getElementById('pesoBuenoHintAnalisis').textContent =
 				`Gramos enteros. Máximo: ${Math.floor(pesoTamizadoMax)} g (peso tamizado).`;
 		}
@@ -103,8 +105,8 @@
 		}
 	}
 
-	document.getElementById('btnGuardarPesoBuenoAnalisis').addEventListener('click', guardarPesoBuenoAnalisis);
-	document.getElementById('inputPesoBuenoAnalisis').addEventListener('keydown', (e) => {
+	document.getElementById('btnGuardarPesoBuenoAnalisis')?.addEventListener('click', guardarPesoBuenoAnalisis);
+	document.getElementById('inputPesoBuenoAnalisis')?.addEventListener('keydown', (e) => {
 		if (e.key === 'Enter') { e.preventDefault(); guardarPesoBuenoAnalisis(); }
 	});
 	document.getElementById('btnExcel').addEventListener('click', CoffeeResumen.exportarExcel);

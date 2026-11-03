@@ -226,6 +226,7 @@ class EvaluacionService:
                 evaluacion_id=evaluacion_id,
                 codigo=str(fila["codigo"]).strip(),
                 factor_rendimiento=Decimal(str(fila["factor_rendimiento"])),
+                peso_neto=peso_neto,
                 peso_por_qq=Decimal(str(fila["peso_por_qq"])),
                 pago=Decimal(str(fila["pago"])),
                 pago_base=pago_base,

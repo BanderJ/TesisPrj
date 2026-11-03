@@ -72,9 +72,12 @@
 
             // Mostrar secciones de admin
             if (isAdmin) {
-                document.getElementById('navTiposGrano').hidden = false;
-                document.getElementById('navBonoSocio').hidden = false;
-                document.getElementById('navUsuarios').hidden = false;
+                const navTiposGrano = document.getElementById('navTiposGrano');
+                if (navTiposGrano) navTiposGrano.hidden = false;
+                const navBonoSocio = document.getElementById('navBonoSocio');
+                if (navBonoSocio) navBonoSocio.hidden = false;
+                const navUsuarios = document.getElementById('navUsuarios');
+                if (navUsuarios) navUsuarios.hidden = false;
                 document.getElementById('navCaficultores').hidden = false;
                 document.getElementById('navAuditoria').hidden = false;
                 document.getElementById('navReportes').hidden = false;
@@ -936,6 +939,7 @@
         CREAR_VALOR_CAFE:      'crear',
         ACTUALIZAR_VALOR_CAFE: 'actualizar',
         ELIMINAR_VALOR_CAFE:   'eliminar',
+        DESACTIVAR_VALOR_CAFE: 'desactivar',
     };
 
     function auditBadgeClass(accion) {

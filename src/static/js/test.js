@@ -64,6 +64,7 @@
 			]);
 			if (rStatus.ok) {
 				const st = await rStatus.json();
+				validarLoteDePrueba(st);
 				if (st.camara_desconectada) {
 					await detenerDeteccion(st.error || 'Se perdió la conexión con la cámara.');
 					return;
@@ -71,7 +72,9 @@
 			}
 			if (rConteo.ok) actualizarConteo(await rConteo.json());
 		} catch (e) {
-			console.error('Error obteniendo conteo:', e);
+			liberarVista();
+			mostrarErrorCamara(e.message);
+			setStatus(e.message);
 		}
 	}
 
@@ -107,6 +110,20 @@
 		btnResetear.disabled = !enMarcha;
 	}
 
+	function validarLoteDePrueba(estado) {
+		if (estado.evaluacion_id) {
+			throw new Error('Hay un lote asociado a una evaluación. Prueba no puede detener ni reiniciar ese monitoreo.');
+		}
+	}
+
+	function liberarVista() {
+		activo = false;
+		clearInterval(conteoInterval);
+		conteoInterval = null;
+		detenerStream();
+		estadoBotones(false);
+	}
+
 	async function iniciarDeteccion() {
 		btnIniciar.disabled = true;
 		btnIniciar.textContent = 'Iniciando...';
@@ -116,6 +133,9 @@
 			if (!res.ok) {
 				throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo iniciar la cámara.'));
 			}
+			const rStatus = await fetch('/video/status');
+			if (!rStatus.ok) throw new Error(await CoffeeHttp.mensajeError(rStatus, 'No se pudo consultar el monitoreo.'));
+			validarLoteDePrueba(await rStatus.json());
 			activo = true;
 			iniciarStream();
 			resetearConteoUI();
@@ -133,23 +153,23 @@
 	}
 
 	async function detenerDeteccion(motivo) {
-		activo = false;
-		clearInterval(conteoInterval);
-		conteoInterval = null;
-		detenerStream();
-		estadoBotones(false);
-		btnDetener.textContent = 'Detener';
-
 		try {
-			await fetch('/video/detener', { method: 'POST' });
-		} catch { /* el backend igual se detiene solo al perder actividad */ }
-
-		if (motivo) {
-			mostrarErrorCamara(motivo);
-			setStatus('Detección detenida: ' + motivo);
-		} else {
-			mostrarFeed('idle');
-			setStatus('Detección detenida.');
+			const res = await fetch('/video/detener', { method: 'POST' });
+			if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo detener la detección.'));
+			liberarVista();
+			if (motivo) {
+				mostrarErrorCamara(motivo);
+				setStatus('Detección detenida: ' + motivo);
+			} else {
+				mostrarFeed('idle');
+				setStatus('Detección detenida.');
+			}
+		} catch (err) {
+			liberarVista();
+			mostrarErrorCamara(err.message);
+			setStatus(err.message);
+		} finally {
+			btnDetener.textContent = 'Detener';
 		}
 	}
 
@@ -157,7 +177,10 @@
 		btnResetear.disabled = true;
 		try {
 			const res = await fetch('/video/lote/resetear', { method: 'POST' });
-			if (!res.ok) throw new Error('No se pudo reiniciar el conteo.');
+			if (!res.ok) {
+				if (res.status === 409 || res.status === 403) liberarVista();
+				throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo reiniciar el conteo.'));
+			}
 			resetearConteoUI();
 			setStatus('Conteo reiniciado.');
 		} catch (err) {
@@ -185,8 +208,10 @@
 		try {
 			const res = await fetch('/video/status');
 			if (!res.ok) throw new Error();
-			const { activo: yaActivo } = await res.json();
+			const estado = await res.json();
+			const { activo: yaActivo } = estado;
 			if (yaActivo) {
+				validarLoteDePrueba(estado);
 				activo = true;
 				iniciarStream();
 				conteoInterval = setInterval(refrescarConteo, 1500);
@@ -197,9 +222,10 @@
 				mostrarFeed('idle');
 				setStatus('Cámara detenida.');
 			}
-		} catch {
-			mostrarFeed('idle');
-			setStatus('Cámara detenida.');
+		} catch (err) {
+			liberarVista();
+			mostrarErrorCamara(err.message || 'No se pudo consultar el monitoreo.');
+			setStatus(err.message || 'No se pudo consultar el monitoreo.');
 		}
 	})();
 })();

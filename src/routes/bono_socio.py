@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from src.schemas.bono_socio import BonoSocioActualizarRequest, BonoSocioResponse
 from src.services.auditoria_service import auditoria_service
 from src.services.bono_socio_service import BonoSocioService
-from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente
+from src.utilities.jwt_required import obtener_usuario_actual, require_gerente
 from src.utilities.request_utils import get_client_ip
 
 bono_socio_router = APIRouter()
@@ -22,7 +22,7 @@ def obtener_bono_socio(_: dict = Depends(obtener_usuario_actual)) -> BonoSocioRe
 def actualizar_bono_socio(
     request: Request,
     payload: BonoSocioActualizarRequest,
-    user: dict = Depends(require_admin_o_gerente),
+    user: dict = Depends(require_gerente),
 ) -> BonoSocioResponse:
     try:
         anterior, resultado = bono_socio_service.actualizar(payload, str(user.get("personal_id")))

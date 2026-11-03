@@ -5,7 +5,7 @@ del sistema: enteros "X-Y" (el schema no acepta decimales como 59.99).
 """
 from datetime import datetime
 from typing import Iterator
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -18,11 +18,12 @@ def servicio() -> Iterator[ValorCafeService]:
     s = ValorCafeService()
     s.model = MagicMock()
     s.model.obtener_resumen_rangos.return_value = []
-    s.model.crear_bloque.side_effect = lambda filas: [
+    s.model.crear_bloque.side_effect = lambda filas, db=None: [
         {"id": f"vc-{i}", "rango": r, "precio": p, "fecha": datetime.now()}
         for i, (r, p) in enumerate(filas)
     ]
-    yield s
+    with patch("src.services.valor_cafe_service.Connection"):
+        yield s
 
 
 def _bloque(*precios: tuple[str, float]) -> ValorCafeCrearBloqueRequest:

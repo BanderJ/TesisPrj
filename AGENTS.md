@@ -135,6 +135,14 @@ texto de ejemplo (`validar_clave_secreta` en `src/utilities/jwt_utils.py`).
   (`src/utilities/jwt_required.py`).
 - Roles: 1 Evaluador, 2 Gerente, 3 Administrador. Lo restringido a Gerente o Administrador usa
   `Depends(require_admin_o_gerente)`. Ocultar un enlace en el menú **no** es control de acceso.
+- Gestión de usuarios (crear, editar, activar y desactivar): solo Administrador,
+  con `Depends(require_admin)`. Gestión de tipos de grano y cambio del beneficio de socio:
+  solo Gerente, con `Depends(require_gerente)`.
+- El flujo de registro de muestras y monitoreo corresponde al Evaluador. La página
+  `/registro` usa `Depends(require_evaluador)`.
+- Detener o resetear video de un lote asociado a una evaluación exige rol Evaluador e ID
+  coincidente. Prueba, sin ID, solo controla lotes sin evaluación. La parada del motor
+  (`POST /arduino/motor/detener`) sigue disponible para toda sesión.
 
 ### 5.6 Frontend
 
@@ -190,18 +198,22 @@ El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
   (`tracker_service.conteo_de_evaluacion`); el navegador no lo envía. Si el lote en memoria no
   es el de esa evaluación, la finalización se rechaza.
 - Código EVA: correlativo de la secuencia `evaluacion_codigo_seq`, único (`UNIQUE`).
-- Rangos de precio del café: no se pueden solapar y el precio no puede bajar cuando sube el rango.
-- Precios del día: una muestra solo se registra si hay precios de café con fecha de hoy, y el pago
-  usa el precio de hoy del rango que contiene el factor de rendimiento. Los rangos son enteros y
+- Rangos de precio del café: los rangos activos del día no se pueden solapar y el precio no puede
+  bajar cuando sube el rango. Para reemplazar uno, se desactiva primero: todas sus versiones del
+  día quedan con `VALOR_CAFE.activo = FALSE`, conservando UUID e historial y sin alterar precios
+  ni pagos de evaluaciones completadas. No se eliminan físicamente.
+- Precios del día: una muestra solo se registra si hay precios activos de café con fecha de hoy,
+  y el pago usa el precio activo de hoy del rango que contiene el factor de rendimiento. Los rangos son enteros y
   el rango se busca con la parte entera del factor, sin redondear (65.52 cae en 60-65 porque no
   llega a 66); el factor guardado conserva sus decimales. Si ese rango no tiene precio hoy,
-  completar la evaluación falla hasta que se registre.
+  completar la evaluación falla hasta que se registre. Una evaluación pendiente de rendimiento
+  puede completarse después con los precios activos del día de su cálculo.
 - Grado SCA: **no se calcula ni se muestra.** Depende del tipo de defecto (primario/secundario) y
   el modelo actual solo distingue `defecto`/`verde`. `EVALUACION.categoria_id` queda en NULL; la
   tabla `CATEGORIA` se conserva para cuando el modelo clasifique por tipo de defecto.
 - Caficultor Socio o Externo; conversión con `PATCH /caficultor/convertir-socio/{num_documento}`.
 - Beneficio de socio: monto fijo por entrega (inicial S/ 10) que se suma al pago de un socio. Lo
-  cambian Gerente y Administrador en Cooperativa → Beneficio de socio (`POST /bono-socio`). La
+  cambia solo el Gerente en Cooperativa → Beneficio de socio (`POST /bono-socio`). La
   tabla `BONO_SOCIO` es de solo inserción (el vigente es el más reciente) y cada evaluación guarda
   el monto aplicado en `EVALUACION.bono_socio`; `pago` es el total. Un cambio nunca altera
   evaluaciones ya completadas. Se decide con el tipo de caficultor registrado en la evaluación.

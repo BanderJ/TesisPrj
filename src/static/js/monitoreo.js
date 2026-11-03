@@ -54,8 +54,6 @@
 		let frameTimeout   = null;   // reintento del bucle de frames — debe poder cancelarse desde detenerStream()
 		let streamActivo   = false;
 		let _ultimoBlobUrl = null;
-		let _fpsCount = 0;
-		let _fpsWindowStart = 0;
 
 		function mostrarErrorCamara(msg) {
 			clearTimeout(connectTimeout);
@@ -90,15 +88,7 @@
 						clearTimeout(connectTimeout);
 						cameraLoadingEl.style.display = 'none';
 						cameraStreamEl.style.display  = 'block';
-						if (fpsBadgeEl) { fpsBadgeEl.style.display = 'block'; _fpsWindowStart = performance.now(); _fpsCount = 0; }
-					}
-					_fpsCount++;
-					const _now = performance.now();
-					if (_now - _fpsWindowStart >= 1000) {
-						const fps = Math.round(_fpsCount * 1000 / (_now - _fpsWindowStart));
-						if (fpsBadgeEl) fpsBadgeEl.textContent = fps + ' FPS';
-						_fpsCount = 0;
-						_fpsWindowStart = _now;
+						if (fpsBadgeEl) fpsBadgeEl.style.display = 'block';
 					}
 					frameTimeout = setTimeout(refrescarFrame, 33);
 				} catch {
@@ -131,15 +121,23 @@
 				const res = await fetch('/video/status');
 				if (!res.ok) throw new Error();
 				const { activo, evaluacion_id: loteDe } = await res.json();
-				// Solo se adopta el lote en curso si es el de ESTA evaluación (caso
-				// normal: recarga de la pestaña a mitad de monitoreo). Un lote que
-				// quedó activo de otra evaluación se cierra primero: si no, su
-				// conteo y sus evidencias se mezclarían con las de esta.
-				if (activo && loteDe && loteDe !== EVALUACION_ID) {
-					appendLog('Había un monitoreo de otra evaluación en curso. Se cerró para iniciar este lote.', 'alerta');
-					await fetch('/video/detener', { method: 'POST' }).catch(() => {});
+				if (loteDe && loteDe !== EVALUACION_ID) {
+					const resumen = await fetch(`/evaluacion/${encodeURIComponent(loteDe)}/resumen`)
+						.then(res => res.ok ? res.json() : null)
+						.catch(() => null);
+					const referencia = resumen?.caficultor_nombre && resumen?.fecha
+						? `otra evaluación en monitoreo (${resumen.caficultor_nombre}, ${resumen.fecha})`
+						: 'una evaluación anterior en monitoreo';
+					const aceptar = await CoffeeModal.confirm({
+						title: 'Otra evaluación en monitoreo',
+						message: `Hay ${referencia}. ¿Detenerla para iniciar esta muestra? Su conteo se perderá.`,
+						okText: 'Detener e iniciar esta muestra',
+						cancelText: 'Cancelar',
+					});
+					if (!aceptar) return;
+					await detenerCapturaDeEvaluacion(loteDe, true);
 					await iniciarCaptura();
-				} else if (activo) {
+				} else if (activo && loteDe === EVALUACION_ID) {
 					// YOLO
 					capturandoYOLO        = true;
 					elapsedSeconds        = 0;
@@ -148,11 +146,11 @@
 					iniciarPoll();
 					appendLog('Cámara conectada. Monitoreo en curso.', 'ok');
 				} else {
+					if (activo) await detenerCapturaDeEvaluacion();
 					await iniciarCaptura();
 				}
-			} catch {
-				appendLog('No se pudo verificar el servidor. Reintentando arranque...', 'error');
-				await iniciarCaptura();
+			} catch (err) {
+				appendLog(err.message || 'No se pudo verificar el servidor.', 'error');
 			}
 		})();
 
@@ -339,6 +337,9 @@
 				if (rStatus.ok) {
 					const status = await rStatus.json();
 					actualizarChipsCamara(status);
+					// Velocidad del modelo (promedio del último segundo en el servidor),
+					// no la del refresco de imágenes en el navegador.
+					if (fpsBadgeEl && status.fps != null) fpsBadgeEl.textContent = `${Math.round(status.fps)} FPS`;
 					if (status.camara_desconectada) {
 						_manejarDesconexionCamara(status.error);
 						return;
@@ -501,12 +502,21 @@
 			}
 		}
 
+		async function detenerCapturaDeEvaluacion(evaluacionId = EVALUACION_ID, descartarLote = false) {
+			const res = await fetch('/video/detener', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ evaluacion_id: evaluacionId, descartar_lote: descartarLote }),
+			});
+			if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo detener el monitoreo.'));
+		}
+
 		async function detenerCaptura() {
 			clearInterval(timerInterval);
 			clearInterval(conteoInterval);
-			capturandoYOLO = false;
 			await detenerFaja();
-			try { await fetch('/video/detener', { method: 'POST' }); } catch { /* ignorar */ }
+			await detenerCapturaDeEvaluacion();
+			capturandoYOLO = false;
 			detenerStream();
 		}
 
@@ -698,8 +708,13 @@
 			mostrarOverlay(automatico);
 
 			// Paso 1: detener faja + captura YOLO
-			_pasoOk(1);
-			if (capturandoYOLO) await detenerCaptura();
+			try {
+				if (capturandoYOLO) await detenerCaptura();
+				_pasoOk(1);
+			} catch (err) {
+				errorOverlay(err.message);
+				return;
+			}
 
 			// Paso 2: capturar peso de la celda de carga + generar reporte SCA
 			finDescripcion.textContent = 'Calculando resumen...';
@@ -794,8 +809,13 @@
 			clearInterval(conteoInterval);
 			await detenerFaja();
 			if (capturandoYOLO) {
+				try {
+					await detenerCapturaDeEvaluacion();
+				} catch (err) {
+					CoffeeModal.error(err.message);
+					return;
+				}
 				capturandoYOLO = false;
-				await fetch('/video/detener', { method: 'POST' }).catch(() => {});
 			}
 			detenerStream();
 			window.location.replace('/registro');

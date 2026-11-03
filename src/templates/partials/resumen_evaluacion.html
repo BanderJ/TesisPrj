@@ -66,6 +66,7 @@
 				<tr><td>Fecha</td><td id="tdFecha">—</td></tr>
 				<tr><td>N° de sacos</td><td id="tdSacos">—</td></tr>
 				<tr><td>Peso bruto</td><td id="tdPeso">—</td></tr>
+				<tr><td>Peso neto</td><td id="tdPesoNeto">—</td></tr>
 				<tr><td>Humedad</td><td id="tdHumedad">—</td></tr>
 				<tr><td>Peso de muestra</td><td id="tdPesoMuestra">—</td></tr>
 				<tr><td>Peso trillado</td><td id="tdTrillado">—</td></tr>
@@ -112,7 +113,7 @@
 	<h3>Factor de rendimiento</h3>
 
 	<div id="rendimientoPendiente" hidden>
-		{% if modo == 'analisis' %}
+		{% if modo == 'analisis' and user and user.tipo_personal_id == 1 %}
 		<p class="analisis-note analisis-note--top">
 			Esta evaluación aún no tiene el peso de grano bueno registrado.
 			Pesa el grano bueno separado e ingresa el valor para calcular el rendimiento.
@@ -130,7 +131,7 @@
 		<p class="analisis-note analisis-note--top">
 			Esta evaluación aún no tiene el peso de grano bueno registrado.
 		</p>
-		{% if modo == 'reporte' %}
+		{% if modo == 'reporte' and user and user.tipo_personal_id == 1 %}
 		<a id="btnCalcularRendimiento" class="btn btn-primary">Calcular rendimiento</a>
 		{% endif %}
 		{% endif %}
@@ -146,7 +147,7 @@
 			<strong id="rendPesoBueno">—</strong>
 		</div>
 		<div class="clasificacion-card">
-			<span>Peso por quintal</span>
+			<span>Peso por quintal muestra</span>
 			<strong id="rendPesoQq">—</strong>
 		</div>
 		<div class="clasificacion-card">
@@ -167,8 +168,8 @@
 	<table class="data-table">
 		<thead>
 			<tr>
-				<th>Apertura (s)</th>
-				<th>Cierre (s)</th>
+				<th>Apertura</th>
+				<th>Cierre</th>
 				<th>Duración abierta</th>
 			</tr>
 		</thead>

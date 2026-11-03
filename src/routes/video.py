@@ -14,9 +14,9 @@ import asyncio
 from fastapi import APIRouter, Depends, Query, Response, HTTPException
 from fastapi.responses import StreamingResponse
 
-from src.schemas.video import EventosMonitoreoResponse, IniciarMonitoreoRequest
+from src.schemas.video import ControlMonitoreoRequest, DetenerMonitoreoRequest, EventosMonitoreoResponse
 from src.services.tracker_service import tracker_service
-from src.utilities.jwt_required import obtener_usuario_actual
+from src.utilities.jwt_required import obtener_usuario_actual, require_evaluador
 
 video_router = APIRouter(prefix="/video", tags=["video"])
 
@@ -59,8 +59,8 @@ async def stream_mjpeg(_: dict = Depends(obtener_usuario_actual)) -> StreamingRe
 
 @video_router.post("/iniciar")
 def iniciar_captura(
-    payload: IniciarMonitoreoRequest | None = None,
-    _: dict = Depends(obtener_usuario_actual),
+    payload: ControlMonitoreoRequest | None = None,
+    usuario: dict = Depends(obtener_usuario_actual),
 ) -> dict:
     """
     Inicia la captura de video y procesamiento en tiempo real.
@@ -71,14 +71,14 @@ def iniciar_captura(
     Returns:
         dict: {mensaje, activo}
     """
-    if tracker_service.esta_activo():
-        return {
-            "mensaje": "El monitoreo ya está activo",
-            "activo": True
-        }
-
     try:
-        exito = tracker_service.iniciar(payload.evaluacion_id if payload else None)
+        exito = tracker_service.iniciar(
+            payload.evaluacion_id if payload else None, usuario.get("tipo_personal_id", 0)
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail="No se pudo iniciar el monitoreo.") from exc
 
@@ -92,9 +92,20 @@ def iniciar_captura(
 
 
 @video_router.post("/detener")
-def detener_captura(_: dict = Depends(obtener_usuario_actual)) -> dict:
+def detener_captura(
+    payload: DetenerMonitoreoRequest | None = None,
+    usuario: dict = Depends(obtener_usuario_actual),
+) -> dict:
     """Detiene la captura y streaming de video."""
-    tracker_service.detener()
+    try:
+        tracker_service.controlar_lote(
+            "detener", payload.evaluacion_id if payload else None, usuario.get("tipo_personal_id", 0),
+            descartar_lote=payload.descartar_lote if payload else False,
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {
         "mensaje": "Monitoreo detenido",
         "activo": False
@@ -120,7 +131,7 @@ def obtener_conteo_lote(_: dict = Depends(obtener_usuario_actual)) -> dict:
 
 
 @video_router.post("/lote/generar-reporte")
-def generar_reporte_lote(_: dict = Depends(obtener_usuario_actual)) -> dict:
+def generar_reporte_lote(_: dict = Depends(require_evaluador)) -> dict:
     """
     Genera el reporte final del lote actual.
 
@@ -135,18 +146,28 @@ def generar_reporte_lote(_: dict = Depends(obtener_usuario_actual)) -> dict:
 
 
 @video_router.post("/lote/resetear")
-def resetear_lote(_: dict = Depends(obtener_usuario_actual)) -> dict:
+def resetear_lote(
+    payload: ControlMonitoreoRequest | None = None,
+    usuario: dict = Depends(obtener_usuario_actual),
+) -> dict:
     """
     Resetea el conteo de granos para iniciar análisis de un nuevo lote.
 
     Returns:
         dict: {mensaje, conteo}
     """
-    tracker_service.resetear_lote()
+    try:
+        conteo = tracker_service.controlar_lote(
+            "resetear", payload.evaluacion_id if payload else None, usuario.get("tipo_personal_id", 0)
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     return {
         "mensaje": "Lote reseteado. Listo para nuevo análisis.",
-        "conteo": tracker_service.obtener_conteo_actual()
+        "conteo": conteo
     }
 
 
@@ -177,6 +198,7 @@ def obtener_status(_: dict = Depends(obtener_usuario_actual)) -> dict:
     return {
         "activo": tracker_service.esta_activo(),
         "modelo": tracker_service.model_name,
+        "fps": tracker_service.obtener_fps(),
         "conteo_actual": tracker_service.obtener_conteo_actual(),
         # Evaluación dueña del lote en curso: el monitoreo lo compara con la suya
         # para no adoptar un lote que quedó activo de otra evaluación.

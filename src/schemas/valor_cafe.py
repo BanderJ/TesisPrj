@@ -24,6 +24,7 @@ class ValorCafeItem(BaseModel):
     rango: str
     precio: float
     fecha: datetime
+    activo: bool
 
 
 class ValorCafeHistorialResponse(BaseModel):
@@ -117,6 +118,15 @@ class ValorCafeActualizarPrecioResponse(BaseModel):
     fecha: datetime
 
 
-class ValorCafeEliminarRangoResponse(BaseModel):
-    eliminados: int
+class ValorCafeDesactivarRangoRequest(BaseModel):
+    rango: str = Field(..., min_length=1, max_length=20)
+
+    @field_validator("rango")
+    @classmethod
+    def validar_rango(cls, v: str) -> str:
+        return _validar_formato_rango(v)
+
+
+class ValorCafeDesactivarRangoResponse(BaseModel):
+    desactivados: int
     rango: str

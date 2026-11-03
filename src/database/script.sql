@@ -46,7 +46,7 @@ CREATE TABLE TIPO_DOCUMENTO (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, PR
 CREATE TABLE TIPO_GRANO (id SERIAL NOT NULL, nombre varchar(20) NOT NULL UNIQUE, peso_qq numeric(5, 2) NOT NULL, PRIMARY KEY (id));
 CREATE TABLE TIPO_PERSONAL (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, PRIMARY KEY (id));
 CREATE TABLE UBIGEO (ubigeo char(6) NOT NULL, departamento varchar(50) NOT NULL, provincia varchar(50) NOT NULL, distrito varchar(50) NOT NULL, PRIMARY KEY (ubigeo));
-CREATE TABLE VALOR_CAFE (id uuid DEFAULT uuidv7(), rango varchar(20) NOT NULL, precio numeric(7, 2) NOT NULL, fecha timestamp NOT NULL, PRIMARY KEY (id));
+CREATE TABLE VALOR_CAFE (id uuid DEFAULT uuidv7(), rango varchar(20) NOT NULL, precio numeric(7, 2) NOT NULL, fecha timestamp NOT NULL, activo boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (id));
 ALTER TABLE COOPERATIVA ADD CONSTRAINT FKCOOPERATIV906320 FOREIGN KEY (ubigeo_id) REFERENCES UBIGEO (ubigeo);
 ALTER TABLE PERSONA ADD CONSTRAINT FKPERSONA823055 FOREIGN KEY (cooperativa_id) REFERENCES COOPERATIVA (id);
 ALTER TABLE EVALUACION ADD CONSTRAINT FKEVALUACION667001 FOREIGN KEY (tipo_caficultor_id) REFERENCES TIPO_CAFICULTOR (id);
@@ -74,7 +74,7 @@ INSERT INTO TIPO_CAFICULTOR (nombre) VALUES ('Socio'), ('Externo');
 INSERT INTO TIPO_DOCUMENTO (nombre) VALUES ('DNI'), ('Pasaporte'), ('Carnet de Extranjería');
 INSERT INTO TIPO_PERSONAL (nombre) VALUES ('Evaluador'), ('Gerente'), ('Administrador');
 INSERT INTO TIPO_DEFECTO (nombre) VALUES ('Broca'), ('Cascarilla'), ('Cereza seca'), ('Concha'), ('Hongo'), ('Flotador'), ('Palos'), ('Piedra'), ('Raja'), ('Partido');
-INSERT INTO TIPO_GRANO (nombre, peso_qq) VALUES ('Pergamino', 55.20), ('Pilado', 46.00), ('Coco', 85.00);
+INSERT INTO TIPO_GRANO (nombre, peso_qq) VALUES ('Pergamino', 55.20), ('Pilado', 46.00);
 INSERT INTO CATEGORIA (nombre, cantidad_defectos) VALUES ('Grado 1', 15), ('Grado 2', 23), ('Grado 3', 30);
 
 --- INSERTS DE UBIGEO ---

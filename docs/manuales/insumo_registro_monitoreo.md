@@ -163,7 +163,7 @@ Arranque normal (evaluación recién registrada), en orden cronológico:
 | 4 | "Cámara activa. Arrancando faja transportadora..." | `monitoreo.js:485` |
 | 5 | "Faja iniciada." (verde) o "No se pudo iniciar la faja. Verifique la conexión Arduino." (rojo) | `arduino_service.py:71`, `monitoreo.js:431`, `:434` |
 | 6 | "Faja en marcha. Captura YOLO activa." | `monitoreo.js:492` |
-| 7 | "Monitoreo iniciado — modelo yolov26n_2cls." (llega del servidor con la primera consulta, 1,5 s después) | `tracker_service.py:100`, `monitoreo.js:361` |
+| 7 | "Monitoreo iniciado." (llega del servidor con la primera consulta, 1,5 s después) | `tracker_service.py:108`, `monitoreo.js:361` |
 
 El mensaje 6 aparece aunque la faja no haya arrancado (`monitoreo.js:486-492`); en ese caso el
 indicador **Faja** queda en "Faja: detenida".
@@ -388,7 +388,7 @@ Tomarlas con la cámara ELP, el Arduino conectado y precios de café registrados
 
 | Archivo | Qué debe verse |
 |---|---|
-| `monitoreo-arranque.png` | Primeros segundos del lote: registro con "Iniciando sistema...", "Cargando modelo y conectando cámara...", "Esperando primer frame de la cámara...", "Cámara activa. Arrancando faja transportadora...", "Faja iniciada.", "Faja en marcha. Captura YOLO activa." y "Monitoreo iniciado — modelo yolov26n_2cls."; indicadores en verde |
+| `monitoreo-arranque.png` | Primeros segundos del lote: registro con "Iniciando sistema...", "Cargando modelo y conectando cámara...", "Esperando primer frame de la cámara...", "Cámara activa. Arrancando faja transportadora...", "Faja iniciada.", "Faja en marcha. Captura YOLO activa." y "Monitoreo iniciado."; indicadores en verde |
 | `monitoreo-en-curso.png` | Video con granos enmarcados, contadores con valores, barras de distribución, cronómetro corriendo, indicadores Cámara "en vivo", Faja "en marcha", Arduino "conectado", Modelo "yolov26n_2cls", y "Primer grano detectado. Conteo en marcha." en el registro. Si es posible, con un objeto extraño (recuadro azul, tarjeta **Objetos extraños** y su miniatura en el registro) |
 | `monitoreo-tapa-abierta.png` | Registro con "Tapa abierta — se registrará como incidencia." y, tras cerrarla, "Tapa cerrada — estuvo abierta {N}s." |
 | `monitoreo-sin-granos.png` | "Sin granos hace 10 s — si el lote terminó, presione Finalizar monitoreo." en el registro y el botón **Finalizar monitoreo** resaltado |

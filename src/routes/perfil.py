@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from src.services.auditoria_service import auditoria_service
-from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente
+from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente, require_admin
 from src.utilities.jwt_utils import generar_token
 from src.utilities.request_utils import get_client_ip
 from src.schemas.perfil import (
@@ -147,7 +147,7 @@ def cambiar_estado_usuario(
     personal_id: str,
     body: CambiarEstadoUsuario,
     request: Request,
-    user: dict = Depends(require_admin_o_gerente),
+    user: dict = Depends(require_admin),
 ) -> Any:
     try:
         result = perfil_service.cambiar_estado_usuario(
@@ -177,7 +177,7 @@ def actualizar_usuario(
     personal_id: str,
     body: ActualizarUsuario,
     request: Request,
-    user: dict = Depends(require_admin_o_gerente),
+    user: dict = Depends(require_admin),
 ) -> Any:
     try:
         result = perfil_service.actualizar_usuario(
@@ -216,7 +216,7 @@ def actualizar_usuario(
 def crear_usuario(
     body: CrearUsuario,
     request: Request,
-    user: dict = Depends(require_admin_o_gerente),
+    user: dict = Depends(require_admin),
 ) -> Any:
     try:
         result = perfil_service.crear_usuario(

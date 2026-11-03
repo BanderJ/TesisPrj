@@ -61,6 +61,9 @@
 	/** Pinta el rendimiento calculado. Devuelve false si la evaluación aún no lo tiene. */
 	function rendimiento(r) {
 		const calculado = r.factor_rendimiento != null;
+		// El peso neto se guarda al calcular el rendimiento: va en Datos de la
+		// muestra, pero se pinta aquí para que aparezca también tras completar.
+		texto('tdPesoNeto', conUnidad(r.peso_neto, ' kg'));
 		$('rendimientoPendiente').hidden = calculado;
 		$('rendimientoCalculado').hidden = !calculado;
 		if (!calculado) return false;
@@ -79,11 +82,11 @@
 		const seccion = $('incidenciasSection');
 		const tbody   = $('incidenciasTbody');
 		seccion.hidden = !arr || arr.length === 0;
-		tbody.innerHTML = seccion.hidden ? '' : arr.map((inc) => {
-			const dur = inc.duracion_s;
-			const durStr = dur >= 60 ? `${Math.floor(dur / 60)}m ${dur % 60}s` : `${dur}s`;
-			return `<tr><td>${inc.seg_apertura}s</td><td>${inc.seg_cierre}s</td><td>${durStr}</td></tr>`;
-		}).join('');
+		// Mismo formato mm:ss que la columna Momento del registro del monitoreo.
+		const min = (s) => `${CoffeeEventos.formatSegundo(s)} min`;
+		tbody.innerHTML = seccion.hidden ? '' : arr.map((inc) =>
+			`<tr><td>${min(inc.seg_apertura)}</td><td>${min(inc.seg_cierre)}</td><td>${min(inc.duracion_s)}</td></tr>`
+		).join('');
 	}
 
 	/** Pinta todo lo que trae la respuesta de /evaluacion/... */
@@ -96,58 +99,132 @@
 		return calculado;
 	}
 
+	// Paleta de CoffeeRen en hex: Excel no entiende los oklch de input.css.
+	const XL = { shell: '153921', primario: '197627', tinte: 'E3EFE5', texto: '0D1117', tenue: '736757', borde: 'DCDBD2' };
+	const LINEA  = { style: 'thin', color: { rgb: XL.borde } };
+	const BORDES = { top: LINEA, bottom: LINEA, left: LINEA, right: LINEA };
+	const ESTILOS = {
+		titulo:     { font: { bold: true, sz: 14, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: XL.shell } }, alignment: { vertical: 'center', indent: 1 } },
+		subtitulo:  { font: { sz: 10, color: { rgb: XL.tenue } }, alignment: { vertical: 'center', indent: 1 } },
+		seccion:    { font: { bold: true, color: { rgb: XL.primario } }, fill: { fgColor: { rgb: XL.tinte } }, border: { bottom: { style: 'medium', color: { rgb: XL.primario } } }, alignment: { vertical: 'center', indent: 1 } },
+		etiqueta:   { font: { color: { rgb: XL.tenue } }, border: BORDES, alignment: { vertical: 'center', indent: 1 } },
+		valor:      { font: { bold: true, color: { rgb: XL.texto } }, border: BORDES, alignment: { vertical: 'center', wrapText: true } },
+		encabezado: { font: { bold: true, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: XL.primario } }, border: BORDES, alignment: { horizontal: 'center', vertical: 'center' } },
+		celda:      { font: { color: { rgb: XL.texto } }, border: BORDES, alignment: { horizontal: 'center', vertical: 'center' } },
+	};
+
+	/** Celda a partir del texto en pantalla. Una cifra ("149.50 kg", "35%", "1,234") se guarda
+	 *  como número y la unidad pasa al formato, para que Excel pueda operar con ella. */
+	function celdaValor(texto, comoTexto) {
+		const t = String(texto ?? '').trim() || '—';
+		const m = comoTexto ? null : t.match(/^(-?\d[\d,]*(?:\.(\d+))?)\s*(%|kg|gr|g|sacos)?$/);
+		if (!m) return { v: t, t: 's', s: ESTILOS.valor };
+		const fmt = `#,##0${m[2] ? '.' + '0'.repeat(m[2].length) : ''}`;
+		const n   = Number(m[1].replace(/,/g, ''));
+		const [v, z] = m[3] === '%' ? [n / 100, `${fmt}%`] : [n, m[3] ? `${fmt}" ${m[3]}"` : fmt];
+		return { v, t: 'n', z, s: { ...ESTILOS.valor, numFmt: z, alignment: { ...ESTILOS.valor.alignment, horizontal: 'right' } } };
+	}
+
 	function exportarExcel() {
 		const g = (id) => $(id)?.textContent ?? '—';
+		const filas = [];
+		const agregar = (tipo, valores, extra = {}) => filas.push({ tipo, valores, ...extra });
+		const seccion = (titulo) => { agregar('vacio', []); agregar('seccion', [titulo]); };
+		const dato = (etiqueta, id, extra) => agregar('dato', [etiqueta, g(id)], extra);
 		// Solo las cifras visibles: los datos de sesión no existen al entrar más tarde.
-		const fila = (etiqueta, id) => ($(id) && !$(id).closest('[hidden]') ? [[etiqueta, g(id)]] : []);
+		const datoVisible = (etiqueta, id) => { if ($(id) && !$(id).closest('[hidden]')) dato(etiqueta, id); };
 
-		const rows = [
-			['RESUMEN DE EVALUACIÓN DE CAFÉ - CoffeeRen', ''],
-			[],
-			['DATOS DE LA MUESTRA', ''],
-			['Código evaluación',        g('tdCodigo')],
-			['Caficultor',               g('caficultorNombre')],
-			['Documento',                g('metaDoc')],
-			['Tipo caficultor',          g('metaTipoCaf')],
-			['Tipo de grano',            g('metaGrano')],
-			['Peso por quintal (grano)', g('metaPesoQqGrano')],
-			['Registrado por',           g('metaRegistradoPor')],
-			['Fecha',                    g('tdFecha')],
-			['N.º de sacos',                 g('tdSacos')],
-			['Peso bruto',               g('tdPeso')],
-			['Humedad',                  g('tdHumedad')],
-			['Peso muestra',             g('tdPesoMuestra')],
-			['Peso trillado',            g('tdTrillado')],
-			['N.º de tamiz',                 g('tdTamiz')],
-			['Peso tamizado',            g('tdTamizado')],
-			[],
-			['ESTADÍSTICAS DE MONITOREO', ''],
-			['Granos evaluados',         g('statGranos')],
-			['Defectos totales',         g('statDefectos')],
-			['Granos buenos',            g('statSanos')],
-			['% Defecto',                g('statPctDefecto')],
-			...fila('Tiempo de análisis', 'statTiempo'),
-			...fila('Peso capturado',    'pesoCaptEl'),
-			[],
-			['RENDIMIENTO', ''],
-			['Factor rendimiento',       g('rendFactor')],
-			['Peso bueno',               g('rendPesoBueno')],
-			['Peso por quintal',         g('rendPesoQq')],
-			[g('rendPrecioLabel'),       g('rendPrecio')],
-			['Pago (S/)',                g('rendPago')],
-			['Detalle del pago',         g('rendPagoDetalle')],
-		];
+		agregar('titulo', ['CoffeeRen · Resumen de evaluación de muestra de café']);
+		agregar('subtitulo', [[g('tdCodigo'), g('caficultorNombre'), g('tdFecha')].join('   ·   ')]);
+
+		seccion('Datos de la muestra');
+		dato('Código evaluación',        'tdCodigo', { texto: true });
+		dato('Caficultor',               'caficultorNombre');
+		dato('Documento',                'metaDoc', { texto: true });
+		dato('Tipo caficultor',          'metaTipoCaf');
+		dato('Tipo de grano',            'metaGrano');
+		dato('Peso por quintal (grano)', 'metaPesoQqGrano');
+		dato('Registrado por',           'metaRegistradoPor');
+		dato('Fecha',                    'tdFecha', { texto: true });
+		dato('N.º de sacos',             'tdSacos');
+		dato('Peso bruto',               'tdPeso');
+		dato('Peso neto',                'tdPesoNeto');
+		dato('Humedad',                  'tdHumedad');
+		dato('Peso muestra',             'tdPesoMuestra');
+		dato('Peso trillado',            'tdTrillado');
+		dato('N.º de tamiz',             'tdTamiz');
+		dato('Peso tamizado',            'tdTamizado');
+
+		seccion('Estadísticas de monitoreo');
+		dato('Granos evaluados',         'statGranos');
+		dato('Defectos totales',         'statDefectos');
+		dato('Granos buenos',            'statSanos');
+		dato('% Defecto',                'statPctDefecto');
+		datoVisible('Tiempo de análisis', 'statTiempo');
+		datoVisible('Peso capturado',     'pesoCaptEl');
+
+		seccion('Rendimiento');
+		dato('Factor rendimiento',       'rendFactor');
+		dato('Peso bueno',               'rendPesoBueno');
+		dato('Peso por quintal',         'rendPesoQq');
+		agregar('dato', [g('rendPrecioLabel'), g('rendPrecio')]);
+		dato('Pago (S/)',                'rendPago', { destacado: true });
+		dato('Detalle del pago',         'rendPagoDetalle', { texto: true });
 
 		const tbody = $('incidenciasTbody');
 		if (tbody && tbody.rows.length > 0) {
-			rows.push([], ['INCIDENCIAS DE TAPA', '', ''], ['Apertura (s)', 'Cierre (s)', 'Duración abierta']);
-			for (const tr of tbody.rows) {
-				rows.push([tr.cells[0].textContent, tr.cells[1].textContent, tr.cells[2].textContent]);
-			}
+			seccion('Incidencias de tapa');
+			agregar('encabezado', ['Apertura', 'Cierre', 'Duración abierta']);
+			for (const tr of tbody.rows) agregar('tabla', [...tr.cells].map((td) => td.textContent));
 		}
 
-		const ws = XLSX.utils.aoa_to_sheet(rows);
-		ws['!cols'] = [{ wch: 34 }, { wch: 32 }, { wch: 20 }];
+		const ws = XLSX.utils.aoa_to_sheet([]);
+		const merges  = [];
+		const alturas = [];
+		const poner  = (r, c, cel) => { ws[XLSX.utils.encode_cell({ r, c })] = cel; };
+		const texto3 = (r, valores, estilo) => [0, 1, 2].forEach((c) => poner(r, c, { v: valores[c] ?? '', t: 's', s: estilo }));
+		const ALTURA = { titulo: 30, subtitulo: 18, seccion: 20 };
+
+		filas.forEach((f, r) => {
+			switch (f.tipo) {
+				case 'titulo':
+				case 'subtitulo':
+				case 'seccion':
+					texto3(r, f.valores, ESTILOS[f.tipo]);
+					merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+					alturas[r] = { hpt: ALTURA[f.tipo] };
+					break;
+				case 'encabezado':
+				case 'tabla':
+					texto3(r, f.valores, f.tipo === 'encabezado' ? ESTILOS.encabezado : ESTILOS.celda);
+					break;
+				case 'dato': {
+					const [etiqueta, valor] = f.valores;
+					const cel = celdaValor(valor, f.texto);
+					let estiloEtiqueta = ESTILOS.etiqueta;
+					if (f.destacado) {
+						const fill = { fgColor: { rgb: XL.tinte } };
+						cel.s = { ...cel.s, fill, font: { ...cel.s.font, sz: 12, color: { rgb: XL.primario } } };
+						estiloEtiqueta = { ...ESTILOS.etiqueta, fill, font: { bold: true, color: { rgb: XL.texto } } };
+					}
+					poner(r, 0, { v: etiqueta, t: 's', s: estiloEtiqueta });
+					poner(r, 1, cel);
+					poner(r, 2, { v: '', t: 's', s: cel.s });
+					merges.push({ s: { r, c: 1 }, e: { r, c: 2 } });
+					// Textos largos (detalle del pago): una línea más por cada ~45 caracteres.
+					alturas[r] = { hpt: 18 * Math.max(1, Math.ceil(String(valor).length / 45)) };
+					break;
+				}
+				default:
+					alturas[r] = { hpt: 8 };
+			}
+		});
+
+		ws['!ref']    = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: filas.length - 1, c: 2 } });
+		ws['!merges'] = merges;
+		ws['!rows']   = alturas;
+		ws['!cols']   = [{ wch: 32 }, { wch: 26 }, { wch: 22 }];
+
 		const wb = XLSX.utils.book_new();
 		XLSX.utils.book_append_sheet(wb, ws, 'Resumen');
 		const codigo = g('tdCodigo').replace(/[^A-Za-z0-9]/g, '') || 'evaluacion';

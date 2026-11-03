@@ -8,7 +8,8 @@ from src.schemas.valor_cafe import (
     ValorCafeCambiosDiariosResponse,
     ValorCafeCrearBloqueRequest,
     ValorCafeCrearBloqueResponse,
-    ValorCafeEliminarRangoResponse,
+    ValorCafeDesactivarRangoRequest,
+    ValorCafeDesactivarRangoResponse,
     ValorCafeHistorialResponse,
     ValorCafeMaximoResponse,
     ValorCafeResumenRangosResponse,
@@ -97,29 +98,29 @@ def actualizar_precio_rango(
         raise HTTPException(status_code=500, detail="No se pudo actualizar el precio.") from exc
 
 
-@valor_cafe_router.delete("/eliminar-rango", response_model=ValorCafeEliminarRangoResponse)
-def eliminar_rango(
+@valor_cafe_router.patch("/desactivar-rango", response_model=ValorCafeDesactivarRangoResponse)
+def desactivar_rango(
     request: Request,
-    rango: str = Query(..., min_length=1, max_length=10, description="Rango a eliminar del día actual"),
+    data: ValorCafeDesactivarRangoRequest,
     user: dict = Depends(require_admin_o_gerente),
-) -> ValorCafeEliminarRangoResponse:
+) -> ValorCafeDesactivarRangoResponse:
     try:
-        result = valor_cafe_service.eliminar_rango_hoy(rango)
+        result = valor_cafe_service.desactivar_rango_hoy(data.rango)
         auditoria_service.registrar(
-            accion="ELIMINAR_VALOR_CAFE",
+            accion="DESACTIVAR_VALOR_CAFE",
             personal_id=user.get("personal_id"),
             usuario=user.get("usuario"),
             tipo_personal_id=user.get("tipo_personal_id"),
             rol=user.get("rol"),
             tabla_afectada="VALOR_CAFE",
-            descripcion=f"Rango de precio eliminado: {rango}",
+            descripcion=f"Rango desactivado: {data.rango}; versiones retiradas: {result.desactivados}. Historial conservado.",
             ip_cliente=get_client_ip(request),
         )
         return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo eliminar el rango.") from exc
+        raise HTTPException(status_code=500, detail="No se pudo desactivar el rango.") from exc
 
 
 @valor_cafe_router.post("/crear-bloque", response_model=ValorCafeCrearBloqueResponse)

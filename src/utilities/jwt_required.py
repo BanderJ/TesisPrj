@@ -45,3 +45,15 @@ def require_evaluador(user: dict[str, Any] = Depends(obtener_usuario_actual)) ->
     if user.get("tipo_personal_id") != 1:
         raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta sección.")
     return user
+
+def require_admin(user: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
+    """Dependencia FastAPI — exige tipo_personal_id 3 (Administrador)."""
+    if user.get("tipo_personal_id") != 3:
+        raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta sección.")
+    return user
+
+def require_gerente(user: dict[str, Any] = Depends(obtener_usuario_actual)) -> dict[str, Any]:
+    """Dependencia FastAPI — exige tipo_personal_id 2 (Gerente)."""
+    if user.get("tipo_personal_id") != 2:
+        raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta sección.")
+    return user

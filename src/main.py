@@ -279,7 +279,7 @@ def analisis(
 def monitoreo(
     evaluacion_id: str,
     request: Request,
-    user: dict[str, Any] = Depends(obtener_usuario_actual),
+    user: dict[str, Any] = Depends(require_evaluador),
 ) -> Any:
     """Página de monitoreo en tiempo real de clasificación.
     Guard: si la evaluacion ya fue finalizada (tiene codigo), redirige a analisis.

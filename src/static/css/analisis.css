@@ -444,15 +444,31 @@
         display: none !important;
     }
 
-    .analisis-page { gap: 8px; }
+    /* Chrome no recoloca los ítems de un grid cuando uno salta de página por
+       break-inside: avoid, y las tarjetas se superponen. Al imprimir, las
+       secciones van en bloque (en papel la grilla de detalle ya es de una
+       columna) y ningún ítem de grid lleva break-inside: avoid. */
+    .analisis-page,
+    .analisis-detail-grid { display: block; }
+    .analisis-page > * + *,
+    .analisis-detail-grid > * + * { margin-top: 8px; }
+
+    .analisis-header-card,
+    .analisis-stats,
+    .analisis-section {
+        break-inside: avoid;
+    }
 
     .analisis-header-card,
     .stat-card,
     .analisis-section {
-        break-inside: avoid;
         box-shadow: none;
         border: 1px solid #ccc;
     }
+
+    /* Registro del monitoreo: puede ocupar más de una página; se parte entre filas. */
+    .analisis-eventos { break-inside: auto; }
+    .analisis-eventos tr { break-inside: avoid; }
 }
 
 /* ── Responsive ──────────────────────────────────────────────────── */

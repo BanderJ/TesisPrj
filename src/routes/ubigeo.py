@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.schemas.ubigeo import (
     DepartamentoResponse,
@@ -6,12 +6,13 @@ from src.schemas.ubigeo import (
     ProvinciaResponse,
 )
 from src.services.ubigeo_service import UbigeoService
+from src.utilities.jwt_required import obtener_usuario_actual
 
 ubigeo_router = APIRouter()
 ubigeo_service = UbigeoService()
 
 
-@ubigeo_router.get("/departamentos", response_model=list[DepartamentoResponse])
+@ubigeo_router.get("/departamentos", response_model=list[DepartamentoResponse], dependencies=[Depends(obtener_usuario_actual)])
 def listar_departamentos() -> list[DepartamentoResponse]:
     try:
         return ubigeo_service.listar_departamentos()
@@ -19,7 +20,7 @@ def listar_departamentos() -> list[DepartamentoResponse]:
         raise HTTPException(status_code=500, detail="No se pudieron obtener los departamentos.") from exc
 
 
-@ubigeo_router.get("/provincias", response_model=list[ProvinciaResponse])
+@ubigeo_router.get("/provincias", response_model=list[ProvinciaResponse], dependencies=[Depends(obtener_usuario_actual)])
 def listar_provincias(
     departamento: str = Query(..., min_length=2, max_length=2, description="Codigo de 2 digitos del departamento"),
 ) -> list[ProvinciaResponse]:
@@ -31,7 +32,7 @@ def listar_provincias(
         raise HTTPException(status_code=500, detail="No se pudieron obtener las provincias.") from exc
 
 
-@ubigeo_router.get("/distritos", response_model=list[DistritoResponse])
+@ubigeo_router.get("/distritos", response_model=list[DistritoResponse], dependencies=[Depends(obtener_usuario_actual)])
 def listar_distritos(
     provincia: str = Query(..., min_length=4, max_length=4, description="Codigo de 4 digitos de la provincia"),
 ) -> list[DistritoResponse]:

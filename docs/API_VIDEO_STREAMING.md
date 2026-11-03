@@ -47,6 +47,7 @@ sola en `<img src="/video/stream">` y en `fetch` del mismo origen.
 {
   "activo": true,
   "modelo": "yolov26n_2cls",
+  "fps": 17.4,
   "conteo_actual": { "defecto": 5, "verde": 12 },
   "evaluacion_id": "0199....",
   "camara_desconectada": false,
@@ -57,10 +58,27 @@ sola en `<img src="/video/stream">` y en `fetch` del mismo origen.
 `evaluacion_id` es la evaluación dueña del lote en curso: el monitoreo lo compara con la
 suya para no adoptar un lote que quedó activo de otra evaluación.
 
+`fps` es la velocidad de procesamiento del modelo: frames procesados por YOLO en el último
+segundo (ventana deslizante). Vale 0 si no se procesó ningún frame en ese segundo (faja
+quieta con el gate de movimiento). Es el valor que muestra el indicador de la esquina del
+video en el monitoreo; el texto amarillo del frame ya no incluye FPS.
+
 ### `POST /video/iniciar` — requiere JWT
 
-Inicia captura y procesamiento. Idempotente: si ya está activo responde `200` con
-el mismo cuerpo.
+Inicia captura y procesamiento. Si el mismo lote ya está activo, responde `200` sin
+reiniciarlo. La validación se ejecuta en el servidor bajo el bloqueo de control.
+
+El cuerpo opcional usa `ControlMonitoreoRequest`: `{"evaluacion_id": "<UUID>"}` asocia
+el lote a una evaluación. Prueba no envía cuerpo y trabaja sin evaluación. Los UUID se
+normalizan a minúsculas después de validar su formato.
+
+- Si queda un lote asociado a una evaluación, activo o detenido, solo un Evaluador con
+  ese mismo ID puede iniciarlo. Reanudarlo conserva el conteo y el registro de eventos.
+- Sin ID o con otro ID, responde `409` sin borrar el conteo ni cambiar la asociación.
+- Asociar una evaluación exige rol Evaluador (`403` para otros roles). Iniciar Prueba sin
+  evaluación sigue disponible para toda sesión cuando no hay una evaluación asociada.
+- Una Prueba activa no se convierte implícitamente en evaluación: iniciar con un ID
+  distinto responde `409`; primero debe detenerse esa captura sin evaluación.
 
 ```json
 { "mensaje": "Monitoreo iniciado exitosamente", "activo": true }
@@ -71,6 +89,30 @@ el mismo cuerpo.
 ### `POST /video/detener` — requiere JWT
 
 Detiene captura y streaming.
+
+- Lote de evaluación: enviar `{"evaluacion_id": "<UUID de la evaluación>"}` con sesión
+  de Evaluador. El ID debe coincidir con el lote del servidor.
+- Lote de Prueba sin evaluación: cualquier sesión puede detenerlo sin cuerpo.
+- `409` si hay evaluación asociada y falta su ID o se envía otro; `403` si el ID coincide
+  pero el rol no es Evaluador; `422` si el UUID tiene formato inválido. El rechazo conserva
+  estado, conteo, imagen y eventos, sin enviar comandos al hardware.
+
+La asociación y el conteo se conservan después de detener, para poder finalizar la
+evaluación. La comprobación y la operación comparten un bloqueo de control con el arranque
+de otro lote. La parada interna al cerrar la aplicación y el modo de emergencia se conservan.
+
+Para abandonar un lote pendiente, un Evaluador puede enviar
+`{"evaluacion_id": "<UUID del lote abandonado>", "descartar_lote": true}`
+(`DetenerMonitoreoRequest`). Con ID coincidente, se detiene, se descarta su conteo en memoria
+y se libera la asociación. El valor predeterminado es `false`: una parada normal conserva
+el lote. El descarte explícito permite iniciar después la evaluación nueva; un ID obsoleto
+recibe `409` y un rol no autorizado recibe `403`.
+
+`PATCH /evaluacion/{id}/finalizar` obtiene el conteo y persiste la finalización bajo el mismo
+bloqueo de control. Solo después de guardar correctamente libera la asociación:
+`GET /video/status` informa `evaluacion_id: null` y Prueba vuelve a funcionar sin reiniciar
+el servidor. Un fallo de persistencia conserva ID y conteo para reintentar. Repetir una
+finalización ya guardada conserva su código y no libera otro lote que haya empezado después.
 
 ```json
 { "mensaje": "Monitoreo detenido", "activo": false }
@@ -111,7 +153,7 @@ las entradas. Al finalizar la evaluación los eventos se guardan en `EVENTO_MONI
 { "eventos": [ { "seq": 3, "segundo": 41, "tipo": "objeto_desconocido", "severidad": "alerta", "mensaje": "Objeto extraño detectado — desviado al canal de defecto.", "imagen_url": "/resources/desconocidos/<evaluacion>/<archivo>.jpg", "datos": { "track_id": 12, "conf": 0.21 } } ], "cursor": 3 }
 ```
 
-### `POST /video/lote/generar-reporte` — requiere JWT
+### `POST /video/lote/generar-reporte` — requiere sesión de Evaluador
 
 Reporte final del lote: total de defectos equivalentes (equivalencias del modelo cargado).
 
@@ -134,6 +176,10 @@ solo distingue `defecto`/`verde`.
 Reinicia el conteo para un lote nuevo (limpia IDs de ByteTrack y el mapeo de IDs
 globales).
 
+Usa `ControlMonitoreoRequest` con las mismas condiciones de rol e ID que una parada normal.
+Prueba no puede resetear un lote de evaluación, aunque el
+procesamiento ya se haya detenido y el conteo esté esperando su finalización.
+
 ```json
 { "mensaje": "Lote reseteado. Listo para nuevo análisis.", "conteo": {} }
 ```
@@ -141,11 +187,19 @@ globales).
 ## Flujo típico
 
 1. `POST /auth/login` → JWT en cookie `access_token`.
-2. `POST /video/iniciar` → abre cámara e inicia tracker YOLO + ByteTrack.
+2. `POST /video/iniciar` con el ID de evaluación → abre cámara e inicia tracker YOLO + ByteTrack.
 3. El frontend muestra `GET /video/stream` y consulta `GET /video/lote/conteo`
    cada 1–2 s; también revisa `GET /video/status` para detectar desconexión.
-4. Al cerrar el lote: `POST /video/lote/generar-reporte`.
-5. `POST /video/lote/resetear` para el siguiente lote, o `POST /video/detener`.
+4. Al cerrar el lote: `POST /video/detener` con su ID y `POST /video/lote/generar-reporte`.
+5. Finalizar y calcular el rendimiento mediante las rutas de evaluación.
+
+Prueba conserva iniciar, resetear y detener sin ID para sus propios lotes. Si detecta
+una evaluación en monitoreo, no la adopta y muestra el aviso. Al abrir otra evaluación,
+Monitoreo pide confirmación antes de detener y descartar el lote pendiente. Muestra el
+caficultor y la fecha de registro del resumen; si no se obtiene, usa «una evaluación anterior». Cancelar no envía
+órdenes de control; aceptar envía detener con el ID del lote anterior y `descartar_lote: true`,
+y después inicia el nuevo. Una captura de Prueba sin evaluación se detiene antes de iniciar
+un monitoreo asociado.
 
 Patrón de consumo (vanilla JS, como en `src/static/js/test.js` y `monitoreo.js`):
 

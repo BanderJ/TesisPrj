@@ -103,6 +103,7 @@ class Evaluacion:
                         || ' ' || TRIM(pe.ape_materno)                     AS registrado_por,
                     e.num_sacos,
                     e.peso_bruto,
+                    e.peso_neto,
                     e.humedad,
                     e.peso_muestra,
                     e.peso_trillado,
