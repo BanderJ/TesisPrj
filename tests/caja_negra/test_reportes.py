@@ -1,4 +1,4 @@
-"""PCN-20 a PCN-22: reportes e historial (RF09, RF10, RNF07).
+"""PCN-19 a PCN-21: reportes e historial (RF09, RF10, RNF07).
 
 Usan la evaluación completada más reciente del operario de prueba (la deja PCN-11,
 PCN-13 o PCN-14), buscada desde la pantalla "Buscar reportes".
@@ -45,8 +45,8 @@ def _buscar(page: Page, codigo: str) -> None:
     page.wait_for_timeout(500)
 
 
-def test_pcn20_exportar_pdf(page_operario: Page, registro: Registro, evaluacion: dict[str, Any]) -> None:
-    registro.iniciar("PCN-20")
+def test_pcn19_exportar_pdf(page_operario: Page, registro: Registro, evaluacion: dict[str, Any]) -> None:
+    registro.iniciar("PCN-19")
     page = page_operario
     # "Exportar PDF" abre el diálogo de impresión del navegador; en Chromium sin interfaz
     # el diálogo no existe, así que se registra la llamada y el PDF se genera con la
@@ -58,7 +58,7 @@ def test_pcn20_exportar_pdf(page_operario: Page, registro: Registro, evaluacion:
     page.emulate_media(media="print")
     ruta_pdf = EVIDENCIAS / f"PCN-20_{evaluacion['codigo']}.pdf"
     page.pdf(path=str(ruta_pdf), format="A4", print_background=True)
-    captura(page, "PCN-20", full_page=True)
+    captura(page, "PCN-19", full_page=True)
     with pdfplumber.open(ruta_pdf) as pdf:
         texto = "\n".join(p.extract_text() or "" for p in pdf.pages)
         paginas = len(pdf.pages)
@@ -71,7 +71,7 @@ def test_pcn20_exportar_pdf(page_operario: Page, registro: Registro, evaluacion:
         f"Exportar PDF no produjo un documento con los datos de la evaluación (impresión invocada: {imprimio})."
     )
     registro.guardar(
-        "PCN-20", obtenido, ok, ["Captura de pantalla"],
+        "PCN-19", obtenido, ok, ["Captura de pantalla"],
         "El sistema no descarga el archivo directamente: usa el diálogo de impresión del navegador "
         "(opción \"Guardar como PDF\"). En la prueba automatizada el PDF se generó con el modo de impresión de "
         f"Chromium y se guardó como evidencias/{ruta_pdf.name}.",
@@ -92,8 +92,8 @@ def _tabla_html(filas: list[tuple[Any, ...]], titulo: str) -> str:
     )
 
 
-def test_pcn21_exportar_excel(page_operario: Page, registro: Registro, evaluacion: dict[str, Any]) -> None:
-    registro.iniciar("PCN-21")
+def test_pcn20_exportar_excel(page_operario: Page, registro: Registro, evaluacion: dict[str, Any]) -> None:
+    registro.iniciar("PCN-20")
     page = page_operario
     _buscar(page, evaluacion["codigo"])
     antes = page.screenshot()
@@ -129,7 +129,7 @@ def test_pcn21_exportar_excel(page_operario: Page, registro: Registro, evaluacio
     contenido.set_viewport_size({"width": 1366, "height": 900})
     tabla = contenido.screenshot(full_page=True)
     contenido.close()
-    captura_compuesta("PCN-21", [
+    captura_compuesta("PCN-20", [
         ("Pantalla de la evaluación al presionar \"Exportar Excel\"", antes),
         ("Contenido del archivo descargado", tabla),
     ])
@@ -145,7 +145,7 @@ def test_pcn21_exportar_excel(page_operario: Page, registro: Registro, evaluacio
         + "; ".join(diferencias) + "."
     )
     registro.guardar(
-        "PCN-21", obtenido, ok, ["Captura de pantalla"],
+        "PCN-20", obtenido, ok, ["Captura de pantalla"],
         f"El archivo descargado se guardó como evidencias/{ruta_xlsx.name}. La captura muestra la pantalla "
         "(arriba) y el contenido del archivo (abajo).",
         f"Evaluación = {evaluacion['codigo']}\nformato = Excel",
@@ -153,14 +153,14 @@ def test_pcn21_exportar_excel(page_operario: Page, registro: Registro, evaluacio
     assert ok, obtenido
 
 
-def test_pcn22_buscar_historial(page_operario: Page, registro: Registro, evaluacion: dict[str, Any]) -> None:
-    registro.iniciar("PCN-22")
+def test_pcn21_buscar_historial(page_operario: Page, registro: Registro, evaluacion: dict[str, Any]) -> None:
+    registro.iniciar("PCN-21")
     page = page_operario
     _buscar(page, evaluacion["codigo"])
     fecha = page.locator("#tdFecha").inner_text().strip()
     usuario = page.locator("#metaRegistradoPor").inner_text().strip()
     factor = page.locator("#rendFactor").inner_text().strip()
-    captura(page, "PCN-22", full_page=True)
+    captura(page, "PCN-21", full_page=True)
     tiene_hora = bool(re.search(r"\d{1,2}:\d{2}", fecha))
     ok = tiene_hora and usuario not in ("", "—") and factor not in ("", "—")
     obtenido = (
@@ -172,7 +172,7 @@ def test_pcn22_buscar_historial(page_operario: Page, registro: Registro, evaluac
     if not tiene_hora:
         obtenido += " La fecha mostrada no incluye la hora."
     registro.guardar(
-        "PCN-22", obtenido, ok, ["Captura de pantalla", "Consulta BD"],
+        "PCN-21", obtenido, ok, ["Captura de pantalla", "Consulta BD"],
         "La búsqueda es por código de evaluación; la pantalla no ofrece búsqueda por fecha.",
         f"Criterio de búsqueda = código {evaluacion['codigo']}",
     )
