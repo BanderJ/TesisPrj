@@ -1,0 +1,151 @@
+/* ── Página de prueba de detección ──────────────────────────────── */
+/* El feed de cámara (.feed-card, .feed-frame, .camera-*, .live-indicator)
+   se estiliza en main.css — es compartido con /monitoreo. Aquí solo el
+   layout propio de /prueba y el panel de conteo en vivo. */
+
+.test-page {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.test-hero {
+    flex-shrink: 0;
+}
+
+/* ── Grid principal: feed + panel ───────────────────────────────── */
+.test-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: stretch;
+}
+
+.test-grid .feed-card {
+    height: 62vh;
+    min-height: 360px;
+}
+
+/* ── Estado inicial del feed (antes de iniciar) ─────────────────── */
+.camera-idle {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    background: color-mix(in oklab, var(--background) 88%, transparent 12%);
+}
+
+.camera-idle svg {
+    width: 40px;
+    height: 40px;
+    color: var(--muted-foreground);
+    opacity: 0.7;
+}
+
+.camera-idle p {
+    margin: 0;
+    max-width: 320px;
+    font-size: 14px;
+    color: var(--muted-foreground);
+    line-height: 1.5;
+}
+
+/* ── Panel de detección en vivo ─────────────────────────────────── */
+.test-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.test-panel-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.test-kpis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.test-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    border: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+    background: color-mix(in oklab, var(--card) 82%, transparent 18%);
+    border-radius: 10px;
+}
+
+.test-kpi span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+.test-kpi strong {
+    font-size: clamp(1.5rem, 2vw, 2rem);
+    font-weight: 700;
+    font-family: var(--font-mono);
+    line-height: 1;
+    color: var(--foreground);
+}
+
+.test-kpi-defecto strong {
+    color: var(--destructive);
+}
+
+.test-kpi-sano strong {
+    color: var(--primary);
+}
+
+.test-status {
+    flex: 1;
+    min-height: 48px;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+    background: color-mix(in oklab, var(--card) 80%, transparent 20%);
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+}
+
+/* ── Acciones ──────────────────────────────────────────────────── */
+.test-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+    .test-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .test-grid .feed-card {
+        height: auto;
+        min-height: 320px;
+    }
+
+    .test-grid .feed-frame {
+        min-height: 300px;
+    }
+}
+
+@media (max-width: 640px) {
+    .test-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

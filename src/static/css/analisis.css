@@ -26,8 +26,14 @@
     font-family: var(--font-serif);
 }
 
+.analisis-toolbar-icon {
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
 .analisis-toolbar-actions {
     display: flex;
+    align-items: center;
     gap: 8px;
     flex-wrap: wrap;
 }
@@ -49,14 +55,14 @@
 }
 
 .btn-export.pdf {
-    background: color-mix(in oklab, #dc2626 12%, #ff0000cc 70%);
-    border-color: color-mix(in oklab, #dc2626 38%, var(--border) 62%);
+    background: color-mix(in oklab, var(--danger) 12%, #ff0000cc 70%);
+    border-color: color-mix(in oklab, var(--danger) 38%, var(--border) 62%);
     color: #ffffff;
 }
 
 .btn-export.excel {
     background: color-mix(in oklab, #00ff5e 12%, #043509ba 88%);
-    border-color: color-mix(in oklab, #16a34a 38%, var(--border) 62%);
+    border-color: color-mix(in oklab, var(--success) 38%, var(--border) 62%);
     color: #ffffff;
 }
 
@@ -88,8 +94,10 @@
     background: var(--card);
     padding: 14px 18px;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 24px;
 }
 
 .analisis-header-main {
@@ -130,21 +138,22 @@
 }
 
 .status-badge.finalizado {
-    background: color-mix(in oklab, #16a34a 14%, transparent 86%);
-    border: 1px solid color-mix(in oklab, #16a34a 36%, transparent 64%);
-    color: #16a34a;
+    background: color-mix(in oklab, var(--success) 14%, transparent 86%);
+    border: 1px solid color-mix(in oklab, var(--success) 36%, transparent 64%);
+    color: var(--success);
 }
 
 .status-badge.pendiente {
-    background: color-mix(in oklab, #d97706 14%, transparent 86%);
-    border: 1px solid color-mix(in oklab, #d97706 36%, transparent 64%);
-    color: #d97706;
+    background: color-mix(in oklab, var(--warning) 14%, transparent 86%);
+    border: 1px solid color-mix(in oklab, var(--warning) 36%, transparent 64%);
+    color: var(--warning);
 }
 
 /* ── Meta chips row ──────────────────────────────────────────────── */
 .analisis-chips {
     display: flex;
     flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 6px;
 }
 
@@ -173,10 +182,10 @@
     font-family: var(--font-mono);
 }
 
-/* ── Stats row — 5 cards ─────────────────────────────────────────── */
+/* ── Stats row — 4 (reporte) o 5 (análisis) indicadores ─────────── */
 .analisis-stats {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 10px;
 }
 
@@ -204,12 +213,13 @@
     line-height: 1;
     color: var(--foreground);
     font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
 }
 
-.stat-card-value.accent-green  { color: #16a34a; }
-.stat-card-value.accent-red    { color: #dc2626; }
-.stat-card-value.accent-blue   { color: #2563eb; }
-.stat-card-value.accent-amber  { color: #d97706; }
+.stat-card-value.accent-green  { color: var(--success); }
+.stat-card-value.accent-red    { color: var(--danger); }
+.stat-card-value.accent-blue   { color: var(--info); }
+.stat-card-value.accent-amber  { color: var(--warning); }
 
 .stat-card-sub {
     font-size: 11px;
@@ -276,6 +286,12 @@
     margin-bottom: 14px;
 }
 
+/* Rendimiento: las 6 cifras en una sola fila cuando hay ancho */
+.clasificacion-row--rend {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    margin-bottom: 0;
+}
+
 .clasificacion-card {
     border: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
     background: color-mix(in oklab, var(--muted) 28%, transparent 72%);
@@ -287,7 +303,7 @@
 }
 
 .clasificacion-card span {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -301,67 +317,135 @@
     color: var(--foreground);
 }
 
-.clasificacion-card.grado strong {
+.clasificacion-card.destacado strong {
     color: var(--primary);
 }
 
-.clasificacion-card.apto strong {
-    color: #16a34a;
-}
-
-.clasificacion-card.no-apto strong {
-    color: #dc2626;
-}
-
-/* ── Distribution bars ───────────────────────────────────────────── */
+/* ── Distribución circular de granos ────────────────────────────── */
 .section-sublabel {
     margin: 0 0 8px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--muted-foreground);
 }
 
-.defect-stat {
-    margin-bottom: 10px;
-}
-
-.defect-stat:last-of-type { margin-bottom: 0; }
-
-.defect-stat-header {
+.analisis-section--granos {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+}
+
+.grain-distribution {
+    display: flex;
     align-items: center;
-    margin-bottom: 5px;
+    justify-content: center;
+    flex: 1;
+    gap: 28px;
+    min-height: 280px;
+    padding: 12px 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
 }
 
-.defect-stat-header span {
-    font-size: 13px;
+.grain-chart {
+    position: relative;
+    flex: 0 1 250px;
+    width: 250px;
+    max-width: 100%;
+    aspect-ratio: 1;
+}
+
+.grain-chart svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.grain-chart circle {
+    fill: none;
+    stroke-width: 24;
+}
+
+.grain-chart-track { stroke: var(--muted); }
+.grain-chart-good { stroke: var(--primary); }
+.grain-chart-defect { stroke: var(--danger); }
+
+.grain-chart-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+}
+
+.grain-chart-center strong {
+    max-width: 58%;
+    font-size: 32px;
     font-weight: 600;
-}
-
-.defect-stat-header strong {
-    font-size: 13px;
-    font-family: var(--font-mono);
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
     color: var(--foreground);
 }
 
-.defect-track {
-    height: 8px;
-    border-radius: 999px;
-    background: color-mix(in oklab, var(--muted) 60%, transparent 40%);
-    overflow: hidden;
+.grain-chart-center span {
+    max-width: 56%;
+    font-size: 12px;
+    text-align: center;
+    color: var(--muted-foreground);
 }
 
-.defect-bar {
-    height: 100%;
-    border-radius: inherit;
-    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+.grain-legend {
+    flex: 0 1 220px;
+    min-width: 150px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
 }
 
-.defect-bar.negro { background: #dc2626; }
-.defect-bar.sano  { background: var(--primary); }
+.grain-legend li {
+    display: grid;
+    grid-template-columns: 10px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 14px 0;
+    font-size: 13px;
+}
+
+.grain-legend li + li {
+    border-top: 1px solid var(--border);
+}
+
+.grain-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.grain-legend-dot--defect { background: var(--danger); }
+.grain-legend-dot--good { background: var(--primary); }
+
+.grain-legend-value {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.grain-legend-value strong {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.grain-legend-value span {
+    font-size: 12px;
+    color: var(--muted-foreground);
+}
 
 /* ── Note ────────────────────────────────────────────────────────── */
 .analisis-note {
@@ -369,6 +453,48 @@
     font-size: 12px;
     color: var(--muted-foreground);
     line-height: 1.5;
+}
+
+/* Nota sobre el contenido de la sección (no al pie) */
+.analisis-note--top {
+    margin: 0 0 10px;
+}
+
+/* ── Peso de grano bueno pendiente (solo /analisis) ──────────────── */
+.peso-bueno-form {
+    display: flex;
+    gap: 10px;
+    max-width: 480px;
+}
+
+.peso-bueno-form input {
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--input);
+    color: var(--foreground);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.peso-bueno-form .btn-export {
+    height: 42px;
+    white-space: nowrap;
+}
+
+.peso-bueno-hint,
+.peso-bueno-error {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--muted-foreground);
+}
+
+.peso-bueno-error {
+    font-size: 13px;
+    color: var(--destructive);
 }
 
 /* ── Actions ─────────────────────────────────────────────────────── */
@@ -393,35 +519,59 @@
         display: none !important;
     }
 
-    .analisis-page { gap: 8px; }
+    /* Chrome no recoloca los ítems de un grid cuando uno salta de página por
+       break-inside: avoid, y las tarjetas se superponen. Al imprimir, las
+       secciones van en bloque (en papel la grilla de detalle ya es de una
+       columna) y ningún ítem de grid lleva break-inside: avoid. */
+    .analisis-page,
+    .analisis-detail-grid { display: block; }
+    .analisis-page > * + *,
+    .analisis-detail-grid > * + * { margin-top: 8px; }
+
+    .analisis-header-card,
+    .analisis-stats,
+    .analisis-section {
+        break-inside: avoid;
+    }
 
     .analisis-header-card,
     .stat-card,
     .analisis-section {
-        break-inside: avoid;
         box-shadow: none;
         border: 1px solid #ccc;
     }
+
+    /* Registro del monitoreo: puede ocupar más de una página; se parte entre filas. */
+    .analisis-eventos { break-inside: auto; }
+    .analisis-eventos tr { break-inside: avoid; }
 }
 
 /* ── Responsive ──────────────────────────────────────────────────── */
-@media (max-width: 1200px) {
-    .analisis-stats {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
 @media (max-width: 900px) {
-    .analisis-stats {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
     .analisis-detail-grid {
         grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 640px) {
+    .grain-distribution {
+        flex-direction: column;
+        gap: 10px;
+        min-height: 0;
+    }
+
+    .grain-chart {
+        flex: none;
+        width: 230px;
+    }
+
+    .grain-legend {
+        flex: none;
+        width: 100%;
+        max-width: 280px;
+        min-width: 0;
+    }
+
     .analisis-stats {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -432,10 +582,122 @@
 
     .analisis-chips {
         gap: 5px;
+        justify-content: flex-start;
     }
 
     .analisis-toolbar {
         flex-direction: column;
         align-items: flex-start;
     }
+}
+
+/* ── Traza del monitoreo ────────────────────────────────────────── */
+/* Misma sección en /analisis y en /reporte: ambas cargan esta hoja. */
+.analisis-eventos th,
+.analisis-incidencias th {
+    padding: 0 0 7px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-foreground);
+    text-align: left;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent 40%);
+}
+
+/* Tablas de varias columnas: anular el ancho de la tabla de dos columnas. */
+.analisis-incidencias .data-table td {
+    width: auto;
+    font-weight: 600;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+.analisis-eventos .data-table td:first-child {
+    width: auto;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.analisis-eventos .data-table td:last-child {
+    width: 64px;
+}
+
+.analisis-eventos .evento-msg {
+    font-weight: 500;
+    color: var(--foreground);
+}
+
+.evento-ok     { color: var(--primary); }
+.evento-alerta { color: oklch(0.6200 0.1400 75.0000); }
+.evento-error  { color: var(--destructive); }
+
+.dark .evento-alerta { color: oklch(0.7800 0.1300 80.0000); }
+.dark .evento-error  { color: oklch(0.7000 0.1700 25.0000); }
+
+.evento-thumb {
+    display: block;
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent 30%);
+}
+
+.evento-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Galería: el operario revisa de un vistazo qué se desvió como materia extraña. */
+.evidencias-wrap {
+    margin-top: 16px;
+}
+
+.evidencias-wrap h4 {
+    margin: 0 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-foreground);
+}
+
+.evidencias-galeria {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 10px;
+}
+
+.evidencia-item {
+    margin: 0;
+    text-align: center;
+}
+
+.evidencia-item img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent 30%);
+    display: block;
+}
+
+.evidencia-item figcaption {
+    margin-top: 5px;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted-foreground);
+}
+
+/* Desglose del pago cuando la entrega tuvo beneficio de socio (CoffeePago, main.js) */
+.pago-detalle {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
 }

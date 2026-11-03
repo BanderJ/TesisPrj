@@ -135,7 +135,9 @@ const CoffeeValidators = (() => {
                 length:    password.length >= 8,
                 uppercase: /[A-Z]/.test(password),
                 number:    /\d/.test(password),
-                special:   /[!@#%^&*(),.=?":{}$¿?¡]/.test(password),
+                // Coincide con la regla del backend (src/utilities/security.py): cualquier
+                // caracter no alfanumerico cuenta como "especial", no solo una lista fija.
+                special:   /[^A-Za-z0-9]/.test(password),
             };
         }
 
@@ -302,11 +304,11 @@ const CoffeeValidators = (() => {
         return { cargarDepartamentos, seleccionar, getUbigeo: () => $dist.value || null };
     }
 
-    // ── 6. Peso de grano bueno (gramos enteros, tope = peso trillado) ──
+    // ── 6. Peso de grano bueno (gramos enteros, tope = peso tamizado) ──
 
     /**
      * @param {string|number} valor      — valor ingresado por el usuario
-     * @param {number|null}   maxGramos  — peso trillado (tope), o null si no se conoce
+     * @param {number|null}   maxGramos  — peso tamizado (tope), o null si no se conoce
      * @returns {{valido: boolean, peso?: number, mensaje?: string}}
      */
     function pesoBueno(valor, maxGramos = null) {

@@ -2,6 +2,7 @@
 
 {% block style %}
     <link rel="stylesheet" href="/static/css/perfil.css">
+    <link rel="stylesheet" href="/static/css/analisis.css">
     <link rel="stylesheet" href="/static/css/cooperativa.css">
 {% endblock %}
 
@@ -24,18 +25,28 @@
                     </svg>
                     Información básica
                 </a>
+                {% if user.tipo_personal_id == 2 %}
                 <a href="#tipos-grano" class="perfil-nav-link" data-section="tipos-grano" id="navTiposGrano" hidden>
                     <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
                     </svg>
-                    Gestión tipos de grano
+                    Gestión de tipos de grano
                 </a>
+                <a href="#bono-socio" class="perfil-nav-link" data-section="bono-socio" id="navBonoSocio" hidden>
+                    <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Beneficio de socio
+                </a>
+                {% endif %}
+                {% if user.tipo_personal_id == 3 %}
                 <a href="#usuarios" class="perfil-nav-link" data-section="usuarios" id="navUsuarios" hidden>
                     <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
                     Gestión de usuarios
                 </a>
+                {% endif %}
                 <a href="#caficultores" class="perfil-nav-link" data-section="caficultores" id="navCaficultores" hidden>
                     <svg class="perfil-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
@@ -73,29 +84,29 @@
                     <div class="perfil-form-row single">
                         <div class="field-group">
                             <label for="nombre">Nombre de la cooperativa</label>
-                            <input id="nombre" type="text" maxlength="100" required placeholder="Ej: Cooperativa Line Coffee" readonly>
+                            <input id="nombre" type="text" maxlength="100" required placeholder="Ej.: Cooperativa Line Coffee" readonly>
                         </div>
                     </div>
 
                     <div class="perfil-form-row">
                         <div class="field-group">
                             <label for="codigo">Código</label>
-                            <input id="codigo" type="text" maxlength="20" required placeholder="Ej: COOPE001" readonly>
+                            <input id="codigo" type="text" maxlength="20" required placeholder="Ej.: COOPE001" readonly>
                         </div>
                         <div class="field-group">
-                            <label for="direccion">Dirección</label>
-                            <input id="direccion" type="text" maxlength="255" required placeholder="Ej: Av. Principal 123">
+                            <label for="direccion">Ubicación</label>
+                            <input id="direccion" type="text" maxlength="255" required placeholder="Ej.: Av. Principal 123" readonly>
                         </div>
                     </div>
 
                     <div class="perfil-form-row">
                         <div class="field-group">
                             <label for="telefono">Teléfono</label>
-                            <input id="telefono" type="tel" maxlength="9" required placeholder="Ej: 987654321">
+                            <input id="telefono" type="tel" maxlength="9" required placeholder="Ej.: 987654321">
                         </div>
                         <div class="field-group">
                             <label for="correo">Correo</label>
-                            <input id="correo" type="email" maxlength="255" required placeholder="Ej: info@cooperativa.com">
+                            <input id="correo" type="email" maxlength="255" required placeholder="Ej.: info@cooperativa.com">
                         </div>
                     </div>
 
@@ -156,6 +167,47 @@
                                     Cargando tipos de grano...
                                 </td>
                             </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Beneficio de socio: monto fijo por entrega, con historial -->
+            <section id="bono-socio" class="perfil-section" hidden>
+                <h2 class="perfil-section-title">Beneficio de socio</h2>
+                <p class="perfil-section-description">
+                    Monto fijo que se suma al pago de cada entrega de un caficultor socio. Un cambio solo
+                    se aplica a las evaluaciones que se completen desde ese momento; las anteriores
+                    conservan el monto con el que se pagaron.
+                </p>
+
+                <div class="bono-vigente">
+                    <span class="bono-vigente-label">Monto vigente</span>
+                    <strong id="bonoVigenteMonto" class="bono-vigente-monto">—</strong>
+                    <span id="bonoVigenteDetalle" class="bono-vigente-detalle"></span>
+                </div>
+
+                <form id="formBonoSocio" class="bono-form" novalidate>
+                    <div class="field-group">
+                        <label for="bonoMonto">Nuevo monto por entrega (S/)</label>
+                        <input id="bonoMonto" type="number" min="0" max="99999.99" step="0.01" inputmode="decimal" placeholder="Ej.: 10.00" required>
+                        <p class="helper-text" id="bonoMontoHint" aria-live="polite"></p>
+                    </div>
+                    <button type="submit" id="btnGuardarBono" class="btn btn-primary">Guardar nuevo monto</button>
+                </form>
+
+                <h3 class="bono-historial-titulo">Historial de cambios</h3>
+                <div class="tabla-usuarios-wrapper">
+                    <table class="tabla-usuarios">
+                        <thead>
+                            <tr>
+                                <th>Desde</th>
+                                <th>Monto (S/)</th>
+                                <th>Registrado por</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bonoHistorialBody">
+                            <tr><td colspan="3" class="tabla-vacia">Cargando historial...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -235,6 +287,14 @@
                         <h2 class="perfil-section-title" style="border-bottom:none;padding-bottom:0;margin-bottom:4px;">Registro de auditoría</h2>
                         <p class="perfil-section-description" id="auditTotal" style="margin:0;"></p>
                     </div>
+                    <div class="field-group audit-por-pagina">
+                        <label for="auditPorPagina">Registros por página</label>
+                        <select id="auditPorPagina">
+                            <option value="10">10</option>
+                            <option value="30">30</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Filtros -->
@@ -303,25 +363,73 @@
 
             <!-- SECCIÓN 6: Reportes -->
             <section id="reportes" class="perfil-section" hidden>
-                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">
+                <div class="reportes-cabecera">
                     <div>
-                        <h2 class="perfil-section-title" style="border-bottom:none;padding-bottom:0;margin-bottom:4px;">Reportes</h2>
-                        <p class="perfil-section-description" id="reporteDescripcion" style="margin:0;"></p>
+                        <h2 class="perfil-section-title">Reportes</h2>
+                        <p class="perfil-section-description" id="reporteDescripcion"></p>
                     </div>
-                    <div class="field-group" style="min-width:260px;">
+                    <div class="field-group">
                         <label for="selectReporte">Reporte</label>
                         <select id="selectReporte"></select>
                     </div>
                 </div>
 
-                <div id="reporteContainer">
-                    <p style="text-align:center;padding:2rem;color:var(--muted-foreground);">Cargando reporte...</p>
+                <form id="formFiltrosReporte" class="perfil-form" hidden>
+                    <div class="form-row form-row--2">
+                        <div class="field-group">
+                            <label for="reporteDesde">Desde</label>
+                            <input type="date" id="reporteDesde">
+                        </div>
+                        <div class="field-group">
+                            <label for="reporteHasta">Hasta (incluido)</label>
+                            <input type="date" id="reporteHasta">
+                        </div>
+                    </div>
+                    <div class="form-row form-row--2">
+                        <div class="field-group">
+                            <label for="reporteBusqueda">Caficultor</label>
+                            <input type="search" id="reporteBusqueda" maxlength="200" placeholder="Nombre, apellidos o documento">
+                        </div>
+                        <div class="field-group">
+                            <label for="reporteTipo">Tipo en la entrega</label>
+                            <select id="reporteTipo">
+                                <option value="">Socios y externos</option>
+                                <option value="Socio">Socio</option>
+                                <option value="Externo">Externo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="btnFiltrarReporte">Consultar</button>
+                        <button type="button" class="btn btn-secondary" id="btnLimpiarReporte">Limpiar filtros</button>
+                    </div>
+                </form>
+                <p id="reporteFiltroError" class="helper-text reporte-error" role="alert" hidden></p>
+                <div id="reporteContainer" aria-live="polite">
+                    <p class="reporte-estado">Seleccione un reporte para consultar sus datos.</p>
+                </div>
+                <div id="reportePaginacion" class="reporte-paginacion" hidden>
+                    <p id="reportePaginaTexto" aria-live="polite"></p>
+                    <button type="button" class="btn btn-secondary" id="reporteAnterior">Anterior</button>
+                    <button type="button" class="btn btn-secondary" id="reporteSiguiente">Siguiente</button>
                 </div>
             </section>
 
         </main>
     </div>
 </div>
+
+<dialog id="modalReporteEvaluacion" class="reporte-detalle-modal" aria-labelledby="reporteDetalleTitulo">
+    <div class="reporte-detalle-cabecera">
+        <h2 id="reporteDetalleTitulo">Detalle de evaluación</h2>
+        <button type="button" id="cerrarReporteDetalle" class="btn btn-secondary" autofocus>Cerrar detalle</button>
+    </div>
+    <p id="reporteDetalleEstado" class="reporte-estado" role="status">Cargando evaluación…</p>
+    <div id="reporteDetalleResumen" class="analisis-page" hidden>
+        {% set modo = 'detalle' %}
+        {% include "partials/resumen_evaluacion.html" %}
+    </div>
+</dialog>
 
 <!-- MODAL: Detalle de Auditoría -->
 <div id="modalAudit" style="display:none;position:fixed;inset:0;z-index:9000;align-items:flex-start;justify-content:center;padding:1.5rem;background:rgba(0,0,0,0.48);backdrop-filter:blur(3px);overflow-y:auto;">
@@ -367,7 +475,7 @@
                         <input id="crearNumDocumento" type="text" maxlength="12" required placeholder="DNI o Pasaporte">
                     </div>
                     <div class="buscar-estado" id="buscarEstado">
-                        <span>Ingresa el documento para buscar datos de la persona</span>
+                        <span>Ingresa el documento para buscar datos de la persona.</span>
                     </div>
                 </div>
             </div>
@@ -506,11 +614,11 @@
         <form id="formTipoGranoModal" class="perfil-form">
             <div class="field-group">
                 <label for="modalTipoNombre">Nombre del tipo *</label>
-                <input id="modalTipoNombre" type="text" maxlength="20" required placeholder="Ej: Pilado">
+                <input id="modalTipoNombre" type="text" maxlength="20" required placeholder="Ej.: Pilado">
             </div>
             <div class="field-group" style="margin-top:12px;">
                 <label for="modalTipoPeso">Peso por quintal (kg) *</label>
-                <input id="modalTipoPeso" type="number" step="0.01" min="0.01" required placeholder="Ej: 46.50">
+                <input id="modalTipoPeso" type="number" step="0.01" min="0.01" required placeholder="Ej.: 46.50">
             </div>
             <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:16px;border-top:1px solid var(--border);margin-top:16px;">
                 <button type="button" id="btnCancelarTipoGrano" class="btn btn-secondary">Cancelar</button>
@@ -544,7 +652,10 @@
 
 {% block script %}
 <script>const isAdmin = '{{ user.is_admin | tojson }}' === 'true';</script>
+<script>const MI_PERSONAL_ID = '{{ user.personal_id }}';</script>
 <script src="/static/js/lib/echarts.min.js"></script>
 <script src="/static/js/coffee-report.js"></script>
+<script src="/static/js/eventos-monitoreo.js"></script>
+<script src="/static/js/resumen-evaluacion.js"></script>
 <script src="/static/js/cooperativa.js"></script>
 {% endblock %}

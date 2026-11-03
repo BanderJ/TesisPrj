@@ -260,8 +260,8 @@
 }
 
 .badge-ok {
-    background: color-mix(in oklab, #16a34a 16%, transparent 84%);
-    color: #16a34a;
+    background: color-mix(in oklab, var(--success) 16%, transparent 84%);
+    color: var(--success);
 }
 
 .badge-no {
@@ -294,6 +294,30 @@
     color: var(--primary);
     font-weight: 700;
 }
+
+.acciones-rango {
+    padding: .6rem .75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+.acciones-rango .btn {
+    padding: .3rem .65rem;
+    font-size: .8rem;
+    height: auto;
+    min-height: 40px;
+}
+.btn-desactivar-rango {
+    background: color-mix(in oklab, var(--danger) 12%, transparent);
+    border-color: color-mix(in oklab, var(--danger) 38%, var(--border));
+    color: var(--danger-strong);
+}
+.valor-cafe-historial summary { cursor: pointer; font-weight: 600; }
+.valor-cafe-historial .info-text { margin-block: 12px; }
+.historial-precios-wrap { overflow-x: auto; }
+.historial-precios { width: 100%; border-collapse: collapse; font-size: 13px; }
+.historial-precios th, .historial-precios td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+.historial-precios th { color: var(--muted-foreground); font-weight: 600; }
 
 /* Responsive */
 @media (max-width: 768px) {

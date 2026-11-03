@@ -12,6 +12,8 @@ Flujo por grano:
 Ajustar SERVO_DELAY_S y SERVO_HOLD_S en src/config.py (o vía .env)
 según velocidad de la faja y distancia cámara-servo.
 """
+import heapq
+import itertools
 import threading
 import time
 from typing import Callable
@@ -40,7 +42,11 @@ class ServoController:
     """
 
     def __init__(self) -> None:
-        self._cola: list[_Solicitud] = []
+        # Heap ordenado por ejecutar_en: un grano visto antes se separa antes,
+        # aunque haya juntado evidencia (y se haya encolado) después de otro.
+        # El contador desempata instantes iguales sin comparar solicitudes.
+        self._cola: list[tuple[float, int, _Solicitud]] = []
+        self._secuencia = itertools.count()
         self._lock = threading.Lock()
         self._activo = True
         self._bloqueado = False  # True cuando la cámara se desconecta
@@ -70,14 +76,13 @@ class ServoController:
         """
         base = t_referencia if t_referencia is not None else time.monotonic()
         ejecutar_en = base + Config.SERVO_DELAY_S
+        solicitud = _Solicitud(
+            obtener_clase=obtener_clase,
+            equivalencias=equivalencias,
+            ejecutar_en=ejecutar_en,
+        )
         with self._lock:
-            self._cola.append(
-                _Solicitud(
-                    obtener_clase=obtener_clase,
-                    equivalencias=equivalencias,
-                    ejecutar_en=ejecutar_en,
-                )
-            )
+            heapq.heappush(self._cola, (ejecutar_en, next(self._secuencia), solicitud))
 
     def _worker(self) -> None:
         """Procesa solicitudes pendientes cada 10 ms."""
@@ -91,10 +96,10 @@ class ServoController:
                 time.sleep(0.01)
 
     def _sacar_pendiente(self) -> _Solicitud | None:
-        """Extrae la solicitud más antigua ya vencida, o None."""
+        """Extrae la solicitud que vence primero, si ya venció; si no, None."""
         with self._lock:
-            if not self._bloqueado and self._cola and self._cola[0].ejecutar_en <= time.monotonic():
-                return self._cola.pop(0)
+            if not self._bloqueado and self._cola and self._cola[0][0] <= time.monotonic():
+                return heapq.heappop(self._cola)[2]
         return None
 
     @staticmethod

@@ -1,0 +1,34 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - heading "CoffeeRen" [level=1] [ref=e5]
+    - paragraph [ref=e6]: Plataforma para clasificación automática de granos de café verde mediante visión artificial
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - strong [ref=e9]: Precision asistida
+        - paragraph [ref=e10]: Analisis de defectos y calidad por lote
+      - generic [ref=e11]:
+        - strong [ref=e12]: Monitoreo en vivo
+        - paragraph [ref=e13]: Seguimiento de clasificación en tiempo real.
+      - generic [ref=e14]:
+        - strong [ref=e15]: Trazabilidad
+        - paragraph [ref=e16]: Registro de muestras y resultados para analisis.
+  - generic [ref=e17]:
+    - img "Icono de CoffeeRen" [ref=e19]
+    - heading "Iniciar sesión" [level=2] [ref=e20]
+    - paragraph [ref=e21]: Ingrese sus credenciales para acceder al sistema
+    - separator [ref=e22]
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - generic [ref=e25]: Usuario
+        - textbox "Usuario" [ref=e26]:
+          - /placeholder: Ingrese su usuario
+      - generic [ref=e27]:
+        - generic [ref=e28]: Contraseña
+        - generic [ref=e29]:
+          - textbox "Contraseña" [ref=e30]:
+            - /placeholder: Ingrese su contraseña
+          - button "Mostrar contraseña" [ref=e31] [cursor=pointer]:
+            - img "Mostrar contraseña" [ref=e32]
+      - button "Iniciar Sesión" [ref=e33] [cursor=pointer]
+    - separator [ref=e34]
+    - button "¿Olvidó su contraseña?" [ref=e36] [cursor=pointer]

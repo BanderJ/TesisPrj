@@ -2,14 +2,27 @@
 .venv/
 __pycache__/
 
+#Excluir resultados de cobertura y pruebas
+.coverage
+htmlcov/
+coverage.json
+junit.xml
+
 #Excluir archivos de entorno y configuración
 .env
 
 #Excluir archivos exe
 *.exe
 
-#Excluir archivos de configuración
-#config.py
+#Excluir la configuración real (credenciales propias). Se publica solo
+#src/config-example.py como plantilla; copiar a src/config.py al instalar.
+src/config.py
+
+#Ajustes personales de Claude Code (permisos locales, no compartir)
+.claude/settings.local.json
+
+#Excluir evidencias de objetos extranos capturadas en el monitoreo
+src/resources/desconocidos/
 
 #Excluir modelos entrenados
 src/ml/models/*.pt
@@ -21,3 +34,5 @@ src/ml/models/**/*.pt
 node_modules/
 package-*
 package.*
+#Excluir volcados de consola (la evidencia de latencia va en docs/evidencias/*.csv)
+*.log

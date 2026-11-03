@@ -9,7 +9,7 @@ _RANGO_RE = re.compile(r'^\d+(-\d+)?$')
 def _validar_formato_rango(v: str) -> str:
     r = v.strip()
     if not r:
-        raise ValueError("El rango no puede estar vacío")
+        raise ValueError("El rango no puede estar vacío.")
     if not _RANGO_RE.match(r):
         raise ValueError("Formato inválido. Use número (ej: 70) o rango X-Y (ej: 60-65)")
     if '-' in r:
@@ -24,6 +24,7 @@ class ValorCafeItem(BaseModel):
     rango: str
     precio: float
     fecha: datetime
+    activo: bool
 
 
 class ValorCafeHistorialResponse(BaseModel):
@@ -62,7 +63,7 @@ class ValorCafeResumenRangosResponse(BaseModel):
 
 class ValorCafeCrearRequest(BaseModel):
     rango: str = Field(..., description="Número simple (ej: 70) o rango X-Y (ej: 60-65)")
-    precio: float = Field(..., gt=0, description="Precio debe ser mayor a 0")
+    precio: float = Field(..., gt=0, le=99999.99, description="Precio debe ser mayor a 0")  # numeric(7, 2)
 
     @field_validator("rango")
     @classmethod
@@ -96,8 +97,13 @@ class ValorCafeCrearBloqueResponse(BaseModel):
 
 
 class ValorCafeActualizarPrecioRequest(BaseModel):
-    rango: str = Field(..., min_length=1, max_length=10, description="Rango a actualizar (debe existir hoy)")
-    precio: float = Field(..., gt=0, description="Nuevo precio, debe ser mayor a 0")
+    rango: str = Field(
+        ...,
+        min_length=1,
+        max_length=10,
+        description="Rango a re-cotizar. Inserta un precio nuevo; no borra ni modifica los anteriores.",
+    )
+    precio: float = Field(..., gt=0, le=99999.99, description="Nuevo precio, debe ser mayor a 0")  # numeric(7, 2)
 
     @field_validator("rango")
     @classmethod
@@ -112,6 +118,15 @@ class ValorCafeActualizarPrecioResponse(BaseModel):
     fecha: datetime
 
 
-class ValorCafeEliminarRangoResponse(BaseModel):
-    eliminados: int
+class ValorCafeDesactivarRangoRequest(BaseModel):
+    rango: str = Field(..., min_length=1, max_length=20)
+
+    @field_validator("rango")
+    @classmethod
+    def validar_rango(cls, v: str) -> str:
+        return _validar_formato_rango(v)
+
+
+class ValorCafeDesactivarRangoResponse(BaseModel):
+    desactivados: int
     rango: str

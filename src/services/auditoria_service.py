@@ -1,3 +1,5 @@
+from datetime import date
+
 from src.models.auditoria import Auditoria
 
 
@@ -42,8 +44,8 @@ class AuditoriaService:
         tipo_personal_id: int | None = None,
         accion: str | None = None,
         usuario: str | None = None,
-        fecha_desde: str | None = None,
-        fecha_hasta: str | None = None,
+        fecha_desde: date | None = None,
+        fecha_hasta: date | None = None,
         pagina: int = 1,
         limite: int = 50,
     ) -> tuple[list[dict], int]:

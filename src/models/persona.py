@@ -190,24 +190,6 @@ class Persona:
             if owns_db:
                 db.close()
 
-    def obtener_personas_sin_usuario(self, db: Connection | None = None) -> list[dict[str, Any]]:
-        owns_db = db is None
-        db = db or Connection()
-
-        try:
-            sql = """
-                SELECT p.id, p.nombre, p.ape_paterno, p.ape_materno, p.sexo,
-                       p.fecha_nacimiento, p.num_documento, p.telefono, p.correo, p.estado
-                FROM persona p
-                LEFT JOIN personal pr ON p.id = pr.personal_id
-                WHERE pr.personal_id IS NULL AND p.estado = 'A'
-                ORDER BY p.nombre, p.ape_paterno
-            """
-            return db.obtener(sql, ())
-        finally:
-            if owns_db:
-                db.close()
-
     def obtener_datos_perfil_completo(self, personal_id: str, db: Connection | None = None) -> dict[str, Any] | None:
         owns_db = db is None
         db = db or Connection()

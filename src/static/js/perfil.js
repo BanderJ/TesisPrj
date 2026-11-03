@@ -88,14 +88,13 @@
             });
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail || 'Error al guardar');
+                throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudieron guardar los datos.'));
             }
 
             CoffeeModal.success('Datos actualizados correctamente.', 'Cambios guardados');
             setTimeout(() => window.location.reload(), 1500);
         } catch (error) {
-            CoffeeModal.error(error.message || 'No se pudo actualizar los datos.');
+            CoffeeModal.error(error.message || 'No se pudieron actualizar los datos.');
             btnGuardarDatos.disabled = false;
             btnGuardarDatos.innerHTML = btnOriginal;
         }
@@ -172,8 +171,7 @@
             });
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail || 'Error al cambiar contraseña');
+                throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cambiar la contraseña.'));
             }
 
             CoffeeModal.success('Contraseña actualizada correctamente.', 'Cambio exitoso');
@@ -181,7 +179,7 @@
             setTimeout(() => {
                 CoffeeModal.info(
                     'Debe reiniciar sesión con su nueva contraseña. Se cerrará la sesión ahora.',
-                    'Por favor inicie sesión con su nueva contraseña'
+                    'Por favor, inicie sesión con su nueva contraseña.'
                 );
 
                 setTimeout(() => {

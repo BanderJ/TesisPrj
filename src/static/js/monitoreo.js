@@ -21,8 +21,15 @@
 		const sanoValueEl     = document.getElementById('sanosValue');
 		const sanoBarEl       = document.getElementById('sanosBar');
 		const eventLog        = document.getElementById('eventLog');
+		const foreignAlertEl  = document.getElementById('foreignAlert');
+		const foreignCountEl  = document.getElementById('foreignCount');
 		const finishBtn         = document.getElementById('finishBtn');
 		const startBtn          = document.getElementById('startBtn');
+
+		const chipCamara  = document.getElementById('chipCamara');
+		const chipFaja    = document.getElementById('chipFaja');
+		const chipArduino = document.getElementById('chipArduino');
+		const chipModelo  = document.getElementById('chipModelo');
 
 		if (sample) {
 			sampleDni.textContent            = sample.num_documento    || '-';
@@ -47,8 +54,6 @@
 		let frameTimeout   = null;   // reintento del bucle de frames — debe poder cancelarse desde detenerStream()
 		let streamActivo   = false;
 		let _ultimoBlobUrl = null;
-		let _fpsCount = 0;
-		let _fpsWindowStart = 0;
 
 		function mostrarErrorCamara(msg) {
 			clearTimeout(connectTimeout);
@@ -83,19 +88,11 @@
 						clearTimeout(connectTimeout);
 						cameraLoadingEl.style.display = 'none';
 						cameraStreamEl.style.display  = 'block';
-						if (fpsBadgeEl) { fpsBadgeEl.style.display = 'block'; _fpsWindowStart = performance.now(); _fpsCount = 0; }
-					}
-					_fpsCount++;
-					const _now = performance.now();
-					if (_now - _fpsWindowStart >= 1000) {
-						const fps = Math.round(_fpsCount * 1000 / (_now - _fpsWindowStart));
-						if (fpsBadgeEl) fpsBadgeEl.textContent = fps + ' FPS';
-						_fpsCount = 0;
-						_fpsWindowStart = _now;
+						if (fpsBadgeEl) fpsBadgeEl.style.display = 'block';
 					}
 					frameTimeout = setTimeout(refrescarFrame, 33);
 				} catch {
-					if (isFirstFrame) { clearTimeout(connectTimeout); mostrarErrorCamara('No se pudo conectar con el stream de video'); }
+					if (isFirstFrame) { clearTimeout(connectTimeout); mostrarErrorCamara('No se pudo conectar con el video.'); }
 				}
 			};
 
@@ -123,43 +120,37 @@
 			try {
 				const res = await fetch('/video/status');
 				if (!res.ok) throw new Error();
-				const { activo } = await res.json();
-				if (activo) {
+				const { activo, evaluacion_id: loteDe } = await res.json();
+				if (loteDe && loteDe !== EVALUACION_ID) {
+					const resumen = await fetch(`/evaluacion/${encodeURIComponent(loteDe)}/resumen`)
+						.then(res => res.ok ? res.json() : null)
+						.catch(() => null);
+					const referencia = resumen?.caficultor_nombre && resumen?.fecha
+						? `otra evaluación en monitoreo (${resumen.caficultor_nombre}, ${resumen.fecha})`
+						: 'una evaluación anterior en monitoreo';
+					const aceptar = await CoffeeModal.confirm({
+						title: 'Otra evaluación en monitoreo',
+						message: `Hay ${referencia}. ¿Detenerla para iniciar esta muestra? Su conteo se perderá.`,
+						okText: 'Detener e iniciar esta muestra',
+						cancelText: 'Cancelar',
+					});
+					if (!aceptar) return;
+					await detenerCapturaDeEvaluacion(loteDe, true);
+					await iniciarCaptura();
+				} else if (activo && loteDe === EVALUACION_ID) {
 					// YOLO
 					capturandoYOLO        = true;
 					elapsedSeconds        = 0;
 					iniciarStream();
-					timerInterval = setInterval(() => {
-						elapsedSeconds += 1;
-						if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
-					}, 1000);
-					conteoInterval = setInterval(async () => {
-						if (!capturandoYOLO || finalizando) return;
-						try {
-							const [rConteo, rStatus] = await Promise.all([
-								fetch('/video/lote/conteo'),
-								fetch('/video/status'),
-							]);
-							if (rStatus.ok) {
-								const st = await rStatus.json();
-								if (st.camara_desconectada) { _manejarDesconexionCamara(st.error); return; }
-							}
-							const data = await rConteo.json();
-							conteoActual = data.conteo;
-							gruposActual = data.conteo_agrupado ?? {};
-							totalDefectosActual = data.total_defectos ?? 0;
-							totalSanosActual    = data.total_sanos ?? 0;
-							actualizarUIdesdeConteo(totalDefectosActual, totalSanosActual, gruposActual);
-							await _verificarTapa();
-						} catch (e) { console.error('Error obteniendo conteo:', e); }
-					}, 1500);
-					appendLog('Cámara conectada. Monitoreo en curso.');
+					iniciarTimer();
+					iniciarPoll();
+					appendLog('Cámara conectada. Monitoreo en curso.', 'ok');
 				} else {
+					if (activo) await detenerCapturaDeEvaluacion();
 					await iniciarCaptura();
 				}
-			} catch {
-				appendLog('No se pudo verificar el servidor. Reintentando arranque...');
-				await iniciarCaptura();
+			} catch (err) {
+				appendLog(err.message || 'No se pudo verificar el servidor.', 'error');
 			}
 		})();
 
@@ -183,12 +174,76 @@
 		let incidencias     = [];    // [{seg_apertura, seg_cierre, duracion_s}]
 
 		// ── UI helpers ────────────────────────────────────────────────────────
-		function appendLog(message) {
-			if (eventLog) eventLog.innerHTML = `<p class="log-item">${elapsedSeconds}s - ${message}</p>`;
+		// Registro cronológico ACUMULATIVO: cada evento se apila (lo más reciente
+		// arriba) con su marca mm:ss y su severidad. Antes se hacía
+		// `eventLog.innerHTML = ...`, que dejaba visible un único mensaje y borraba
+		// toda la traza del lote — el operario no podía reconstruir qué pasó.
+		const LOG_MAX_ENTRADAS = 80;
+
+		// `segundo` llega en los eventos del backend: es el segundo real del lote
+		// medido contra su inicio. Al recargar la pestaña a mitad de lote el
+		// cronómetro del navegador vuelve a 0, así que usar elapsedSeconds ahí
+		// fecharía mal toda la traza previa.
+		function appendLog(message, severidad = 'info', imagenUrl = null, segundo = null) {
+			if (!eventLog) return;
+
+			const item = document.createElement('p');
+			item.className = `log-item log-${severidad}`;
+
+			const marca = document.createElement('time');
+			marca.className = 'log-time';
+			marca.textContent = formatTimer(segundo != null ? segundo : elapsedSeconds);
+			item.appendChild(marca);
+
+			// textContent, nunca innerHTML: el mensaje puede venir del backend.
+			const texto = document.createElement('span');
+			texto.className = 'log-msg';
+			texto.textContent = message;
+			item.appendChild(texto);
+
+			if (imagenUrl) {
+				const link = document.createElement('a');
+				link.href      = imagenUrl;
+				link.target    = '_blank';
+				link.rel       = 'noopener';
+				link.className = 'log-thumb';
+				link.title     = 'Ver evidencia completa';
+				const img = document.createElement('img');
+				img.src     = imagenUrl;
+				img.alt     = 'Evidencia del objeto detectado';
+				img.loading = 'lazy';
+				link.appendChild(img);
+				item.appendChild(link);
+			}
+
+			eventLog.insertAdjacentElement('afterbegin', item);
+			while (eventLog.children.length > LOG_MAX_ENTRADAS) {
+				eventLog.lastElementChild.remove();
+			}
 		}
 
 		function formatTimer(v) {
 			return `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`;
+		}
+
+		// ── Estados en vivo ───────────────────────────────────────────────────
+		// Traduce a texto los estados que el sistema ya conocía pero no mostraba.
+		// No hace peticiones propias: se alimenta de las respuestas del poll.
+		function _pintarChip(el, texto, estado) {
+			if (!el) return;
+			el.textContent    = texto;
+			el.dataset.estado = estado;   // ok | alerta | error | neutro
+		}
+
+		function actualizarChipsCamara(status) {
+			if (status.camara_desconectada)  _pintarChip(chipCamara, 'Cámara: desconectada', 'error');
+			else if (status.activo)          _pintarChip(chipCamara, 'Cámara: en vivo', 'ok');
+			else                             _pintarChip(chipCamara, 'Cámara: detenida', 'alerta');
+			_pintarChip(chipModelo, `Modelo: ${status.modelo || '—'}`, status.activo ? 'ok' : 'neutro');
+		}
+
+		function actualizarChipFaja(activa) {
+			_pintarChip(chipFaja, activa ? 'Faja: en marcha' : 'Faja: detenida', activa ? 'ok' : 'alerta');
 		}
 
 		function actualizarUIdesdeConteo(totalDefectos = 0, totalSanos = 0, grupos = {}) {
@@ -206,6 +261,127 @@
 			sanoBarEl.style.width     = (100 - pct) + '%';
 		}
 
+		// Objetos que el modelo nunca reconoció como grano (piedra, pajilla, palito):
+		// tracker.py los enmarca en azul sobre el video, el servo los desvía al canal
+		// de defecto y cuentan como defecto (materia extraña). Aquí solo se
+		// mantiene el contador: el AVISO de cada objeto llega como evento del
+		// backend (con su segundo real y la foto del recorte), no se infiere
+		// restando contadores entre polls.
+		function avisarDesconocidos(n = 0) {
+			if (foreignCountEl) foreignCountEl.textContent = n;
+			if (foreignAlertEl) foreignAlertEl.hidden = n === 0;
+		}
+
+		// Lote nuevo: POST /video/iniciar reinicia la secuencia de eventos en el
+		// backend, así que el cursor del cliente TIENE que volver a 0 — si no, los
+		// primeros eventos del lote nuevo caerían por debajo del cursor viejo y
+		// nunca se mostrarían.
+		function resetearEstadoLote() {
+			cursorEventos       = 0;
+			_primerGranoAvisado = null;
+			_inactividadAvisada = false;
+			if (finishBtn) finishBtn.classList.remove('btn-atencion');
+			if (foreignCountEl) foreignCountEl.textContent = '0';
+			if (foreignAlertEl) foreignAlertEl.hidden = true;
+		}
+
+		// El backend ya calculaba segundos_sin_deteccion y el frontend lo descartaba.
+		// Aquí se traduce en dos avisos: confirmación de que el conteo arrancó, y
+		// alerta de racha sin granos (el operario decide si el lote terminó).
+		const SEG_INACTIVIDAD = 10;
+		// null = todavía sin sincronizar con el backend. Al recargar la pestaña a
+		// mitad de lote el primer poll adopta el estado en silencio, en vez de
+		// anunciar como recién ocurrido lo que ya estaba contado.
+		let _primerGranoAvisado = null;
+		let _inactividadAvisada = false;
+
+		function avisarActividad(totalGranos = 0, segundosSinDeteccion = null) {
+			if (_primerGranoAvisado === null) {
+				_primerGranoAvisado = totalGranos > 0;
+			} else if (!_primerGranoAvisado && totalGranos > 0) {
+				_primerGranoAvisado = true;
+				appendLog('Primer grano detectado. Conteo en marcha.', 'ok');
+			}
+			if (segundosSinDeteccion == null || !_primerGranoAvisado) return;
+
+			if (segundosSinDeteccion >= SEG_INACTIVIDAD) {
+				if (!_inactividadAvisada) {
+					_inactividadAvisada = true;
+					appendLog(
+						`Sin granos hace ${SEG_INACTIVIDAD} s — si el lote terminó, presione Finalizar monitoreo.`,
+						'alerta',
+					);
+					if (finishBtn) finishBtn.classList.add('btn-atencion');
+				}
+			} else if (_inactividadAvisada) {
+				_inactividadAvisada = false;
+				if (finishBtn) finishBtn.classList.remove('btn-atencion');
+			}
+		}
+
+		// ── Poll unificado ────────────────────────────────────────────────────
+		// Una sola implementación para conteo + estado de cámara + eventos del
+		// backend + tapa. Antes este bloque estaba duplicado (arranque automático
+		// e iniciarCaptura) y cada añadido había que hacerlo dos veces.
+		let cursorEventos = 0;
+
+		async function pollEstado() {
+			if (!capturandoYOLO || finalizando) return;
+			try {
+				const [rConteo, rStatus, rEventos] = await Promise.all([
+					fetch('/video/lote/conteo'),
+					fetch('/video/status'),
+					fetch(`/video/eventos?desde=${cursorEventos}`),
+				]);
+
+				if (rStatus.ok) {
+					const status = await rStatus.json();
+					actualizarChipsCamara(status);
+					// Velocidad del modelo (promedio del último segundo en el servidor),
+					// no la del refresco de imágenes en el navegador.
+					if (fpsBadgeEl && status.fps != null) fpsBadgeEl.textContent = `${Math.round(status.fps)} FPS`;
+					if (status.camara_desconectada) {
+						_manejarDesconexionCamara(status.error);
+						return;
+					}
+				}
+
+				if (rConteo.ok) {
+					const data = await rConteo.json();
+					conteoActual        = data.conteo;
+					gruposActual        = data.conteo_agrupado ?? {};
+					totalDefectosActual = data.total_defectos ?? 0;
+					totalSanosActual    = data.total_sanos ?? 0;
+					actualizarUIdesdeConteo(totalDefectosActual, totalSanosActual, gruposActual);
+					avisarDesconocidos(data.total_desconocidos ?? 0);
+					avisarActividad(data.total_granos ?? 0, data.segundos_sin_deteccion);
+				}
+
+				if (rEventos.ok) {
+					const { eventos, cursor } = await rEventos.json();
+					(eventos || []).forEach(ev => appendLog(ev.mensaje, ev.severidad, ev.imagen_url, ev.segundo));
+					if (cursor != null) cursorEventos = cursor;
+				}
+
+				await _verificarTapa();
+			} catch (e) {
+				console.error('Error en el poll de monitoreo:', e);
+			}
+		}
+
+		function iniciarPoll() {
+			clearInterval(conteoInterval);
+			conteoInterval = setInterval(pollEstado, 1500);
+		}
+
+		function iniciarTimer() {
+			clearInterval(timerInterval);
+			timerInterval = setInterval(() => {
+				elapsedSeconds += 1;
+				if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
+			}, 1000);
+		}
+
 		// ── Desconexión de cámara ─────────────────────────────────────────────
 		function _manejarDesconexionCamara(errorMsg) {
 			if (finalizando) return;
@@ -216,7 +392,8 @@
 
 			const mensaje = errorMsg || 'Desconexión con cámara. La clasificación se ha detenido.';
 			mostrarErrorCamara(mensaje);
-			appendLog(mensaje);
+			appendLog(mensaje, 'error');
+			_pintarChip(chipCamara, 'Cámara: desconectada', 'error');
 
 			if (startBtn) { startBtn.style.display = 'inline-flex'; startBtn.textContent = 'Reintentar captura'; }
 		}
@@ -228,20 +405,21 @@
 		async function _verificarTapa() {
 			try {
 				const rTapa = await fetch('/arduino/estado');
-				if (!rTapa.ok) return;
+				if (!rTapa.ok) { _pintarChip(chipArduino, 'Arduino: sin respuesta', 'error'); return; }
 				const tapa = await rTapa.json();
-				if (!tapa.conectado) return;
+				if (!tapa.conectado) { _pintarChip(chipArduino, 'Arduino: sin conexión', 'error'); return; }
+				_pintarChip(chipArduino, 'Arduino: conectado', 'ok');
 
 				if (tapaCerrada && !tapa.listo) {
 					tapaCerrada     = false;
 					msAperturaTapa  = Date.now();
 					segAperturaTapa = elapsedSeconds;
-					appendLog('Tapa abierta — se registrará como incidencia.');
+					appendLog('Tapa abierta — se registrará como incidencia.', 'alerta');
 				} else if (!tapaCerrada && tapa.listo) {
 					tapaCerrada = true;
 					const segsAbierta = Math.round((Date.now() - msAperturaTapa) / 1000);
 					incidencias.push({ seg_apertura: segAperturaTapa, seg_cierre: elapsedSeconds, duracion_s: segsAbierta });
-					appendLog(`Tapa cerrada — estuvo abierta ${segsAbierta}s.`);
+					appendLog(`Tapa cerrada — estuvo abierta ${segsAbierta}s.`, 'ok');
 				}
 			} catch { /* ignorar error de tapa */ }
 		}
@@ -251,17 +429,20 @@
 			try {
 				const res  = await fetch('/arduino/motor/iniciar', { method: 'POST' });
 				const data = await res.json();
-				appendLog(data.mensaje || 'Faja iniciada.');
+				appendLog(data.mensaje || 'Faja iniciada.', data.activo ? 'ok' : 'error');
+				actualizarChipFaja(Boolean(data.activo));
 			} catch {
-				appendLog('No se pudo iniciar la faja. Verifique la conexión Arduino.');
+				appendLog('No se pudo iniciar la faja. Verifique la conexión Arduino.', 'error');
+				actualizarChipFaja(false);
 			}
 		}
 
 		async function detenerFaja() {
 			try {
 				await fetch('/arduino/motor/detener', { method: 'POST', keepalive: true });
+				actualizarChipFaja(false);
 			} catch {
-				appendLog('No se pudo detener la faja. Verifique la conexión Arduino.');
+				appendLog('No se pudo detener la faja. Verifique la conexión Arduino.', 'error');
 			}
 		}
 
@@ -283,12 +464,17 @@
 			if (startBtn) { startBtn.style.display = 'none'; }
 
 			try {
-				// 1. Iniciar YOLO + cámara primero
+				// 1. Iniciar YOLO + cámara primero. El id de evaluación viaja al
+				// backend para que los eventos y las evidencias del lote queden
+				// asociados a esta evaluación.
 				appendLog('Cargando modelo y conectando cámara...');
-				const res = await fetch('/video/iniciar', { method: 'POST' });
+				const res = await fetch('/video/iniciar', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ evaluacion_id: EVALUACION_ID }),
+				});
 				if (!res.ok) {
-					const err = await res.json().catch(() => ({ detail: 'Error desconocido' }));
-					throw new Error(err.detail || 'Error al iniciar captura');
+					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo iniciar la captura.'));
 				}
 
 				// 2. Esperar a que la cámara produzca el primer frame real
@@ -297,76 +483,52 @@
 				if (!camaraLista) throw new Error('La cámara no respondió a tiempo. Verifique la conexión.');
 
 				// 3. Cámara confirmada — arrancar faja
-				appendLog('Cámara activa. Arrancando faja transportadora...');
+				appendLog('Cámara activa. Arrancando faja transportadora...', 'ok');
 				await iniciarFaja();
 
 				capturandoYOLO        = true;
 				elapsedSeconds        = 0;
+				resetearEstadoLote();
 
-				appendLog('Faja en marcha. Captura YOLO activa.');
+				appendLog('Faja en marcha. Captura YOLO activa.', 'ok');
 				iniciarStream();
-
-				// Timer de sesión
-				timerInterval = setInterval(() => {
-					elapsedSeconds += 1;
-					if (timerEl) timerEl.textContent = formatTimer(elapsedSeconds);
-				}, 1000);
-
-				// Conteo + detección de desconexión de cámara + auto-stop
-				conteoInterval = setInterval(async () => {
-					if (!capturandoYOLO || finalizando) return;
-					try {
-						const [rConteo, rStatus] = await Promise.all([
-							fetch('/video/lote/conteo'),
-							fetch('/video/status'),
-						]);
-
-						if (rStatus.ok) {
-							const status = await rStatus.json();
-							if (status.camara_desconectada) {
-								_manejarDesconexionCamara(status.error);
-								return;
-							}
-						}
-
-						const data = await rConteo.json();
-						conteoActual = data.conteo;
-						gruposActual = data.conteo_agrupado ?? {};
-						totalDefectosActual = data.total_defectos ?? 0;
-						totalSanosActual    = data.total_sanos ?? 0;
-						actualizarUIdesdeConteo(totalDefectosActual, totalSanosActual, gruposActual);
-						await _verificarTapa();
-					} catch (e) {
-						console.error('Error obteniendo conteo:', e);
-					}
-				}, 1500);
+				iniciarTimer();
+				iniciarPoll();
 
 			} catch (err) {
-				appendLog('Error: ' + err.message);
+				appendLog('Error: ' + err.message, 'error');
 				if (startBtn) { startBtn.style.display = 'inline-flex'; startBtn.textContent = 'Reintentar captura'; }
 				await detenerFaja();
 			}
 		}
 
+		async function detenerCapturaDeEvaluacion(evaluacionId = EVALUACION_ID, descartarLote = false) {
+			const res = await fetch('/video/detener', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ evaluacion_id: evaluacionId, descartar_lote: descartarLote }),
+			});
+			if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo detener el monitoreo.'));
+		}
+
 		async function detenerCaptura() {
 			clearInterval(timerInterval);
 			clearInterval(conteoInterval);
-			capturandoYOLO = false;
 			await detenerFaja();
-			try { await fetch('/video/detener', { method: 'POST' }); } catch { /* ignorar */ }
+			await detenerCapturaDeEvaluacion();
+			capturandoYOLO = false;
 			detenerStream();
 		}
 
 		async function generarReporte() {
 			try {
-				appendLog('Generando reporte ...');
+				appendLog('Generando reporte...');
 				const res = await fetch('/video/lote/generar-reporte', { method: 'POST' });
-				if (!res.ok) throw new Error('Error generando reporte');
+				if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo generar el reporte.'));
 				reporteActual = await res.json();
-				const { grado, total_defectos, apto_specialty } = reporteActual;
-				appendLog(`Reporte: ${grado} | ${total_defectos} defectos equiv. | Specialty: ${apto_specialty ? 'Apto' : 'No apto'}`);
+				appendLog(`Reporte: ${reporteActual.total_defectos} defectos equiv.`, 'ok');
 			} catch (err) {
-				appendLog('Error al generar reporte: ' + err.message);
+				appendLog('Error al generar reporte: ' + err.message, 'error');
 			}
 		}
 
@@ -404,7 +566,7 @@
 				: 'Finalizando monitoreo...';
 			finDescripcion.textContent = automatico
 				? 'No se detectaron nuevos granos en los últimos 10 segundos. El sistema detuvo el proceso y está guardando los resultados.'
-				: 'Por favor espera mientras se guardan los datos y se genera el reporte.';
+				: 'Por favor, espera mientras se guardan los datos y se genera el reporte.';
 			[1,2,3].forEach(_pasoPendiente);
 			finSpinner.style.display = 'block';
 			finCheck.style.display   = 'none';
@@ -423,8 +585,6 @@
 
 			document.getElementById('resCode').textContent     = codigo || '—';
 			document.getElementById('resGranos').textContent   = Object.values(conteoActual).reduce((a,b)=>a+b,0);
-			document.getElementById('resGrado').textContent    = reporteActual?.grado || '—';
-			document.getElementById('resSpecialty').textContent= reporteActual?.apto_specialty ? 'Apto ✓' : 'No apto';
 			document.getElementById('resPeso').textContent     = `${Number(pesoGramos).toFixed(2)} g`;
 			// Sin celda de carga no hay lectura: ocultar la fila de báscula
 			document.getElementById('resPesoRow').style.display = pesoGramos > 0 ? '' : 'none';
@@ -436,7 +596,6 @@
 
 		// ── Peso de grano bueno (ingreso manual) + factor de rendimiento ──────
 		let pesoTamizadoMax   = null;
-		let totalDefectosFinal = 0;
 
 		async function mostrarFormPesoBueno() {
 			document.getElementById('finPesoForm').style.display = 'block';
@@ -481,20 +640,18 @@
 				const res = await fetch(`/evaluacion/${EVALUACION_ID}/completar`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ total_defectos: totalDefectosFinal, peso_bueno: peso }),
+					body: JSON.stringify({ peso_bueno: peso }),
 				});
 				if (!res.ok) {
-					const err = await res.json().catch(() => ({}));
-					throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo calcular el rendimiento.');
+					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo calcular el rendimiento.'));
 				}
 				const data = await res.json();
 				document.getElementById('resFactor').textContent    = Number(data.factor_rendimiento).toFixed(2);
 				document.getElementById('resPago').textContent      = Number(data.pago).toFixed(2);
-				document.getElementById('resCategoria').textContent = data.categoria || '—';
 				document.getElementById('finRendimiento').style.display = 'block';
 				document.getElementById('finPesoForm').style.display = 'none';
 				finDescripcion.textContent = 'Rendimiento calculado. Revisa el resumen antes de continuar al análisis.';
-				appendLog(`Peso bueno: ${peso} g — factor de rendimiento ${Number(data.factor_rendimiento).toFixed(2)}`);
+				appendLog(`Peso bueno: ${peso} g — factor de rendimiento ${Number(data.factor_rendimiento).toFixed(2)}`, 'ok');
 				_habilitarIrAnalisis();
 			} catch (err) {
 				errorEl.textContent = err.message;
@@ -551,8 +708,13 @@
 			mostrarOverlay(automatico);
 
 			// Paso 1: detener faja + captura YOLO
-			_pasoOk(1);
-			if (capturandoYOLO) await detenerCaptura();
+			try {
+				if (capturandoYOLO) await detenerCaptura();
+				_pasoOk(1);
+			} catch (err) {
+				errorOverlay(err.message);
+				return;
+			}
 
 			// Paso 2: capturar peso de la celda de carga + generar reporte SCA
 			finDescripcion.textContent = 'Calculando resumen...';
@@ -576,15 +738,13 @@
 			detenerStream();
 
 			// Totales calculados por el backend en /video/lote/conteo — el frontend no
-			// conoce nombres de clases ni decide qué cuenta como defecto.
+			// conoce nombres de clases ni decide qué cuenta como defecto. Solo se usan
+			// para mostrar: el conteo que se guarda lo toma el servidor al finalizar.
 			const _totalDefectoGranos = totalDefectosActual;
-			totalDefectosFinal = _totalDefectoGranos;
 			const _totalGranos = reporteActual?.total_granos_analizados || 0;
 			const stats = {
 				totalGrains:      _totalGranos,
 				totalDefectos:    _totalDefectoGranos,
-				grado:            reporteActual?.grado || 'Sin clasificar',
-				aptEspecialty:    reporteActual?.apto_specialty || false,
 				peso_capturado:   pesoCapturado,
 				elapsedSeconds,
 				incidencias:      [...incidencias],
@@ -596,21 +756,20 @@
 				const res = await fetch(`/evaluacion/${EVALUACION_ID}/finalizar`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ total_defectos: _totalDefectoGranos, total_buenos: _totalGranos - _totalDefectoGranos, incidencias }),
+					body: JSON.stringify({ incidencias }),
 				});
 				if (!res.ok) {
-					const err = await res.json();
-					throw new Error(err.detail || 'Error al finalizar la evaluacion.');
+					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo finalizar la evaluación.'));
 				}
 				const { codigo } = await res.json();
 				_pasoOk(3);
 				sessionStorage.removeItem('coffeeren.evaluacion');
-				appendLog(`Evaluacion finalizada. Código: ${codigo}`);
+				appendLog(`Evaluación finalizada. Código: ${codigo}`, 'ok');
 				history.replaceState(null, '', '/registro');
 				completarOverlay(codigo, pesoCapturado);
 			} catch (err) {
 				_pasoError(3);
-				appendLog('Error: ' + err.message);
+				appendLog('Error: ' + err.message, 'error');
 				sessionStorage.removeItem('coffeeren.stats');
 				errorOverlay(err.message);
 			}
@@ -650,8 +809,13 @@
 			clearInterval(conteoInterval);
 			await detenerFaja();
 			if (capturandoYOLO) {
+				try {
+					await detenerCapturaDeEvaluacion();
+				} catch (err) {
+					CoffeeModal.error(err.message);
+					return;
+				}
 				capturandoYOLO = false;
-				await fetch('/video/detener', { method: 'POST' }).catch(() => {});
 			}
 			detenerStream();
 			window.location.replace('/registro');

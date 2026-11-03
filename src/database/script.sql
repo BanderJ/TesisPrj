@@ -1,21 +1,11 @@
+-- Único SQL de reconstrucción de CoffeeRen (PostgreSQL 18).
+-- Elimina las tablas y sus datos, y crea el esquema y los datos iniciales vigentes.
+-- Desde psql: psql -X -v ON_ERROR_STOP=1 -U postgres -d tesis_prj -f src/database/script.sql
 SET client_encoding = 'UTF8';
 
-ALTER TABLE COOPERATIVA DROP CONSTRAINT FKCOOPERATIV906320;
-ALTER TABLE PERSONA DROP CONSTRAINT FKPERSONA823055;
-ALTER TABLE EVALUACION DROP CONSTRAINT FKEVALUACION667001;
-ALTER TABLE EVALUACION DROP CONSTRAINT FKEVALUACION949977;
-ALTER TABLE EVALUACION DROP CONSTRAINT FKEVALUACION377725;
-ALTER TABLE EVALUACION DROP CONSTRAINT FKEVALUACION422102;
-ALTER TABLE PERSONA DROP CONSTRAINT FKPERSONA975307;
-ALTER TABLE EVALUACION DROP CONSTRAINT FKEVALUACION113378;
-ALTER TABLE EVALUACION DROP CONSTRAINT FKEVALUACION381094;
-ALTER TABLE PERSONA DROP CONSTRAINT FKPERSONA750498;
-ALTER TABLE CAFICULTOR DROP CONSTRAINT FKCAFICULTOR530757;
-ALTER TABLE CAFICULTOR DROP CONSTRAINT FKCAFICULTOR165779;
-ALTER TABLE PERSONAL DROP CONSTRAINT FKPERSONAL360810;
-ALTER TABLE DETALLE_EVALUACION DROP CONSTRAINT FKDETALLE_EV598148;
-ALTER TABLE DETALLE_EVALUACION DROP CONSTRAINT FKDETALLE_EV178048;
-ALTER TABLE PERSONAL DROP CONSTRAINT FKPERSONAL26887;
+BEGIN;
+
+DROP TABLE IF EXISTS BONO_SOCIO CASCADE;
 DROP TABLE IF EXISTS CAFICULTOR CASCADE;
 DROP TABLE IF EXISTS CATEGORIA CASCADE;
 DROP TABLE IF EXISTS COOPERATIVA CASCADE;
@@ -31,6 +21,8 @@ DROP TABLE IF EXISTS TIPO_PERSONAL CASCADE;
 DROP TABLE IF EXISTS UBIGEO CASCADE;
 DROP TABLE IF EXISTS VALOR_CAFE CASCADE;
 DROP TABLE IF EXISTS AUDITORIA CASCADE;
+DROP TABLE IF EXISTS EVENTO_MONITOREO CASCADE;
+DROP SEQUENCE IF EXISTS evaluacion_codigo_seq;
 
 CREATE TABLE AUDITORIA (id uuid DEFAULT uuidv7() NOT NULL, personal_id uuid, usuario varchar(30), tipo_personal_id int2, rol varchar(50), accion varchar(60) NOT NULL, tabla_afectada varchar(50), registro_id varchar(100), descripcion text, datos_anteriores jsonb, datos_nuevos jsonb, ip_cliente varchar(45), fecha_hora timestamp NOT NULL DEFAULT NOW(), PRIMARY KEY (id));
 CREATE INDEX idx_auditoria_fecha_hora ON AUDITORIA (fecha_hora DESC);
@@ -38,11 +30,14 @@ CREATE INDEX idx_auditoria_personal_id ON AUDITORIA (personal_id);
 CREATE INDEX idx_auditoria_accion ON AUDITORIA (accion);
 CREATE INDEX idx_auditoria_tipo_personal ON AUDITORIA (tipo_personal_id);
 
+-- Beneficio de socio: historial de solo inserción; el monto vigente es la fila más reciente
+CREATE TABLE BONO_SOCIO (id uuid DEFAULT uuidv7(), monto numeric(7, 2) NOT NULL, fecha timestamp NOT NULL DEFAULT NOW(), personal_id uuid NOT NULL, PRIMARY KEY (id));
 CREATE TABLE CAFICULTOR (caficultor_id uuid DEFAULT uuidv7(), tipo_caficultor_id int2 NOT NULL, fecha_registro timestamp NOT NULL, cacerio varchar(50), PRIMARY KEY (caficultor_id));
 CREATE TABLE CATEGORIA (id SERIAL NOT NULL, nombre varchar(10) NOT NULL, cantidad_defectos int4 NOT NULL, PRIMARY KEY (id));
-CREATE TABLE COOPERATIVA (id uuid DEFAULT uuidv7(), nombre varchar(100) NOT NULL, codigo varchar(20) NOT NULL, direccion varchar(255) NOT NULL UNIQUE, telefono char(9) NOT NULL, correo varchar(255) NOT NULL, descripcion varchar(255) NOT NULL, imagen_url varchar(255), estado char(1) NOT NULL, fecha_registro timestamp NOT NULL DEFAULT NOW(), ubigeo_id char(6), PRIMARY KEY (id));
+CREATE TABLE COOPERATIVA (id uuid DEFAULT uuidv7(), nombre varchar(100) NOT NULL, codigo varchar(20) NOT NULL, ubicacion varchar(255) NOT NULL UNIQUE, telefono char(9) NOT NULL, correo varchar(255) NOT NULL, descripcion varchar(255) NOT NULL, imagen_url varchar(255), estado char(1) NOT NULL, fecha_registro timestamp NOT NULL DEFAULT NOW(), ubigeo_id char(6), PRIMARY KEY (id));
 CREATE TABLE DETALLE_EVALUACION (id uuid DEFAULT uuidv7(), cantidad int4 NOT NULL, evaluacion_id uuid DEFAULT uuidv7(), tipo_defecto_id int2 NOT NULL, PRIMARY KEY (id));
-CREATE TABLE EVALUACION (id uuid DEFAULT uuidv7(), codigo char(10), personal_id uuid NOT NULL, caficultor_id uuid NOT NULL, tipo_caficultor_id int2 NOT NULL, valor_cafe_id uuid, num_sacos int2 NOT NULL, peso_bruto numeric(7, 2) NOT NULL, humedad int2 NOT NULL, peso_muestra numeric(7, 2) NOT NULL, peso_trillado numeric(7, 2) NOT NULL, peso_cascara numeric(7, 2), peso_cascara_total numeric(7, 2), num_tamiz int2 NOT NULL, peso_tamizado numeric(7, 2) NOT NULL, peso_bueno numeric(7, 2), peso_malo numeric(7, 2), factor_rendimiento numeric(7, 2), tara_saco numeric(3, 2), tara_total int2, peso_neto int4, peso_por_qq numeric(7, 2), pago numeric(7, 2), fecha timestamp, tipo_grano_id int4 NOT NULL, categoria_id int4, total_defectos int4, total_buenos int4, incidencias jsonb, PRIMARY KEY (id));
+CREATE TABLE EVALUACION (id uuid DEFAULT uuidv7(), codigo char(10) UNIQUE, personal_id uuid NOT NULL, caficultor_id uuid NOT NULL, tipo_caficultor_id int2 NOT NULL, valor_cafe_id uuid, num_sacos int2 NOT NULL, peso_bruto numeric(7, 2) NOT NULL, humedad int2 NOT NULL, peso_muestra numeric(7, 2) NOT NULL, peso_trillado numeric(7, 2) NOT NULL, peso_cascara numeric(7, 2), peso_cascara_total numeric(7, 2), num_tamiz int2 NOT NULL, peso_tamizado numeric(7, 2) NOT NULL, peso_bueno numeric(7, 2), peso_malo numeric(7, 2), factor_rendimiento numeric(7, 2), tara_saco numeric(3, 2), tara_total numeric(7, 2), peso_neto numeric(7, 2), peso_por_qq numeric(7, 2), pago numeric(7, 2), fecha timestamp, tipo_grano_id int4 NOT NULL, categoria_id int4, total_defectos int4, total_buenos int4, incidencias jsonb, bono_socio numeric(7, 2), PRIMARY KEY (id));
+CREATE TABLE EVENTO_MONITOREO (id uuid DEFAULT uuidv7(), evaluacion_id uuid NOT NULL, segundo int4 NOT NULL, tipo varchar(30) NOT NULL, severidad varchar(10) NOT NULL, mensaje text NOT NULL, imagen_url varchar(255), datos jsonb, fecha timestamp NOT NULL DEFAULT NOW(), PRIMARY KEY (id));
 CREATE TABLE PERSONA (id uuid DEFAULT uuidv7(), nombre varchar(50) NOT NULL, ape_paterno varchar(30) NOT NULL, ape_materno varchar(30) NOT NULL, sexo char(1) NOT NULL, fecha_nacimiento date NOT NULL, tipo_documento_id int2 NOT NULL, num_documento varchar(12) NOT NULL UNIQUE, telefono char(9), ubigeo char(6), estado char(1) NOT NULL, cooperativa_id uuid DEFAULT uuidv7(), correo varchar(100), PRIMARY KEY (id));
 CREATE TABLE PERSONAL (personal_id uuid DEFAULT uuidv7(), tipo_personal_id int2 NOT NULL, usuario varchar(30) NOT NULL UNIQUE, clave varchar(255) NOT NULL, estado char(1) NOT NULL, fecha_registro timestamp NOT NULL DEFAULT NOW(), PRIMARY KEY (personal_id));
 CREATE TABLE TIPO_CAFICULTOR (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, PRIMARY KEY (id));
@@ -51,7 +46,7 @@ CREATE TABLE TIPO_DOCUMENTO (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, PR
 CREATE TABLE TIPO_GRANO (id SERIAL NOT NULL, nombre varchar(20) NOT NULL UNIQUE, peso_qq numeric(5, 2) NOT NULL, PRIMARY KEY (id));
 CREATE TABLE TIPO_PERSONAL (id SERIAL NOT NULL, nombre varchar(50) NOT NULL, PRIMARY KEY (id));
 CREATE TABLE UBIGEO (ubigeo char(6) NOT NULL, departamento varchar(50) NOT NULL, provincia varchar(50) NOT NULL, distrito varchar(50) NOT NULL, PRIMARY KEY (ubigeo));
-CREATE TABLE VALOR_CAFE (id uuid DEFAULT uuidv7(), rango varchar(20) NOT NULL, precio float4 NOT NULL, fecha timestamp NOT NULL, PRIMARY KEY (id));
+CREATE TABLE VALOR_CAFE (id uuid DEFAULT uuidv7(), rango varchar(20) NOT NULL, precio numeric(7, 2) NOT NULL, fecha timestamp NOT NULL, activo boolean NOT NULL DEFAULT TRUE, PRIMARY KEY (id));
 ALTER TABLE COOPERATIVA ADD CONSTRAINT FKCOOPERATIV906320 FOREIGN KEY (ubigeo_id) REFERENCES UBIGEO (ubigeo);
 ALTER TABLE PERSONA ADD CONSTRAINT FKPERSONA823055 FOREIGN KEY (cooperativa_id) REFERENCES COOPERATIVA (id);
 ALTER TABLE EVALUACION ADD CONSTRAINT FKEVALUACION667001 FOREIGN KEY (tipo_caficultor_id) REFERENCES TIPO_CAFICULTOR (id);
@@ -68,13 +63,18 @@ ALTER TABLE PERSONAL ADD CONSTRAINT FKPERSONAL360810 FOREIGN KEY (personal_id) R
 ALTER TABLE DETALLE_EVALUACION ADD CONSTRAINT FKDETALLE_EV598148 FOREIGN KEY (tipo_defecto_id) REFERENCES TIPO_DEFECTO (id);
 ALTER TABLE DETALLE_EVALUACION ADD CONSTRAINT FKDETALLE_EV178048 FOREIGN KEY (evaluacion_id) REFERENCES EVALUACION (id);
 ALTER TABLE PERSONAL ADD CONSTRAINT FKPERSONAL26887 FOREIGN KEY (tipo_personal_id) REFERENCES TIPO_PERSONAL (id);
+ALTER TABLE EVENTO_MONITOREO ADD CONSTRAINT FKEVENTO_MON178049 FOREIGN KEY (evaluacion_id) REFERENCES EVALUACION (id);
+ALTER TABLE BONO_SOCIO ADD CONSTRAINT FKBONO_SOCIO_PERSONAL FOREIGN KEY (personal_id) REFERENCES PERSONAL (personal_id);
+CREATE INDEX idx_evento_monitoreo_evaluacion ON EVENTO_MONITOREO (evaluacion_id, segundo);
+-- Correlativo del codigo EVA (EVA0000001...). Atomico: dos finalizaciones simultaneas no repiten numero.
+CREATE SEQUENCE evaluacion_codigo_seq;
 
 --- INSERTS TABLAS MAESTRAS
 INSERT INTO TIPO_CAFICULTOR (nombre) VALUES ('Socio'), ('Externo');
 INSERT INTO TIPO_DOCUMENTO (nombre) VALUES ('DNI'), ('Pasaporte'), ('Carnet de Extranjería');
 INSERT INTO TIPO_PERSONAL (nombre) VALUES ('Evaluador'), ('Gerente'), ('Administrador');
 INSERT INTO TIPO_DEFECTO (nombre) VALUES ('Broca'), ('Cascarilla'), ('Cereza seca'), ('Concha'), ('Hongo'), ('Flotador'), ('Palos'), ('Piedra'), ('Raja'), ('Partido');
-INSERT INTO TIPO_GRANO (nombre, peso_qq) VALUES ('Pergamino', 55.20), ('Pilado', 46.00), ('Coco', 85.00);
+INSERT INTO TIPO_GRANO (nombre, peso_qq) VALUES ('Pergamino', 55.20), ('Pilado', 46.00);
 INSERT INTO CATEGORIA (nombre, cantidad_defectos) VALUES ('Grado 1', 15), ('Grado 2', 23), ('Grado 3', 30);
 
 --- INSERTS DE UBIGEO ---
@@ -1953,14 +1953,12 @@ INSERT INTO UBIGEO (ubigeo, departamento, provincia, distrito) VALUES ('250304',
 INSERT INTO UBIGEO (ubigeo, departamento, provincia, distrito) VALUES ('250305', 'Ucayali', 'Padre Abad', 'Alexander von Humboldt');
 INSERT INTO UBIGEO (ubigeo, departamento, provincia, distrito) VALUES ('250401', 'Ucayali', 'Purus', 'Purus');
 
---- INSERTS PRUEBA PARA COOPERATIVAS
-INSERT INTO COOPERATIVA (nombre, codigo, direccion, telefono, correo, descripcion, estado, fecha_registro, ubigeo_id)
-VALUES ('Line Coffee Marañón', 'LCM001', 'Chachapoyas, Amazonas', '941234567', 'info@linecoffee.pe', 'Cooperativa de café de Marañón', 'A', CURRENT_TIMESTAMP, '010101');
-INSERT INTO COOPERATIVA (nombre, codigo, direccion, telefono, correo, descripcion, estado, fecha_registro, ubigeo_id)
-VALUES ('Cooperativa Cafetalera Norte', 'CCN001', 'Bagua Grande, Amazonas', '942345678', 'contacto@ccnorte.pe', 'Cooperativa de café del norte', 'A', CURRENT_TIMESTAMP, '010102');
+--- INSERTS PRUEBA PARA COOPERATIVA
+INSERT INTO COOPERATIVA (nombre, codigo, ubicacion, telefono, correo, descripcion, estado, fecha_registro, ubigeo_id)
+VALUES ('Cooperativa Agraria Line Coffee Marañón', 'LCM001', 'Lonya Grande, Utcubamba, Amazonas', '941234567', 'info@linecoffee.pe', 'Cooperativa de café de Marañón', 'A', CURRENT_TIMESTAMP, '010101');
 
 --- INSERTS DE PRUEBA PARA CREDENCIALES
---- ADMIHNISTRADOR
+--- ADMINISTRADOR
 INSERT INTO PERSONA (nombre, ape_paterno, ape_materno, sexo, fecha_nacimiento, tipo_documento_id, num_documento, telefono, estado, cooperativa_id) VALUES ('Camilo', 'Super', 'Root', 'M', '1990-08-20', 1, '01010101', '926607008', 'A', (
     SELECT id FROM COOPERATIVA WHERE codigo = 'LCM001' LIMIT 1
 ));
@@ -2001,3 +1999,8 @@ INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUE
 INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ((SELECT id FROM PERSONA WHERE num_documento = '99988855' LIMIT 1), 1, NOW());
 INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ((SELECT id FROM PERSONA WHERE num_documento = '99988844' LIMIT 1), 2, NOW());
 INSERT INTO CAFICULTOR (caficultor_id, tipo_caficultor_id, fecha_registro) VALUES ((SELECT id FROM PERSONA WHERE num_documento = '99988833' LIMIT 1), 1, NOW());
+
+-- Monto inicial del beneficio de socio (S/ por entrega)
+INSERT INTO BONO_SOCIO (monto, personal_id) VALUES (10.00, (SELECT personal_id FROM PERSONAL WHERE tipo_personal_id = 3 ORDER BY fecha_registro LIMIT 1));
+
+COMMIT;

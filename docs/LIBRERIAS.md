@@ -116,20 +116,22 @@ ph.verify(hash_, "MiClave123!")       # True, o lanza VerifyMismatchError
 ## 4. Visión Artificial y ML
 
 ### Ultralytics (YOLO)
-Framework de detección de objetos. Carga el modelo entrenado (`best.onnx`/`best.pt`) y detecta granos por frame. Incluye ByteTrack para que cada grano conserve un ID entre frames (no contar dos veces).
+Framework de detección de objetos. Carga el modelo entrenado (`best.pt` en GPU, `best.onnx` en CPU) y detecta granos. Incluye ByteTrack para que cada grano conserve un ID entre frames (no contar dos veces). El tracker no usa `model.track()`: infiere los 9 recortes de la grilla en un solo `predict()`, fusiona las cajas y alimenta un `BYTETracker` propio.
 ```python
 from ultralytics import YOLO
-model = YOLO("src/ml/models/yolov26n_2cls/best.onnx")   # cargar UNA vez al inicio
-results = model.track(frame, tracker="bytetrack.yaml", conf=0.5, imgsz=640)
-for box in results[0].boxes:
-    clase, track_id = int(box.cls[0]), int(box.id[0])
+from ultralytics.trackers.byte_tracker import BYTETracker
+model = YOLO("src/ml/models/yolov26n_2cls/best.pt")      # cargar UNA vez al inicio
+resultados = model.predict(recortes, imgsz=640, conf=0.15, iou=0.80,
+                           device=0, half=True, verbose=False)   # un batch con los 9 tiles
 ```
 
 ### PyTorch (torch / torchvision)
-Motor de inferencia que YOLO usa por debajo. En el proyecto solo se consulta directo para elegir GPU o CPU:
+Motor de inferencia que YOLO usa por debajo. Debe instalarse la variante CUDA (`torch==2.12.0+cu130`, ver `requirements.txt`); la variante `+cpu` deja la GPU sin usar. En el proyecto se consulta directo para elegir device, FP16 y tope de hilos:
 ```python
 import torch
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = 0 if torch.cuda.is_available() else "cpu"
+half = torch.cuda.is_available() and torch.cuda.get_device_capability(0)[0] >= 7
+torch.set_num_threads(4)                      # ML_MAX_THREADS_CPU
 ```
 
 ### OpenCV (`import cv2`)
@@ -151,10 +153,10 @@ frame.shape       # (1080, 1920, 3) → alto, ancho, canales BGR
 Procesamiento de imágenes. Dependencia interna de ultralytics — no se usa directo en el código propio.
 
 ### ONNX (onnx / onnxruntime / onnxslim)
-Formato portable de modelos ML. Los `.pt` se exportan a `.onnx` para inferencia más rápida en CPU/GPU. `onnxruntime` los ejecuta, `onnxslim` optimiza el grafo al exportar.
+Formato portable de modelos ML. Los `.pt` se exportan a `.onnx` para inferencia más rápida en CPU. `onnxruntime` (build CPU, sin CUDA ni DirectML) los ejecuta, `onnxslim` optimiza el grafo al exportar.
 ```python
 YOLO("best.pt").export(format="onnx", imgsz=640, half=False, dynamic=False, simplify=True)
-# tracker.py prueba best.onnx primero, si no existe usa best.pt
+# tracker.py: con GPU carga best.pt primero; en CPU, best.onnx primero
 ```
 
 ---

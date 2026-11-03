@@ -15,7 +15,6 @@
       "Bash(python crear_preinforme_actualizado.py)",
       "Bash(python)",
       "Bash(python -c \"import docx; print\\('python-docx disponible'\\)\")",
-      "Bash(python generar_manual.py)",
       "Bash(python -m py_compile src/models/personal.py src/models/persona.py src/services/perfil_service.py src/routes/perfil.py src/schemas/perfil.py)",
       "Bash(python -m uvicorn src.main:app --reload --port 8000)",
       "Bash(curl -s http://localhost:8000/inicio)",

@@ -6,12 +6,45 @@
     const tablaRangosHoy   = document.getElementById('tablaRangosHoy');
     const subtituloHoy     = document.getElementById('subtituloRangosHoy');
     const btnRefrescar     = document.getElementById('btnRefrescarRangos');
+    const historialHoy    = document.getElementById('historialPreciosHoy');
+    const historialBody   = document.getElementById('historialPreciosBody');
+
+    async function cargarHistorialHoy() {
+        const estado = (mensaje) => {
+            const td = document.createElement('td');
+            td.colSpan = 4;
+            td.textContent = mensaje;
+            historialBody.replaceChildren();
+            historialBody.insertRow().appendChild(td);
+        };
+        estado('Cargando historial…');
+        try {
+            const res = await fetch('/valor-cafe/historial');
+            if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo cargar el historial.'));
+            const { data } = await res.json();
+            if (!data.length) { estado('Todavía no hay precios registrados hoy.'); return; }
+            historialBody.replaceChildren();
+            data.forEach(item => {
+                const tr = historialBody.insertRow();
+                [new Date(item.fecha).toLocaleString('es-PE'), item.rango,
+                    Number(item.precio).toFixed(2), item.activo ? 'Activo' : 'Desactivado'].forEach(valor => {
+                    tr.insertCell().textContent = valor;
+                });
+            });
+        } catch (error) {
+            estado(error.message);
+        }
+    }
+    historialHoy.addEventListener('toggle', () => {
+        if (historialHoy.open) cargarHistorialHoy();
+    });
 
     async function cargarRangosHoy() {
         try {
             const res = await fetch('/valor-cafe/resumen-rangos');
             if (!res.ok) return;
             const { fecha_consultada, data } = await res.json();
+            if (historialHoy.open) await cargarHistorialHoy();
 
             if (!data || data.length === 0) {
                 panelRangosHoy.style.display = 'none';
@@ -50,19 +83,9 @@
         tr.innerHTML = `
             <td style="padding:.6rem .75rem;font-weight:500">${rango}</td>
             <td class="celda-precio" style="padding:.6rem .75rem">S/. ${Number(precio).toFixed(2)}</td>
-            <td style="padding:.6rem .75rem;display:flex;gap:.5rem;flex-wrap:wrap">
-                <button type="button" class="btn btn-secondary btn-editar-precio"
-                    style="padding:.3rem .65rem;font-size:.8rem;height:auto">
-                    Editar precio
-                </button>
-                <button type="button" class="btn btn-eliminar-rango"
-                    style="padding:.3rem .65rem;font-size:.8rem;height:auto;background:color-mix(in oklab,var(--destructive) 12%,transparent);border-color:color-mix(in oklab,var(--destructive) 38%,var(--border) 62%);color:var(--destructive)">
-                    Eliminar
-                </button>
-            </td>`;
+            <td class="acciones-rango"></td>`;
 
-        tr.querySelector('.btn-editar-precio').addEventListener('click', () => activarEdicionPrecio(tr, rango, precio));
-        tr.querySelector('.btn-eliminar-rango').addEventListener('click', () => confirmarEliminar(tr, rango));
+        restaurarBotonesRango(tr.querySelector('.acciones-rango'), tr, rango, precio);
         return tr;
     }
 
@@ -105,13 +128,10 @@
 
     function restaurarBotonesRango(celdaAcciones, tr, rango, precio) {
         celdaAcciones.innerHTML = `
-            <button type="button" class="btn btn-secondary btn-editar-precio"
-                style="padding:.3rem .65rem;font-size:.8rem;height:auto">Editar precio</button>
-            <button type="button" class="btn btn-eliminar-rango"
-                style="padding:.3rem .65rem;font-size:.8rem;height:auto;background:color-mix(in oklab,var(--destructive) 12%,transparent);border-color:color-mix(in oklab,var(--destructive) 38%,var(--border) 62%);color:var(--destructive)">
-                Eliminar</button>`;
+            <button type="button" class="btn btn-secondary btn-editar-precio">Editar precio</button>
+            <button type="button" class="btn btn-desactivar-rango">Desactivar rango</button>`;
         celdaAcciones.querySelector('.btn-editar-precio').addEventListener('click', () => activarEdicionPrecio(tr, rango, precio));
-        celdaAcciones.querySelector('.btn-eliminar-rango').addEventListener('click', () => confirmarEliminar(tr, rango));
+        celdaAcciones.querySelector('.btn-desactivar-rango').addEventListener('click', () => confirmarDesactivar(tr, rango));
     }
 
     async function guardarNuevoPrecio(tr, rango, input, celdaPrecio, celdaAcciones) {
@@ -144,8 +164,7 @@
                 body: JSON.stringify({ rango, precio: nuevoPrecio }),
             });
             if (!res.ok) {
-                const err = await res.json();
-                CoffeeModal.error(err.detail || 'No se pudo actualizar el precio.');
+                CoffeeModal.error(await CoffeeHttp.mensajeError(res, 'No se pudo actualizar el precio.'));
                 btnGuardar.disabled = false;
                 btnGuardar.textContent = 'Guardar';
                 return;
@@ -154,6 +173,7 @@
             const precioFinal = parseFloat(data.precio);
             celdaPrecio.textContent = `S/. ${precioFinal.toFixed(2)}`;
             restaurarBotonesRango(celdaAcciones, tr, rango, precioFinal);
+            if (historialHoy.open) await cargarHistorialHoy();
             CoffeeModal.success(`Precio del rango ${rango} actualizado a S/. ${precioFinal.toFixed(2)}`, 'Precio actualizado');
         } catch {
             CoffeeModal.error('Error de conexión al actualizar el precio.');
@@ -162,29 +182,40 @@
         }
     }
 
-    async function confirmarEliminar(tr, rango) {
+    async function confirmarDesactivar(tr, rango) {
         const ok = await CoffeeModal.confirm({
             type: 'warning',
-            title: `Eliminar rango ${rango}`,
-            message: `Se eliminarán todos los precios del rango "${rango}" registrados hoy. Esta acción no se puede deshacer.`,
-            okText: 'Eliminar',
+            title: `Desactivar rango ${rango}`,
+            message: `El rango "${rango}" dejará de utilizarse para calcular nuevas evaluaciones. Todos sus precios de hoy se conservarán en el historial, junto con las evaluaciones que ya los utilizaron.`,
+            okText: 'Desactivar rango',
             cancelText: 'Cancelar',
         });
         if (!ok) return;
 
+        const botones = tr.querySelectorAll('button');
+        const btnDesactivar = tr.querySelector('.btn-desactivar-rango');
+        botones.forEach(btn => { btn.disabled = true; });
+        btnDesactivar.textContent = 'Desactivando…';
         try {
-            const res = await fetch(`/valor-cafe/eliminar-rango?rango=${encodeURIComponent(rango)}`, { method: 'DELETE' });
+            const res = await fetch('/valor-cafe/desactivar-rango', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rango }),
+            });
             if (!res.ok) {
-                const err = await res.json();
-                CoffeeModal.error(err.detail || 'No se pudo eliminar el rango.');
+                CoffeeModal.error(await CoffeeHttp.mensajeError(res, 'No se pudo desactivar el rango.'));
                 return;
             }
             tr.remove();
             const filas = document.querySelectorAll('#tbodyRangos tr');
             if (filas.length === 0) panelRangosHoy.style.display = 'none';
-            CoffeeModal.success(`Rango ${rango} eliminado correctamente.`, 'Rango eliminado');
+            if (historialHoy.open) await cargarHistorialHoy();
+            CoffeeModal.success(`Rango ${rango} desactivado. Su historial y las evaluaciones anteriores se conservaron.`, 'Rango desactivado');
         } catch {
-            CoffeeModal.error('Error de conexión al eliminar el rango.');
+            CoffeeModal.error('Error de conexión al desactivar el rango.');
+        } finally {
+            botones.forEach(btn => { btn.disabled = false; });
+            btnDesactivar.textContent = 'Desactivar rango';
         }
     }
 
@@ -281,12 +312,6 @@
         return errores;
     }
 
-    function mensajeHttpError(data, status) {
-        if (status === 401) return 'Sesión expirada. Vuelve a iniciar sesión.';
-        if (status === 403) return 'Sin permisos para registrar precios.';
-        return data.detail || 'Error al registrar.';
-    }
-
     /* ───── Formulario en bloque (dinámico) ───── */
     const contenedor = document.getElementById('bloqueFila');
     const counter = document.getElementById('filaCounter');
@@ -304,12 +329,12 @@
         fila.innerHTML = `
             <div class="field-group">
                 <label for="fr_${idx}">Rango</label>
-                <input id="fr_${idx}" type="text" class="fila-rango" placeholder="Ej: 60-65 o 70" maxlength="10" autocomplete="off">
+                <input id="fr_${idx}" type="text" class="fila-rango" placeholder="Ej.: 60-65 o 70" maxlength="10" autocomplete="off">
                 <p class="campo-error-msg fila-rango-error"></p>
             </div>
             <div class="field-group">
                 <label for="fp_${idx}">Precio (S/.)</label>
-                <input id="fp_${idx}" type="number" class="fila-precio" step="0.01" min="0.01" placeholder="Ej: 750.00">
+                <input id="fp_${idx}" type="number" class="fila-precio" step="0.01" min="0.01" placeholder="Ej.: 750.00">
                 <p class="campo-error-msg fila-precio-error"></p>
             </div>
             <button type="button" class="btn-remove-fila" title="Eliminar fila" aria-label="Eliminar fila">
@@ -467,7 +492,7 @@
                 }
             }
             if (hayError) {
-                CoffeeModal.error('Los nuevos rangos tienen conflictos con registros ya existentes de hoy. Revisa los campos marcados.');
+                CoffeeModal.error('Los nuevos rangos tienen conflictos con rangos activos de hoy. Revisa los campos marcados. Si quieres reemplazar un rango, desactívalo primero.');
                 return;
             }
         }
@@ -481,7 +506,7 @@
                 body: JSON.stringify({ precios }),
             });
             if (!res.ok) {
-                CoffeeModal.error(mensajeHttpError(await res.json(), res.status));
+                CoffeeModal.error(await CoffeeHttp.mensajeError(res, 'No se pudo registrar el bloque de precios.'));
                 return;
             }
             const data = await res.json();

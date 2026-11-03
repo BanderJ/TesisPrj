@@ -1,3 +1,5 @@
+from typing import Any
+
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -6,14 +8,13 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from src.services.auditoria_service import auditoria_service
-from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente
+from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente, require_admin
 from src.utilities.jwt_utils import generar_token
 from src.utilities.request_utils import get_client_ip
 from src.schemas.perfil import (
     ActualizarDatosPersonales,
     ActualizarUsuario,
     CambiarContrasena,
-    CambiarContraseñaUsuario,
     CambiarEstadoUsuario,
     CrearUsuario,
 )
@@ -27,10 +28,10 @@ perfil_service = PerfilService()
 
 
 @perfil.get("/")
-async def obtener_pagina_perfil(
+def obtener_pagina_perfil(
     request: Request,
     user: dict = Depends(obtener_usuario_actual),
-):
+) -> Any:
     try:
         datos = perfil_service.obtener_datos_usuario(user["personal_id"])
         return templates.TemplateResponse(
@@ -39,15 +40,15 @@ async def obtener_pagina_perfil(
             context={"request": request, "user": user, "datos": datos},
         )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al cargar el perfil") from exc
+        raise HTTPException(status_code=500, detail="No se pudo cargar el perfil.") from exc
 
 
 @perfil.patch("/datos-personales")
-async def actualizar_datos_personales(
+def actualizar_datos_personales(
     request: Request,
     body: ActualizarDatosPersonales,
     user: dict = Depends(obtener_usuario_actual),
-):
+) -> Any:
     try:
         result = perfil_service.actualizar_datos_personales(
             personal_id=user["personal_id"],
@@ -82,15 +83,15 @@ async def actualizar_datos_personales(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al actualizar los datos") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron actualizar los datos.") from exc
 
 
 @perfil.patch("/cambiar-contrasena")
-async def cambiar_contrasena(
+def cambiar_contrasena(
     request: Request,
     body: CambiarContrasena,
     user: dict = Depends(obtener_usuario_actual),
-):
+) -> Any:
     try:
         result = perfil_service.cambiar_contrasena(
             personal_id=user["personal_id"],
@@ -112,54 +113,46 @@ async def cambiar_contrasena(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al cambiar la contraseña") from exc
-
-
-@perfil.get("/usuarios/personas-disponibles")
-async def obtener_personas_sin_usuario(
-    user: dict = Depends(require_admin_o_gerente),
-):
-    try:
-        return {"personas": perfil_service.obtener_personas_sin_usuario()}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al obtener personas disponibles") from exc
+        raise HTTPException(status_code=500, detail="No se pudo cambiar la contraseña.") from exc
 
 
 @perfil.get("/usuarios")
-async def listar_usuarios(
+def listar_usuarios(
     user: dict = Depends(require_admin_o_gerente),
-):
+) -> Any:
     try:
         return {"usuarios": perfil_service.listar_usuarios()}
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al listar usuarios") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron listar los usuarios.") from exc
 
 
 @perfil.get("/usuarios/{personal_id}")
-async def obtener_usuario(
+def obtener_usuario(
     personal_id: str,
     user: dict = Depends(require_admin_o_gerente),
-):
+) -> Any:
     try:
         usuario = perfil_service.obtener_usuario(personal_id)
         if not usuario:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            raise HTTPException(status_code=404, detail="No se encontró el usuario.")
         return usuario
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al obtener el usuario") from exc
+        raise HTTPException(status_code=500, detail="No se pudo obtener el usuario.") from exc
 
 
 @perfil.patch("/usuarios/{personal_id}/estado")
-async def cambiar_estado_usuario(
+def cambiar_estado_usuario(
     personal_id: str,
     body: CambiarEstadoUsuario,
     request: Request,
-    user: dict = Depends(require_admin_o_gerente),
-):
+    user: dict = Depends(require_admin),
+) -> Any:
     try:
-        result = perfil_service.cambiar_estado_usuario(personal_id, body.estado)
+        result = perfil_service.cambiar_estado_usuario(
+            personal_id, body.estado, solicitante_id=user.get("personal_id")
+        )
         accion = "ACTIVAR_USUARIO" if body.estado == "A" else "DESACTIVAR_USUARIO"
         auditoria_service.registrar(
             accion=accion,
@@ -176,47 +169,16 @@ async def cambiar_estado_usuario(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al cambiar el estado") from exc
-
-
-@perfil.patch("/usuarios/{personal_id}/cambiar-contrasena")
-async def cambiar_contrasena_usuario(
-    personal_id: str,
-    body: CambiarContraseñaUsuario,
-    request: Request,
-    user: dict = Depends(require_admin_o_gerente),
-):
-    try:
-        result = perfil_service.cambiar_contrasena_usuario(
-            personal_id=personal_id,
-            clave_nueva=body.clave_nueva,
-            usuario_solicitante=user.get("usuario"),
-        )
-        auditoria_service.registrar(
-            accion="CAMBIAR_CLAVE_USUARIO",
-            personal_id=user.get("personal_id"),
-            usuario=user.get("usuario"),
-            tipo_personal_id=user.get("tipo_personal_id"),
-            rol=user.get("rol"),
-            tabla_afectada="PERSONAL",
-            registro_id=personal_id,
-            descripcion=f"Cambio de contraseña del usuario ID {personal_id} por {user.get('usuario')}",
-            ip_cliente=get_client_ip(request),
-        )
-        return result
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al cambiar la contraseña") from exc
+        raise HTTPException(status_code=500, detail="No se pudo cambiar el estado del usuario.") from exc
 
 
 @perfil.patch("/usuarios/{personal_id}")
-async def actualizar_usuario(
+def actualizar_usuario(
     personal_id: str,
     body: ActualizarUsuario,
     request: Request,
-    user: dict = Depends(require_admin_o_gerente),
-):
+    user: dict = Depends(require_admin),
+) -> Any:
     try:
         result = perfil_service.actualizar_usuario(
             personal_id=personal_id,
@@ -247,15 +209,15 @@ async def actualizar_usuario(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al actualizar el usuario") from exc
+        raise HTTPException(status_code=500, detail="No se pudo actualizar el usuario.") from exc
 
 
 @perfil.post("/usuarios/crear")
-async def crear_usuario(
+def crear_usuario(
     body: CrearUsuario,
     request: Request,
-    user: dict = Depends(require_admin_o_gerente),
-):
+    user: dict = Depends(require_admin),
+) -> Any:
     try:
         result = perfil_service.crear_usuario(
             nombre=body.nombre,
@@ -286,4 +248,4 @@ async def crear_usuario(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Error al crear el usuario") from exc
+        raise HTTPException(status_code=500, detail="No se pudo crear el usuario.") from exc

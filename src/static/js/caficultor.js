@@ -42,6 +42,24 @@
         const tiposDocumento = new Map();
         const tiposCaficultor = new Map();
 
+        const EDAD_MINIMA_ANIOS = 18;
+
+        function obtenerFechaMaximaNacimiento() {
+            const hoy = new Date();
+            const anio = hoy.getFullYear() - EDAD_MINIMA_ANIOS;
+            const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoy.getDate()).padStart(2, '0');
+            return `${anio}-${mes}-${dia}`;
+        }
+
+        function validarEdadFechaNacimiento() {
+            if (fechaNacimiento.value && fechaNacimiento.value > fechaNacimiento.max) {
+                fechaNacimiento.setCustomValidity(`El caficultor debe ser mayor de ${EDAD_MINIMA_ANIOS} años.`);
+            } else {
+                fechaNacimiento.setCustomValidity('');
+            }
+        }
+
         let modoActivo = null;
         let debounceDoc = null;
         let timerBannerReniec = null;
@@ -50,48 +68,6 @@
         let documentoExisteComoExterno = false;
         let conversionEncontrado = false;
         let ultimaClaveBusquedaConversion = '';
-        let caficultorValido = false;
-        let ultimoNumDocumentoConsultado = '';
-
-        function limpiarDatosCaficultor() {
-            nombre.value = '';
-            apePaterno.value = '';
-            apeMaterno.value = '';
-            sexo.value = '';
-            fechaNacimiento.value = '';
-            telefono.value = '';
-            tipoCaficultorId.value = '';
-            caficultorValido = false;
-        }
-
-        async function consultarCaficultor(documento) {
-            if(ultimoNumDocumentoConsultado === documento && caficultorValido) {
-                return;
-            }
-            
-            try {
-                setLookupMessage('Consultando datos del caficultor...');
-                const response = await fetch(`/caficultor/consultar/${documento}`);
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'No se pudo consultar el caficultor');
-                }
-
-                const payload = await response.json();
-                ultimoNumDocumentoConsultado = documento;
-
-                if (!payload.encontrado || !payload.data) {
-                    limpiarDatosCaficultor();
-                    setLookupMessage(payload.mensaje, 'error');
-                    numDocumento.setCustomValidity(payload.mensaje);
-                    return;
-                }
-
-            } catch (error) {
-                setLookupMessage('Error al consultar el caficultor.');
-            }
-        }
 
         function normalizarTexto(valor) {
             return valor
@@ -109,12 +85,12 @@
                 return {
                     maxLength: 8,
                     soloNumeros: true,
-                    hint: 'DNI: exactamente 8 digitos numericos.',
-                    placeholder: 'Ingrese 8 digitos de DNI',
-                    validationMessage: 'Para DNI se requieren 8 digitos numericos.',
+                    hint: 'DNI: exactamente 8 dígitos numéricos.',
+                    placeholder: 'Ingrese 8 dígitos de DNI',
+                    validationMessage: 'Para DNI se requieren 8 dígitos numéricos.',
                     regex: /^\d{8}$/,
                     longitudesAutoBusqueda: [8],
-                    autoSearchMessage: 'Complete los 8 digitos del DNI para iniciar la busqueda.',
+                    autoSearchMessage: 'Complete los 8 dígitos del DNI para iniciar la búsqueda.',
                 };
             }
 
@@ -122,24 +98,24 @@
                 return {
                     maxLength: 12,
                     soloNumeros: false,
-                    hint: 'Pasaporte/Carnet: exactamente 12 caracteres alfanumericos.',
-                    placeholder: 'Ingrese 12 caracteres',
-                    validationMessage: 'Para Pasaporte/Carnet se requieren 12 caracteres alfanumericos.',
-                    regex: /^[A-Za-z0-9]{12}$/,
-                    longitudesAutoBusqueda: [12],
-                    autoSearchMessage: 'Complete los 12 caracteres para iniciar la busqueda.',
+                    hint: 'Pasaporte/Carnet: 8 a 12 caracteres alfanuméricos.',
+                    placeholder: 'Ingrese 8-12 caracteres',
+                    validationMessage: 'Para Pasaporte/Carnet se requieren de 8 a 12 caracteres alfanuméricos.',
+                    regex: /^[A-Za-z0-9]{8,12}$/,
+                    longitudesAutoBusqueda: [8, 9, 10, 11, 12],
+                    autoSearchMessage: 'Complete entre 8 y 12 caracteres para iniciar la búsqueda.',
                 };
             }
 
             return {
                 maxLength: 12,
                 soloNumeros: false,
-                hint: 'Documento entre 8 y 12 caracteres alfanumericos.',
+                hint: 'Documento entre 8 y 12 caracteres alfanuméricos.',
                 placeholder: 'Ingrese documento (8 a 12 caracteres)',
-                validationMessage: 'Documento invalido. Use de 8 a 12 caracteres alfanumericos.',
+                validationMessage: 'Documento inválido. Use de 8 a 12 caracteres alfanuméricos.',
                 regex: /^[A-Za-z0-9]{8,12}$/,
                 longitudesAutoBusqueda: [8, 12],
-                autoSearchMessage: 'Complete 8 o 12 caracteres para iniciar la busqueda.',
+                autoSearchMessage: 'Complete 8 o 12 caracteres para iniciar la búsqueda.',
             };
         }
 
@@ -386,6 +362,7 @@
             if (data.apellido_materno) apeMaterno.value      = data.apellido_materno;
             if (data.sexo)             sexo.value            = data.sexo;
             if (data.fecha_nacimiento) fechaNacimiento.value = data.fecha_nacimiento;
+            validarEdadFechaNacimiento();
             if (data.telefono)         telefono.value        = data.telefono;
 
             const ubigeoCode = data.ubigeo_sunat || data.ubigeo;
@@ -427,7 +404,7 @@
                 const dataAPI = await respAPI.json();
                 if (!dataAPI.encontrado) { clearRegistroBanner(); return; }
                 await autollenarDesdeDni(dataAPI);
-                setRegistroBanner('Datos completados automaticamente desde RENIEC. Verifica y completa los campos faltantes.', 'success');
+                setRegistroBanner('Datos completados automáticamente desde RENIEC. Verifica y completa los campos faltantes.', 'success');
                 timerBannerReniec = setTimeout(() => { clearRegistroBanner(); timerBannerReniec = null; }, 5000);
             } catch (_) {
                 clearRegistroBanner();
@@ -474,8 +451,7 @@
             try {
                 const response = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'No se pudo validar el documento');
+                    throw new Error(await CoffeeHttp.mensajeError(response, 'No se pudo validar el documento.'));
                 }
 
                 const payload = await response.json();
@@ -544,8 +520,7 @@
             try {
                 const response = await fetch(`/caficultor/consultar/${encodeURIComponent(documento)}`);
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'No se pudo consultar el caficultor');
+                    throw new Error(await CoffeeHttp.mensajeError(response, 'No se pudo consultar el caficultor.'));
                 }
 
                 const payload = await response.json();
@@ -643,8 +618,7 @@
                 });
 
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'No se pudo convertir el caficultor a socio');
+                    throw new Error(await CoffeeHttp.mensajeError(response, 'No se pudo convertir el caficultor a socio.'));
                 }
 
                 const payload = await response.json();
@@ -680,6 +654,7 @@
             aplicarReglaDocumento();
             limpiarEstadoRegistro();
             limpiarCamposAutollenados();
+            fechaNacimiento.setCustomValidity('');
         }
 
         async function registrarNuevoCaficultor(event) {
@@ -706,6 +681,7 @@
                 return;
             }
 
+            validarEdadFechaNacimiento();
             if (!formNuevo.reportValidity()) {
                 return;
             }
@@ -736,8 +712,7 @@
                 });
 
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'No se pudo registrar el caficultor');
+                    throw new Error(await CoffeeHttp.mensajeError(response, 'No se pudo registrar el caficultor.'));
                 }
 
                 const data = await response.json();
@@ -804,6 +779,8 @@
             telefono.value = telefono.value.replace(/\D/g, '').slice(0, 9);
         });
 
+        fechaNacimiento.addEventListener('input', validarEdadFechaNacimiento);
+
         btnAccionConversion.addEventListener('click', () => {
             if (tipoDocumentoId.value) {
                 tipoDocumentoConversionId.value = tipoDocumentoId.value;
@@ -839,6 +816,8 @@
             intentarBusquedaAutomaticaConversion();
         });
 
+        fechaNacimiento.max = obtenerFechaMaximaNacimiento();
+
         Promise.all([cargarTiposDocumento(), cargarTiposCaficultor(), cargarDepartamentos()])
             .then(() => {
                 aplicarReglaDocumento();
@@ -850,3 +829,15 @@
                 CoffeeModal.error(error.message || 'No se pudieron cargar los catálogos.');
             });
     })();
+
+// Monto vigente del beneficio de socio (lo define Gerente/Admin en Cooperativa)
+(async () => {
+    const el = document.getElementById('bonoSocioMonto');
+    if (!el) return;
+    try {
+        const res = await fetch('/bono-socio');
+        if (!res.ok) return;
+        const { vigente } = await res.json();
+        if (vigente) el.textContent = `S/ ${Number(vigente.monto).toFixed(2)}`;
+    } catch { /* se queda el guion: el monto es informativo */ }
+})();

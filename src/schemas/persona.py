@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+EDAD_MINIMA_ANIOS = 18
+
 
 class PersonaRegistroRequest(BaseModel):
 	nombre: str = Field(..., min_length=2, max_length=50)
@@ -33,3 +35,12 @@ class PersonaRegistroRequest(BaseModel):
 		if not v or not isinstance(v, str) or not v.strip():
 			return None
 		return v.strip()
+
+	@field_validator("fecha_nacimiento")
+	@classmethod
+	def validar_mayoria_edad(cls, v: date) -> date:
+		hoy = date.today()
+		edad = hoy.year - v.year - ((hoy.month, hoy.day) < (v.month, v.day))
+		if edad < EDAD_MINIMA_ANIOS:
+			raise ValueError(f"El caficultor debe ser mayor de {EDAD_MINIMA_ANIOS} años.")
+		return v

@@ -7,7 +7,7 @@
             const data = await res.json();
             const section = document.getElementById('cooperativaSection');
 
-            document.getElementById('cooperativaNombreTitulo').textContent = data.nombre || 'Tu Cooperativa';
+            document.getElementById('cooperativaNombreTitulo').textContent = data.nombre || 'Tu cooperativa';
             document.getElementById('cooperativaDescripcionTexto').textContent = data.descripcion || 'Cooperativa registrada en el sistema';
 
             if (data.imagen_url) {
@@ -41,25 +41,21 @@
 
     cargarKpis();
 
-    // Aviso al ingresar: sin precios de café registrados hoy.
-    // Se muestra una vez por sesión y por día (clave con fecha en sessionStorage).
-    async function avisarSinPreciosHoy() {
-        try {
-            const res = await fetch('/valor-cafe/historial');
-            if (!res.ok) return;
-            const { total, fecha_consultada } = await res.json();
-            if (total > 0) return;
-            const clave = `coffeeren.avisoPrecios.${fecha_consultada}`;
-            if (sessionStorage.getItem(clave)) return;
-            sessionStorage.setItem(clave, '1');
-            CoffeeModal.info(
-                "No hay rangos de precios de café registrados hoy. Regístralos en 'Valor de café' para poder completar las evaluaciones.",
-                'Precios de café pendientes'
-            );
-        } catch { /* sin respuesta: no interrumpir el inicio */ }
+    async function mostrarAvisosInicio() {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('bienvenida') === '1') {
+            // Una recomendación de prueba pendiente por cada inicio de sesión.
+            localStorage.setItem('coffeeren.pruebaPendiente', '1');
+            // Consumir el saludo para que no se repita al recargar o volver a Inicio.
+            url.searchParams.delete('bienvenida');
+            window.history.replaceState(window.history.state, '', url);
+            await CoffeeModal.success('Ha iniciado sesión correctamente.', `Bienvenido, ${INICIO_NOMBRE_USUARIO}`);
+        }
+        await CoffeePrecios.avisarSiFaltan();
     }
 
-    avisarSinPreciosHoy();
+    mostrarAvisosInicio();
+
 
     (() => {
         const RANGO_COLORS = ['#22c55e', '#f59e0b', '#818cf8', '#f472b6', '#2dd4bf'];
@@ -116,7 +112,14 @@
         const CW=VB_W-ML-MR, CH=VB_H-MT-MB;
 
         function niceAxisY(minP, maxP) {
-            const range = maxP - minP || 1;
+            // Un solo precio (o todos iguales): sin margen el eje queda con lo === hi
+            // y yOf() divide por cero. Se abre un margen del 5 % alrededor del valor.
+            if (maxP === minP) {
+                const pad = Math.max(1, Math.abs(minP) * 0.05);
+                minP -= pad;
+                maxP += pad;
+            }
+            const range = maxP - minP;
             const rough = range / 4;
             const mag   = Math.pow(10, Math.floor(Math.log10(rough)));
             const step  = [1,2,2.5,5,10].map(f=>f*mag).find(n=>n>=rough) || rough;
@@ -316,7 +319,7 @@ ${hitHtml}`;
                         if (pa.data && payload.data.length) {
                             const maxHoy = Math.max(...payload.data.map(d => d.precio));
                             const pct = ((maxHoy - pa.data.precio) / pa.data.precio) * 100;
-                            priceChangeEl.textContent = `${pct>=0?'+':''}${pct.toFixed(1)}% respecto al dia anterior`;
+                            priceChangeEl.textContent = `${pct>=0?'+':''}${pct.toFixed(1)}% respecto al día anterior`;
                             priceChangeEl.classList.toggle('negative', pct < 0);
                         } else {
                             priceChangeEl.textContent = 'Sin comparativo de ayer';
@@ -390,7 +393,7 @@ ${hitHtml}`;
 
             } catch {
                 chartEmptyEl.hidden      = false;
-                chartEmptyEl.textContent = 'Error al cargar los datos del grafico';
+                chartEmptyEl.textContent = 'Error al cargar los datos del gráfico.';
             }
         }
 

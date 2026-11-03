@@ -37,7 +37,7 @@ class ArduinoService:
             "listo": False,
             "distancia": dist,
             "conectado": True,
-            "mensaje": f"Tapa abierta o sin muestra ({dist_str}). Cierre la tapa para continuar.",
+            "mensaje": f"Tapa abierta ({dist_str}). Cierre la tapa para continuar.",
         }
 
     def obtener_peso(self) -> dict:
@@ -62,13 +62,6 @@ class ArduinoService:
             "peso": peso_r,
             "conectado": True,
             "mensaje": f"{peso_r} g",
-        }
-
-    def tarar_bascula(self) -> dict:
-        ok = arduino_serial.enviar_comando("TARE")
-        return {
-            "ok": ok,
-            "mensaje": "Tara enviada. La báscula se está calibrando." if ok else "No se pudo enviar tara. Verifique la conexión Arduino.",
         }
 
     def iniciar_motor(self) -> dict:
