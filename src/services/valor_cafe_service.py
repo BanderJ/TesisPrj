@@ -1,6 +1,9 @@
 from datetime import date, timedelta
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
+from src.database.bd import Connection
 from src.models.valor_cafe import ValorCafe
 from src.schemas.valor_cafe import (
     CambioDiario,
@@ -10,7 +13,7 @@ from src.schemas.valor_cafe import (
     ValorCafeCrearBloqueResponse,
     ValorCafeCambiosDiariosResponse,
     ValorCafeCrearResponse,
-    ValorCafeEliminarRangoResponse,
+    ValorCafeDesactivarRangoResponse,
     ValorCafeHistorialResponse,
     ValorCafeItem,
     ValorCafeMaximoResponse,
@@ -24,6 +27,7 @@ def _row_to_item(row: dict[str, Any]) -> ValorCafeItem:
         rango=row["rango"],
         precio=float(row["precio"]),
         fecha=row["fecha"],
+        activo=row["activo"],
     )
 
 
@@ -44,17 +48,32 @@ class ValorCafeService:
     def __init__(self) -> None:
         self.model = ValorCafe()
 
+    @contextmanager
+    def _transaccion_precios(self) -> Iterator[Connection]:
+        """Serializa los cambios de rangos para validar y guardar sobre la misma vigencia."""
+        db = Connection()
+        try:
+            self.model.bloquear_para_cambio(db)
+            yield db
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
     def _validar_sin_solapamiento(
-        self, nuevos_rangos: list[str], excluir_rango: str | None = None
+        self, nuevos_rangos: list[str], excluir_rango: str | None = None,
+        db: Connection | None = None,
     ) -> None:
         """Rechaza un rango que se solape con uno vigente hoy o con otro del mismo
-        lote. `obtener_por_factor` elige el mas reciente por fecha cuando dos
+        lote. `obtener_por_factor` elige el mas reciente del dia cuando dos
         rangos cubren el mismo factor de rendimiento, asi que un solapamiento
         deja el precio pagado al caficultor determinado por el orden de
         insercion en vez de por el rango que realmente le corresponde.
         `excluir_rango` permite re-cotizar un rango existente (mismo string)
         sin que se rechace por "solaparse consigo mismo"."""
-        existentes = self.model.obtener_resumen_rangos(date.today())
+        existentes = self.model.obtener_resumen_rangos(date.today(), db=db)
         vigentes = [
             (fila["rango"], _parsear_rango(fila["rango"]))
             for fila in existentes
@@ -72,12 +91,14 @@ class ValorCafeService:
             for rango_previo, parsed_previo in vigentes + acumulados:
                 if _se_superponen(parsed, parsed_previo):
                     raise ValueError(
-                        f"El rango '{rango}' se solapa con el rango '{rango_previo}'."
+                        f"El rango '{rango}' se solapa con el rango '{rango_previo}'. "
+                        "Si quieres reemplazar un rango vigente, desactívalo primero."
                     )
             acumulados.append((rango, parsed))
 
     def _validar_precios_no_decrecientes(
-        self, nuevos: list[tuple[str, float]], excluir_rango: str | None = None
+        self, nuevos: list[tuple[str, float]], excluir_rango: str | None = None,
+        db: Connection | None = None,
     ) -> None:
         """El precio no puede bajar conforme sube el rango de factor de rendimiento:
         un lote con mejor rendimiento nunca debe pagar menos que uno con peor
@@ -85,7 +106,7 @@ class ValorCafeService:
         garantiza que cada rango es unico y sin ambiguedad), y compara la tabla
         de precios vigente hoy con los nuevos ya aplicados, ordenada por el
         limite inferior de cada rango."""
-        existentes = self.model.obtener_resumen_rangos(date.today())
+        existentes = self.model.obtener_resumen_rangos(date.today(), db=db)
         tabla: dict[str, tuple[tuple[float, float], float]] = {
             fila["rango"]: (_parsear_rango(fila["rango"]), float(fila["precio"]))
             for fila in existentes
@@ -163,9 +184,10 @@ class ValorCafeService:
         )
 
     def crear_precios_bloque(self, data: ValorCafeCrearBloqueRequest) -> ValorCafeCrearBloqueResponse:
-        self._validar_sin_solapamiento([item.rango for item in data.precios])
-        self._validar_precios_no_decrecientes([(item.rango, item.precio) for item in data.precios])
-        filas = self.model.crear_bloque([(item.rango, item.precio) for item in data.precios])
+        with self._transaccion_precios() as db:
+            self._validar_sin_solapamiento([item.rango for item in data.precios], db=db)
+            self._validar_precios_no_decrecientes([(item.rango, item.precio) for item in data.precios], db=db)
+            filas = self.model.crear_bloque([(item.rango, item.precio) for item in data.precios], db=db)
         items = [
             ValorCafeCrearResponse(
                 id=str(fila["id"]),
@@ -183,9 +205,13 @@ class ValorCafeService:
         Los registros previos son históricos (las evaluaciones completadas los referencian)
         y permiten ver la variación del precio durante el día. Las consultas de precio
         vigente siempre toman el registro más reciente por fecha."""
-        self._validar_sin_solapamiento([rango], excluir_rango=rango)
-        self._validar_precios_no_decrecientes([(rango, precio)], excluir_rango=rango)
-        fila = self.model.crear(rango, precio)
+        with self._transaccion_precios() as db:
+            activos = self.model.obtener_resumen_rangos(date.today(), db=db)
+            if not any(item["rango"] == rango for item in activos):
+                raise ValueError("El rango ya no está activo hoy. Actualiza la lista de rangos antes de editar.")
+            self._validar_sin_solapamiento([rango], excluir_rango=rango, db=db)
+            self._validar_precios_no_decrecientes([(rango, precio)], excluir_rango=rango, db=db)
+            fila = self.model.crear(rango, precio, db=db)
         return ValorCafeActualizarPrecioResponse(
             id=str(fila["id"]),
             rango=fila["rango"],
@@ -193,7 +219,8 @@ class ValorCafeService:
             fecha=fila["fecha"],
         )
 
-    def eliminar_rango_hoy(self, rango: str) -> ValorCafeEliminarRangoResponse:
-        """Elimina todos los registros del rango en el día actual."""
-        eliminados = self.model.eliminar_por_rango_fecha(rango, date.today())
-        return ValorCafeEliminarRangoResponse(eliminados=eliminados, rango=rango)
+    def desactivar_rango_hoy(self, rango: str) -> ValorCafeDesactivarRangoResponse:
+        """Desactiva el rango del día sin modificar precios, pagos ni evaluaciones previas."""
+        with self._transaccion_precios() as db:
+            desactivados = self.model.desactivar_por_rango_fecha(rango, date.today(), db=db)
+        return ValorCafeDesactivarRangoResponse(desactivados=desactivados, rango=rango)

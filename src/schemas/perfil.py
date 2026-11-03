@@ -18,6 +18,10 @@ def _telefono_valido(v: str | None) -> str | None:
 Telefono = Annotated[str | None, AfterValidator(_telefono_valido)]
 
 
+class NombreUsuarioGenerado(BaseModel):
+    usuario: str = Field(..., max_length=30)
+
+
 class ActualizarDatosPersonales(BaseModel):
     nombre: str = Field(..., min_length=1, max_length=50)
     ape_paterno: str = Field(..., min_length=1, max_length=30)

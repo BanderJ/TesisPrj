@@ -6,13 +6,10 @@
 body {
     margin: 0;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    background-color: var(--background);
-    background-image: linear-gradient(color-mix(in oklab, var(--background) 84%, transparent 16%), color-mix(in oklab, var(--background) 90%, transparent 10%)), url('/resources/fondo_temp.jpg');
-    background-position: center top;
-    background-repeat: no-repeat;
-    background-size: cover;
+    background-color: var(--canvas);
     color: var(--foreground);
     font-family: var(--font-sans);
     font-size: 14px;
@@ -22,6 +19,41 @@ body {
 
 body::before {
     display: none;
+}
+
+/* Superficies del navegador: selección, scrollbar, foco y controles nativos
+   toman la paleta del sistema en lugar de los colores por defecto. */
+::selection {
+    background: color-mix(in oklab, var(--primary) 26%, transparent 74%);
+    color: var(--foreground);
+}
+
+html {
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent 55%) transparent;
+    accent-color: var(--primary);
+}
+
+:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+/* Cifras alineadas en columnas y campos numéricos */
+table,
+input,
+output {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Movimiento reducido: se quitan desplazamientos y escalas; los indicadores
+   de carga y de "en vivo" se mantienen porque comunican estado. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 /* Utilidades tipograficas globales */
@@ -37,7 +69,7 @@ body::before {
     font-size: 24px !important;
 }
 
-/* Header */
+/* Header: barra verde bosque con texto crema (identidad de la cooperativa) */
 .header-glass {
     position: fixed;
     top: 0;
@@ -47,15 +79,9 @@ body::before {
     height: 56px;
     display: flex;
     align-items: center;
-    background: var(--card);
-    backdrop-filter: none;
-    border-bottom: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
-}
-/* box-shadow: 0 10px 28px color-mix(in oklab, var(--secondary) 24%, transparent 76%); */
-
-.dark .header-glass {
-    background: var(--card);
-    border-bottom-color: color-mix(in oklab, var(--primary) 36%, var(--border) 64%);
+    background: var(--shell);
+    color: var(--shell-foreground);
+    border-bottom: 1px solid color-mix(in oklab, var(--shell) 70%, black 30%);
 }
 
 .header-container {
@@ -76,20 +102,15 @@ body::before {
     display: flex;
     align-items: center;
     gap: 10px;
-    color: var(--foreground);
+    color: var(--shell-foreground);
     text-decoration: none;
-    transition: opacity 0.2s ease;
+    border-radius: 8px;
     cursor: pointer;
 }
 
-.brand-link:hover {
-    opacity: 0.9;
-}
-
 .brand-mark {
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
+    width: 30px;
+    height: 30px;
 }
 
 .brand-copy {
@@ -99,15 +120,15 @@ body::before {
 }
 
 .brand-name {
-    font-family: var(--font-serif);
     font-size: 17px;
     font-weight: 700;
-    color: var(--foreground);
+    letter-spacing: -0.01em;
+    color: var(--shell-foreground);
 }
 
 .brand-tag {
     font-size: 12px;
-    color: var(--muted-foreground);
+    color: var(--shell-muted);
     margin-top: 2px;
 }
 
@@ -115,33 +136,35 @@ body::before {
     display: flex;
     justify-content: center;
     justify-self: center;
-    gap: 10px;
+    gap: 4px;
     flex-wrap: wrap;
 }
 
 .nav-link {
     text-decoration: none;
-    color: var(--foreground);
-    padding: 6px 11px;
-    border-radius: 999px;
-    border: 1px solid transparent;
+    color: var(--shell-muted);
+    padding: 8px 12px;
+    border-radius: 8px;
     font-size: 14px;
     font-weight: 500;
     line-height: 1;
-    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    transition: color var(--dur-fast) ease, background-color var(--dur-fast) ease;
     white-space: nowrap;
 }
 
 .nav-link:hover {
-    color: var(--primary);
-    border-color: color-mix(in oklab, var(--primary) 40%, transparent 60%);
-    background: color-mix(in oklab, var(--primary) 14%, transparent 86%);
+    color: var(--shell-foreground);
+    background: color-mix(in oklab, var(--shell-foreground) 10%, transparent 90%);
 }
 
 .nav-link.active {
-    color: var(--primary-foreground);
-    background: color-mix(in oklab, var(--primary) 88%, white 12%);
-    border-color: transparent;
+    color: var(--shell);
+    background: var(--shell-foreground);
+    font-weight: 600;
+}
+
+.header-glass :focus-visible {
+    outline-color: var(--shell-foreground);
 }
 
 .header-right {
@@ -165,7 +188,7 @@ body::before {
     max-width: 220px;
     font-size: 15px;
     font-weight: 700;
-    color: var(--foreground);
+    color: var(--shell-foreground);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -175,7 +198,7 @@ body::before {
     margin: 0;
     max-width: 220px;
     font-size: 15px;
-    color: var(--muted-foreground);
+    color: var(--shell-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -190,8 +213,8 @@ body::before {
 /* Main */
 main {
     flex: 1 0 auto;
-    margin-top: 66px;
-    padding: 10px 0 8px;
+    margin-top: 56px;
+    padding: 20px 0 28px;
     min-height: auto;
 }
 
@@ -199,30 +222,33 @@ main {
     max-width: none;
     width: 100%;
     margin: 0 auto;
-    padding: 0 clamp(10px, 1vw, 18px);
+    padding: 0 clamp(12px, 1.6vw, 28px);
 }
 
 /* Avatar and controls */
 .avatar {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
-    background-color: var(--secondary);
-    color: var(--secondary-foreground);
+    background-color: var(--accent);
+    color: var(--accent-foreground);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     cursor: pointer;
-    border: 1px solid color-mix(in oklab, var(--primary) 52%, transparent 48%);
+    border: 2px solid color-mix(in oklab, var(--shell-foreground) 35%, transparent 65%);
+    transition: border-color var(--dur-fast) ease;
 }
-    /* box-shadow: var(--shadow-sm); */
-    /* transition: box-shadow 0.18s ease; */
+
+.avatar:hover {
+    border-color: var(--shell-foreground);
+}
 
 .dark-mode-btn {
-    background-color: color-mix(in oklab, var(--muted) 60%, var(--card) 40%);
-    border: 1px solid var(--border);
+    background-color: color-mix(in oklab, var(--shell-foreground) 8%, transparent 92%);
+    border: 1px solid color-mix(in oklab, var(--shell-foreground) 18%, transparent 82%);
     border-radius: 50%;
     cursor: pointer;
     display: flex;
@@ -230,23 +256,17 @@ main {
     justify-content: center;
     width: 34px;
     height: 34px;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 
 .dark-mode-btn:hover {
-    background-color: color-mix(in oklab, var(--primary) 18%, var(--card) 82%);
-    border-color: color-mix(in oklab, var(--primary) 50%, var(--border) 50%);
+    background-color: color-mix(in oklab, var(--shell-foreground) 16%, transparent 84%);
+    border-color: color-mix(in oklab, var(--shell-foreground) 32%, transparent 68%);
 }
 
-/* En modo oscuro: fondo notorio con borde brillante */
-.dark .dark-mode-btn {
-    background-color: oklch(0.42 0.04 270);
-    border-color: oklch(0.55 0.06 270);
-}
-
-.dark .dark-mode-btn:hover {
-    background-color: oklch(0.52 0.06 270);
-    border-color: var(--primary);
+/* Los iconos son SVG negros: en la barra verde se muestran claros */
+.dark-mode-btn img {
+    filter: invert(1) brightness(0.96);
 }
 
 /* Dropdown */
@@ -254,17 +274,20 @@ main {
     position: absolute;
     top: calc(100% + 12px);
     right: 0;
-    background-color: color-mix(in oklab, var(--card) 94%, transparent 6%);
+    background-color: var(--card);
     border: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
     border-radius: 14px;
+    color: var(--foreground);
     min-width: 280px;
     max-width: min(92vw, 380px);
     z-index: 50;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-8px) scale(0.98);
+    transform: translateY(-6px) scale(0.98);
     transform-origin: top right;
-    transition: all 0.25s ease;
+    transition: opacity var(--dur-fast) var(--ease-out),
+                transform var(--dur-fast) var(--ease-out),
+                visibility 0s linear var(--dur-fast);
     overflow: hidden;
 }
 
@@ -275,7 +298,7 @@ main {
     right: 18px;
     width: 12px;
     height: 12px;
-    background-color: color-mix(in oklab, var(--card) 94%, transparent 6%);
+    background-color: var(--card);
     border-left: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
     border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
     transform: rotate(45deg);
@@ -285,6 +308,7 @@ main {
     opacity: 1;
     visibility: visible;
     transform: translateY(0) scale(1);
+    transition-delay: 0s;
 }
 
 .dropdown-user-info {
@@ -318,18 +342,23 @@ main {
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: all 0.2s ease;
     border: none;
     background: none;
     width: 100%;
     text-align: left;
     font-size: 14px;
     font-weight: 500;
+    text-decoration: none;
+    transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease;
 }
 
 .dropdown-item:hover {
     background-color: color-mix(in oklab, var(--muted) 70%, transparent 30%);
-    color: var(--destructive);
+}
+
+/* Solo la acción destructiva (cerrar sesión) se pinta en rojo */
+.dropdown-item--danger:hover {
+    color: var(--danger);
 }
 
 /* ── Modal Términos y condiciones ────────────────────────────────── */
@@ -357,7 +386,18 @@ main {
     padding: 26px 26px 22px;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
     opacity: 0;
-    transform: scale(0.92) translateY(14px);
+    transform: scale(0.96) translateY(8px);
+    transition: transform var(--dur-base) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+
+/* Mismo patrón que CoffeeModal: main.js alterna .is-visible / .is-closing */
+.tc-overlay.is-visible .tc-box {
+    opacity: 1;
+    transform: none;
+}
+
+.tc-overlay.is-closing .tc-box {
+    transition-duration: 150ms;
 }
 
 .tc-close {
@@ -435,10 +475,162 @@ main {
     height: 40px;
 }
 
+/* ── CoffeeModal: notificaciones y confirmaciones globales (main.js) ──
+   main.js fija data-type en el overlay y alterna .is-visible; el tono de
+   cada tipo sale de los tokens de estado. */
+.cm-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgb(0 0 0 / 0.52);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    --cm-tone: var(--info);
+}
+
+.cm-overlay[data-type="success"] { --cm-tone: var(--success); }
+.cm-overlay[data-type="error"]   { --cm-tone: var(--danger); }
+.cm-overlay[data-type="warning"] { --cm-tone: var(--warning); }
+.cm-overlay[data-type="info"]    { --cm-tone: var(--info); }
+
+.cm-box {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    padding: 2.25rem 2rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 24px 64px rgb(0 0 0 / 0.30);
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+    transition: transform var(--dur-base) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+
+.cm-overlay.is-visible .cm-box {
+    opacity: 1;
+    transform: none;
+}
+
+/* La salida es más rápida que la entrada */
+.cm-overlay.is-closing .cm-box {
+    transition-duration: 150ms;
+}
+
+.cm-close {
+    position: absolute;
+    top: 0.8rem;
+    right: 0.8rem;
+    width: 1.8rem;
+    height: 1.8rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    border-radius: 0.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+
+.cm-close:hover {
+    background: color-mix(in oklab, var(--muted) 60%, transparent 40%);
+    color: var(--foreground);
+}
+
+.cm-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+    flex-shrink: 0;
+    background: color-mix(in oklab, var(--cm-tone) 15%, transparent 85%);
+    color: var(--cm-tone);
+}
+
+.cm-icon svg {
+    display: block;
+    flex-shrink: 0;
+}
+
+.cm-title {
+    margin: 0 0 0.45rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--foreground);
+    line-height: 1.3;
+    text-wrap: balance;
+}
+
+.cm-msg {
+    margin: 0 0 1.5rem;
+    font-size: 0.94rem;
+    color: var(--muted-foreground);
+    line-height: 1.55;
+    text-wrap: pretty;
+}
+
+.cm-btns {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.cm-btns .btn {
+    flex: 1;
+    height: 42px;
+}
+
+.cm-ok {
+    border-color: transparent;
+    background: var(--cm-tone);
+    color: #fff;
+}
+
+/* En oscuro los tonos son claros: texto oscuro para mantener contraste */
+.dark .cm-ok {
+    color: var(--background);
+}
+
+.cm-ok:hover:not(:disabled) {
+    filter: brightness(0.9);
+}
+
+.cm-progress-track {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 999px;
+    margin-top: 1.25rem;
+    overflow: hidden;
+}
+
+.cm-progress {
+    height: 100%;
+    border-radius: 999px;
+    transform-origin: left;
+    background: var(--cm-tone);
+}
+
+@keyframes cm-drain {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+}
+
 /* Footer */
 .footer-glass {
-    background: var(--card);
-    border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent 20%);
+    background: transparent;
+    border-top: 1px solid var(--border);
 }
 
 .footer-inner {
@@ -550,17 +742,24 @@ main {
 .hero-title,
 .section-title {
     font-family: var(--font-serif);
-    margin: 8px 0 10px;
-    line-height: 1.08;
+    margin: 6px 0 8px;
+    line-height: 1.1;
     font-weight: 700;
-}
-
-.hero-title {
-    font-size: clamp(1.15rem, 1.4vw, 1.45rem);
+    text-wrap: balance;
 }
 
 .section-title {
-    font-size: clamp(1rem, 1.15vw, 1.2rem);
+    margin: 8px 0 10px;
+    line-height: 1.08;
+}
+
+.hero-title {
+    font-size: 1.6rem;
+    letter-spacing: -0.02em;
+}
+
+.section-title {
+    font-size: 1.125rem;
 }
 
 .hero-description,
@@ -699,12 +898,23 @@ body.dark .password-toggle-icon {
     cursor: pointer;
     border: 1px solid;
     text-decoration: none;
-    transition: filter 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: filter var(--dur-fast) ease, color var(--dur-fast) ease,
+                background-color var(--dur-fast) ease, border-color var(--dur-fast) ease,
+                box-shadow var(--dur-fast) ease, transform var(--dur-press) var(--ease-out);
 }
 
+/* El anillo aparece con teclado, no al hacer clic con el mouse */
 .btn:focus {
     outline: none;
+}
+
+.btn:focus-visible {
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%);
+}
+
+/* Respuesta inmediata al presionar */
+.btn:active:not(:disabled) {
+    transform: scale(0.97);
 }
 
 .btn:disabled {
@@ -722,10 +932,6 @@ body.dark .password-toggle-icon {
     filter: brightness(0.85) saturate(1.1);
 }
 
-.btn-primary:focus {
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%);
-}
-
 .btn-secondary {
     border-color: color-mix(in oklab, var(--border) 84%, transparent 16%);
     background: color-mix(in oklab, var(--card) 90%, transparent 10%);
@@ -738,38 +944,25 @@ body.dark .password-toggle-icon {
     background: color-mix(in oklab, var(--primary) 8%, transparent 92%);
 }
 
-.btn-secondary:focus {
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 24%, transparent 76%);
-}
 /* Generic card surface */
 .card {
-    background-color: color-mix(in oklab, var(--card) 98%, transparent 2%);
-    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
-    border-radius: 14px;
-    padding: 16px;
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
 }
 
-/* Page hero header */
+/* Encabezado de página: título directo sobre el lienzo, sin tarjeta */
 .page-hero {
-    border-radius: 16px;
-    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
-    background: var(--card);
-    padding: clamp(14px, 1.8vw, 22px);
+    padding: 2px 2px 18px;
 }
 
-.hero-title {
-    margin: 6px 0 8px;
-    font-family: var(--font-serif);
-    font-size: clamp(1.15rem, 1.4vw, 1.45rem);
-    line-height: 1.1;
-    font-weight: 700;
+.page-hero .hero-title {
+    margin-top: 0;
 }
 
-.hero-description {
-    margin: 0;
-    color: var(--muted-foreground);
-    font-size: 14px;
-    line-height: 1.5;
+.page-hero .hero-description {
+    max-width: 75ch;
 }
 
 /* Responsive */
@@ -799,14 +992,14 @@ body.dark .password-toggle-icon {
     }
 
     main {
-        margin-top: 94px;
+        margin-top: 84px;
     }
 }
 
 /* Tablet: 768px and below */
 @media (max-width: 768px) {
     main {
-        margin-top: 90px;
+        margin-top: 96px;
         padding: 12px 16px;
     }
 
@@ -866,53 +1059,6 @@ body.dark .password-toggle-icon {
 
     .header-container {
         gap: 8px;
-    }
-}
-
-/* Cooperativa Header Banner */
-.cooperativa-header {
-    margin-top: 56px;
-    position: relative;
-}
-
-.cooperativa-banner {
-    height: 450px;
-    background-size: cover;
-    background-position: center;
-}
-
-.cooperativa-info {
-    padding: 1.5rem 1rem;
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-}
-
-.cooperativa-nombre {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.3rem;
-    font-weight: 700;
-    font-family: var(--font-serif);
-    color: var(--foreground);
-}
-
-.cooperativa-descripcion {
-    margin: 0;
-    font-size: 0.9rem;
-    color: var(--muted-foreground);
-    max-width: 700px;
-}
-
-@media (max-width: 640px) {
-    .cooperativa-banner {
-        height: 280px;
-    }
-
-    .cooperativa-info {
-        padding: 1rem;
-    }
-
-    .cooperativa-nombre {
-        font-size: 1.1rem;
     }
 }
 
@@ -1079,16 +1225,12 @@ body.dark .password-toggle-icon {
 }
 
 body.dark {
-    background-color: var(--background);
-    background-image: linear-gradient(
-        color-mix(in oklab, var(--background) 85%, black 15%),
-        color-mix(in oklab, var(--background) 92%, black 8%)
-    ), url('/resources/fondo_temp.jpg');
+    background-color: var(--canvas);
     color: var(--foreground);
 }
 
 /* ─────────────────────────────────────────────────────────────
-   FEED DE CÁMARA — compartido entre /monitoreo y /test
+   FEED DE CÁMARA — compartido entre /monitoreo y /prueba
    El contenedor debe darle una altura acotada a .feed-card
    (flex column); .feed-frame ocupa el espacio restante.
    ───────────────────────────────────────────────────────────── */
@@ -1115,9 +1257,9 @@ body.dark {
     align-items: center;
     gap: 7px;
     border-radius: 999px;
-    border: 1px solid color-mix(in oklab, var(--destructive) 42%, transparent 58%);
-    background: color-mix(in oklab, var(--destructive) 14%, transparent 86%);
-    color: var(--destructive);
+    border: 1px solid color-mix(in oklab, var(--danger) 42%, transparent 58%);
+    background: color-mix(in oklab, var(--danger) 12%, transparent 88%);
+    color: var(--danger-strong);
     padding: 5px 12px;
     font-size: 13px;
     font-weight: 700;
@@ -1127,7 +1269,7 @@ body.dark {
     width: 8px;
     height: 8px;
     border-radius: 999px;
-    background: var(--destructive);
+    background: var(--danger);
     animation: liveBlink 1s linear infinite;
 }
 
@@ -1180,7 +1322,7 @@ body.dark {
     border: 3px solid color-mix(in oklab, var(--border) 60%, transparent 40%);
     border-top-color: var(--primary);
     border-radius: 50%;
-    animation: camSpin 0.75s linear infinite;
+    animation: spin 0.75s linear infinite;
 }
 
 .camera-error-icon {
@@ -1202,6 +1344,7 @@ body.dark {
     50%      { opacity: 0.35; }
 }
 
-@keyframes camSpin {
+/* Giro de spinners, compartido por todas las páginas */
+@keyframes spin {
     to { transform: rotate(360deg); }
 }

@@ -54,8 +54,6 @@
 		let frameTimeout   = null;   // reintento del bucle de frames — debe poder cancelarse desde detenerStream()
 		let streamActivo   = false;
 		let _ultimoBlobUrl = null;
-		let _fpsCount = 0;
-		let _fpsWindowStart = 0;
 
 		function mostrarErrorCamara(msg) {
 			clearTimeout(connectTimeout);
@@ -90,19 +88,11 @@
 						clearTimeout(connectTimeout);
 						cameraLoadingEl.style.display = 'none';
 						cameraStreamEl.style.display  = 'block';
-						if (fpsBadgeEl) { fpsBadgeEl.style.display = 'block'; _fpsWindowStart = performance.now(); _fpsCount = 0; }
-					}
-					_fpsCount++;
-					const _now = performance.now();
-					if (_now - _fpsWindowStart >= 1000) {
-						const fps = Math.round(_fpsCount * 1000 / (_now - _fpsWindowStart));
-						if (fpsBadgeEl) fpsBadgeEl.textContent = fps + ' FPS';
-						_fpsCount = 0;
-						_fpsWindowStart = _now;
+						if (fpsBadgeEl) fpsBadgeEl.style.display = 'block';
 					}
 					frameTimeout = setTimeout(refrescarFrame, 33);
 				} catch {
-					if (isFirstFrame) { clearTimeout(connectTimeout); mostrarErrorCamara('No se pudo conectar con el stream de video'); }
+					if (isFirstFrame) { clearTimeout(connectTimeout); mostrarErrorCamara('No se pudo conectar con el video.'); }
 				}
 			};
 
@@ -131,15 +121,23 @@
 				const res = await fetch('/video/status');
 				if (!res.ok) throw new Error();
 				const { activo, evaluacion_id: loteDe } = await res.json();
-				// Solo se adopta el lote en curso si es el de ESTA evaluación (caso
-				// normal: recarga de la pestaña a mitad de monitoreo). Un lote que
-				// quedó activo de otra evaluación se cierra primero: si no, su
-				// conteo y sus evidencias se mezclarían con las de esta.
-				if (activo && loteDe && loteDe !== EVALUACION_ID) {
-					appendLog('Había un monitoreo de otra evaluación en curso. Se cerró para iniciar este lote.', 'alerta');
-					await fetch('/video/detener', { method: 'POST' }).catch(() => {});
+				if (loteDe && loteDe !== EVALUACION_ID) {
+					const resumen = await fetch(`/evaluacion/${encodeURIComponent(loteDe)}/resumen`)
+						.then(res => res.ok ? res.json() : null)
+						.catch(() => null);
+					const referencia = resumen?.caficultor_nombre && resumen?.fecha
+						? `otra evaluación en monitoreo (${resumen.caficultor_nombre}, ${resumen.fecha})`
+						: 'una evaluación anterior en monitoreo';
+					const aceptar = await CoffeeModal.confirm({
+						title: 'Otra evaluación en monitoreo',
+						message: `Hay ${referencia}. ¿Detenerla para iniciar esta muestra? Su conteo se perderá.`,
+						okText: 'Detener e iniciar esta muestra',
+						cancelText: 'Cancelar',
+					});
+					if (!aceptar) return;
+					await detenerCapturaDeEvaluacion(loteDe, true);
 					await iniciarCaptura();
-				} else if (activo) {
+				} else if (activo && loteDe === EVALUACION_ID) {
 					// YOLO
 					capturandoYOLO        = true;
 					elapsedSeconds        = 0;
@@ -148,11 +146,11 @@
 					iniciarPoll();
 					appendLog('Cámara conectada. Monitoreo en curso.', 'ok');
 				} else {
+					if (activo) await detenerCapturaDeEvaluacion();
 					await iniciarCaptura();
 				}
-			} catch {
-				appendLog('No se pudo verificar el servidor. Reintentando arranque...', 'error');
-				await iniciarCaptura();
+			} catch (err) {
+				appendLog(err.message || 'No se pudo verificar el servidor.', 'error');
 			}
 		})();
 
@@ -265,7 +263,7 @@
 
 		// Objetos que el modelo nunca reconoció como grano (piedra, pajilla, palito):
 		// tracker.py los enmarca en azul sobre el video, el servo los desvía al canal
-		// de defecto y cuentan como materia extraña en el grado. Aquí solo se
+		// de defecto y cuentan como defecto (materia extraña). Aquí solo se
 		// mantiene el contador: el AVISO de cada objeto llega como evento del
 		// backend (con su segundo real y la foto del recorte), no se infiere
 		// restando contadores entre polls.
@@ -339,6 +337,9 @@
 				if (rStatus.ok) {
 					const status = await rStatus.json();
 					actualizarChipsCamara(status);
+					// Velocidad del modelo (promedio del último segundo en el servidor),
+					// no la del refresco de imágenes en el navegador.
+					if (fpsBadgeEl && status.fps != null) fpsBadgeEl.textContent = `${Math.round(status.fps)} FPS`;
 					if (status.camara_desconectada) {
 						_manejarDesconexionCamara(status.error);
 						return;
@@ -501,26 +502,31 @@
 			}
 		}
 
+		async function detenerCapturaDeEvaluacion(evaluacionId = EVALUACION_ID, descartarLote = false) {
+			const res = await fetch('/video/detener', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ evaluacion_id: evaluacionId, descartar_lote: descartarLote }),
+			});
+			if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo detener el monitoreo.'));
+		}
+
 		async function detenerCaptura() {
 			clearInterval(timerInterval);
 			clearInterval(conteoInterval);
-			capturandoYOLO = false;
 			await detenerFaja();
-			try { await fetch('/video/detener', { method: 'POST' }); } catch { /* ignorar */ }
+			await detenerCapturaDeEvaluacion();
+			capturandoYOLO = false;
 			detenerStream();
 		}
 
 		async function generarReporte() {
 			try {
-				appendLog('Generando reporte ...');
+				appendLog('Generando reporte...');
 				const res = await fetch('/video/lote/generar-reporte', { method: 'POST' });
 				if (!res.ok) throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo generar el reporte.'));
 				reporteActual = await res.json();
-				const { grado, total_defectos, apto_specialty } = reporteActual;
-				appendLog(
-					`Reporte: ${grado} | ${total_defectos} defectos equiv. | Specialty: ${apto_specialty ? 'Apto' : 'No apto'}`,
-					'ok',
-				);
+				appendLog(`Reporte: ${reporteActual.total_defectos} defectos equiv.`, 'ok');
 			} catch (err) {
 				appendLog('Error al generar reporte: ' + err.message, 'error');
 			}
@@ -560,7 +566,7 @@
 				: 'Finalizando monitoreo...';
 			finDescripcion.textContent = automatico
 				? 'No se detectaron nuevos granos en los últimos 10 segundos. El sistema detuvo el proceso y está guardando los resultados.'
-				: 'Por favor espera mientras se guardan los datos y se genera el reporte.';
+				: 'Por favor, espera mientras se guardan los datos y se genera el reporte.';
 			[1,2,3].forEach(_pasoPendiente);
 			finSpinner.style.display = 'block';
 			finCheck.style.display   = 'none';
@@ -579,8 +585,6 @@
 
 			document.getElementById('resCode').textContent     = codigo || '—';
 			document.getElementById('resGranos').textContent   = Object.values(conteoActual).reduce((a,b)=>a+b,0);
-			document.getElementById('resGrado').textContent    = reporteActual?.grado || '—';
-			document.getElementById('resSpecialty').textContent= reporteActual?.apto_specialty ? 'Apto ✓' : 'No apto';
 			document.getElementById('resPeso').textContent     = `${Number(pesoGramos).toFixed(2)} g`;
 			// Sin celda de carga no hay lectura: ocultar la fila de báscula
 			document.getElementById('resPesoRow').style.display = pesoGramos > 0 ? '' : 'none';
@@ -592,7 +596,6 @@
 
 		// ── Peso de grano bueno (ingreso manual) + factor de rendimiento ──────
 		let pesoTamizadoMax   = null;
-		let totalDefectosFinal = 0;
 
 		async function mostrarFormPesoBueno() {
 			document.getElementById('finPesoForm').style.display = 'block';
@@ -637,7 +640,7 @@
 				const res = await fetch(`/evaluacion/${EVALUACION_ID}/completar`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ total_defectos: totalDefectosFinal, peso_bueno: peso }),
+					body: JSON.stringify({ peso_bueno: peso }),
 				});
 				if (!res.ok) {
 					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo calcular el rendimiento.'));
@@ -645,7 +648,6 @@
 				const data = await res.json();
 				document.getElementById('resFactor').textContent    = Number(data.factor_rendimiento).toFixed(2);
 				document.getElementById('resPago').textContent      = Number(data.pago).toFixed(2);
-				document.getElementById('resCategoria').textContent = data.categoria || '—';
 				document.getElementById('finRendimiento').style.display = 'block';
 				document.getElementById('finPesoForm').style.display = 'none';
 				finDescripcion.textContent = 'Rendimiento calculado. Revisa el resumen antes de continuar al análisis.';
@@ -706,8 +708,13 @@
 			mostrarOverlay(automatico);
 
 			// Paso 1: detener faja + captura YOLO
-			_pasoOk(1);
-			if (capturandoYOLO) await detenerCaptura();
+			try {
+				if (capturandoYOLO) await detenerCaptura();
+				_pasoOk(1);
+			} catch (err) {
+				errorOverlay(err.message);
+				return;
+			}
 
 			// Paso 2: capturar peso de la celda de carga + generar reporte SCA
 			finDescripcion.textContent = 'Calculando resumen...';
@@ -731,15 +738,13 @@
 			detenerStream();
 
 			// Totales calculados por el backend en /video/lote/conteo — el frontend no
-			// conoce nombres de clases ni decide qué cuenta como defecto.
+			// conoce nombres de clases ni decide qué cuenta como defecto. Solo se usan
+			// para mostrar: el conteo que se guarda lo toma el servidor al finalizar.
 			const _totalDefectoGranos = totalDefectosActual;
-			totalDefectosFinal = _totalDefectoGranos;
 			const _totalGranos = reporteActual?.total_granos_analizados || 0;
 			const stats = {
 				totalGrains:      _totalGranos,
 				totalDefectos:    _totalDefectoGranos,
-				grado:            reporteActual?.grado || 'Sin clasificar',
-				aptEspecialty:    reporteActual?.apto_specialty || false,
 				peso_capturado:   pesoCapturado,
 				elapsedSeconds,
 				incidencias:      [...incidencias],
@@ -751,7 +756,7 @@
 				const res = await fetch(`/evaluacion/${EVALUACION_ID}/finalizar`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ total_defectos: _totalDefectoGranos, total_buenos: _totalGranos - _totalDefectoGranos, incidencias }),
+					body: JSON.stringify({ incidencias }),
 				});
 				if (!res.ok) {
 					throw new Error(await CoffeeHttp.mensajeError(res, 'No se pudo finalizar la evaluación.'));
@@ -759,7 +764,7 @@
 				const { codigo } = await res.json();
 				_pasoOk(3);
 				sessionStorage.removeItem('coffeeren.evaluacion');
-				appendLog(`Evaluacion finalizada. Código: ${codigo}`, 'ok');
+				appendLog(`Evaluación finalizada. Código: ${codigo}`, 'ok');
 				history.replaceState(null, '', '/registro');
 				completarOverlay(codigo, pesoCapturado);
 			} catch (err) {
@@ -804,8 +809,13 @@
 			clearInterval(conteoInterval);
 			await detenerFaja();
 			if (capturandoYOLO) {
+				try {
+					await detenerCapturaDeEvaluacion();
+				} catch (err) {
+					CoffeeModal.error(err.message);
+					return;
+				}
 				capturandoYOLO = false;
-				await fetch('/video/detener', { method: 'POST' }).catch(() => {});
 			}
 			detenerStream();
 			window.location.replace('/registro');

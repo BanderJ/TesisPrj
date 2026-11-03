@@ -2,21 +2,22 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-import psycopg2
-
 from src.database.bd import Connection
 
 
 class ValorCafe:
+    def bloquear_para_cambio(self, db: Connection) -> None:
+        db.ejecutar("LOCK TABLE valor_cafe IN SHARE ROW EXCLUSIVE MODE")
+
     def obtener_historial_dia(self, fecha: date, rango: str | None = None) -> list[dict[str, Any]]:
         db = Connection()
         try:
-            sql = "SELECT id::text, rango, precio, fecha FROM valor_cafe WHERE fecha::date = %s"
+            sql = "SELECT id::text, rango, precio, fecha, activo FROM valor_cafe WHERE fecha::date = %s"
             params: list[Any] = [fecha]
             if rango:
                 sql += " AND rango = %s"
                 params.append(rango)
-            sql += " ORDER BY fecha DESC"
+            sql += " ORDER BY fecha DESC, id DESC"
             return db.obtener(sql, params)
         finally:
             db.close()
@@ -25,9 +26,9 @@ class ValorCafe:
         db = Connection()
         try:
             sql = """
-                SELECT id::text, rango, precio, fecha
+                SELECT id::text, rango, precio, fecha, activo
                 FROM valor_cafe
-                WHERE fecha::date = %s
+                WHERE fecha::date = %s AND activo
                 ORDER BY precio DESC, fecha DESC
                 LIMIT 1
             """
@@ -52,41 +53,29 @@ class ValorCafe:
         finally:
             db.close()
 
-    def obtener_resumen_rangos(self, fecha: date) -> list[dict[str, Any]]:
-        db = Connection()
+    def obtener_resumen_rangos(self, fecha: date, db: Connection | None = None) -> list[dict[str, Any]]:
+        owns_db = db is None
+        db = db or Connection()
         try:
             sql = """
                 SELECT rango, precio, registrado_en
                 FROM (
                     SELECT DISTINCT ON (rango) rango, precio, fecha AS registrado_en
                     FROM valor_cafe
-                    WHERE fecha::date = %s
+                    WHERE fecha::date = %s AND activo
                     ORDER BY rango, fecha DESC, id DESC
                 ) ultimos
                 ORDER BY CAST(SPLIT_PART(rango, '-', 1) AS INTEGER) ASC
             """
             return db.obtener(sql, (fecha,))
         finally:
-            db.close()
-
-    def obtener_mas_reciente(self, db: Connection | None = None) -> dict[str, Any] | None:
-        """Retorna el registro de valor_cafe más reciente por fecha."""
-        owns_db = db is None
-        db = db or Connection()
-        try:
-            sql = """
-                SELECT id::text, rango, precio, fecha
-                FROM valor_cafe
-                ORDER BY fecha DESC
-                LIMIT 1
-            """
-            return db.obtener_uno(sql)
-        finally:
             if owns_db:
                 db.close()
 
-    def obtener_por_factor(self, factor: Decimal, db: Connection | None = None) -> dict[str, Any] | None:
-        """Retorna el precio más reciente cuyo rango contiene el factor de rendimiento.
+    def obtener_por_factor(
+        self, factor: Decimal, fecha: date, db: Connection | None = None
+    ) -> dict[str, Any] | None:
+        """Retorna el precio más reciente del día cuyo rango contiene la parte entera del factor.
         El rango puede ser 'X-Y' (ej: 70-75) o un número simple 'X' (ej: 70)."""
         owns_db = db is None
         db = db or Connection()
@@ -94,37 +83,31 @@ class ValorCafe:
             sql = """
                 SELECT id::text, rango, precio, fecha
                 FROM valor_cafe
-                WHERE CAST(SPLIT_PART(rango, '-', 1) AS numeric) <= %s
-                  AND CAST(COALESCE(NULLIF(SPLIT_PART(rango, '-', 2), ''), SPLIT_PART(rango, '-', 1)) AS numeric) >= %s
-                ORDER BY fecha DESC
+                WHERE fecha::date = %s AND activo
+                  AND CAST(SPLIT_PART(rango, '-', 1) AS numeric) <= FLOOR(%s::numeric)
+                  AND CAST(COALESCE(NULLIF(SPLIT_PART(rango, '-', 2), ''), SPLIT_PART(rango, '-', 1)) AS numeric) >= FLOOR(%s::numeric)
+                ORDER BY fecha DESC, id DESC
                 LIMIT 1
             """
-            return db.obtener_uno(sql, (factor, factor))
+            return db.obtener_uno(sql, (fecha, factor, factor))
         finally:
             if owns_db:
                 db.close()
 
-    def eliminar_por_rango_fecha(
+    def desactivar_por_rango_fecha(
         self, rango: str, fecha: date, db: Connection | None = None
     ) -> int:
-        """Elimina todos los registros de un rango en una fecha. Retorna cantidad eliminada."""
+        """Retira todas las versiones activas de un rango del día, conservando sus referencias."""
         owns_db = db is None
         db = db or Connection()
         try:
             cursor = db.ejecutar(
-                "DELETE FROM valor_cafe WHERE rango = %s AND fecha::date = %s",
+                "UPDATE valor_cafe SET activo = FALSE WHERE rango = %s AND fecha::date = %s AND activo",
                 (rango, fecha),
             )
             if owns_db:
                 db.commit()
             return cursor.rowcount
-        except psycopg2.errors.ForeignKeyViolation as exc:
-            if owns_db:
-                db.rollback()
-            raise ValueError(
-                "No se puede eliminar este rango: una o más evaluaciones ya fueron pagadas "
-                "con uno de sus precios. Registra un precio nuevo en su lugar."
-            ) from exc
         except Exception:
             if owns_db:
                 db.rollback()
@@ -155,25 +138,31 @@ class ValorCafe:
             if owns_db:
                 db.close()
 
-    def crear_bloque(self, precios: list[tuple[str, float]]) -> list[dict[str, Any]]:
+    def crear_bloque(
+        self, precios: list[tuple[str, float]], db: Connection | None = None
+    ) -> list[dict[str, Any]]:
         """Inserta multiples registros de valor_cafe en una sola operacion."""
-        db = Connection()
+        owns_db = db is None
+        db = db or Connection()
         try:
             placeholders = ", ".join(["(%s, %s, NOW())"] * len(precios))
             params: list[Any] = []
             for rango, precio in precios:
                 params.extend([rango, precio])
 
-            sql = f"""
+            sql = """
                 INSERT INTO valor_cafe (rango, precio, fecha)
-                VALUES {placeholders}
+                VALUES """ + placeholders + """
                 RETURNING id::text, rango, precio, fecha
             """
             filas = db.obtener(sql, params)
-            db.commit()
+            if owns_db:
+                db.commit()
             return filas
         except Exception:
-            db.rollback()
+            if owns_db:
+                db.rollback()
             raise
         finally:
-            db.close()
+            if owns_db:
+                db.close()

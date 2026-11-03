@@ -1,4 +1,6 @@
+from datetime import date
 from decimal import Decimal, ROUND_DOWN
+from typing import Any
 
 from src.database.bd import Connection
 from src.models.caficultor import Caficultor
@@ -6,6 +8,8 @@ from src.models.evaluacion import Evaluacion
 from src.models.evento_monitoreo import EventoMonitoreo
 from src.models.tipo_grano import TipoGrano
 from src.models.valor_cafe import ValorCafe
+from src.services.bono_socio_service import BonoSocioService
+from src.services.tipo_caficultor_service import TipoCaficultorService
 from src.schemas.evaluacion import (
     CompletarEvaluacionRequest,
     CompletarEvaluacionResponse,
@@ -14,7 +18,9 @@ from src.schemas.evaluacion import (
     RegistrarEvaluacionRequest,
     RegistrarEvaluacionResponse,
     ResumenEvaluacionResponse,
+    TARA_POR_SACO_KG,
 )
+from src.utilities.errores import NoEncontradoError
 from src.utilities.eventos_monitoreo import registro_eventos
 
 
@@ -25,6 +31,7 @@ class EvaluacionService:
         self.caficultor_model = Caficultor()
         self.tipo_grano_model = TipoGrano()
         self.valor_cafe_model = ValorCafe()
+        self.bono_socio_service = BonoSocioService()
 
     def registrar_evaluacion(
         self,
@@ -50,12 +57,14 @@ class EvaluacionService:
             if not tipo_grano:
                 raise ValueError("El tipo de grano seleccionado no existe.")
 
-            # Sin precios de café el factor de rendimiento no puede calcularse al
-            # finalizar el monitoreo — bloquear aquí, antes de iniciar la fase.
-            if not self.valor_cafe_model.obtener_mas_reciente(db):
+            # El pago se calcula con los precios del día: sin precios de hoy el
+            # factor de rendimiento no tendría precio al finalizar el monitoreo.
+            # Se bloquea aquí, antes de crear la evaluación.
+            if not self.valor_cafe_model.obtener_resumen_rangos(date.today(), db):
                 raise ValueError(
-                    "No hay rangos de precios de café registrados hoy. "
-                    "Registra los precios en 'Valor de café' antes de iniciar un monitoreo."
+                    "No hay precios de café registrados hoy. Sin ellos no se puede registrar "
+                    "la muestra ni iniciar el monitoreo. Comunique al administrador o gerente "
+                    "que registre los precios del día para continuar."
                 )
 
             nombre_completo = " ".join(
@@ -86,7 +95,7 @@ class EvaluacionService:
 
             return RegistrarEvaluacionResponse(
                 registrado=True,
-                mensaje="Evaluacion registrada correctamente.",
+                mensaje="Evaluación registrada correctamente.",
                 data=EvaluacionData(
                     evaluacion_id=fila["id"],
                     codigo="",
@@ -109,12 +118,17 @@ class EvaluacionService:
         finally:
             db.close()
 
+    def _armar_resumen(self, fila: dict[str, Any]) -> ResumenEvaluacionResponse:
+        fila["eventos"] = self.evento_model.listar_por_evaluacion(fila["evaluacion_id"])
+        if fila.get("pago") is not None and fila.get("bono_socio") is not None:
+            fila["pago_base"] = Decimal(str(fila["pago"])) - Decimal(str(fila["bono_socio"]))
+        return ResumenEvaluacionResponse(**fila)
+
     def obtener_resumen_evaluacion(self, evaluacion_id: str) -> ResumenEvaluacionResponse:
         fila = self.evaluacion_model.obtener_resumen(evaluacion_id=evaluacion_id)
         if not fila:
-            raise ValueError("No se encontró la evaluación.")
-        fila["eventos"] = self.evento_model.listar_por_evaluacion(fila["evaluacion_id"])
-        return ResumenEvaluacionResponse(**fila)
+            raise NoEncontradoError("No se encontró la evaluación.")
+        return self._armar_resumen(fila)
 
     def completar_evaluacion(
         self,
@@ -125,7 +139,11 @@ class EvaluacionService:
         try:
             eva = self.evaluacion_model.obtener_para_completar(evaluacion_id, db)
             if not eva:
-                raise ValueError("No se encontró la evaluación.")
+                raise NoEncontradoError("No se encontró la evaluación.")
+            # Una evaluación ya completada no se recalcula: su pago y su beneficio de
+            # socio quedan fijos aunque cambien los precios o el monto del beneficio.
+            if eva.get("factor_rendimiento") is not None:
+                raise ValueError("La evaluación ya fue completada; su pago no se puede recalcular.")
 
             grano = self.tipo_grano_model.obtener_por_id(int(eva["tipo_grano_id"]), db)
             if not grano:
@@ -133,18 +151,19 @@ class EvaluacionService:
 
             peso_muestra   = Decimal(str(eva["peso_muestra"]))
             peso_trillado  = Decimal(str(eva["peso_trillado"]))
+            peso_tamizado  = Decimal(str(eva["peso_tamizado"]))
             peso_bruto     = Decimal(str(eva["peso_bruto"]))
             num_sacos      = int(eva["num_sacos"])
             peso_qq_ref    = Decimal(str(grano["peso_qq"]))
-            tara_saco      = Decimal("0.25")
+            tara_saco      = TARA_POR_SACO_KG
             humedad        = Decimal(str(eva["humedad"]))
 
             divisor = peso_muestra / 100
 
             peso_bueno = Decimal(payload.peso_bueno).quantize(Decimal("0.01"))
-            if peso_bueno > peso_trillado:
+            if peso_bueno > peso_tamizado:
                 raise ValueError(
-                    f"El peso de grano bueno ({payload.peso_bueno} g) no puede superar el peso trillado ({peso_trillado} g)."
+                    f"El peso de grano bueno ({payload.peso_bueno} g) no puede superar el peso tamizado ({peso_tamizado} g)."
                 )
 
             peso_cascara       = (peso_muestra - peso_trillado).quantize(Decimal("0.01"))
@@ -152,16 +171,18 @@ class EvaluacionService:
             factor_rendimiento = (peso_bueno / divisor).quantize(Decimal("0.01"))
             peso_malo          = (peso_trillado - peso_bueno).quantize(Decimal("0.01"))
 
-            # El precio se elige según el rango que contiene el factor de rendimiento
-            valor_cafe = self.valor_cafe_model.obtener_por_factor(factor_rendimiento, db)
+            # El precio se elige entre los de hoy, según el rango que contiene el
+            # factor de rendimiento.
+            valor_cafe = self.valor_cafe_model.obtener_por_factor(factor_rendimiento, date.today(), db)
             if not valor_cafe:
                 raise ValueError(
-                    f"No hay precio de café registrado para el rango del factor de rendimiento "
+                    f"No hay precio de café registrado hoy para el rango del factor de rendimiento "
                     f"({factor_rendimiento}). Registra ese rango en 'Valor de café'."
                 )
             precio = Decimal(str(valor_cafe["precio"]))
-            tara_total         = int(round(num_sacos * float(tara_saco)))
-            peso_neto          = (peso_bruto - Decimal(tara_total)).quantize(Decimal("0.01"))
+            # Tara sin redondear: 2 sacos restan 0.50 kg, 10 sacos restan 2.50 kg.
+            tara_total         = (num_sacos * tara_saco).quantize(Decimal("0.01"))
+            peso_neto          = (peso_bruto - tara_total).quantize(Decimal("0.01"))
 
             if humedad > Decimal("12.00"):
                 humedad_exceso    = humedad - Decimal("12.00")
@@ -171,12 +192,14 @@ class EvaluacionService:
 
             ### peso por quintal se redondea hacia abajo a 2 decimales para evitar pagar de más al caficultor
             peso_por_qq = ((peso_neto - peso_neto_humedad) / peso_qq_ref).quantize(Decimal("0.01"), rounding=ROUND_DOWN)
-            pago        = (peso_por_qq * precio).quantize(Decimal("0.01"))
+            pago_base   = (peso_por_qq * precio).quantize(Decimal("0.01"))
 
-            categoria = self.evaluacion_model.obtener_categoria_por_defectos(
-                payload.total_defectos, db
-            )
-            categoria_id = int(categoria["id"]) if categoria else None
+            # Beneficio de socio: monto fijo por entrega, vigente al completar. Se usa
+            # el tipo de caficultor que la evaluación registró al crearse y el monto
+            # queda guardado en la fila, así un cambio posterior no altera el historial.
+            es_socio   = int(eva["tipo_caficultor_id"]) == TipoCaficultorService.TIPO_SOCIO_ID
+            bono_socio = self.bono_socio_service.monto_vigente(db) if es_socio else Decimal("0.00")
+            pago       = pago_base + bono_socio
 
             fila = self.evaluacion_model.completar(
                 evaluacion_id=evaluacion_id,
@@ -192,8 +215,7 @@ class EvaluacionService:
                 peso_neto=peso_neto,
                 peso_por_qq=peso_por_qq,
                 pago=pago,
-                categoria_id=categoria_id,
-                total_defectos=payload.total_defectos,
+                bono_socio=bono_socio,
                 db=db,
             )
             db.commit()
@@ -204,11 +226,13 @@ class EvaluacionService:
                 evaluacion_id=evaluacion_id,
                 codigo=str(fila["codigo"]).strip(),
                 factor_rendimiento=Decimal(str(fila["factor_rendimiento"])),
+                peso_neto=peso_neto,
                 peso_por_qq=Decimal(str(fila["peso_por_qq"])),
                 pago=Decimal(str(fila["pago"])),
+                pago_base=pago_base,
+                bono_socio=bono_socio,
                 precio=precio,
                 rango=str(valor_cafe["rango"]),
-                categoria=str(categoria["nombre"]) if categoria else None,
             )
         except Exception:
             db.rollback()
@@ -220,8 +244,7 @@ class EvaluacionService:
         fila = self.evaluacion_model.obtener_resumen(codigo=codigo)
         if not fila:
             return None
-        fila["eventos"] = self.evento_model.listar_por_evaluacion(fila["evaluacion_id"])
-        return ResumenEvaluacionResponse(**fila)
+        return self._armar_resumen(fila)
 
     def verificar_estado(self, evaluacion_id: str) -> str | None:
         """Retorna 'activa' si aún no tiene codigo, 'finalizada' si ya fue completada, None si no existe."""
@@ -242,24 +265,38 @@ class EvaluacionService:
     def finalizar_evaluacion(
         self,
         evaluacion_id: str,
-        total_defectos: int | None = None,
-        total_buenos: int | None = None,
+        conteo_lote: dict[str, Any] | None,
         incidencias: list | None = None,
     ) -> FinalizarEvaluacionResponse:
-        """Genera y asigna el codigo EVA y persiste la traza del monitoreo.
+        """Genera y asigna el codigo EVA y persiste el conteo y la traza del monitoreo.
+
+        El conteo sale del tracker del servidor (conteo_lote), no del navegador.
+        conteo_lote es None cuando el lote en memoria no es el de esta evaluacion
+        (otro monitoreo empezo despues o el servidor se reinicio): en ese caso no
+        hay un conteo confiable que guardar y se rechaza la finalizacion. La
+        respuesta lleva el conteo guardado en la fila y si ya estaba finalizada.
 
         Codigo y eventos se escriben en una sola transaccion: una evaluacion
         finalizada sin su traza, o una traza sin evaluacion cerrada, dejarian el
         historial incoherente.
         """
+        if conteo_lote is None:
+            raise ValueError(
+                "El conteo de este lote ya no está en el monitoreo del servidor. "
+                "Vuelva a iniciar el monitoreo de la muestra para registrar su conteo."
+            )
         db = Connection()
         try:
             fila = self.evaluacion_model.asignar_codigo(
-                evaluacion_id, total_defectos, total_buenos, incidencias, db=db
+                evaluacion_id,
+                conteo_lote.get("total_defectos"),
+                conteo_lote.get("total_sanos"),
+                incidencias,
+                db=db,
             )
-            # Solo la traza de ESTE lote: si el tracker ya arrancó otra evaluación
-            # sus eventos no pertenecen a esta.
-            if registro_eventos.evaluacion_id == evaluacion_id:
+            # Un reintento sobre una evaluacion ya finalizada no vuelve a guardar
+            # la traza (quedaria duplicada).
+            if not fila.get("ya_finalizada") and registro_eventos.evaluacion_id == evaluacion_id:
                 self.evento_model.registrar_lote(
                     evaluacion_id, registro_eventos.todos(), db=db
                 )
@@ -272,7 +309,10 @@ class EvaluacionService:
 
         return FinalizarEvaluacionResponse(
             finalizado=True,
-            mensaje="Evaluacion finalizada correctamente.",
+            mensaje="Evaluación finalizada correctamente.",
             evaluacion_id=fila["id"],
             codigo=fila["codigo"].strip(),
+            total_defectos=fila.get("total_defectos"),
+            total_buenos=fila.get("total_buenos"),
+            ya_finalizada=bool(fila.get("ya_finalizada")),
         )

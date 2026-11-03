@@ -37,7 +37,7 @@ class ArduinoService:
             "listo": False,
             "distancia": dist,
             "conectado": True,
-            "mensaje": f"Tapa abierta o sin muestra ({dist_str}). Cierre la tapa para continuar.",
+            "mensaje": f"Tapa abierta ({dist_str}). Cierre la tapa para continuar.",
         }
 
     def obtener_peso(self) -> dict:

@@ -4,6 +4,7 @@
 **Autor:** Anderson Jhomar Baca Chuquimanco
 **Institución:** Universidad Católica Santo Toribio de Mogrovejo (USAT) — Cooperativa Agraria Line Coffee Marañón
 **Fecha de elaboración del registro:** 2026-09-01
+**Última actualización:** 2026-09-30 (estados de INC-53 a INC-61 confirmados por commit; nuevas INC-65 a INC-68)
 **Ámbito:** Base de datos, cámara, detección/ML, dataset, Arduino, servo separador, diseño/frontend, integración, autenticación e infraestructura.
 
 ---
@@ -92,18 +93,22 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 | INC-50 | 4 | Detección / ML | Módulo `inference.py` legacy y ramas muertas en el tracker | Baja | Resuelta |
 | INC-51 | 4 | Infraestructura | `config.py` estaba en `.gitignore`: cada equipo con su copia | Media | Resuelta |
 | INC-52 | 4 | Documentación | Manuales con datos obsoletos (nombre de BD, versión de PG, baudrate) | Media | Resuelta |
-| INC-53 | 4 | Cámara | Cámara cae a YUY2 (~9 fps) por no fijar MJPEG antes del primer `read()` | Crítica | En curso |
-| INC-54 | 4 | Detección / ML | Granos que se tocan no generan bounding box | Alta | En curso |
-| INC-55 | 4 | Detección / ML | Detecciones débiles y efímeras accionaban el servo | Media | En curso |
+| INC-53 | 4 | Cámara | Cámara cae a YUY2 (~9 fps) por no fijar MJPEG antes del primer `read()` | Crítica | Resuelta |
+| INC-54 | 4 | Detección / ML | Granos que se tocan no generan bounding box | Alta | Mitigada |
+| INC-55 | 4 | Detección / ML | Detecciones débiles y efímeras accionaban el servo | Media | Mitigada |
 | INC-56 | 4 | Cámara | Foco y zoom manuales del lente, sin repetibilidad | Media | Abierta |
 | INC-57 | 4 | Cámara | Desenfoque por movimiento (motion blur) pese al global shutter | Media | Abierta |
-| INC-58 | 4 | Base de datos | Renombrado de `COOPERATIVA.direccion` a `ubicacion` | Baja | En curso |
+| INC-58 | 4 | Base de datos | Renombrado de `COOPERATIVA.direccion` a `ubicacion` | Baja | Resuelta |
 | INC-59 | 4 | Infraestructura | Endpoints y código muerto sin consumidor en las 4 capas | Baja | Resuelta |
 | INC-60 | 4 | Integración | Mensajes de error divergentes entre backend y frontend | Media | Resuelta |
 | INC-61 | 4 | Autenticación | Un usuario podía desactivar su propia cuenta y la sesión seguía viva tras desactivar a cualquiera | Alta | Resuelta |
 | INC-62 | 2 | Detección / ML | Prácticas de calidad de dataset y trazabilidad de experimentos planificadas sin ejecutar (IRA, fuga de datos, MLflow) | Media | Mitigada |
 | INC-63 | 3 | Detección / ML | Fase 4 CRISP-ML(Q) (validación formal, matriz de confusión, robustez) no se ejecutó | Alta | Abierta |
 | INC-64 | 4 | Detección / ML / Integración | Monitoreo de calidad de detecciones y validación en campo con operarios reales sin implementar | Media | Abierta |
+| INC-65 | 4 | Detección / ML / Dataset | Brecha de dominio: dataset tomado con celular, producción con la cámara ELP (~40 % de granos sanos marcados como defecto) | Alta | Abierta |
+| INC-66 | 4 | Infraestructura / ML | `torch` y `onnxruntime` en build solo-CPU: inferencia saturaba los 24 núcleos con la GPU sin usar | Alta | Resuelta |
+| INC-67 | 4 | Detección / ML | Parpadeo desconocido ↔ verde ↔ defecto por usar una ventana acotada como historial | Media | Resuelta |
+| INC-68 | 4 | Integración / Negocio | Peso bruto menor o igual a la tara generaba peso neto ≤ 0 y pago negativo | Alta | Resuelta |
 
 ---
 
@@ -259,9 +264,9 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Área:** Detección / ML (CRISP-ML(Q) Fase 3).
 - **Qué se detectó:** el flujo de integración necesitaba un modelo estable y el YOLO de 17 clases (`yolo26n`) seguía en entrenamiento; el `yolov8n` de referencia daba mAP50 0.767 pero con clases confundibles.
 - **Causa raíz:** entrenamiento comparativo de arquitecturas todavía en curso en Google Colab; dataset con clases minoritarias poco representadas.
-- **Solución:** se adoptó como modelo de producción un YOLO **binario de 2 clases** (`yolov26n_2cls`: defecto / verde), suficiente para separar físicamente y calcular el grado, dejando el modelo de 17 clases como cascada opcional (`USE_MODELO_DEFECTOS`).
-- **Gravedad:** Media. **Estado:** Mitigada (el modelo fino de tipo de defecto queda pendiente de activar).
-- **Evidencia:** `docs/documentacion/arquitectura-sistema-clasificacion.md`; commit `0c06b79` (2026-06-15).
+- **Solución:** se adoptó como modelo de producción un YOLO **binario de 2 clases** (`yolov26n_2cls`: defecto / verde), suficiente para separar físicamente y calcular el grado, dejando el modelo de 17 clases como cascada opcional (`USE_MODELO_DEFECTOS`). La cascada se retiró del código el 2026-07-08 (commit `787a7ac`); el sistema opera solo con el modelo binario.
+- **Gravedad:** Media. **Estado:** Mitigada (la clasificación por tipo de defecto queda fuera del alcance actual).
+- **Evidencia:** `docs/documentacion/arquitectura-sistema-clasificacion.md`; commits `0c06b79` (2026-06-15) y `787a7ac` (2026-07-08).
 
 ### INC-19 · Cookie JWT rota por comillas al llevar el prefijo `Bearer `
 - **Área:** Autenticación.
@@ -442,7 +447,7 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Área:** Detección / ML / Infraestructura.
 - **Qué se detectó:** los archivos `best.pt` / `best.onnx` (varios MB) no deben ir al repositorio, pero sin ellos la app no arranca.
 - **Causa raíz:** límite práctico de tamaño en Git para binarios que cambian con cada reentrenamiento.
-- **Solución:** los pesos se distribuyen por Google Drive y se colocan en `src/ml/models/{modelo}/`; el tracker prueba `best.onnx` primero y cae a `best.pt`. Documentado en los manuales de instalación.
+- **Solución:** los pesos se distribuyen por Google Drive y se colocan en `src/ml/models/{modelo}/`; el tracker prueba `best.onnx` primero y cae a `best.pt`.
 - **Gravedad:** Media. **Estado:** Mitigada (requiere paso manual en cada instalación).
 - **Evidencia:** commit `0c06b79` (2026-06-15); `CLAUDE.md`; `docs/DOCUMENTACION_SISTEMA.md`.
 
@@ -557,37 +562,37 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Gravedad:** Media. **Estado:** Resuelta.
 - **Evidencia:** commit `dcf68a8` (2026-07-04).
 
-### INC-52 · Manuales con datos obsoletos
+### INC-52 · Documentación de infraestructura con datos obsoletos
 - **Área:** Documentación.
-- **Qué se detectó:** los manuales referían la base de datos como `coffeeren`, no exigían PostgreSQL 18 y omitían la descarga de los pesos del modelo.
+- **Qué se detectó:** la documentación refería la base de datos como `coffeeren`, no exigía PostgreSQL 18 y omitía la descarga de los pesos del modelo.
 - **Causa raíz:** la documentación no se actualizó al ritmo de los cambios de infraestructura.
-- **Solución:** se corrigió: la BD es `tesis_prj`, se requiere PostgreSQL 18 (el esquema usa `uuidv7()` nativo), baudrate Arduino 9600, y la instalación debe incluir la descarga de `best.onnx` a `src/ml/models/yolov26n_2cls/` (sin él la app no arranca). Se añadieron los manuales de instalación y mantenimiento y `docs/DOCUMENTACION_SISTEMA.md`.
+- **Solución:** se corrigió: la BD es `tesis_prj`, se requiere PostgreSQL 18 (el esquema usa `uuidv7()` nativo), baudrate Arduino 9600, y la instalación debe incluir la descarga de `best.onnx` a `src/ml/models/yolov26n_2cls/` (sin él la app no arranca). Se añadió `docs/DOCUMENTACION_SISTEMA.md`.
 - **Gravedad:** Media. **Estado:** Resuelta.
-- **Evidencia:** commits `199e023` (2026-07-11), `33d8584` (2026-07-11); memoria de manuales y documentación.
+- **Evidencia:** commits `199e023` (2026-07-11), `33d8584` (2026-07-11); `docs/DOCUMENTACION_SISTEMA.md`.
 
 ### INC-53 · Cámara cae a YUY2 (~9 fps) por no fijar MJPEG antes del primer `read()`
 - **Área:** Cámara (CRISP-ML(Q) Fase 6, validación técnica local).
 - **Qué se detectó:** con la faja en movimiento no se detectan todos los granos: saltan de posición entre frames.
 - **Causa raíz:** la cámara ELP AR0234 es USB 2.0; 1080p a 90 fps solo cabe en el bus en formato MJPEG. Si el driver no negocia MJPEG (o si el FOURCC se fija después del primer `read()`), cae a YUY2 y el FPS se desploma a ~5-9. También influyen cable largo, hub o puerto USB compartido.
-- **Solución (en curso):** `camara_service.py` abre con `cv2.CAP_DSHOW` (fallback `CAP_ANY`) y `_configurar_captura()` fija FOURCC MJPG → resolución → FPS antes del primer `read()`; el log de arranque muestra formato y FPS reales y **advierte** si el driver no aceptó MJPEG. Nueva configuración en `config.py`: `CAM_WIDTH/HEIGHT/FPS/EXPOSURE/AUTO_EXPOSURE_MANUAL` con override por `.env`.
-- **Gravedad:** Crítica (compromete la exhaustividad del conteo). **Estado:** En curso (rama `temporal`, sin commit de cierre; pendiente de verificación con la cámara conectada).
-- **Evidencia:** cambios sin confirmar en `src/services/camara_service.py` y `src/config.py`; `docs/hardware-camara.md`.
+- **Solución:** `camara_service.py` abre con **Media Foundation** (`CAP_MSMF`, luego `CAP_ANY` y `CAP_DSHOW`): con `opencv-python-headless` en Windows, DirectShow entregaba YUY2 a ~5 fps incluso para la ELP. Se fija `OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS=0` antes de importar `cv2`, y `_configurar_captura()` fija FOURCC MJPG → resolución → FPS antes del primer `read()`. Como MSMF no reporta el FOURCC, el formato se verifica midiendo el FPS real. La cámara se elige por nombre de dispositivo ("Global Shutter Camera", vía `pygrabber`) porque la webcam interna también negocia MJPEG. Configuración en `config.py`: `CAM_INDICE/WIDTH/HEIGHT/FPS/EXPOSURE/AUTO_EXPOSURE_MANUAL/WB_TEMP` con override por `.env`.
+- **Gravedad:** Crítica (compromete la exhaustividad del conteo). **Estado:** Resuelta (el ensayo de latencia del 2026-09-22 registró la ELP a 1920×1080 con ~96 fps reales).
+- **Evidencia:** commits `1553477` (2026-09-03) y `93cd39a` (2026-09-22); `docs/hardware-camara.md`; `docs/evidencias/analisis_latencia_20260922.md`.
 
 ### INC-54 · Granos que se tocan no generan bounding box
 - **Área:** Detección / ML (CRISP-ML(Q) Fase 4 y 6).
 - **Qué se detectó:** granos que salen juntos de la faja a veces no dibujan caja; granos aislados a veces sí y a veces no.
 - **Causa raíz:** el umbral de confianza que se pasaba a `model.track(conf=...)` descartaba detecciones antes de que ByteTrack usara su banda de baja confianza; y el NMS por defecto suprimía cajas de granos contiguos.
-- **Solución (en curso):** `CONF_THRESHOLD` bajado a 0.15 como piso; `model.track(iou=0.80)` (NMS permisivo); umbrales de `bytetrack.yaml` bajados (`track_high_thresh` 0.25 → 0.20, `track_low_thresh` 0.1 → 0.05, `new_track_thresh` 0.25 → 0.20). Pendiente: recorte de un ROI de la faja antes de la inferencia para contrarrestar el reescalado 1920 → 640.
-- **Gravedad:** Alta. **Estado:** En curso.
-- **Evidencia:** cambios sin confirmar en `src/ml/tracker.py`, `src/ml/bytetrack.yaml`, `src/services/tracker_service.py`; memoria del módulo ML (2026-09).
+- **Solución (en curso):** `CONF_THRESHOLD` bajado a 0.15 como piso; `model.track(iou=0.80)` (NMS permisivo); umbrales de `bytetrack.yaml` bajados (`track_high_thresh` 0.25 → 0.20, `track_low_thresh` 0.1 → 0.05, `new_track_thresh` 0.25 → 0.20). Después (2026-09-22): detección por grilla de 3×3 recortes con solape de 200 px inferidos en un solo lote (cada grano llega al modelo a una escala cercana a la de entrenamiento) y fusión de cajas consciente de la costura (solo une cajas de recortes distintos y rechaza envolventes mayores a 1.6×), lo que corrigió el subconteo de granos juntos. Pendiente: recorte de un ROI de la faja antes de la inferencia.
+- **Gravedad:** Alta. **Estado:** Mitigada (falta el ROI y la validación con faja real).
+- **Evidencia:** commits `1553477` (2026-09-03) y `93cd39a` (2026-09-22); `src/ml/tracker.py`, `src/ml/bytetrack.yaml`, `src/ml/models/yolov26n_2cls/constants.py`.
 
 ### INC-55 · Detecciones débiles y efímeras accionaban el servo
 - **Área:** Detección / ML / Servo separador.
 - **Qué se detectó:** con el piso de confianza bajo (INC-54), un track de un solo frame y baja confianza podía disparar la separación física de un grano.
 - **Causa raíz:** el servo se solicitaba en cuanto aparecía un `track_id` nuevo, sin exigir respaldo estadístico.
 - **Solución (en curso):** compuerta `_evidencia_suficiente(track_id)` antes de `servo_controller.solicitar()`: al menos `SERVO_MIN_FRAMES` (2) detecciones acumuladas o una con confianza ≥ `SERVO_CONF_MIN` (0.45). Se guarda `_ts_primer_avistamiento[track_id]` para que la referencia temporal del servo siga siendo el primer frame del track aunque la solicitud se posponga (no se degrada la precisión del delay).
-- **Gravedad:** Media. **Estado:** En curso.
-- **Evidencia:** cambios sin confirmar en `src/ml/tracker.py`.
+- **Gravedad:** Media. **Estado:** Mitigada (pendiente verificar en prueba real que la compuerta no deja defectos legítimos sin separar; `ML_DEBUG_SERVO=true` lista los tracks que salen sin servo).
+- **Evidencia:** commit `1553477` (2026-09-03); `src/ml/tracker.py`.
 
 ### INC-56 · Foco y zoom manuales del lente, sin repetibilidad
 - **Área:** Cámara / Hardware.
@@ -609,17 +614,17 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Área:** Base de datos.
 - **Qué se detectó:** el término "dirección" no reflejaba bien el dato capturado (localidad / referencia geográfica) y generaba inconsistencia con la UI.
 - **Causa raíz:** nombre de columna elegido en el diseño inicial.
-- **Solución (en curso):** `script.sql` cambia `direccion varchar(255) NOT NULL UNIQUE` por `ubicacion`; se actualizan modelo, schema, servicio y plantilla de cooperativa, y los inserts de prueba.
-- **Gravedad:** Baja. **Estado:** En curso (cambios sin confirmar en la rama `temporal`).
-- **Evidencia:** cambios sin confirmar en `src/database/script.sql`, `src/models/cooperativa.py`, `src/schemas/cooperativa.py`, `src/services/cooperativa_service.py`, `src/templates/cooperativa.html`.
+- **Solución:** `script.sql` cambia `direccion varchar(255) NOT NULL UNIQUE` por `ubicacion`; se actualizan modelo, schema, servicio y plantilla de cooperativa, y los inserts de prueba.
+- **Gravedad:** Baja. **Estado:** Resuelta (las bases creadas antes del cambio requieren renombrar la columna).
+- **Evidencia:** commit `1553477` (2026-09-03); `src/database/script.sql`, `src/models/cooperativa.py`, `src/schemas/cooperativa.py`, `src/services/cooperativa_service.py`, `src/templates/cooperativa.html`.
 
 ### INC-59 · Endpoints y código muerto acumulado sin consumidor
 - **Área:** Infraestructura / Backend.
 - **Qué se detectó:** auditoría de las 4 capas (routes/services/models/schemas) cruzando cada endpoint contra sus consumidores reales (`fetch` en JS, `action`/`href` en plantillas, redirecciones, llamadas internas del backend). 13 endpoints más 1 alias sin ningún consumidor, con su cascada de métodos de servicio, métodos de modelo y schemas también sin uso.
 - **Causa raíz:** scaffolding de CRUD completo que la UI nunca llegó a consumir (cooperativas), endpoints reemplazados que no se borraron (`/camara/*` → `/video/*`, ver INC-29), un endpoint JSON de login paralelo al formulario, y utilidades que quedaron sin cablear (tara de báscula, resolución de ubigeo por código completo).
 - **Solución:** eliminados `POST /auth/api/login`, el router `/camara` completo (`GET /camara/stream`, `GET /camara/estado`), `POST /video/liberar-camara`, el alias `GET /registro-socios`, el CRUD sin uso de cooperativas (`GET`/`GET {id}`/`POST`/`DELETE`), `GET /perfil/usuarios/personas-disponibles`, `PATCH /perfil/usuarios/{id}/cambiar-contrasena`, `GET /ubigeo/{codigo}` y `POST /arduino/tare`, junto con su cascada en servicios, modelos y schemas. `camara_service` se conserva (lo usan el ciclo de vida de la app y el tracker); `arduino_serial.py` no se tocó. Verificado con `pyflakes` y `compileall` limpios, carga completa de la app (`/health` 200) y auditoría de arquitectura de 4 capas sin hallazgos.
-- **Gravedad:** Baja. **Estado:** Resuelta (cambios sin confirmar en la rama `temporal`).
-- **Evidencia:** cambios sin confirmar en `src/main.py`, `src/routes/` (`auth_login`, `cooperativa`, `perfil`, `ubigeo`, `arduino`, `video`; `camara.py` eliminado), `src/services/` y `src/models/` (`cooperativa`, `perfil`, `persona`, `ubigeo`, `arduino`), `src/schemas/` (`auth`, `cooperativa`, `perfil`, `ubigeo`); documentación en `docs/API_VIDEO_STREAMING.md`, `docs/DOCUMENTACION_SISTEMA.md`, `docs/documentacion/arquitectura-sistema-clasificacion.md`, `docs/documentacion/avance-tecnico-completo-2026.md`.
+- **Gravedad:** Baja. **Estado:** Resuelta.
+- **Evidencia:** commit `46f1452` (2026-09-08); `src/main.py`, `src/routes/` (`auth_login`, `cooperativa`, `perfil`, `ubigeo`, `arduino`, `video`; `camara.py` eliminado), `src/services/` y `src/models/` (`cooperativa`, `perfil`, `persona`, `ubigeo`, `arduino`), `src/schemas/` (`auth`, `cooperativa`, `perfil`, `ubigeo`); documentación en `docs/API_VIDEO_STREAMING.md`, `docs/DOCUMENTACION_SISTEMA.md`, `docs/documentacion/arquitectura-sistema-clasificacion.md`, `docs/documentacion/avance-tecnico-completo-2026.md`.
 
 ### INC-60 · Mensajes de error divergentes entre backend y frontend
 - **Área:** Integración / Frontend.
@@ -630,8 +635,8 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
   - Backend — consistencia: los mensajes son **literales en español en el sitio donde se lanzan** (`raise HTTPException(...)` / `raise ValueError(...)`), con una sola convención: "No se pudo &lt;verbo&gt; &lt;objeto&gt;." para 500, "No se encontró &lt;entidad&gt;." para 404, frase completa con tilde y punto, sin filtrar trazas ni `str(e)`. Se descartó un catálogo central en `utilities/` porque cada mensaje aparece una sola vez (sin duplicación real) y forzaba a saltar de archivo para leerlo.
   - Backend — dedup real: el validador de teléfono, repetido 3× idéntico en `schemas/perfil.py`, se unificó en un `Annotated`/`AfterValidator` local del propio archivo. La dependencia de permisos `verificar_admin` de `routes/tipo_grano.py` (copia de `require_admin_o_gerente`) se reemplazó por la compartida.
   - Frontend: `src/static/js/http.js` (`CoffeeHttp.mensajeError(res, fallback)`) como único extractor de mensajes de error; los ~25 sitios `fetch` de 8 archivos JS pasan a `throw new Error(await CoffeeHttp.mensajeError(res, 'respaldo'))`. Se eliminó el helper local duplicado `mensajeHttpError` de `valor_cafe.js` y una función muerta (`consultarCaficultor`) en `caficultor.js`. El literal del frontend queda solo como respaldo si el backend no envía nada legible.
-- **Gravedad:** Media. **Estado:** Resuelta (cambios sin confirmar en la rama `temporal`).
-- **Evidencia:** cambios sin confirmar en `src/main.py`, `src/static/js/http.js` (nuevo), `src/templates/main.html`, todas las rutas de `src/routes/`, los servicios con `raise ValueError` de `src/services/`, `src/schemas/perfil.py`, `src/utilities/jwt_required.py`, y `src/static/js/{caficultor,registro,perfil,monitoreo,analisis,cooperativa,valor_cafe,test}.js`. Verificado: login/403/422 (nativo y custom) devuelven `detail` como cadena en español; `pyflakes`/`compileall`/`node --check` limpios; suite `verificacion_incremento_1` 3/3; auditoría de arquitectura sin hallazgos.
+- **Gravedad:** Media. **Estado:** Resuelta.
+- **Evidencia:** commit `46f1452` (2026-09-08); `src/main.py`, `src/static/js/http.js` (nuevo), `src/templates/main.html`, todas las rutas de `src/routes/`, los servicios con `raise ValueError` de `src/services/`, `src/schemas/perfil.py`, `src/utilities/jwt_required.py`, y `src/static/js/{caficultor,registro,perfil,monitoreo,analisis,cooperativa,valor_cafe,test}.js`. Verificado: login/403/422 (nativo y custom) devuelven `detail` como cadena en español; `pyflakes`/`compileall`/`node --check` limpios; suite `verificacion_incremento_1` 3/3; auditoría de arquitectura sin hallazgos.
 
 ### INC-61 · Auto-desactivación de cuenta y sesión que sobrevive a la desactivación
 - **Área:** Autenticación.
@@ -642,8 +647,8 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
   - Sesión atada al estado: `obtener_usuario_actual`, tras validar el token, llama `auth_service.cuenta_habilitada(personal_id)` (nuevo), que delega en `Personal.esta_activo(...)` (nuevo, `SELECT estado FROM personal WHERE personal_id=%s`). Si la cuenta no está activa → `RequerirLoginException` → redirect a `/auth/login`. Ante fallo de BD devuelve `True` (fail-open, para no expulsar a todos por un error transitorio; el token sigue siendo criptográficamente válido). Una petición extra de una columna con índice de PK por request autenticada.
   - `AuthService` gana un singleton de módulo `auth_service` (mismo patrón que `auditoria_service`); `auth_login.py` deja de instanciarlo localmente.
   - Frontend: `cooperativa.html` inyecta `MI_PERSONAL_ID`; en la tabla de usuarios, la fila propia muestra "Tu cuenta" en vez del botón Desactivar (afordancia; la regla vive en el backend).
-- **Gravedad:** Alta. **Estado:** Resuelta (cambios sin confirmar en la rama `temporal`).
-- **Evidencia:** cambios sin confirmar en `src/models/personal.py`, `src/services/auth_service.py`, `src/services/perfil_service.py`, `src/utilities/jwt_required.py`, `src/routes/auth_login.py`, `src/routes/perfil.py`, `src/templates/cooperativa.html`, `src/static/js/cooperativa.js`. Verificado con TestClient: auto-desactivación → 400; un admin desactiva a otro usuario → la siguiente petición de ese usuario redirige a `/auth/login` (página y endpoint JSON); reactivar → vuelve a funcionar; `jbecerrac` sigue protegido. `pyflakes`/`compileall` limpios, `verificacion_incremento_1` 3/3, auditoría de arquitectura sin hallazgos.
+- **Gravedad:** Alta. **Estado:** Resuelta.
+- **Evidencia:** commit `46f1452` (2026-09-08); `src/models/personal.py`, `src/services/auth_service.py`, `src/services/perfil_service.py`, `src/utilities/jwt_required.py`, `src/routes/auth_login.py`, `src/routes/perfil.py`, `src/templates/cooperativa.html`, `src/static/js/cooperativa.js`. Verificado con TestClient: auto-desactivación → 400; un admin desactiva a otro usuario → la siguiente petición de ese usuario redirige a `/auth/login` (página y endpoint JSON); reactivar → vuelve a funcionar; `jbecerrac` sigue protegido. `pyflakes`/`compileall` limpios, `verificacion_incremento_1` 3/3, auditoría de arquitectura sin hallazgos.
 
 ### INC-64 · Monitoreo de calidad de detecciones (Fase 6) y validación en campo con operarios reales sin implementar
 - **Área:** Detección / ML / Integración.
@@ -653,6 +658,38 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 - **Gravedad:** Media (no bloquea el flujo técnico, pero impide detectar degradación del modelo en producción y deja sin evidencia formal la aceptación del sistema por parte de la cooperativa). **Estado:** Abierta.
 - **Evidencia:** `docs/documentacion/Product_Backlog_Sprints.md` (PBI-21 "Validación en campo: ≥3 operarios... SUS ≥70. Acta firmada"; PBI-22 "Monitoreo: alerta si precisión < 80% en 3 sesiones consecutivas... GET /monitoring/quality"); búsqueda en `src/` sin resultados de un endpoint o módulo de monitoreo de calidad.
 
+### INC-65 · Brecha de dominio entre el dataset (celular) y la cámara de producción (ELP)
+- **Área:** Detección / ML / Dataset (CRISP-ML(Q) Fases 2, 4 y 6).
+- **Qué se detectó:** en pruebas en vivo, de forma intermitente, el modelo marca como `defecto` granos verdes sanos (~40 % en las pruebas).
+- **Causa raíz:** (1) las ~3 600 imágenes de entrenamiento se tomaron con un celular Samsung S25 FE, cuyo procesamiento de imagen (HDR, saturación, color propio) difiere del de la ELP AR0234, que entrega el cuadro casi crudo (*cross-sensor domain shift*); (2) la augmentation de Roboflow variaba brillo y exposición pero no tono ni saturación; (3) las fotos de entrenamiento tienen un grano por imagen con fondo limpio, mientras que en producción cada recorte trae varios granos, a veces en contacto, sobre la faja; (4) en menor medida, el tamaño del dataset (~1 800 imágenes por clase). El balance de blancos automático de la cámara agravaba el problema al variar el color cuadro a cuadro.
+- **Solución:** por bloques. Aplicado: `CAM_WB_TEMP` (balance de blancos manual, 2026-09-16), resolución de clase por confianza acumulada con `MARGEN_DEFECTO = 1.3` y dibujo por clase del track (93cd39a), que reducen el síntoma. Pendiente: fine-tuning v7 desde los pesos v6 con 300-500 fotos de la ELP y augmentation HSV (`hsv_h=0.02`, `hsv_s=0.7`, `hsv_v=0.4`); el notebook está preparado. Procedimiento en `docs/guia/03-reentrenamiento-camara-elp.md`. Se descartó sumar el dataset público USK-Coffee como fuente de defectos (su clase "defect" sigue la norma indonesia SNI 01-2907-2008, no SCA).
+- **Gravedad:** Alta (un grano sano desviado reduce el peso bueno y por tanto el pago al caficultor). **Estado:** Abierta.
+- **Evidencia:** commit `93cd39a` (2026-09-22; `CAM_WB_TEMP`, `MARGEN_DEFECTO`, notebook `src/ml/models/yolov26n_2cls_new/entrenamiento_yolo26n_v7_finetune.ipynb`); `docs/guia/02-modulo-ml.md` sección 8.
+
+### INC-66 · `torch` y `onnxruntime` en build solo-CPU: la inferencia saturaba el procesador
+- **Área:** Infraestructura / Detección / ML.
+- **Qué se detectó:** durante la clasificación los 24 núcleos lógicos de la laptop quedaban al ~96 % de uso, mientras la GPU RTX 5070 Ti permanecía sin carga.
+- **Causa raíz:** estaban instalados `torch==2.12.0+cpu` y `onnxruntime` (que no incluye CUDA ni DirectML), así que el device caía a `cpu` en silencio. ONNX Runtime, PyTorch y OpenCV usan por defecto todos los núcleos, y la inferencia por recortes multiplicaba la carga. Además `camara_service` codificaba a JPEG cada cuadro a 90 fps aunque nadie lo consumía.
+- **Solución:** reinstalación de `torch==2.12.0+cu130` / `torchvision==0.27.0+cu130` (instrucciones en `requirements.txt`); en GPU se carga `best.pt` con PyTorch nativo y FP16 condicional por compute capability, en CPU se mantiene `best.onnx`; los 9 recortes se infieren en un solo lote; tope de hilos de CPU (`ML_MAX_THREADS_CPU`); techo de detección (`ML_DETECTOR_FPS`) y gate de movimiento; un único JPEG por cuadro anotado y reducido. Aviso en consola si PyTorch no detecta CUDA.
+- **Gravedad:** Alta. **Estado:** Resuelta (CPU del sistema ~96 % → ~25 %, medido con cuadros sintéticos; pendiente medir con faja en marcha y en la GTX 1050 Mobile).
+- **Evidencia:** commit `93cd39a` (2026-09-22); `requirements.txt`; `src/ml/tracker.py`; `src/services/tracker_service.py`; `src/services/camara_service.py`.
+
+### INC-67 · Parpadeo desconocido ↔ verde ↔ defecto en objetos ajenos al modelo
+- **Área:** Detección / ML.
+- **Qué se detectó:** al probar con un objeto que no es un grano, su caja alternaba entre "objeto desconocido", verde y defecto sin que nada cambiara en la escena.
+- **Causa raíz:** el criterio "nunca superó `UMBRAL_CONF_CONOCIDO`" se evaluaba sobre `conteo_ids_confianza[track_id]`, un `deque(maxlen=30)`: una sola detección ruidosa de confianza alta hacía que el track dejara de ser desconocido mientras estaba en la ventana, y volvía a serlo cuando salía.
+- **Solución:** `_conf_max_historico` guarda el máximo de confianza de toda la vida del track, independiente de la ventana, y se limpia en los mismos puntos que el historial. Límite que persiste: si un objeto ajeno supera 0.35 en un cuadro, queda clasificado de forma estable en una clase conocida (inherente a un umbral de confianza; la alternativa es entrenar una clase explícita de materia extraña).
+- **Gravedad:** Media. **Estado:** Resuelta.
+- **Evidencia:** commit `93cd39a` (2026-09-22); `src/ml/tracker.py` (`_resolver_clase_display`).
+
+### INC-68 · Peso bruto menor o igual a la tara: peso neto ≤ 0 y pago negativo
+- **Área:** Integración / Reglas de negocio.
+- **Qué se detectó:** la evaluación EVA0000002 se completó con peso neto negativo y el pago se calculó negativo.
+- **Causa raíz:** el registro validaba el máximo del peso bruto (`num_sacos × 70 kg`) pero no que superara la tara (`num_sacos × 0.25 kg`), que `EvaluacionService` resta al completar.
+- **Solución:** `RegistrarEvaluacionRequest.validar_pesos` rechaza un peso bruto menor o igual a `round(num_sacos × 0.25)` (el mismo cálculo que el servicio), con validación equivalente en `registro.js`. Un primer intento que agregaba además un mínimo de 10 kg por saco se revirtió por no haber sido solicitado: los umbrales de negocio se consultan antes de implementarse.
+- **Gravedad:** Alta (afecta el pago). **Estado:** Resuelta.
+- **Evidencia:** commit `4f38d55` (2026-09-30); `src/schemas/evaluacion.py`; `src/static/js/registro.js`.
+
 ---
 
 ## 7. Incidencias abiertas y en curso (consolidado)
@@ -661,19 +698,18 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 |---|---|---|---|
 | INC-11 | Seguridad | Credenciales de BD en el código | Mover a `.env` / gestor de secretos antes de desplegar. |
 | INC-17 | Detección / ML | Equivalencias SCA sin validar | Sesión de validación con calidad de Line Coffee Marañón. |
-| INC-18 | Detección / ML | Modelo fino de 17 clases | Terminar entrenamiento y activar `USE_MODELO_DEFECTOS`. |
+| INC-18 | Detección / ML | Modelo fino de 17 clases | La cascada se retiró del código (787a7ac). Reconsiderar la clasificación por tipo de defecto solo después de cerrar INC-65. |
 | INC-39 | Infraestructura | Pesos fuera de Git | Automatizar la descarga en el instalador. |
 | INC-40 | Arduino | Reset por DTR | El re-handshake no cubre el estado del servo; revisar con autorización sobre archivos restringidos. |
-| INC-53 | Cámara | Caída a YUY2 / ~9 fps | Confirmar `formato=MJPG @ 90fps` en el log con la cámara conectada; revisar cable y puerto USB. |
 | INC-54 | Detección / ML | Granos que se tocan sin caja | Implementar recorte de ROI de la faja antes de la inferencia; validar con captura real de `/monitoreo`. |
-| INC-55 | Detección / ML | Servo por detecciones débiles | Verificar en prueba real que la compuerta de evidencia no pierde defectos legítimos. |
+| INC-55 | Detección / ML | Servo por detecciones débiles | Verificar en prueba real (con `ML_DEBUG_SERVO=true`) que la compuerta de evidencia no pierde defectos legítimos. |
 | INC-56 | Cámara | Foco/zoom manual | Bloquear anillos, anotar geometría de trabajo, seguir checklist de calibración. |
 | INC-57 | Cámara | Motion blur | Instalar iluminación difusa potente y fijar exposición manual. |
-| INC-58 | Base de datos | `direccion` → `ubicacion` | Cerrar el cambio y confirmarlo; ejecutar `script.sql` en los entornos. |
 | INC-62 | Detección / ML | Calidad de dataset y experimentos sin trazar | Medir un IRA real o documentar por qué no aplica (anotador único); registrar splits/hashes si el dataset se reentrena. |
 | INC-63 | Detección / ML | Fase 4 (evaluación formal) sin ejecutar | Calcular precision/recall/F1/mAP por clase y matriz de confusión sobre el test set antes de ampliar el despliegue. |
 | INC-64 | Detección / ML / Integración | Monitoreo de calidad y validación en campo sin implementar | Definir el mecanismo mínimo de alerta por degradación y programar la sesión de validación con operarios de la cooperativa. |
-| — | Detección / ML | Verificación en hardware | Confirmar que los IDs globales no retroceden tras pausas y medir FPS en GTX 1050 Mobile vs RTX 5070 Ti con ONNX; confirmar `torch.cuda.is_available()` en ambas laptops. |
+| INC-65 | Detección / ML / Dataset | Brecha de dominio celular vs ELP | Capturar y etiquetar fotos con la ELP, ejecutar el fine-tuning v7 y comparar v6 vs v7 (`docs/guia/03-reentrenamiento-camara-elp.md`). |
+| — | Detección / ML | Verificación en hardware | Confirmar que los IDs globales no retroceden tras pausas; medir FPS y CPU/GPU con la faja en marcha; en la GTX 1050 Mobile instalar torch con CUDA, confirmar FP32 y probar la grilla 2×2; calibrar `ML_GATE_UMBRAL` y `UMBRAL_CONF_CONOCIDO`. |
 
 ---
 
@@ -685,18 +721,21 @@ Las incidencias están agrupadas por los **cuatro Sprints del cronograma vigente
 4. **Umbrales de confianza bajos + filtros posteriores (ByteTrack, votación por mayoría, compuerta de evidencia) dan mejor recall que un umbral alto.** En control de calidad se prefiere el falso positivo (INC-14, INC-54, INC-55).
 5. **El hardware de bajo costo impone su realidad.** Los clones de Arduino con resonador cerámico forzaron el pesaje manual (INC-44); el lente varifocal barato obliga a un protocolo de bloqueo y calibración (INC-56).
 6. **PowerShell en Windows introduce trampas propias** (BOM UTF-8, codificaciones): preferir herramientas que escriban UTF-8 sin BOM (INC-21, INC-25).
-7. **La documentación se desactualiza rápido.** Nombre de la BD, versión de PostgreSQL, baudrate y la necesidad de descargar los pesos del modelo estuvieron mal en los manuales hasta el Sprint 4 (INC-52).
+7. **La documentación se desactualiza rápido.** Nombre de la BD, versión de PostgreSQL, baudrate y la necesidad de descargar los pesos del modelo estuvieron mal documentados hasta el Sprint 4 (INC-52).
 8. **El código muerto se acumula por capas.** Scaffolding de CRUD que la UI nunca usó, endpoints reemplazados sin borrar y utilidades sin cablear se arrastraron hasta que una auditoría cruzada de endpoints contra consumidores los sacó (INC-50, INC-59). Conviene revisar "¿esto lo llama alguien?" al cerrar cada funcionalidad, no solo al final.
 9. **Un catálogo central de mensajes no siempre ayuda (INC-60).** Un módulo `utilities/mensajes.py` con constantes y helpers solo paga si los textos se repiten de verdad; si cada mensaje aparece una sola vez, agrega indirección (leer la ruta + saltar al catálogo + reconstruir la plantilla) sin quitar duplicación. Lo que sí escala es el handler que normaliza el formato de salida (`RequestValidationError` → `detail` string) y un único extractor en el frontend; el texto se queda como literal donde se lanza.
 10. **Los criterios de calidad y gobierno de ML definidos en la planificación no sobreviven automáticamente a un cronograma ajustado con un solo desarrollador.** IRA con experto, control de fuga de datos por hash, seguimiento de experimentos con MLflow, la Fase 4 formal (matriz de confusión, pruebas de robustez) y el monitoreo de deriva en producción quedaron todos planificados en el backlog inicial pero sin ejecutar (INC-62, INC-63, INC-64): sin un responsable dedicado a QA, estas actividades se posponen frente a las que bloquean la demo funcional. Quedan como deuda de aseguramiento de calidad a saldar antes de un despliegue real con la cooperativa.
+11. **Verificar el entorno antes de optimizar el código (INC-66).** Un uso de CPU al 96 % parecía un problema de programación y era un paquete instalado en su variante sin CUDA. `torch.__version__` y `torch.cuda.is_available()` son la primera comprobación en cualquier equipo nuevo.
+12. **Entrenar con la cámara con la que se va a operar (INC-65).** Un dataset tomado con otro sensor y otra composición (un grano, fondo limpio) produce un modelo que funciona en validación y falla en producción. Unos cientos de imágenes del dominio real valen más que miles de un dominio distinto.
 
 ---
 
 ## 9. Referencias
 
 - `docs/CRONOGRAMA.xlsx` — Sprints 1-4 y mapeo con las 6 fases CRISP-ML(Q).
-- `docs/registro-avances.md` y `docs/documentacion/avance-tecnico-completo-2026.md` — estado del proyecto por Sprint.
-- `docs/documentacion/arquitectura-sistema-clasificacion.md` — arquitectura de hilos y del clasificador.
+- `docs/registro-avances.md` — bitácora de avances por fecha.
+- `docs/guia/` — estado actual del sistema, módulo ML (incluye la arquitectura de hilos), pendientes e historial.
+- `docs/documentacion/avance-tecnico-completo-2026.md`, `arquitectura-sistema-clasificacion.md`, `Product_Backlog_Sprints.md` y `PreInforme_Tesis_2026-I.md` se citan como evidencia pero ya no están en el repositorio (se eliminaron por redundantes u obsoletos; su contenido vigente pasó a `docs/guia/`). Se recuperan del historial: `git show 4f38d55:docs/documentacion/<archivo>` (los dos últimos: `git show 93cd39a^:docs/documentacion/<archivo>`).
 - `docs/hardware-camara.md` — ficha técnica de la cámara ELP AR0234 y checklist de calibración.
 - `docs/defectos_sca_tabla_referencia.md` — tabla de equivalencias SCA (pendiente de validación oficial).
 - `docs/DOCUMENTACION_SISTEMA.md` — documentación general basada en el estado real del código.

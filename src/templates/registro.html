@@ -5,12 +5,14 @@
 {% endblock %}
 
 {% block content %}
-<section class="registro-page" aria-label="Registro de muestra de cafe">
-	<div class="registro-header card">
-		<!-- <p class="kicker info-text">Captura de muestra</p> -->
-		<h1 class="hero-title">Registro de muestra</h1>
+<section class="registro-page" aria-label="Registro de muestra de café">
+	<header class="page-hero">
+		<div class="registro-heading">
+			<h1 class="hero-title">Registro de muestra</h1>
+			<a href="/prueba" class="btn registro-prueba">Prueba de sistema</a>
+		</div>
 		<p class="hero-description">Completa la ficha tecnica para iniciar clasificacion. El monitoreo se abrira en una vista dedicada.</p>
-	</div>
+	</header>
 
 	<form id="registroForm" class="registro-form" novalidate>
 		<div class="registro-grid">
@@ -54,7 +56,7 @@
 
 					<div class="field-group">
 						<label for="numSacos">Número de sacos</label>
-						<input id="numSacos" name="numSacos" type="number" min="1" step="1" required placeholder="Ejemplo: 5">
+						<input id="numSacos" name="numSacos" type="number" min="1" max="30" step="1" required placeholder="Ejemplo: 5">
 						<p id="numSacosHint" class="helper-text" aria-live="polite"></p>
 					</div>
 				</div>
@@ -83,14 +85,16 @@
 				<div class="form-row form-row--2">
 					<div class="field-group">
 						<label for="humedad">Humedad (%)</label>
-						<input id="humedad" name="humedad" type="number" min="1" max="100" step="1" required placeholder="Ejemplo: 13">
+						<input id="humedad" name="humedad" type="number" min="1" max="30" step="1" required placeholder="Ejemplo: 13">
 						<p id="humedadHint" class="helper-text" aria-live="polite"></p>
 					</div>
 
 					<div class="field-group">
 						<label for="pesoTrillado">Peso trillado (gr.)</label>
-						<input id="pesoTrillado" name="pesoTrillado" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 930.00">
-						<p id="pesoTrilladoHint" class="helper-text" aria-live="polite"></p>
+						<input id="pesoTrillado" name="pesoTrillado" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 240.00"
+							data-porcentaje-minimo="{{ limites_pesos.MIN_PORCENTAJE_TRILLADO }}" data-porcentaje-maximo="{{ limites_pesos.MAX_PORCENTAJE_TRILLADO }}"
+							data-nombre-peso="trillado" data-referencia-peso="peso de muestra">
+						<p id="pesoTrilladoHint" class="helper-text" aria-live="polite">Mayor al {{ limites_pesos.MIN_PORCENTAJE_TRILLADO }}% y como máximo {{ limites_pesos.MAX_PORCENTAJE_TRILLADO }}% del peso de muestra.</p>
 					</div>
 				</div>
 				
@@ -111,8 +115,9 @@
 
 					<div class="field-group">
 						<label for="pesoTamizado">Peso tamizado (gr.)</label>
-						<input id="pesoTamizado" name="pesoTamizado" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 870.00">
-						<p id="pesoTamizadoHint" class="helper-text" aria-live="polite"></p>
+						<input id="pesoTamizado" name="pesoTamizado" type="number" min="0.01" step="0.01" required placeholder="Ejemplo: 230.00"
+							data-porcentaje-minimo="{{ limites_pesos.MIN_PORCENTAJE_TAMIZADO }}" data-nombre-peso="tamizado" data-referencia-peso="peso trillado">
+						<p id="pesoTamizadoHint" class="helper-text" aria-live="polite">Mayor al {{ limites_pesos.MIN_PORCENTAJE_TAMIZADO }}% del peso trillado, sin superarlo.</p>
 					</div>
 				</div>
 
@@ -121,7 +126,7 @@
 
 		<div class="action-row">
 			<button type="button" id="clearFormBtn" class="btn btn-outline">Limpiar formulario</button>
-			<button type="button" id="startMonitoringBtn" class="btn btn-primary">Iniciar clasificacion y monitoreo</button>
+			<button type="button" id="startMonitoringBtn" class="btn btn-primary">Iniciar clasificación y monitoreo</button>
 		</div>
 		<p id="submitError" class="helper-text helper-error" style="text-align:center;margin-top:.5rem;" aria-live="polite"></p>
 	</form>

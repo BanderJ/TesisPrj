@@ -5,23 +5,32 @@
     color: var(--foreground);
 }
 
-.registro-header {
-    border-radius: 16px;
-    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent 12%);
-    background-color: var(--card);
+.registro-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
 }
 
-.registro-header h1 {
-    margin: 6px 0 8px;
-    font-size: clamp(1.15rem, 1.4vw, 1.45rem);
-    font-family: var(--font-serif);
+.registro-heading .hero-title {
+    margin-bottom: 0;
+}
+
+.registro-heading .registro-prueba {
+    flex-shrink: 0;
+    height: 52px;
+    min-width: 132px;
+    padding: 0 24px;
+    font-size: 16px;
     font-weight: 700;
-    line-height: 1.1;
+    border-color: transparent;
+    background-color: color-mix(in oklab, var(--secondary) 75%, var(--accent) 25%);
+    color: var(--secondary-foreground);
 }
 
-.registro-header p {
-    margin: 0;
-    color: var(--muted-foreground);
+.registro-heading .registro-prueba:hover {
+    filter: brightness(0.9);
 }
 
 .registro-form {

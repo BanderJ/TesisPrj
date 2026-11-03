@@ -1,3 +1,5 @@
+from typing import Any
+
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -6,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from src.services.auditoria_service import auditoria_service
-from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente
+from src.utilities.jwt_required import obtener_usuario_actual, require_admin_o_gerente, require_admin
 from src.utilities.jwt_utils import generar_token
 from src.utilities.request_utils import get_client_ip
 from src.schemas.perfil import (
@@ -26,10 +28,10 @@ perfil_service = PerfilService()
 
 
 @perfil.get("/")
-async def obtener_pagina_perfil(
+def obtener_pagina_perfil(
     request: Request,
     user: dict = Depends(obtener_usuario_actual),
-):
+) -> Any:
     try:
         datos = perfil_service.obtener_datos_usuario(user["personal_id"])
         return templates.TemplateResponse(
@@ -42,11 +44,11 @@ async def obtener_pagina_perfil(
 
 
 @perfil.patch("/datos-personales")
-async def actualizar_datos_personales(
+def actualizar_datos_personales(
     request: Request,
     body: ActualizarDatosPersonales,
     user: dict = Depends(obtener_usuario_actual),
-):
+) -> Any:
     try:
         result = perfil_service.actualizar_datos_personales(
             personal_id=user["personal_id"],
@@ -81,15 +83,15 @@ async def actualizar_datos_personales(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo actualizar los datos.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron actualizar los datos.") from exc
 
 
 @perfil.patch("/cambiar-contrasena")
-async def cambiar_contrasena(
+def cambiar_contrasena(
     request: Request,
     body: CambiarContrasena,
     user: dict = Depends(obtener_usuario_actual),
-):
+) -> Any:
     try:
         result = perfil_service.cambiar_contrasena(
             personal_id=user["personal_id"],
@@ -115,20 +117,20 @@ async def cambiar_contrasena(
 
 
 @perfil.get("/usuarios")
-async def listar_usuarios(
+def listar_usuarios(
     user: dict = Depends(require_admin_o_gerente),
-):
+) -> Any:
     try:
         return {"usuarios": perfil_service.listar_usuarios()}
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo listar los usuarios.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron listar los usuarios.") from exc
 
 
 @perfil.get("/usuarios/{personal_id}")
-async def obtener_usuario(
+def obtener_usuario(
     personal_id: str,
     user: dict = Depends(require_admin_o_gerente),
-):
+) -> Any:
     try:
         usuario = perfil_service.obtener_usuario(personal_id)
         if not usuario:
@@ -141,12 +143,12 @@ async def obtener_usuario(
 
 
 @perfil.patch("/usuarios/{personal_id}/estado")
-async def cambiar_estado_usuario(
+def cambiar_estado_usuario(
     personal_id: str,
     body: CambiarEstadoUsuario,
     request: Request,
-    user: dict = Depends(require_admin_o_gerente),
-):
+    user: dict = Depends(require_admin),
+) -> Any:
     try:
         result = perfil_service.cambiar_estado_usuario(
             personal_id, body.estado, solicitante_id=user.get("personal_id")
@@ -171,12 +173,12 @@ async def cambiar_estado_usuario(
 
 
 @perfil.patch("/usuarios/{personal_id}")
-async def actualizar_usuario(
+def actualizar_usuario(
     personal_id: str,
     body: ActualizarUsuario,
     request: Request,
-    user: dict = Depends(require_admin_o_gerente),
-):
+    user: dict = Depends(require_admin),
+) -> Any:
     try:
         result = perfil_service.actualizar_usuario(
             personal_id=personal_id,
@@ -211,11 +213,11 @@ async def actualizar_usuario(
 
 
 @perfil.post("/usuarios/crear")
-async def crear_usuario(
+def crear_usuario(
     body: CrearUsuario,
     request: Request,
-    user: dict = Depends(require_admin_o_gerente),
-):
+    user: dict = Depends(require_admin),
+) -> Any:
     try:
         result = perfil_service.crear_usuario(
             nombre=body.nombre,

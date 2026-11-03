@@ -1,11 +1,15 @@
 from datetime import datetime
+import re
+import unicodedata
 from typing import Any
 
 import psycopg2.errors
+from pydantic import ValidationError
 
 from src.database.bd import Connection
 from src.models.persona import Persona
 from src.models.personal import Personal
+from src.schemas.perfil import NombreUsuarioGenerado
 from src.utilities.documento_validador import validar_documento_por_tipo
 from src.utilities.security import hash_password, verify_password, password_validate
 
@@ -119,11 +123,21 @@ class PerfilService:
 
     @staticmethod
     def generar_nombre_usuario(nombre: str, ape_paterno: str, ape_materno: str) -> str:
-        """Genera nombre de usuario: primera letra nombre + apellido paterno + 2 caracteres apellido materno."""
-        primer_letra = nombre[0].lower() if nombre else ""
-        apellido_paterno = ape_paterno.lower() if ape_paterno else ""
-        dos_caracteres = ape_materno[:2].lower() if ape_materno else ""
-        return f"{primer_letra}{apellido_paterno}{dos_caracteres}"
+        """Aplica la misma composición y limpieza que la vista previa de Cooperativa."""
+        nombre, ape_paterno, ape_materno = (
+            re.sub(r"[\u0300-\u036f]|\s", "", unicodedata.normalize("NFD", parte)).lower()
+            for parte in (nombre, ape_paterno, ape_materno)
+        )
+        if not (nombre and ape_paterno and ape_materno):
+            raise ValueError("Nombre y apellidos son obligatorios para generar el usuario.")
+        usuario = nombre[0] + ape_paterno + ape_materno[0]
+        try:
+            return NombreUsuarioGenerado(usuario=usuario).usuario
+        except ValidationError as exc:
+            raise ValueError(
+                "El nombre de usuario generado supera 30 caracteres; "
+                "revise el nombre y los apellidos antes de crear la cuenta."
+            ) from exc
 
     def actualizar_usuario(
         self,

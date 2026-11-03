@@ -53,13 +53,13 @@
 		const esEnteroPositivo = (v) => { const n = Number(v); return Number.isFinite(n) && Number.isInteger(n) && n >= 1; };
 		const esFloatPositivo  = (v) => { const n = parseFloat(v); return Number.isFinite(n) && n > 0; };
 		const redondear2       = (v) => Math.round(parseFloat(v) * 100) / 100;
-		// Tara total = sacos × 0.25 kg redondeado igual que round() de Python en el
-		// backend (mitades al par: 0.5 → 0, 1.5 → 2), para que ambos lados coincidan.
-		const calcularTara     = (sacos) => {
-			const t = sacos * 0.25, piso = Math.floor(t), resto = t - piso;
-			if (resto !== 0.5) return Math.round(t);
-			return piso % 2 === 0 ? piso : piso + 1;
-		};
+		// Tara total = sacos × 0.25 kg, sin redondear (igual que el backend:
+		// TARA_POR_SACO_KG en src/schemas/evaluacion.py). Solo se fija a 2 decimales.
+		const TARA_POR_SACO_KG = 0.25;
+		// Tope de sacos por lote: igual que MAX_SACOS_POR_LOTE en src/schemas/evaluacion.py.
+		const MAX_SACOS        = 30;
+		const esNumSacosValido = (v) => esEnteroPositivo(v) && Number(v) <= MAX_SACOS;
+		const calcularTara     = (sacos) => redondear2(sacos * TARA_POR_SACO_KG);
 
 		function forzarEntero(input) {
 			input.addEventListener('change', () => {
@@ -106,23 +106,23 @@
 			const nombreTipo = normalizarTexto(tiposDocumento.get(Number(tipoId || 0)) || '');
 			if (nombreTipo === 'dni') return {
 				maxLength: 8, soloNumeros: true,
-				hint: 'DNI: exactamente 8 digitos numericos.',
-				placeholder: 'Ingrese 8 digitos de DNI',
-				validationMessage: 'Para DNI se requieren 8 digitos numericos.',
+				hint: 'DNI: exactamente 8 dígitos numéricos.',
+				placeholder: 'Ingrese 8 dígitos de DNI',
+				validationMessage: 'Para DNI se requieren 8 dígitos numéricos.',
 				regex: /^\d{8}$/, longitudesAutoBusqueda: [8],
 			};
 			if (nombreTipo === 'pasaporte' || nombreTipo === 'carnet de extranjeria') return {
 				maxLength: 12, soloNumeros: false,
-				hint: 'Pasaporte/Carnet: 8 a 12 caracteres alfanumericos.',
+				hint: 'Pasaporte/Carnet: 8 a 12 caracteres alfanuméricos.',
 				placeholder: 'Ingrese 8-12 caracteres',
-				validationMessage: 'Para Pasaporte/Carnet se requieren de 8 a 12 caracteres alfanumericos.',
+				validationMessage: 'Para Pasaporte/Carnet se requieren de 8 a 12 caracteres alfanuméricos.',
 				regex: /^[A-Za-z0-9]{8,12}$/, longitudesAutoBusqueda: [8, 9, 10, 11, 12],
 			};
 			return {
 				maxLength: 12, soloNumeros: false,
-				hint: 'Documento entre 8 y 12 caracteres alfanumericos.',
+				hint: 'Documento entre 8 y 12 caracteres alfanuméricos.',
 				placeholder: 'Ingrese documento (8 a 12 caracteres)',
-				validationMessage: 'Documento invalido. Use de 8 a 12 caracteres alfanumericos.',
+				validationMessage: 'Documento inválido. Use de 8 a 12 caracteres alfanuméricos.',
 				regex: /^[A-Za-z0-9]{8,12}$/, longitudesAutoBusqueda: [8, 12],
 			};
 		}
@@ -248,17 +248,35 @@
 			} catch (err) { console.error('cargarTiposGrano:', err); }
 		}
 
-		function actualizarHintLimite(hijoInput, padreInput, hintEl, labelPadre, factor = 1) {
-			if (!hijoInput.value) return setHint(hintEl, '');
-			if (!esFloatPositivo(hijoInput.value)) return setHint(hintEl, 'Debe ser un número positivo (gr.).', true);
-			const valor  = parseFloat(hijoInput.value);
-			const limite = parseFloat(padreInput.value) * factor;
-			if (esFloatPositivo(limite) && valor > limite)
-				setHint(hintEl, `No puede superar ${labelPadre} (${redondear2(limite).toFixed(2)} gr.)`, true);
-			else if (esFloatPositivo(limite))
-				setHint(hintEl, `Máximo: ${redondear2(limite).toFixed(2)} gr.`);
-			else
-				setHint(hintEl, '');
+		function validarPesoRelacionado(hijoInput, padreInput) {
+			const minimo = Number(hijoInput.dataset.porcentajeMinimo);
+			const maximo = Number(hijoInput.dataset.porcentajeMaximo || 100);
+			const nombre = hijoInput.dataset.nombrePeso;
+			const referencia = hijoInput.dataset.referenciaPeso;
+			const regla = maximo === 100
+				? `Mayor al ${minimo}% del ${referencia}, sin superarlo.`
+				: `Mayor al ${minimo}% y como máximo ${maximo}% del ${referencia}.`;
+			if (!hijoInput.value) return { mensaje: regla, esError: false };
+			if (!esFloatPositivo(hijoInput.value))
+				return { mensaje: `El peso ${nombre} debe ser un número positivo (gr.).`, esError: true };
+			if (!esFloatPositivo(padreInput.value)) return { mensaje: regla, esError: false };
+			// El formulario envía dos decimales: comparar centésimas evita errores
+			// de coma flotante justo en los límites porcentuales.
+			const valor = Math.round(parseFloat(hijoInput.value) * 100);
+			const base = Math.round(parseFloat(padreInput.value) * 100);
+			const formatearLimite = porcentaje => (base * porcentaje / 10000).toFixed(4).replace(/0{1,2}$/, '');
+			if (valor * 100 <= base * minimo)
+				return { mensaje: `El peso ${nombre} debe ser mayor al ${minimo}% del ${referencia} (${formatearLimite(minimo)} gr.).`, esError: true };
+			if (valor * 100 > base * maximo)
+				return { mensaje: maximo === 100
+					? `El peso ${nombre} no puede ser mayor al ${referencia} (${formatearLimite(maximo)} gr.).`
+					: `El peso ${nombre} no puede superar el ${maximo}% del ${referencia} (${formatearLimite(maximo)} gr.).`, esError: true };
+			return { mensaje: `${regla} Máximo: ${(base * maximo / 10000).toFixed(2)} gr.`, esError: false };
+		}
+
+		function actualizarHintLimite(hijoInput, padreInput, hintEl) {
+			const { mensaje, esError } = validarPesoRelacionado(hijoInput, padreInput);
+			setHint(hintEl, mensaje, esError);
 		}
 
 		function validarCamposMuestra() {
@@ -266,22 +284,24 @@
 			const pm = parseFloat(pesoMuestraInput.value);
 			const pz = parseFloat(pesoTamizadoInput.value);
 
-			if (!esEnteroPositivo(numSacosInput.value))   return rechazar('El número de sacos debe ser un entero positivo (mínimo 1).', numSacosInput);
+			if (!esNumSacosValido(numSacosInput.value))   return rechazar(`El número de sacos debe ser un entero entre 1 y ${MAX_SACOS}.`, numSacosInput);
 			if (!esFloatPositivo(pesoTotalInput.value))   return rechazar('El peso total debe ser un número positivo (en kg).', pesoTotalInput);
 			const maxPesoTotal = parseInt(numSacosInput.value, 10) * 70;
 			if (parseFloat(pesoTotalInput.value) > maxPesoTotal) return rechazar(`El peso total no puede superar ${maxPesoTotal} kg (${numSacosInput.value} sacos × 70 kg).`, pesoTotalInput);
 			const taraTotal = calcularTara(parseInt(numSacosInput.value, 10));
-			if (parseFloat(pesoTotalInput.value) <= taraTotal) return rechazar(`El peso total debe ser mayor a la tara de los sacos: ${taraTotal} kg (${numSacosInput.value} sacos × 0.25 kg). Verifique el peso total o el número de sacos.`, pesoTotalInput);
+			if (parseFloat(pesoTotalInput.value) <= taraTotal) return rechazar(`El peso total debe ser mayor a la tara de los sacos: ${taraTotal} kg (${numSacosInput.value} sacos × ${TARA_POR_SACO_KG} kg). Verifique el peso total o el número de sacos.`, pesoTotalInput);
 			if (!esEnteroPositivo(humedadInput.value))    return rechazar('La humedad debe ser un número entero (sin decimales).', humedadInput);
-			if (parseInt(humedadInput.value, 10) > 100)   return rechazar('La humedad no puede superar 100%.', humedadInput);
+			if (parseInt(humedadInput.value, 10) > 30)    return rechazar('La humedad no puede superar 30%.', humedadInput);
 			if (!esFloatPositivo(pm))                     return rechazar('Seleccione un peso de muestra (100, 150, 200, 250 o 300 gr.).', pesoMuestraInput);
 			if (!esFloatPositivo(pt))                     return rechazar('El peso trillado debe ser un número positivo (en gr.).', pesoTrilladoInput);
 			if (pt === pm)                                return rechazar('El peso trillado debe ser diferente al peso de muestra.', pesoTrilladoInput);
 			if (pt > pm)                                  return rechazar('El peso trillado no puede ser mayor al peso de muestra.', pesoTrilladoInput);
-			if (pt > 0.83 * pm)                           return rechazar('El peso trillado no puede superar el 83% del peso de muestra.', pesoTrilladoInput);
+			const trillado = validarPesoRelacionado(pesoTrilladoInput, pesoMuestraInput);
+			if (trillado.esError)                        return rechazar(trillado.mensaje, pesoTrilladoInput);
 			if (!esEnteroPositivo(numTamizInput.value))   return rechazar('El número de tamiz debe ser un entero positivo (mínimo 1).', numTamizInput);
 			if (!esFloatPositivo(pz))                     return rechazar('El peso tamizado debe ser un número positivo (en gr.).', pesoTamizadoInput);
-			if (pz > pt)                                  return rechazar('El peso tamizado no puede ser mayor al peso trillado.', pesoTamizadoInput);
+			const tamizado = validarPesoRelacionado(pesoTamizadoInput, pesoTrilladoInput);
+			if (tamizado.esError)                        return rechazar(tamizado.mensaje, pesoTamizadoInput);
 			return true;
 		}
 
@@ -319,12 +339,12 @@
 			} catch (err) {
 				const msg = err.message || 'Error inesperado. Intente nuevamente.';
 				if (msg.includes('precios de café')) {
-					CoffeeModal.warning(msg, 'Precios de café no registrados hoy');
+					CoffeePrecios.avisar();  // mismo texto que el resto, según el rol
 				} else {
 					submitErrorEl.textContent = msg;
 				}
 				startBtn.disabled = false;
-				startBtn.textContent = 'Iniciar clasificacion y monitoreo';
+				startBtn.textContent = 'Iniciar clasificación y monitoreo';
 			}
 		}
 
@@ -369,7 +389,7 @@
 		});
 
 		numSacosInput.addEventListener('input', () => {
-			validarInline(numSacosInput, esEnteroPositivo, numSacosHint, 'Debe ser un entero positivo (mínimo 1).');
+			validarInline(numSacosInput, esNumSacosValido, numSacosHint, `Debe ser un entero entre 1 y ${MAX_SACOS}.`);
 			pesoTotalInput.dispatchEvent(new Event('input'));
 		});
 
@@ -383,7 +403,7 @@
 				if (parseFloat(pesoTotalInput.value) > maxKg) {
 					setHint(pesoTotalHint, `No puede superar ${maxKg} kg (${numSacosInput.value} sacos × 70 kg).`, true);
 				} else if (parseFloat(pesoTotalInput.value) <= taraKg) {
-					setHint(pesoTotalHint, `Debe ser mayor a la tara de los sacos: ${taraKg} kg (${numSacosInput.value} sacos × 0.25 kg).`, true);
+					setHint(pesoTotalHint, `Debe ser mayor a la tara de los sacos: ${taraKg} kg (${numSacosInput.value} sacos × ${TARA_POR_SACO_KG} kg).`, true);
 				} else {
 					setHint(pesoTotalHint, `Máximo: ${maxKg} kg.`);
 				}
@@ -396,22 +416,22 @@
 		humedadInput.addEventListener('input', () => {
 			if (!humedadInput.value)              { setHint(humedadHint, ''); return; }
 			if (!esEnteroPositivo(humedadInput.value)) setHint(humedadHint, 'Debe ser un número entero (sin decimales).', true);
-			else if (parseInt(humedadInput.value, 10) > 100) setHint(humedadHint, 'La humedad no puede superar 100%.', true);
+			else if (parseInt(humedadInput.value, 10) > 30) setHint(humedadHint, 'La humedad no puede superar 30%.', true);
 			else                                   setHint(humedadHint, '');
 		});
 
 		pesoMuestraInput.addEventListener('input', () => {
 			setHint(pesoMuestraHint, '');
-			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput, pesoTrilladoHint, 'el 83% del peso de muestra', 0.83);
+			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput, pesoTrilladoHint);
 		});
 
 		pesoTrilladoInput.addEventListener('input', () => {
-			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput, pesoTrilladoHint, 'el 83% del peso de muestra', 0.83);
-			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint, 'el peso trillado');
+			actualizarHintLimite(pesoTrilladoInput, pesoMuestraInput, pesoTrilladoHint);
+			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint);
 		});
 
 		pesoTamizadoInput.addEventListener('input', () =>
-			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint, 'el peso trillado'));
+			actualizarHintLimite(pesoTamizadoInput, pesoTrilladoInput, pesoTamizadoHint));
 
 		forzarEntero(numSacosInput);
 		forzarEntero(humedadInput);
@@ -424,6 +444,9 @@
 			.forEach(i => bloquearCaracteresNumericos(i));
 
 		startBtn.addEventListener('click', async () => {
+			// Sin precios de hoy no se puede pasar al monitoreo. Se vuelve a
+			// consultar aquí: pudieron registrarse después de abrir la página.
+			if (await CoffeePrecios.avisarSiFaltan()) return;
 			if (!validateForm()) return;
 
 			// Verificar que el sensor ultrasónico detecta la muestra en la banda
@@ -436,13 +459,13 @@
 				if (!estado.listo) {
 					CoffeeModal.warning(estado.mensaje || 'Debe cerrar la tapa luego de haber ingresado los granos de café para continuar al monitoreo.');
 					startBtn.disabled = false;
-					startBtn.textContent = 'Iniciar clasificacion y monitoreo';
+					startBtn.textContent = 'Iniciar clasificación y monitoreo';
 					return;
 				}
 			} catch {
 				CoffeeModal.warning('No se pudo verificar el sensor Arduino. Revise la conexión USB.');
 				startBtn.disabled = false;
-				startBtn.textContent = 'Iniciar clasificacion y monitoreo';
+				startBtn.textContent = 'Iniciar clasificación y monitoreo';
 				return;
 			}
 
@@ -450,6 +473,23 @@
 		});
 		clearBtn.addEventListener('click', clearAll);
 
+
 		cargarTiposDocumento();
 		cargarTiposGrano();
+		// El pago se calcula con los precios del día: sin precios de hoy el
+		// backend rechaza el registro. Se avisa al abrir la página para no llenar
+		// la ficha en vano.
+		async function mostrarAvisosRegistro() {
+			if (localStorage.getItem('coffeeren.pruebaPendiente') === '1') {
+				localStorage.removeItem('coffeeren.pruebaPendiente');
+				await CoffeeModal.info(
+					'Antes de iniciar el monitoreo, se recomienda comprobar el sistema mediante el botón Prueba.',
+					'Prueba del sistema'
+				);
+			}
+
+			await CoffeePrecios.avisarSiFaltan();
+		}
+
+		mostrarAvisosRegistro();
 	})();

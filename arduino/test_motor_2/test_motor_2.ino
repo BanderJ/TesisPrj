@@ -30,8 +30,8 @@
     A  → giro ADELANTE a la velocidad actual
     R  → giro en REVERSA a la velocidad actual
     P  → parar motor (el reductor lo mantiene fijo)
-    +  → subir velocidad (+25 PWM)
-    -  → bajar velocidad (-25 PWM)
+    +  → subir velocidad (+20 PWM)
+    -  → bajar velocidad (-20 PWM)
     V  → fijar velocidad exacta, ej: V150
     T  → secuencia automática de prueba (rampa adelante, pausa, reversa)
     ?  → mostrar estado y ayuda
@@ -46,10 +46,10 @@
 #define MOTOR_IN1  4   // sentido
 #define MOTOR_IN2  3   // sentido
 
-const int VELOCIDAD_INICIAL = 150;  // igual a producción — recalibrar con el reductor
+const int VELOCIDAD_INICIAL = 90;  // igual a producción — recalibrar con el reductor
 const int VELOCIDAD_MIN     = 0;
 const int VELOCIDAD_MAX     = 255;
-const int PASO_VELOCIDAD    = 55;
+const int PASO_VELOCIDAD    = 20;
 
 int  velocidad = VELOCIDAD_INICIAL;
 int  sentido   = -1;   // 0 = parado, 1 = adelante, -1 = reversa

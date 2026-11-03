@@ -46,8 +46,15 @@ class CoffeeRenTracker:
         # confianza no debe disparar la separacion fisica del grano.
         self.SERVO_MIN_FRAMES = 2
         self.SERVO_CONF_MIN = 0.45
-        # NMS mas permisivo: no suprime cajas de granos que se tocan.
+        # yolov26n_2cls es end2end (sin NMS): Ultralytics ignora `iou` y la
+        # cabeza puede emitir la misma caja dos veces, una por clase. Este IoU
+        # lo aplica _deduplicar_tile, sin distinguir clase. Alto para no
+        # suprimir cajas de granos que se tocan.
         self.IOU_NMS = 0.80
+        # Fraccion de la caja menor que debe caer dentro de la mayor para
+        # tratarlas como el mismo grano aunque el IoU no llegue a IOU_NMS
+        # (caja anidada). Dos granos distintos nunca quedan uno dentro de otro.
+        self.IOS_CONTENIDA = 0.90
         # IoU para fusionar la caja de un grano que cae en el solape de dos tiles.
         self.NMS_ENTRE_TILES = 0.5
         # Sesgo hacia la clase sana al resolver la clase de un track: la confianza
@@ -106,6 +113,9 @@ class CoffeeRenTracker:
             _cfg_bt = IterableSimpleNamespace(**yaml.safe_load(_f))
         self._bytetracker = BYTETracker(args=_cfg_bt)
         self._reset_bytetrack = False
+        # Época del lote: resetear_conteo la incrementa. Un frame que empezó en
+        # una época anterior no escribe en el conteo del lote nuevo.
+        self._epoca_lote = 0
 
         # Warmup: inicializa CUDA/ONNX con predict() — NO usar track(persist=False) aquí.
         # track(persist=False) registra un callback permanent que recrea ByteTrack
@@ -142,7 +152,9 @@ class CoffeeRenTracker:
         self._bytetrack_a_global: dict[int, int] = {}
 
         # Estadísticas y debug
-        self.fps_actual = 0.0
+        # Instantes de los frames procesados; el FPS es cuántos caen en el último
+        # segundo. maxlen cubre de sobra el techo de la cámara (~90 fps).
+        self._fps_tiempos: deque[float] = deque(maxlen=256)
         self.ultima_deteccion_frame_ts: float | None = None
 
         # Gate de movimiento: miniatura en gris del último frame evaluado.
@@ -152,6 +164,18 @@ class CoffeeRenTracker:
         # 3x3 a 30 fps son cientos de líneas/s de E/S síncrona en el hilo del
         # tracker, que frena el pipeline justo en lo que se está midiendo.
         self._debug_descarte_ts = 0.0
+        self._log_conteo_ts = 0.0
+        # Diagnóstico de granos juntos (ML_DEBUG_SERVO): cajas de grano que
+        # _deduplicar_tile eliminó a causa de una caja fuera de rango (un grupo
+        # > GRANO_MAX_PX o una caja < GRANO_MIN_PX dentro del grano). Las del
+        # frame actual se dibujan; el resto se acumula para un resumen en
+        # consola cada 2 s.
+        self._debug_suprimidas: list[np.ndarray] = []
+        self._debug_frames = 0
+        self._debug_grupos = 0
+        self._debug_n_suprimidas = 0
+        self._debug_ejemplo = ""
+        self._debug_grupos_ts = 0.0
 
     # ── Helpers de inicialización ─────────────────────────────────────────────
 
@@ -180,19 +204,19 @@ class CoffeeRenTracker:
         sys.modules[spec.name] = mod
         spec.loader.exec_module(mod)
 
-        self.CLASES                = mod.CLASES
-        self.COLORES               = mod.COLORES
-        self.EQUIVALENCIAS_DEFECTO = mod.EQUIVALENCIAS_DEFECTO
-        self.GRANO_MIN_PX          = getattr(mod, "GRANO_MIN_PX", 8)
-        self.GRANO_MAX_PX          = getattr(mod, "GRANO_MAX_PX", 200)
-        self.GRUPOS_DISPLAY        = getattr(mod, "GRUPOS_DISPLAY", {})
-        # Grilla de tiles para la inferencia. 1x1 = frame completo (sin tiling).
-        self.TILES_X               = getattr(mod, "TILES_X", 1)
-        self.TILES_Y               = getattr(mod, "TILES_Y", 1)
-        self.TILE_SOLAPE_PX        = getattr(mod, "TILE_SOLAPE_PX", 96)
-        self.CLASE_DESCONOCIDO      = getattr(mod, "CLASE_DESCONOCIDO", "desconocido")
-        self.UMBRAL_CONF_CONOCIDO  = getattr(mod, "UMBRAL_CONF_CONOCIDO", 0.0)
-        self.DESCONOCIDO_MIN_FRAMES = getattr(mod, "DESCONOCIDO_MIN_FRAMES", 3)
+        # Sin valores por defecto: si falta una constante, el arranque falla con
+        # un mensaje claro en vez de seguir con valores de otra cámara o modelo.
+        requeridas = (
+            "CLASES", "COLORES", "EQUIVALENCIAS_DEFECTO", "GRANO_MIN_PX", "GRANO_MAX_PX",
+            "TILES_X", "TILES_Y", "TILE_SOLAPE_PX", "CLASE_DESCONOCIDO",
+            "UMBRAL_CONF_CONOCIDO", "DESCONOCIDO_MIN_FRAMES",
+        )
+        faltan = [nombre for nombre in requeridas if not hasattr(mod, nombre)]
+        if faltan:
+            raise AttributeError(f"Faltan constantes en {constants_path}: {', '.join(faltan)}")
+        for nombre in requeridas:
+            setattr(self, nombre, getattr(mod, nombre))
+        self.GRUPOS_DISPLAY = getattr(mod, "GRUPOS_DISPLAY", {})
 
     # ── Detección ────────────────────────────────────────────────────────────
 
@@ -229,21 +253,29 @@ class CoffeeRenTracker:
         # Un solo batch: en GPU es una pasada para todos los tiles; en CPU
         # equivale a las llamadas sueltas anteriores.
         resultados = self.model.predict(
-            subs, imgsz=640, conf=self.conf, iou=self.IOU_NMS,
+            subs, imgsz=640, conf=self.conf,
             device=self._device, half=self._half, verbose=False,
         )
         cajas: list[np.ndarray] = []
+        self._debug_suprimidas = []
         for idx, ((x0, y0, x1, y1), r) in enumerate(zip(tiles, resultados)):
             if r.boxes is None or len(r.boxes) == 0:
                 continue
-            b = r.boxes.data.cpu().numpy()          # (n, 6): x1, y1, x2, y2, conf, cls
+            supresiones: list[tuple[np.ndarray, np.ndarray]] | None = (
+                [] if Config.ML_DEBUG_SERVO else None
+            )
+            b = self._deduplicar_tile(r.boxes.data.cpu().numpy(), supresiones)  # (n, 6): x1, y1, x2, y2, conf, cls
+            if supresiones is not None:
+                self._registrar_supresion_debug(b, supresiones, x0, y0)
             b[:, [0, 2]] += x0
             b[:, [1, 3]] += y0
             # 7a columna = indice de tile: _fusionar_cajas no une dos cajas del
-            # mismo tile (el NMS de YOLO ya las separo -> son granos distintos).
+            # mismo tile (_deduplicar_tile ya las separo -> son granos distintos).
             b = np.hstack([b, np.full((len(b), 1), idx, dtype=np.float32)])
             cajas.append(b)
 
+        if Config.ML_DEBUG_SERVO:
+            self._log_supresion_debug()
         if not cajas:
             return np.zeros((0, 6), dtype=np.float32)
         todas = np.vstack(cajas)                    # (N, 7)
@@ -251,12 +283,106 @@ class CoffeeRenTracker:
             return todas[:, :6]
         return self._fusionar_cajas(todas)[:, :6]
 
+    def _deduplicar_tile(self, cajas: np.ndarray,
+                         supresiones: list[tuple[np.ndarray, np.ndarray]] | None = None) -> np.ndarray:
+        """NMS agnóstico a la clase dentro de un tile. Filas (x1, y1, x2, y2, conf, cls).
+
+        El modelo es end2end: no pasa por NMS y, si un grano queda cerca del
+        50/50, la cabeza emite la misma caja como 'defecto' y como 'verde'. Sin
+        este filtro ByteTrack recibe las dos: una alterna la clase del track
+        existente y la otra abre un track nuevo (el grano se cuenta dos veces).
+        Se conserva la caja más confiada; la otra se descarta si su IoU con ella
+        alcanza IOU_NMS o si queda contenida en ella (IOS_CONTENIDA).
+
+        Si se pasa `supresiones`, se le agrega cada par (caja descartada, caja
+        que la descartó); lo usa el diagnóstico de ML_DEBUG_SERVO."""
+        if len(cajas) < 2:
+            return cajas
+        cajas = cajas[np.argsort(-cajas[:, 4])]
+        quedan: list[np.ndarray] = []
+        for c in cajas:
+            supresora = None
+            for q in quedan:
+                iou, ios = self._iou_ios(c, q)
+                if iou >= self.IOU_NMS or ios >= self.IOS_CONTENIDA:
+                    supresora = q
+                    break
+            if supresora is None:
+                quedan.append(c)
+            elif supresiones is not None:
+                supresiones.append((c, supresora))
+        return np.array(quedan, dtype=cajas.dtype)
+
+    def _es_tamano_grano(self, w: float, h: float) -> bool:
+        """True si una caja de w x h px está en el rango de tamaño de un grano."""
+        return (self.GRANO_MIN_PX <= w <= self.GRANO_MAX_PX
+                and self.GRANO_MIN_PX <= h <= self.GRANO_MAX_PX)
+
+    def _registrar_supresion_debug(self, quedan: np.ndarray,
+                                   supresiones: list[tuple[np.ndarray, np.ndarray]],
+                                   x0: int, y0: int) -> None:
+        """Diagnóstico (ML_DEBUG_SERVO): anota las cajas de tamaño de grano que
+        _deduplicar_tile eliminó a causa de una caja de grupo, es decir, una caja
+        fuera del rango de grano que el filtro de tamaño descarta después. Si hay
+        supresiones, los granos que se tocan sí se detectan pero se pierden en la
+        deduplicación; si no las hay, el modelo solo marca el grupo."""
+        self._debug_grupos += sum(
+            1 for q in quedan if max(q[2] - q[0], q[3] - q[1]) > self.GRANO_MAX_PX
+        )
+        for c, g in supresiones:
+            w, h = c[2] - c[0], c[3] - c[1]
+            if not self._es_tamano_grano(w, h) or self._es_tamano_grano(g[2] - g[0], g[3] - g[1]):
+                continue
+            caja = c.copy()
+            caja[[0, 2]] += x0
+            caja[[1, 3]] += y0
+            self._debug_suprimidas.append(caja)
+            self._debug_n_suprimidas += 1
+            # La supresora también puede ser una caja menor que GRANO_MIN_PX
+            # dentro del grano, con más confianza que él.
+            supresora = f"{int(g[2] - g[0])}x{int(g[3] - g[1])}px conf={g[4]:.2f}"
+            grano = f"grano {int(w)}x{int(h)}px conf={c[4]:.2f}"
+            if max(g[2] - g[0], g[3] - g[1]) > self.GRANO_MAX_PX:
+                self._debug_ejemplo = f"grupo {supresora} contiene {grano}"
+            else:
+                self._debug_ejemplo = f"caja chica {supresora} dentro de {grano}"
+
+    def _log_supresion_debug(self) -> None:
+        """Resumen de _registrar_supresion_debug en consola, como máximo cada 2 s."""
+        self._debug_frames += 1
+        ahora = time.monotonic()
+        if ahora - self._debug_grupos_ts <= 2.0:
+            return
+        if self._debug_grupos or self._debug_n_suprimidas:
+            linea =(f"[det-debug] {self._debug_frames} frames: {self._debug_grupos} cajas de grupo "
+                     f"(> {self.GRANO_MAX_PX}px), {self._debug_n_suprimidas} cajas de grano "
+                     f"suprimidas por una caja fuera de rango")
+            if self._debug_n_suprimidas:
+                linea += f". Ej.: {self._debug_ejemplo}"
+            print(linea)
+        self._debug_grupos_ts = ahora
+        self._debug_frames = self._debug_grupos = self._debug_n_suprimidas = 0
+        self._debug_ejemplo = ""
+
+    @staticmethod
+    def _iou_ios(a: np.ndarray, b: np.ndarray) -> tuple[float, float]:
+        """IoU e IoS (intersección / área de la caja menor) de dos cajas
+        (x1, y1, x2, y2, ...). (0, 0) si no se tocan o alguna tiene área nula."""
+        ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+        iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+        inter = ix * iy
+        area_a = (a[2] - a[0]) * (a[3] - a[1])
+        area_b = (b[2] - b[0]) * (b[3] - b[1])
+        if inter <= 0 or min(area_a, area_b) <= 0:
+            return 0.0, 0.0
+        return float(inter / (area_a + area_b - inter)), float(inter / min(area_a, area_b))
+
     def _fusionar_cajas(self, cajas: np.ndarray) -> np.ndarray:
         """Une la caja de un grano partido por la costura entre dos tiles.
         Entrada/salida: filas (x1, y1, x2, y2, conf, cls, idx_tile).
 
         Solo funde cajas de tiles DISTINTOS (col 6): dos cajas del mismo tile ya
-        fueron separadas por el NMS de YOLO y son granos distintos — nunca se
+        pasaron por _deduplicar_tile y son granos distintos — nunca se
         funden, así dos granos que se tocan siguen contando por separado.
 
         Cross-tile se funden si se solapan (IoU >= NMS_ENTRE_TILES o IoS >= 0.6)
@@ -273,17 +399,11 @@ class CoffeeRenTracker:
                 for k, f in enumerate(fusion):
                     if int(c[6]) == int(f[6]):
                         continue                       # mismo tile -> granos distintos
-                    ix = max(0.0, min(c[2], f[2]) - max(c[0], f[0]))
-                    iy = max(0.0, min(c[3], f[3]) - max(c[1], f[1]))
-                    inter = ix * iy
-                    if inter <= 0:
+                    iou, ios = self._iou_ios(c, f)
+                    if iou == 0.0 or (iou < self.NMS_ENTRE_TILES and ios < 0.6):
                         continue
                     area_c = (c[2] - c[0]) * (c[3] - c[1])
                     area_f = (f[2] - f[0]) * (f[3] - f[1])
-                    iou = inter / (area_c + area_f - inter)
-                    ios = inter / min(area_c, area_f)
-                    if iou < self.NMS_ENTRE_TILES and ios < 0.6:
-                        continue
                     env = (max(c[2], f[2]) - min(c[0], f[0])) * (max(c[3], f[3]) - min(c[1], f[1]))
                     if env > 1.6 * max(area_c, area_f):
                         continue                       # fusionar agrandaría demasiado
@@ -306,27 +426,35 @@ class CoffeeRenTracker:
     # ── Pipeline principal ────────────────────────────────────────────────────
 
     def hay_movimiento(self, frame: np.ndarray) -> bool:
-        """True si el frame cambió respecto al último evaluado. Se compara una
-        miniatura 160x90 en gris: por debajo de ML_GATE_UMBRAL (diferencia media
-        de intensidad) la faja está quieta y no vale la pena correr YOLO.
-        El primer frame siempre cuenta como movimiento."""
+        """True si el frame cambió respecto al último frame que pasó a inferencia.
+        Se compara una miniatura 160x90 en gris: por debajo de ML_GATE_UMBRAL
+        (diferencia media de intensidad) la faja está quieta y no vale la pena
+        correr YOLO. El primer frame siempre cuenta como movimiento.
+
+        La referencia solo se actualiza cuando el frame pasa el gate. Si se
+        actualizara en cada llamada, una faja lenta (JGY370, 10 RPM) nunca
+        acumularía diferencia entre dos frames consecutivos y la inferencia se
+        omitiría con la faja en marcha."""
         gris = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), (160, 90))
-        previo, self._gris_movimiento = self._gris_movimiento, gris
-        if previo is None:
+        if self._gris_movimiento is None:
+            self._gris_movimiento = gris
             return True
-        diff = float(np.mean(cv2.absdiff(gris, previo)))
+        diff = float(np.mean(cv2.absdiff(gris, self._gris_movimiento)))
         ahora = time.monotonic()
         if ahora - self._gate_log_ts > 2.0:
             self._gate_log_ts = ahora
             print(f"gate: diff media={diff:.2f} (umbral={Config.ML_GATE_UMBRAL})")
-        return diff >= Config.ML_GATE_UMBRAL
+        if diff >= Config.ML_GATE_UMBRAL:
+            self._gris_movimiento = gris
+            return True
+        return False
 
     def procesar_frame(self, frame: np.ndarray, ts_frame: float | None = None) -> bytes | None:
         """
         Procesa un frame con ByteTrack y retorna JPEG anotado.
 
         Args:
-            frame: Frame BGR de OpenCV (1280x720 @ 60fps)
+            frame: Frame BGR de OpenCV (resolución de Config.CAM_WIDTH x CAM_HEIGHT)
             ts_frame: time.monotonic() de captura del frame. El servo se programa
                       desde este instante para descontar la latencia de inferencia.
 
@@ -340,9 +468,14 @@ class CoffeeRenTracker:
         # que t_toma - ts_frame es lo que el frame espero en cola.
         t_toma = time.monotonic()
 
+        with self.lock:
+            epoca = self._epoca_lote
+            reiniciar = self._reset_bytetrack
+            self._reset_bytetrack = False
+
         try:
-            if self._reset_bytetrack:
-                self._reset_bytetrack = False
+            if reiniciar:
+                # ByteTrack solo se toca desde este hilo.
                 self._bytetracker.reset()
             dets = self._detectar(frame)                 # (N, 6) en coords del frame completo
             t_inf1 = time.monotonic()
@@ -356,6 +489,14 @@ class CoffeeRenTracker:
         frame_anotado = frame.copy()
         detecciones_count = 0
 
+        # Diagnóstico: granos detectados que la deduplicación eliminó a causa de
+        # una caja fuera de rango (en magenta, debajo de las cajas de los tracks).
+        for c in self._debug_suprimidas:
+            sx1, sy1, sx2, sy2 = map(int, c[:4])
+            cv2.rectangle(frame_anotado, (sx1, sy1), (sx2, sy2), (255, 0, 255), 1)
+            cv2.putText(frame_anotado, f"sup {c[4]:.2f}", (sx1, max(sy1 - 4, 12)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 1)
+
         # tracks: filas (x1, y1, x2, y2, bytetrack_id, conf, cls, idx_deteccion)
         for pista in tracks:
             detecciones_count += 1
@@ -367,8 +508,7 @@ class CoffeeRenTracker:
 
             # Filtro de tamaño: descarta objetos fuera del rango de un grano
             w, h = x2 - x1, y2 - y1
-            if not (self.GRANO_MIN_PX <= w <= self.GRANO_MAX_PX
-                    and self.GRANO_MIN_PX <= h <= self.GRANO_MAX_PX):
+            if not self._es_tamano_grano(w, h):
                 # Calibración: dibujar el descartado en gris con sus dimensiones
                 # para ajustar GRANO_MIN_PX / GRANO_MAX_PX en constants.py
                 cv2.rectangle(frame_anotado, (x1, y1), (x2, y2), (128, 128, 128), 1)
@@ -384,6 +524,10 @@ class CoffeeRenTracker:
                 continue
 
             with self.lock:
+                if epoca != self._epoca_lote:
+                    # El lote se reinició mientras se procesaba este frame: sus
+                    # tracks son del lote anterior y no se cuentan en el nuevo.
+                    break
                 # Mapping bytetrack_id → id_global: garantiza que el contador
                 # nunca retrocede aunque ByteTrack reinicie su secuencia interna.
                 if bytetrack_id not in self._bytetrack_a_global:
@@ -429,7 +573,8 @@ class CoffeeRenTracker:
             cv2.rectangle(frame_anotado, (x1, y1), (x2, y2), color, grosor)
 
             nombre = "objeto desconocido" if clase == self.CLASE_DESCONOCIDO else clase
-            label = f"#{track_id} {nombre} {conf_score:.2%} {w}x{h}px"
+            ### label = f"#{track_id} {nombre} {conf_score:.2%} {w}x{h}px"
+            label = f"#{track_id} {nombre}"
             (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
             cv2.rectangle(frame_anotado, (x1, y1 - th - 8), (x1 + tw + 4, y1 - 2), color, -1)
             cv2.putText(frame_anotado, label, (x1 + 2, y1 - 4),
@@ -437,25 +582,35 @@ class CoffeeRenTracker:
 
         # Overlay de estadísticas
         total_granos = len(self.conteo_ids_confianza)
-        stats_text = f"Granos: {total_granos} | FPS: {self.fps_actual:.1f} | Detecciones: {detecciones_count}"
+        stats_text = f"Granos: {total_granos} | Detecciones: {detecciones_count}"
         cv2.putText(frame_anotado, stats_text, (15, 35),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
 
         if detecciones_count > 0:
             self.ultima_deteccion_frame_ts = time.time()
 
-        if total_granos > 0 and detecciones_count > 0:
-            with self.lock:
-                conteo_debug = self._calcular_conteo_final()
-            print(f"Detecciones: {detecciones_count} | Total únicos: {total_granos} | {conteo_debug}")
-        elif detecciones_count == 0:
-            print(f"Frame procesado sin detecciones (cajas crudas: {len(dets)})")
+        # Resumen en consola cada 2 s, no por frame: imprimir 30 veces por segundo
+        # frena este hilo, que es el que se cronometra para el indicador de latencia.
+        ahora_log = time.monotonic()
+        if ahora_log - self._log_conteo_ts > 2.0:
+            self._log_conteo_ts = ahora_log
+            if detecciones_count > 0:
+                with self.lock:
+                    conteo_debug = self._calcular_conteo_final()
+                print(f"Detecciones: {detecciones_count} | Total únicos: {total_granos} | {conteo_debug}")
+            else:
+                print(f"Frame procesado sin detecciones (cajas crudas: {len(dets)})")
 
         # Limpieza de IDs globales que ya salieron del frame y no tienen servo pendiente
         bt_activos = {int(pista[4]) for pista in tracks}
         with self.lock:
             ids_global_activos = {self._bytetrack_a_global[bt] for bt in bt_activos if bt in self._bytetrack_a_global}
-            ids_a_limpiar = set(self.conteo_ids_confianza.keys()) - ids_global_activos - self._ids_servados
+            # Si el lote se reinició durante este frame, sus tracks no son del lote
+            # nuevo: no hay nada que limpiar.
+            ids_a_limpiar = (
+                set(self.conteo_ids_confianza.keys()) - ids_global_activos - self._ids_servados
+                if epoca == self._epoca_lote else set()
+            )
             for tid in ids_a_limpiar:
                 if Config.ML_DEBUG_SERVO:
                     # Estos tracks se van sin haber accionado el servo: nunca
@@ -516,11 +671,12 @@ class CoffeeRenTracker:
             self._ts_primer_avistamiento = {}
             self._bytetrack_a_global = {}
             self._id_global = 0
-        # El hilo de procesamiento resetea ByteTrack en el próximo frame (evita
-        # tocar el tracker desde otro hilo mientras corre procesar_frame).
-        self._reset_bytetrack = True
+            self._epoca_lote += 1
+            # El hilo de procesamiento resetea ByteTrack en el próximo frame (evita
+            # tocar el tracker desde otro hilo mientras corre procesar_frame).
+            self._reset_bytetrack = True
+            self._gris_movimiento = None
         self.ultima_deteccion_frame_ts = None
-        self._gris_movimiento = None
         servo_controller.limpiar_cola()
         medidor_latencia.resetear()
 
@@ -677,10 +833,14 @@ class CoffeeRenTracker:
 
         return {clase: len(ids) for clase, ids in conteo_por_clase.items()}
 
-    def _actualizar_fps(self, t_anterior: float) -> float:
-        """Actualiza el FPS y retorna el nuevo tiempo anterior."""
-        t_actual = time.time()
-        delta = t_actual - t_anterior
-        if delta > 0:
-            self.fps_actual = 1.0 / delta
-        return t_actual
+    def _actualizar_fps(self) -> None:
+        """Registra el instante de un frame procesado."""
+        self._fps_tiempos.append(time.monotonic())
+
+    def obtener_fps(self) -> float:
+        """Frames procesados en el último segundo (ventana deslizante): tras una
+        pausa de la faja baja a 0 y no conserva el valor anterior."""
+        ahora = time.monotonic()
+        # list() copia la deque de una vez: el hilo de procesamiento puede
+        # seguir agregando mientras la ruta de estado la lee.
+        return float(sum(1 for t in list(self._fps_tiempos) if ahora - t <= 1.0))

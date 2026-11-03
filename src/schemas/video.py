@@ -1,15 +1,23 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.utilities.uuid_utils import UUID_PATTERN
 
 
-class IniciarMonitoreoRequest(BaseModel):
-    """Arranque del monitoreo. El id de evaluación es opcional: la vista /test
-    monitorea sin evaluación asociada y entonces no se archiva evidencia."""
+class ControlMonitoreoRequest(BaseModel):
+    """Identifica el lote al iniciar, detener o resetear. Prueba no envía evaluación."""
 
     evaluacion_id: str | None = Field(None, pattern=UUID_PATTERN)
+
+    @field_validator("evaluacion_id")
+    @classmethod
+    def normalizar_uuid(cls, valor: str | None) -> str | None:
+        return valor.lower() if valor else valor
+
+
+class DetenerMonitoreoRequest(ControlMonitoreoRequest):
+    descartar_lote: bool = False
 
 
 class EventoMonitoreoItem(BaseModel):

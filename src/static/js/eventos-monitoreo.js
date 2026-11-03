@@ -92,5 +92,5 @@
 		galeria.parentElement.style.display = conFoto.length ? '' : 'none';
 	}
 
-	window.CoffeeEventos = { render };
+	window.CoffeeEventos = { render, formatSegundo: _formatSegundo };
 })();

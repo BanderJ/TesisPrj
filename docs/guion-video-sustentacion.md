@@ -201,7 +201,7 @@ Si el cronómetro aprieta, recortar en este orden:
 
 Si algo del hardware falla durante la grabación:
 
-- La ruta `/test` abre el video con detección en vivo **sin registrar** muestra ni evaluación:
+- La ruta `/prueba` abre el video con detección en vivo **sin registrar** muestra ni evaluación:
   sirve para evidenciar los criterios 18 y 19 aunque no se pueda cerrar el flujo completo.
 - El reporte de una evaluación anterior ya guardada cubre los criterios 3, 9 y 20 desde
   `/reporte` sin depender de la faja.

@@ -1,252 +1,254 @@
-# AGENTS.md
+# Instrucciones para asistentes de IA — CoffeeRen
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+Este archivo es la **fuente única de instrucciones** para cualquier asistente de IA que trabaje en
+este repositorio: Claude, ChatGPT/Codex, Gemini, GitHub Copilot u otro. Los archivos propios de
+cada herramienta (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`) solo remiten aquí.
+Si cambias una regla, cámbiala **en este archivo**.
 
-## Project Overview
+Léelo completo antes de hacer cualquier cambio.
 
-**CoffeeRen** — A computer vision system for automated classification of green coffee beans and defect detection in real time. Developed as a thesis project at Universidad Católica Santo Toribio de Mogrovejo (USAT) in collaboration with Cooperativa Agraria Line Coffee Marañón.
+---
 
-The project combines:
-- **FastAPI backend** for managing coffee farmers ("caficultores") registration, document validation, and socio conversion workflows
-- **ML vision module** using YOLO (YOLOv8n, YOLO11n, YOLO26n) for bean defect detection
-- **Real-time video streaming** from ELP Global Shutter camera (AR0234, 1920x1080, 90fps)
-- **Arduino integration** for physical separation actuators
-- **Web UI** with server-rendered Jinja2 templates for local access
+## 1. Qué es el proyecto
 
-## Development Commands
+CoffeeRen es un sistema de tesis (USAT, Perú) para la Cooperativa Agraria Line Coffee Marañón.
+Clasifica granos de café verde en tiempo real:
+
+1. Los granos pasan por una faja transportadora (Arduino).
+2. Una cámara ELP AR0234 los filma.
+3. Un modelo YOLO detecta cada grano y lo clasifica como `verde` (sano) o `defecto`.
+4. ByteTrack le da un ID único a cada grano para no contarlo dos veces.
+5. Un servo desvía los granos defectuosos.
+6. El sistema cuenta los defectos equivalentes del lote y calcula el pago al caficultor.
+
+Aplicación web: FastAPI + plantillas Jinja2 + PostgreSQL 18. Un solo desarrollador, en Windows 11.
+
+## 2. Qué leer antes de empezar
+
+| Si vas a… | Lee primero |
+|---|---|
+| Entender el proyecto | `docs/guia/README.md` y `docs/guia/01-contexto-del-proyecto.md` |
+| Tocar el módulo de visión (`src/ml/`, `tracker_service.py`, `camara_service.py`) | `docs/guia/02-modulo-ml.md` y `docs/hardware-camara.md` |
+| Reentrenar el modelo | `docs/guia/03-reentrenamiento-camara-elp.md` |
+| Saber qué falta hacer | `docs/guia/04-pendientes.md` |
+| Saber qué cambió y cuándo | `docs/guia/05-historial-de-cambios.md` |
+| Escribir código backend | Sección 5 de este archivo y `.claude/skills/fastapi-architecture/SKILL.md` |
+| Escribir HTML, CSS o JS | `.claude/skills/frontend-coffeeren/SKILL.md` |
+| Redactar documentación o informes | `.claude/skills/documentacion-informes/SKILL.md` |
+
+Los archivos `SKILL.md` de `.claude/skills/` son Markdown normal: cualquier IA puede leerlos
+como guía, aunque la carpeta tenga el nombre de Claude.
+
+`docs/documentacion/` es material académico de la etapa de planificación. **No describe el
+código actual**: no lo uses como fuente técnica.
+
+## 3. Cómo trabajar con el usuario
+
+- **Idioma:** responder en español. El usuario escribe informal y con faltas de ortografía; eso
+  no cambia lo que pide.
+- **No inventar reglas de negocio ni umbrales.** Si una tarea necesita un valor que el usuario
+  no dio (límites de peso, umbrales de confianza, equivalencias de defectos, rangos), pregunta
+  antes, con opciones concretas. No "mejores" validaciones que nadie pidió.
+- **Si la solicitud es ambigua:** no escribas código todavía. Explica en pocas líneas lo que
+  entendiste, propone 2 o 3 opciones con una recomendación, haz como máximo 3 preguntas y
+  espera la respuesta.
+- **Si la solicitud es clara:** impleméntala directamente, con cambios mínimos y sin
+  sobreingeniería.
+- **Estilo de salida:** sin emojis ni adornos, tono técnico y sobrio, sin frases que delaten
+  texto generado por IA. Aplica a respuestas, código, comentarios y documentación.
+- **Calidad sobre cantidad:** nada de código duplicado ("espagueti"). Antes de crear algo,
+  busca si ya existe y reutilízalo o parametrízalo.
+- **Sin archivos inútiles:** no crees documentos nuevos si ya existe uno sobre el tema;
+  actualiza el existente. Borra lo que quede superado.
+- No hagas commit ni push salvo que el usuario lo pida.
+
+## 4. Comandos
 
 ```bash
-# Install dependencies (activate venv first)
 python -m venv .venv
-source .venv/Scripts/activate   # Windows
-pip install -r requirements.txt
-
-# Run the development server
-uvicorn src.main:app --reload
-
-# Compile TailwindCSS (watch mode)
+source .venv/Scripts/activate            # Windows (Git Bash); en PowerShell: .venv\Scripts\activate
+pip install -r requirements.txt          # torch debe quedar en variante CUDA (+cu130), ver requirements.txt
+cp src/config-example.py src/config.py   # y poner la contraseña real de PostgreSQL
+uvicorn src.main:app --reload            # http://localhost:8000
 ./tailwindcss-windows-x64.exe -i src/static/css/input.css -o src/static/css/tailwind.css --watch
 ```
 
-App runs at `http://localhost:8000`. No test suite exists.
+No hay suite de tests unitarios. Hay tres verificaciones: `tests/verificacion_incremento_1.py`, las
+pruebas de caja negra de `tests/caja_negra/` (Playwright + pytest, casos PCN-XX de la tesis):
+`python -m pytest tests/caja_negra` con la app corriendo, la cámara conectada (la precondición
+abre y cierra un monitoreo para que el servidor tenga el conteo del lote) y precios de café con
+fecha de hoy, y
+`python -m tests.caja_negra.generar_fichas` para el Word de fichas. Crean usuarios y evaluaciones
+de prueba: solo contra la base de desarrollo. Las pruebas de caja blanca de `tests/caja_blanca/`
+(casos PCB-XX, pytest + pytest-cov) no usan BD ni hardware: `python -m tests.caja_blanca.ejecutar`
+corre cada caso con cobertura de ramas y guarda la evidencia, y `python -m tests.caja_blanca.generar_fichas`
+arma el Word. Los helpers comunes de las fichas están en `tests/fichas_word.py`. Verifica a mano que la app arranque, que el flujo
+registro → monitoreo → análisis funcione y, para cambios de Python, `python -m py_compile <archivo>`.
 
-## Architecture
+## 5. Reglas del código
 
-The project uses a four-layer pattern — every feature has a file in each layer:
+### 5.1 Cuatro capas (obligatorio)
 
-| Layer | Path | Responsibility |
-|---|---|---|
-| **Routes** | `src/routes/` | HTTP endpoints, calls services, returns templates or JSON |
-| **Services** | `src/services/` | Business logic, orchestrates models, owns transaction commit/rollback |
-| **Models** | `src/models/` | Raw SQL via psycopg2, accepts optional `db` connection for shared transactions |
-| **Schemas** | `src/schemas/` | Pydantic request/response models and input validation |
+Cada funcionalidad tiene un archivo en cada capa. No mezcles responsabilidades.
 
-### Database
+| Capa | Carpeta | Puede | No puede |
+|---|---|---|---|
+| Routes | `src/routes/` | Recibir HTTP, llamar a services, devolver plantilla o JSON | Lógica de negocio, SQL |
+| Services | `src/services/` | Lógica de negocio, orquestar models, hacer `commit`/`rollback` | SQL |
+| Models | `src/models/` | SQL crudo con psycopg2 | Lógica |
+| Schemas | `src/schemas/` | Toda la validación con Pydantic | — |
 
-Direct psycopg2 (no ORM). The `Connection` class in [src/database/bd.py](src/database/bd.py) wraps a single connection per request with `autocommit=False` and `RealDictCursor`. Methods: `obtener()`, `obtener_uno()`, `ejecutar()`, `commit()`, `rollback()`.
+Otras carpetas: `src/apis/` (cliente externo RENIEC/Factiliza), `src/utilities/` (JWT, UUIDv7,
+serie Arduino, servo, validador de documentos, eventos, latencia), `src/ml/` (visión).
 
-Database credentials are hardcoded in [src/config.py](src/config.py) — `SECRET_KEY` reads from env, but `DB_*` values are literals.
+### 5.2 Reglas que no se negocian
 
-Schema is in [src/database/script.sql](src/database/script.sql).
+- Type hints en toda función, sintaxis moderna: `list[dict]`, `str | None`.
+- SQL siempre parametrizado: `db.obtener("SELECT ... WHERE id=%s", [id])`. Nunca f-strings en SQL.
+- Si abres una conexión a mano: `try ... finally: db.close()`.
+- Una función parametrizada en lugar de varias casi iguales.
+- Nombres de archivos subidos con `uuid7()` de `src/utilities/uuid_utils.py`, nunca `uuid4()`.
+- Los campos `NOT NULL` de la base de datos son obligatorios en el schema Pydantic, y los
+  `max_length` coinciden con el `varchar(N)` de `src/database/script.sql`.
 
-### Authentication
+### 5.3 Base de datos
 
-JWT stored as an httponly cookie (`access_token: "Bearer <token>"`). Passwords hashed with Argon2. All routes except `/auth/login` depend on `obtener_usuario_actual()` from [src/utilities/jwt_required.py](src/utilities/jwt_required.py), which raises `RequerirLoginException` → global exception handler → redirect to `/auth/login`. Token payload contains `personal_id`, `usuario`, `rol`, `nombre`, `exp` (7-day TTL).
+PostgreSQL 18, base `tesis_prj` (usa `uuidv7()` nativo). Sin ORM. La clase `Connection` de
+`src/database/bd.py` tiene `obtener()`, `obtener_uno()`, `ejecutar()`, `commit()`, `rollback()`,
+`close()`. Para escribir en varias tablas a la vez, el service crea **una** conexión, se la pasa
+a cada model (`db: Connection = None`) y al final hace `commit()` o `rollback()`.
 
-### Transaction Pattern
+### 5.4 Configuración
 
-When a service needs to write to multiple tables atomically, it creates one `Connection`, passes it to each model call, then calls `db.commit()` (or `db.rollback()` on error). Models accept `db: Connection = None` for this purpose.
+`src/config.py` **no está en Git** (tiene la contraseña real). En Git está
+`src/config-example.py`, una plantilla. **Todo cambio en `src/config.py` se copia en
+`src/config-example.py` en el mismo momento**, con los secretos reemplazados por un texto de
+ejemplo. Los dos archivos deben tener los mismos atributos en la clase `Config`. Las variables
+de `.env` tienen prioridad sobre los valores por defecto. `SECRET_KEY` no tiene valor por
+defecto: va en `.env` y la app no arranca si falta, si mide menos de 32 caracteres o si es un
+texto de ejemplo (`validar_clave_secreta` en `src/utilities/jwt_utils.py`).
 
-## ML Module Architecture (`src/ml/`)
+### 5.5 Autenticación y permisos
 
-### Models
-Trained YOLO weights are loaded once inside `tracker.py` (there is no separate inference module — detection happens in the tracking loop).
-- **Models location**: `src/ml/models/{model_name}/best.onnx` (fallback `best.pt`) — NOT in Git, download from Google Drive
-- **Available models**:
-  - `yolov8n/best.pt` — trained unseed, batch=16, mAP50: 0.767, mAP50-95: 0.757 (75 epochs)
-  - `yolo26n/best.pt` — trained seed=42, batch=16 (in progress)
-  - `yolo11n/best.pt` — pending training
+- JWT en cookie httponly `access_token` ("Bearer ..."), contraseñas con Argon2, sesión de 7 días.
+- Toda ruta, salvo `/auth/login`, depende como mínimo de `obtener_usuario_actual`
+  (`src/utilities/jwt_required.py`).
+- Roles: 1 Evaluador, 2 Gerente, 3 Administrador. Lo restringido a Gerente o Administrador usa
+  `Depends(require_admin_o_gerente)`. Ocultar un enlace en el menú **no** es control de acceso.
+- Gestión de usuarios (crear, editar, activar y desactivar): solo Administrador,
+  con `Depends(require_admin)`. Gestión de tipos de grano y cambio del beneficio de socio:
+  solo Gerente, con `Depends(require_gerente)`.
+- El flujo de registro de muestras y monitoreo corresponde al Evaluador. La página
+  `/registro` usa `Depends(require_evaluador)`.
+- Detener o resetear video de un lote asociado a una evaluación exige rol Evaluador e ID
+  coincidente. Prueba, sin ID, solo controla lotes sin evaluación. La parada del motor
+  (`POST /arduino/motor/detener`) sigue disponible para toda sesión.
 
-### `tracker.py` — Real-time Video Capture & ByteTrack
-Captures video from ELP camera and tracks beans using ByteTrack algorithm (unique ID persistence across frames).
-- **Class**: `CoffeeRenTracker`
-- **Camera**: ELP AR0234 Global Shutter, index=0, 1920×1080 @ 90fps
-- **Key method**: `iniciar()` → starts capture in separate thread (non-blocking)
-- **Key method**: `obtener_frame()` → returns latest annotated frame for MJPEG streaming
-- **Key method**: `obtener_conteo()` → returns `{class: unique_bean_count}` dict
-- **Key method**: `resetear_conteo()` → resets for new batch
-- **Important**: Each bean gets a unique ID that persists to avoid double-counting
+### 5.6 Frontend
 
-### `classifier.py` — Defect Equivalents & SCA Grade
-Calculates defect equivalents and determines batch grade per SCA standards.
-- **Main function**: `generar_reporte(conteo_granos)` — receives output of `tracker.obtener_conteo()`
-- **Returns**: total beans, equivalent defects, grade (1–5), specialty-eligible flag, per-class breakdown
-- **⚠️ Critical**: Defect equivalence table must match Line Coffee Marañón's official standards
+Plantillas en `src/templates/` que extienden `main.html`. El JavaScript va en archivos de
+`src/static/js/`, cargados con `{% block script %}`; solo las variables de Jinja2 van inline.
+CSS propio por página en `src/static/css/`. Formularios con 2 campos por fila y validación en
+vivo. Errores del backend con `CoffeeHttp.mensajeError()` (`http.js`). Detalle en
+`.claude/skills/frontend-coffeeren/SKILL.md`.
 
-### Bean Defect Classes (17 total)
-```
-agrio_ligero, agrio_severo, averanado, blanco,
-broca_ligero, broca_severo, cascarilla_cereza_seca,
-cascarilla_pergamino, cereza_seca, concha, deforme,
-inmaduro, negro, partido_maquina, partido_mitad,
-pergamino, verde
-```
+## 6. Módulo de visión: lo esencial
 
-## System Flow
-```
-ELP Camera (90fps)
-    ↓
-tracker.py — detection + ByteTrack (unique IDs)
-    ↓
-MJPEG streaming → web UI
-    ↓
-End of batch → classifier.py
-    ↓
-Report: grade + defects + specialty eligible
-    ↓
-Arduino → physical separation actuator
-```
+El detalle completo está en `docs/guia/02-modulo-ml.md`. Lo mínimo:
 
-## Training Results (Validation)
-| Model   | mAP50 | mAP50-95 | Epochs | Duration |
-|---------|:-----:|:--------:|:------:|:--------:|
-| YOLOv8n | 0.767 | 0.757    | 75     | 1.1h     |
-| YOLO26n | —     | —        | in progress | — |
-| YOLO11n | —     | —        | pending    | — |
+- **Un solo modelo:** `yolov26n_2cls` en `src/ml/models/yolov26n_2cls/` (`best.pt`, `best.onnx`,
+  `constants.py`). Clases `defecto` y `verde`; el tracker agrega `desconocido` (materia extraña).
+- **No existen** y no deben volver a documentarse como si existieran: el modelo de 17 clases,
+  el modelo cascada de 14 clases, `USE_MODELO_DEFECTOS`, `inference.py`.
+- **GPU → `best.pt`; CPU → `best.onnx`.** FP16 solo en GPUs con compute capability ≥ 7.0.
+  `best.onnx` está en Git; `best.pt` no (se descarga de Google Drive).
+- El modelo se carga **una sola vez** al arrancar. Las rutas solo leen el último resultado; nunca
+  bloquean ni recargan el modelo.
+- El módulo ML no escribe al puerto serie, al disco ni a la base de datos: eso lo hacen los
+  services y `src/utilities/`.
+- Problema conocido: el modelo marca como defecto ~40 % de granos sanos porque se entrenó con
+  fotos de celular y en producción se usa la cámara ELP. La solución planificada es el
+  reentrenamiento de `docs/guia/03-reentrenamiento-camara-elp.md`.
 
-### Training Context (CRISP-ML(Q))
-- **Dataset**: 3,451 original images → 8,283 with 3× augmentation (Roboflow)
-- **Split**: 88% train / 8% validation / 4% test
-- **Augmentations**: flip H/V, rotate ±15°, brightness ±15%, exposure ±5%, blur 0.5px, noise 0.1%
-- **Infrastructure**: Google Colab A100 GPU, transfer learning from COCO
+### Prohibido cambiar sin permiso explícito del usuario
 
-### Key Business Rules
+- `src/utilities/servo_controller.py` y `src/utilities/arduino_serial.py`.
+- `SERVO_DELAY_S = 0.3` (en `.env`, motor JGY370) y `SERVO_HOLD_S = 0.3` (devuelto a 0.3 el 2026-11-03: con 0.2 el servo actuaba muy rápido para los defectos; pendiente de validar en producción).
+- `TrackerService._on_camara_desconectada()` (modo de emergencia).
+- `imgsz=640` y la estructura de hilos (cámara productora, tracker consumidor).
+- `half`: solo condicional por hardware; nunca forzar FP16 (rompe la GTX 1050 Mobile).
+- `track_buffer: 10` en `src/ml/bytetrack.yaml`.
+- Protocolo con Arduino: `ON`, `OFF`, `SERVO:DEFECTO`, `SERVO:BUENO`, `PESO:`, `LISTO:`.
+- Parámetros de exportación ONNX: `imgsz=640, half=False, dynamic=False, simplify=True`.
+- Orden de clases del modelo: `["defecto", "verde"]`.
+- Umbrales y equivalencias (`UMBRAL_CONF_CONOCIDO`, `MARGEN_DEFECTO`, `EQUIVALENCIAS_DEFECTO`).
 
-- Document validation: DNI must be exactly 8 digits; Pasaporte/Carnet must be 8–12 alphanumeric characters.
-- `Caficultor` records reference a `Persona` (the person) and a `TipoCaficultor` (Socio vs. non-Socio).
-- Conversion to "socio" status: `PATCH /caficultor/convertir-socio/{num_documento}`.
+## 7. Reglas de negocio vigentes
 
-## Pages
+- Documento: DNI exactamente 8 dígitos; Pasaporte o Carnet de Extranjería 8 a 12 caracteres
+  alfanuméricos (`src/utilities/documento_validador.py`).
+- Número de sacos: entero de 1 a 30 por lote (`MAX_SACOS_POR_LOTE`, `src/schemas/evaluacion.py`).
+- Peso bruto: como máximo `num_sacos × 70` kg y mayor que la tara `num_sacos × 0.25` kg. La tara
+  no se redondea nunca (2 sacos = 0.50 kg): se resta tal cual del peso bruto. El peso por saco
+  está en `TARA_POR_SACO_KG` (`src/schemas/evaluacion.py`).
+- Humedad: número entero de 1 a 30; más de 12 % aplica descuento:
+  `peso_neto × (H − 12) / (100 − H)`. Se divide entre `100 − H` (no `100 − 12`) a propósito:
+  regla confirmada por el responsable el 2026-11-02.
+- Pesos al registrar muestras (regla del responsable, 2026-11-03): trillado **mayor al 60 % y
+  como máximo 83 %** de la muestra; tamizado **mayor al 80 % del trillado y sin superarlo**.
+  Ambos admiten hasta dos decimales, conforme a `numeric(7, 2)`; los mínimos son estrictos.
+- Conteo del lote: al finalizar, el servidor guarda el conteo de su tracker
+  (`tracker_service.conteo_de_evaluacion`); el navegador no lo envía. Si el lote en memoria no
+  es el de esa evaluación, la finalización se rechaza.
+- Código EVA: correlativo de la secuencia `evaluacion_codigo_seq`, único (`UNIQUE`).
+- Rangos de precio del café: los rangos activos del día no se pueden solapar y el precio no puede
+  bajar cuando sube el rango. Para reemplazar uno, se desactiva primero: todas sus versiones del
+  día quedan con `VALOR_CAFE.activo = FALSE`, conservando UUID e historial y sin alterar precios
+  ni pagos de evaluaciones completadas. No se eliminan físicamente.
+- Precios del día: una muestra solo se registra si hay precios activos de café con fecha de hoy,
+  y el pago usa el precio activo de hoy del rango que contiene el factor de rendimiento. Los rangos son enteros y
+  el rango se busca con la parte entera del factor, sin redondear (65.52 cae en 60-65 porque no
+  llega a 66); el factor guardado conserva sus decimales. Si ese rango no tiene precio hoy,
+  completar la evaluación falla hasta que se registre. Una evaluación pendiente de rendimiento
+  puede completarse después con los precios activos del día de su cálculo.
+- Grado SCA: **no se calcula ni se muestra.** Depende del tipo de defecto (primario/secundario) y
+  el modelo actual solo distingue `defecto`/`verde`. `EVALUACION.categoria_id` queda en NULL; la
+  tabla `CATEGORIA` se conserva para cuando el modelo clasifique por tipo de defecto.
+- Caficultor Socio o Externo; conversión con `PATCH /caficultor/convertir-socio/{num_documento}`.
+- Beneficio de socio: monto fijo por entrega (inicial S/ 10) que se suma al pago de un socio. Lo
+  cambia solo el Gerente en Cooperativa → Beneficio de socio (`POST /bono-socio`). La
+  tabla `BONO_SOCIO` es de solo inserción (el vigente es el más reciente) y cada evaluación guarda
+  el monto aplicado en `EVALUACION.bono_socio`; `pago` es el total. Un cambio nunca altera
+  evaluaciones ya completadas. Se decide con el tipo de caficultor registrado en la evaluación.
 
-| URL | Template |
+## 8. Documentación: dónde va cada cosa
+
+| Qué | Dónde |
 |---|---|
-| `/` or `/inicio` | `inicio.html` |
-| `/auth/login` | `login.html` |
-| `/nuevo-caficultor` | `nuevo_caficultor.html` |
-| `/monitoreo` | `monitoreo.html` |
-| `/registro` | `registro.html` |
+| Estado del sistema, pendientes, historial | `docs/guia/` |
+| Bitácora de avances por fecha | `docs/registro-avances.md` |
+| Incidencias formales (leerlo entero antes de editarlo) | `docs/incidencias/incidencia_proyecto.md` |
+| API de video | `docs/API_VIDEO_STREAMING.md` |
+| Cámara | `docs/hardware-camara.md` |
+| Único manual de entrega: usuario (solo Word, sin fuente Markdown ni conversión) | `docs/manuales/Manual_Usuario_CoffeeRen.docx` |
+| Evidencias de indicadores de tesis | `docs/evidencias/` |
 
-## ML Integration Rules (always apply when modifying ML modules)
+Al terminar un cambio relevante: agrega una línea a `docs/guia/05-historial-de-cambios.md`,
+marca el ítem en `docs/guia/04-pendientes.md` y, si cambió un parámetro del ML, actualiza la
+tabla de `docs/guia/02-modulo-ml.md`.
 
-- **Model loading**: Always load once at startup, cache in memory — never reload per-request
-- **Threading**: Tracker runs in background thread; routes poll `obtener_frame()` and `obtener_conteo()` (non-blocking)
-- **Frame pipeline**: tracker.py (detection + ByteTrack) → web streaming; never skip steps
-- **Type hints**: All ML functions use type hints (`ndarray`, `dict[str, int]`, etc.)
-- **Defect equivalents**: Must match Line Coffee Marañón's official SCA table — always verify against [docs/documentacion/](docs/documentacion/) before deploying
-- **Arduino communication**: `src/utilities/` handles serial protocol — ML modules call don't send directly
-- **Performance**: Frame drops are acceptable at 90fps; graceful degradation > blocking
-- **No TF/PT exports**: Model weights stay as `.pt` files, not TensorFlow exports
+## 9. Lista de control antes de dar por terminado
 
-## Estado actual del ML Module (junio 2025)
+Si tocaste `src/routes`, `src/services`, `src/models`, `src/schemas`, `src/apis`, `src/ml`,
+`src/templates` o `src/static`, revisa tu cambio contra la lista de
+`.claude/agents/architecture-compliance-auditor.md` (Claude lo hace con un subagente; otras
+IA, leyendo esa lista). Como mínimo:
 
-### Cambios aplicados recientemente
-- `conteo_ids_confianza`: cambiado de `defaultdict(list)` a `defaultdict(lambda: deque(maxlen=30))` — evita memoria ilimitada si la faja se pausa
-- Votación por mayoría implementada en `_mejor_clase_para()`: con ≥5 detecciones usa clase mayoritaria con conf promedio ≥0.45; fallback a max confianza individual
-- Limpieza de IDs inactivos al final de cada frame en `procesar_frame()`
-- Modelo cascada de 14 clases preparado y activable con `USE_MODELO_DEFECTOS=True` en `config.py`
-- `_resolver_modelo()`: prueba `best.onnx` primero, fallback a `best.pt`
-- Device automático: `torch.cuda.is_available()` → `cuda` / `cpu`, nunca hardcodeado
-
-### Modelos ONNX exportados (no modificar parámetros de exportación)
-```python
-# Parámetros exactos usados — no cambiar
-model.export(format="onnx", imgsz=640, half=False, dynamic=False, simplify=True)
-```
-- `src/ml/models/yolov26n_2cls/best.onnx` ✅ (9.4 MB)
-- `src/ml/models/yolov26n/best.onnx` ✅ (9.4 MB)
-
-### Sistema de IDs globales (problema resuelto: IDs siempre 1 o 2)
-ByteTrack reinicia su contador interno cuando no hay detecciones por varios frames.
-Solución implementada en `tracker.py`: mapeo propio `_bytetrack_a_global` que nunca retrocede.
-```python
-# Al inicializar:
-self._id_global = 0
-self._bytetrack_a_global: dict[int, int] = {}
-
-# En procesar_frame():
-bytetrack_id = int(box.id[0])
-if bytetrack_id not in self._bytetrack_a_global:
-    self._id_global += 1
-    self._bytetrack_a_global[bytetrack_id] = self._id_global
-track_id = self._bytetrack_a_global[bytetrack_id]
-```
-`resetear_conteo()` limpia `_bytetrack_a_global` e `_id_global` para nuevos lotes.
-
-### Configuración ByteTrack (`src/ml/bytetrack.yaml`)
-```yaml
-tracker_type: bytetrack
-track_high_thresh: 0.25
-track_low_thresh: 0.1
-new_track_thresh: 0.25
-track_buffer: 10       # calibrado — el contador global hace el conteo resistente a pausas
-match_thresh: 0.8
-fuse_score: True
-```
-`track_buffer: 10` es intencional. El sistema es resistente a pausas largas gracias al mapeo global de IDs, no al buffer.
-
-### Modelo cascada de 14 clases (`yolov26n`)
-```python
-# En config.py — activar cuando se confirme estabilidad:
-USE_MODELO_DEFECTOS = False
-MODELO_DEFECTOS_NAME = "yolov26n"
-MODELO_DEFECTOS_EVERY_N = 5    # corre cada N frames por track_id
-MODELO_DEFECTOS_CONF = 0.35
-```
-Clases del modelo secundario:
-```python
-CLASES = [
-    "agrio", "averanado", "blanco", "broca_ligero", "broca_severo",
-    "cascarilla_cereza_seca", "cascarilla_pergamino", "cereza_seca",
-    "defecto_forma", "inmaduro", "negro", "partido", "pergamino", "verde"
-]
-```
-Cuando activo: corre sobre crop del grano defectuoso con padding 4px. Si devuelve "verde", NO sobreescribe la clase del modelo 1. Resultado cacheado en `_cache_tipo_defecto[track_id]`.
-
-### Hardware objetivo
-- RTX 5070 Ti Mobile y GTX 1050 Mobile — mismo código en ambas
-- `half=False` siempre — GTX 1050 Mobile tiene soporte FP16 limitado
-- `imgsz=640` siempre — coincide con entrenamiento en Roboflow
-- Frames van directo como array NumPy a YOLO — sin conversión JPG en inferencia
-- JPG solo al final para streaming MJPEG al navegador
-
-### Restricciones absolutas — nunca cambiar sin permiso explícito
-- `servo_controller.py` y `arduino_serial.py`: no modificar
-- `SERVO_DELAY_S=0.5s` y `SERVO_HOLD_S=0.3s`: calibrados físicamente
-- `_on_camara_desconectada()`: modo emergencia, no tocar
-- `imgsz=640`, `half=False`, estructura de hilos: no cambiar
-- Protocolo Arduino: `SERVO:DEFECTO`, `SERVO:BUENO`, `ON`, `OFF`, `PESO:`, `LISTO:`
-
-### Pendiente de verificar
-- Confirmar en prueba real que IDs globales suben sin retroceder tras pausas entre granos
-- Activar `USE_MODELO_DEFECTOS=True` cuando se confirme estabilidad del modelo de 14 clases
-- Verificar FPS en GTX 1050 Mobile vs RTX 5070 Ti con modelos ONNX
-- Confirmar que PyTorch detecta CUDA correctamente en ambas laptops (`torch.cuda.is_available()`)
-
-### Nota sobre la sección "No TF/PT exports" en Backend Rules
-Esta regla quedó desactualizada. Los modelos ahora se exportan a ONNX (`best.onnx`) para mejor rendimiento en CPU y GPU. Los `.pt` se mantienen como respaldo pero no se usan en producción.
-
-## Backend Rules (always apply when writing Python/FastAPI code)
-
-**Before creating anything new:** Does it already exist? → Reuse. Minor variation? → Parametrize. No unique value? → Delete.
-
-**Layer discipline** (never cross boundaries):
-- Routes: HTTP only, no business logic, no SQL
-- Services: orchestration and business logic, no SQL
-- Models: raw SQL only, no logic
-- Schemas: all Pydantic validation here, nowhere else
-
-**Non-negotiables:**
-- Type hints on every function (Python 3.10+ syntax: `list[dict]`, `str | None`)
-- SQL always parametrized: `db.obtener("SELECT … WHERE id=%s", [id])` — never f-strings
-- Always `try … finally: db.close()` when opening a Connection manually
-- No duplicate methods — one flexible parametrized method beats three near-identical ones
+- [ ] Cada capa hace solo lo suyo (sección 5.1).
+- [ ] Type hints, SQL parametrizado, conexiones cerradas.
+- [ ] Nada duplicado: se reutilizó lo existente.
+- [ ] No se tocó nada de la lista de prohibidos (sección 6).
+- [ ] Si cambió `src/config.py`, también cambió `src/config-example.py`.
+- [ ] No se inventó ningún umbral ni regla de negocio.
+- [ ] La documentación afectada quedó actualizada (sección 8).
+- [ ] La respuesta final está en español, sin emojis, y dice con claridad qué se verificó y qué no.

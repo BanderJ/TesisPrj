@@ -3,21 +3,31 @@ from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field, model_validator
 
+# Peso de un saco vacío. La tara del lote es num_sacos × este valor, sin redondear:
+# se resta tal cual del peso bruto. Lo usan este schema y EvaluacionService.completar.
+TARA_POR_SACO_KG = Decimal("0.25")
+# Tamaño máximo de lote que se registra (regla del responsable, 2026-11-02). Con
+# 30 sacos el peso bruto (≤ 2100 kg) y el pago caben en numeric(7, 2).
+MAX_SACOS_POR_LOTE = 30
+
 
 class RegistrarEvaluacionRequest(BaseModel):
     num_documento: str = Field(..., pattern=r"^[A-Za-z0-9]{8,12}$")
-    num_sacos: int = Field(..., ge=1)
+    num_sacos: int = Field(..., ge=1, le=MAX_SACOS_POR_LOTE)
     peso_bruto: Decimal = Field(..., gt=0)
-    humedad: int = Field(..., ge=1, le=100)
+    humedad: int = Field(..., ge=1, le=30)
     peso_muestra: Decimal = Field(..., ge=100)
-    peso_trillado: Decimal = Field(..., gt=0)
+    peso_trillado: Decimal = Field(..., gt=0, decimal_places=2)
     num_tamiz: int = Field(..., ge=1)
-    peso_tamizado: Decimal = Field(..., gt=0)
+    peso_tamizado: Decimal = Field(..., gt=0, decimal_places=2)
     tipo_grano_id: int = Field(..., ge=1)
 
     PESOS_MUESTRA_VALIDOS: ClassVar[set[Decimal]] = {
         Decimal("100"), Decimal("150"), Decimal("200"), Decimal("250"), Decimal("300")
     }
+    MIN_PORCENTAJE_TRILLADO: ClassVar[int] = 60
+    MAX_PORCENTAJE_TRILLADO: ClassVar[int] = 83
+    MIN_PORCENTAJE_TAMIZADO: ClassVar[int] = 80
 
     @model_validator(mode="after")
     def validar_pesos(self) -> "RegistrarEvaluacionRequest":
@@ -28,11 +38,11 @@ class RegistrarEvaluacionRequest(BaseModel):
             )
         # Mismo cálculo de tara que EvaluacionService.completar: si el peso total no la
         # supera, el peso neto sale <= 0 y el pago se calcula negativo.
-        tara_total = int(round(self.num_sacos * 0.25))
+        tara_total = self.num_sacos * TARA_POR_SACO_KG
         if self.peso_bruto <= tara_total:
             raise ValueError(
                 f"El peso total debe ser mayor a la tara de los sacos: {tara_total} kg "
-                f"({self.num_sacos} sacos × 0.25 kg). Verifique el peso total o el número de sacos."
+                f"({self.num_sacos} sacos × {TARA_POR_SACO_KG} kg). Verifique el peso total o el número de sacos."
             )
         if self.peso_muestra not in self.PESOS_MUESTRA_VALIDOS:
             raise ValueError("El peso de muestra debe ser 100, 150, 200, 250 o 300 gr.")
@@ -40,10 +50,14 @@ class RegistrarEvaluacionRequest(BaseModel):
             raise ValueError("El peso trillado debe ser diferente al peso de muestra")
         if self.peso_trillado > self.peso_muestra:
             raise ValueError("El peso trillado no puede ser mayor al peso de muestra")
-        if self.peso_trillado > Decimal("0.83") * self.peso_muestra:
+        if self.peso_trillado * 100 <= self.MIN_PORCENTAJE_TRILLADO * self.peso_muestra:
+            raise ValueError("El peso trillado debe ser mayor al 60% del peso de muestra")
+        if self.peso_trillado * 100 > self.MAX_PORCENTAJE_TRILLADO * self.peso_muestra:
             raise ValueError("El peso trillado no puede superar el 83% del peso de muestra")
         if self.peso_tamizado > self.peso_trillado:
             raise ValueError("El peso tamizado no puede ser mayor al peso trillado")
+        if self.peso_tamizado * 100 <= self.MIN_PORCENTAJE_TAMIZADO * self.peso_trillado:
+            raise ValueError("El peso tamizado debe ser mayor al 80% del peso trillado")
         return self
 
 
@@ -76,8 +90,8 @@ class IncidenciaTapa(BaseModel):
 
 
 class FinalizarEvaluacionRequest(BaseModel):
-    total_defectos: int | None = Field(None, ge=0)
-    total_buenos: int | None = Field(None, ge=0)
+    # El conteo de granos lo toma el servidor del tracker; aquí solo llegan las
+    # aperturas de tapa que observó el monitoreo.
     incidencias: list[IncidenciaTapa] | None = None
 
 
@@ -86,10 +100,14 @@ class FinalizarEvaluacionResponse(BaseModel):
     mensaje: str
     evaluacion_id: str
     codigo: str
+    # Conteo guardado en la evaluación (lo que quedó en la BD, no lo que envió el cliente).
+    total_defectos: int | None = None
+    total_buenos: int | None = None
+    # True si la evaluación ya estaba finalizada y la llamada fue un reintento.
+    ya_finalizada: bool = False
 
 
 class CompletarEvaluacionRequest(BaseModel):
-    total_defectos: int = Field(..., ge=0)
     # Gramos enteros — ingresado manualmente por el evaluador (sin celda de carga)
     peso_bueno: int = Field(..., ge=0)
 
@@ -100,11 +118,13 @@ class CompletarEvaluacionResponse(BaseModel):
     evaluacion_id: str
     codigo: str
     factor_rendimiento: Decimal
+    peso_neto: Decimal
     peso_por_qq: Decimal
     pago: Decimal
+    pago_base: Decimal
+    bono_socio: Decimal
     precio: Decimal
     rango: str
-    categoria: str | None = None
 
 
 class KpisEvaluacionResponse(BaseModel):
@@ -150,10 +170,12 @@ class ResumenEvaluacionResponse(BaseModel):
     # Campos de rendimiento — NULL hasta que se complete la evaluación
     total_defectos: int | None = None
     total_buenos: int | None = None
+    peso_neto: Decimal | None = None
     peso_bueno: Decimal | None = None
     factor_rendimiento: Decimal | None = None
     peso_por_qq: Decimal | None = None
     pago: Decimal | None = None
+    pago_base: Decimal | None = None
+    bono_socio: Decimal | None = None  # None: evaluación anterior al beneficio de socio
     precio: Decimal | None = None
     rango: str | None = None
-    categoria: str | None = None

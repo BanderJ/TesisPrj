@@ -18,17 +18,17 @@ caficultor_service = CaficultorService()
 
 
 @caficultor_router.get("/listar")
-async def listar_caficultores(
+def listar_caficultores(
     _: dict = Depends(obtener_usuario_actual),
 ) -> list[dict]:
     try:
         return caficultor_service.listar_caficultores()
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo listar los caficultores.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron listar los caficultores.") from exc
 
 
 @caficultor_router.get("/consultar/{num_documento}", response_model=ObtenerDatosResponse)
-async def consultar_caficultor(
+def consultar_caficultor(
     num_documento: str = Path(..., pattern=r"^[A-Za-z0-9]{8,12}$"),
     _: dict = Depends(obtener_usuario_actual),
 ) -> ObtenerDatosResponse:
@@ -55,7 +55,7 @@ async def consultar_caficultor(
     response_model=RegistrarCaficultorResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def registrar_caficultor(
+def registrar_caficultor(
     request: Request,
     payload: RegistrarCaficultorRequest,
     usuario: dict = Depends(obtener_usuario_actual),
@@ -83,7 +83,7 @@ async def registrar_caficultor(
     "/convertir-socio/{num_documento}",
     response_model=ConvertirSocioResponse,
 )
-async def convertir_caficultor_a_socio(
+def convertir_caficultor_a_socio(
     request: Request,
     num_documento: str = Path(..., pattern=r"^[A-Za-z0-9]{8,12}$"),
     usuario: dict = Depends(obtener_usuario_actual),

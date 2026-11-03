@@ -1,4 +1,4 @@
-﻿{% extends "main.html" %}
+{% extends "main.html" %}
 
 {% block style %}
 <link rel="stylesheet" href="/static/css/analisis.css">
@@ -6,26 +6,17 @@
 {% endblock %}
 
 {% block content %}
-<section class="reporte-page" id="reportePage">
+<section class="analisis-page reporte-page" id="reportePage">
 
-	<!-- Toolbar -->
 	<div class="analisis-toolbar">
 		<div class="analisis-toolbar-title">
-			<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--primary);flex-shrink:0">
+			<svg class="analisis-toolbar-icon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
 				<circle cx="11" cy="11" r="8"/>
 				<path d="m21 21-4.35-4.35"/>
 			</svg>
 			<h1>Buscar reportes de análisis</h1>
 		</div>
-	</div>
-
-	<!-- Search card — compact horizontal -->
-	<div class="reporte-search-card">
-		<div class="reporte-search-inner">
-			<div class="reporte-search-label">
-				<p class="kicker" style="margin:0 0 2px;">Búsqueda por código de evaluación</p>
-				<p class="reporte-search-hint">Prefijo <strong>EVA</strong> fijo — escribe solo los números</p>
-			</div>
+		<div class="analisis-toolbar-actions">
 			<form id="formBuscar" class="reporte-search-form" autocomplete="off">
 				<input
 					type="text"
@@ -35,32 +26,41 @@
 					inputmode="numeric"
 					spellcheck="false"
 					autocomplete="off"
-					aria-label="Código de evaluación"
+					aria-label="Código de evaluación (prefijo EVA fijo, escribe solo los números)"
+					title="Prefijo EVA fijo: escribe solo los números"
 				/>
 				<button type="submit" id="btnBuscar" class="btn btn-primary reporte-btn-buscar">
-					<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+					<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
 						<circle cx="11" cy="11" r="8"/>
 						<path d="m21 21-4.35-4.35"/>
 					</svg>
 					Buscar
 				</button>
 			</form>
+			<div class="reporte-export" id="reporteExport" hidden>
+				<button class="btn-export pdf" onclick="window.print()">
+					<img src="/static/icon/pdf.png" alt="">
+					Exportar PDF
+				</button>
+				<button class="btn-export excel" id="btnExcel">
+					<img src="/static/icon/excel.png" alt="">
+					Exportar Excel
+				</button>
+			</div>
 		</div>
 	</div>
 
-	<!-- Empty state -->
 	<div class="reporte-state" id="emptyState">
-		<svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--muted-foreground);opacity:0.4">
+		<svg class="reporte-state-icon" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
 			<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
 			<rect x="9" y="3" width="6" height="4" rx="1"/>
 			<path d="M9 12h6M9 16h4"/>
 		</svg>
-		<p>Ingrese un código de evaluación para ver el resumen de la muestra</p>
+		<p>Ingrese un código de evaluación para ver el resumen de la muestra. El prefijo EVA es fijo: escriba solo los números.</p>
 	</div>
 
-	<!-- Not found state -->
 	<div class="reporte-state" id="notFoundState" hidden>
-		<svg width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:#dc2626;opacity:0.6">
+		<svg class="reporte-state-icon reporte-state-icon--error" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
 			<circle cx="11" cy="11" r="8"/>
 			<path d="m21 21-4.35-4.35"/>
 			<path d="M8.5 11h5"/>
@@ -68,179 +68,17 @@
 		<p>No se encontró ninguna evaluación con ese código</p>
 	</div>
 
-	<!-- Results -->
-	<div id="resultados" class="reporte-results" hidden>
-
-		<!-- Header card — same compact pattern as analisis.html -->
-		<div class="analisis-header-card">
-			<div class="analisis-header-main">
-				<p class="kicker" style="margin:0 0 2px;">Evaluación de café</p>
-				<div class="analisis-title-row">
-					<h2 id="codEval">—</h2>
-					<span class="status-badge finalizado">
-						<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
-						Finalizado
-					</span>
-				</div>
-				<p id="caficultorNombre" class="analisis-caficultor">—</p>
-			</div>
-			<div class="analisis-chips">
-				<div class="analisis-chip">
-					<span>DNI</span>
-					<strong id="metaDoc">—</strong>
-				</div>
-				<div class="analisis-chip">
-					<span>Tipo caficultor</span>
-					<strong id="metaTipoCaf">—</strong>
-				</div>
-				<div class="analisis-chip">
-					<span>Tipo de grano</span>
-					<strong id="metaGrano">—</strong>
-				</div>
-				<div class="analisis-chip">
-					<span>Peso por quintal</span>
-					<strong id="metaPesoQqGrano">—</strong>
-				</div>
-				<div class="analisis-chip">
-					<span>Registrado por</span>
-					<strong id="metaRegistradoPor">—</strong>
-				</div>
-			</div>
-		</div>
-
-		<!-- Stats row (desde BD: totales guardados al finalizar el monitoreo) -->
-		<div class="analisis-stats" id="statsRow">
-			<div class="stat-card">
-				<div class="stat-card-label">Granos evaluados</div>
-				<div class="stat-card-value accent-blue" id="rStatGranos">—</div>
-				<div class="stat-card-sub">Total en banda</div>
-			</div>
-			<div class="stat-card">
-				<div class="stat-card-label">Defectos</div>
-				<div class="stat-card-value accent-red" id="rStatDefectos">—</div>
-				<div class="stat-card-sub">Detectados por IA</div>
-			</div>
-			<div class="stat-card">
-				<div class="stat-card-label">Buenos</div>
-				<div class="stat-card-value accent-green" id="rStatSanos">—</div>
-				<div class="stat-card-sub">Sin defecto</div>
-			</div>
-			<div class="stat-card">
-				<div class="stat-card-label">% Defecto</div>
-				<div class="stat-card-value accent-amber" id="rStatPct">—</div>
-				<div class="stat-card-sub">Del total evaluado</div>
-			</div>
-		</div>
-
-		<!-- Sample data -->
-		<div class="analisis-section">
-			<h3>Datos de la muestra</h3>
-			<table class="data-table">
-				<tbody>
-					<tr><td>Código evaluación</td><td id="tdCodigo">—</td></tr>
-					<tr><td>Fecha</td><td id="tdFecha">—</td></tr>
-					<tr><td>N° de sacos</td><td id="tdSacos">—</td></tr>
-					<tr><td>Peso bruto</td><td id="tdPeso">—</td></tr>
-					<tr><td>Humedad</td><td id="tdHumedad">—</td></tr>
-					<tr><td>Peso de muestra</td><td id="tdPesoMuestra">—</td></tr>
-					<tr><td>Peso trillado</td><td id="tdTrillado">—</td></tr>
-					<tr><td>N° de tamiz</td><td id="tdTamiz">—</td></tr>
-					<tr><td>Peso tamizado</td><td id="tdTamizado">—</td></tr>
-				</tbody>
-			</table>
-		</div>
-
-		<!-- Factor de rendimiento -->
-		<div class="analisis-section">
-			<h3>Factor de rendimiento</h3>
-			<p class="analisis-note" id="rendimientoPendienteNota" style="display:none;">
-				Esta evaluación aún no tiene el peso de grano bueno registrado — el rendimiento se calcula desde la página de análisis.
-			</p>
-			<div id="rRendimiento" class="clasificacion-row" style="display:none;">
-				<div class="clasificacion-card grado">
-					<span>Factor rendimiento</span>
-					<strong id="rFactor">—</strong>
-				</div>
-				<div class="clasificacion-card">
-					<span>Peso bueno</span>
-					<strong id="rPesoBueno">—</strong>
-				</div>
-				<div class="clasificacion-card">
-					<span>Peso por quintal</span>
-					<strong id="rPesoQq">—</strong>
-				</div>
-				<div class="clasificacion-card">
-					<span id="rPrecioLabel">Precio quintal (S/)</span>
-					<strong id="rPrecio">—</strong>
-				</div>
-				<div class="clasificacion-card">
-					<span>Pago (S/)</span>
-					<strong id="rPago">—</strong>
-				</div>
-				<div class="clasificacion-card">
-					<span>Categoría</span>
-					<strong id="rCategoria">—</strong>
-				</div>
-			</div>
-		</div>
-
-		<!-- Incidencias de tapa (visible solo si las hay) -->
-		<div id="incidenciasSection" style="display:none;" class="analisis-section analisis-incidencias">
-			<h3>Incidencias durante el monitoreo</h3>
-			<p class="analisis-note" style="margin-bottom:10px;">Se registró cada apertura de tapa durante el monitoreo (la faja no se detiene).</p>
-			<table class="data-table">
-				<thead>
-					<tr>
-						<th>Apertura (s)</th>
-						<th>Cierre (s)</th>
-						<th>Duración abierta</th>
-					</tr>
-				</thead>
-				<tbody id="incidenciasTbody"></tbody>
-			</table>
-		</div>
-
-		<!-- Traza del monitoreo: mismo contenido en analisis y en reporte -->
-		<div id="eventosSection" style="display:none;" class="analisis-section analisis-eventos">
-			<h3>Registro del monitoreo</h3>
-			<p class="analisis-note" style="margin-bottom:10px;">Mensajes que el sistema emitió durante la clasificación, con el segundo del lote en que ocurrieron. Los objetos extraños (piedras, palitos, pajilla) quedan con la foto de lo que se desvió.</p>
-			<table class="data-table">
-				<thead>
-					<tr>
-						<th>Momento</th>
-						<th>Tipo</th>
-						<th>Mensaje</th>
-						<th>Evidencia</th>
-					</tr>
-				</thead>
-				<tbody id="eventosTbody"></tbody>
-			</table>
-
-			<div class="evidencias-wrap">
-				<h4>Objetos extraños detectados</h4>
-				<div id="eventosGaleria" class="evidencias-galeria"></div>
-			</div>
-		</div>
-
-		<!-- Actions -->
-		<div class="analisis-actions">
-			<button class="btn-export pdf" onclick="window.print()">
-				<img src="/static/icon/pdf.png" alt="PDF">
-				Exportar PDF
-			</button>
-			<button class="btn-export excel" id="btnExcel">
-				<img src="/static/icon/excel.png" alt="Excel">
-				Exportar Excel
-			</button>
-		</div>
-
+	<div id="resultados" class="analisis-page" hidden>
+		{% set modo = 'reporte' %}
+		{% include "partials/resumen_evaluacion.html" %}
 	</div>
 
 </section>
 {% endblock %}
 
 {% block script %}
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="/static/js/eventos-monitoreo.js"></script>
+<script src="/static/js/resumen-evaluacion.js"></script>
 <script src="/static/js/reporte.js"></script>
 {% endblock %}

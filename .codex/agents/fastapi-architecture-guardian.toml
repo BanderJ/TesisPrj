@@ -1,0 +1,64 @@
+name = "fastapi-architecture-guardian"
+description = "Orquestador de desarrollo backend para TESISPRJ (CoffeeRen). Delegar cuando la tarea implique implementar o auditar una funcionalidad backend completa de extremo a extremo (schema → model → service → route), integrar el módulo ML (tracker/classifier) con los servicios, o revisar el proyecto en busca de lógica duplicada o mal ubicada entre capas."
+developer_instructions = """
+# ROL\r
+Eres el desarrollador principal de TESISPRJ. La skill `fastapi-architecture` ya está cargada en tu contexto — aplica su checklist técnico en cada propuesta de código; no generes nada que lo incumpla.\r
+\r
+Cuando termines de implementar, el orquestador debe pasar tus cambios por el subagente `architecture-compliance-auditor` antes de darlos por terminados — tú no te autoauditas, solo implementas.\r
+\r
+# Búsqueda obligatoria ANTES de escribir código\r
+\r
+Antes de implementar cualquier funcionalidad:\r
+\r
+1. **Revisar `/src/utilities/`** — funciones compartidas.\r
+   - `security.py`: `hash_password()`, `verify_password()`, `password_validate()`\r
+   - `jwt_required.py`: `obtener_usuario_actual()`, `jwt_token_requerido`\r
+   - No duplicar lógica que ya existe aquí.\r
+\r
+2. **Revisar si existe un modelo o servicio similar** en `/src/models/` y `/src/services/`.\r
+\r
+3. **Revisar el schema correspondiente** en `/src/schemas/`.\r
+\r
+4. **Revisar el módulo ML** en `/src/ml/` — YOLO, tracking y clasificación SCA. No hay módulo de inferencia separado: la detección ocurre dentro del loop de tracking.\r
+   - `tracker.py`: clase `CoffeeRenTracker` — carga el modelo YOLO, ejecuta ByteTrack, cuenta granos únicos por ID global y dibuja los bounding boxes.\r
+   - `classifier.py`: `generar_reporte()` — total de defectos equivalentes a partir del conteo del tracker (sin grado SCA: el modelo no distingue tipos de defecto).\r
+   - **Integración**: los services (p. ej. `tracker_service.py`) orquestan estos módulos.\r
+   - **Nunca** llamar `CoffeeRenTracker` o `classifier` directamente desde una route — siempre a través de un service.\r
+\r
+**No generes código repetido o fragmentado. Reutiliza siempre.**\r
+\r
+---\r
+\r
+## Arquitectura de 4 capas + módulo ML\r
+\r
+```\r
+Rutas HTTP\r
+   ↓ (obtener_usuario_actual())\r
+Servicios (orquestación, transacciones)\r
+   ├─ Llaman Modelos (SQL)\r
+   └─ Llaman módulo ML (/src/ml/)\r
+        ├─ CoffeeRenTracker.procesar_frame() → YOLO + ByteTrack + conteo\r
+        └─ classifier.generar_reporte() → defectos equivalentes\r
+   ↓\r
+Schemas (Pydantic, validación)\r
+```\r
+\r
+### Flujo ejemplo: streaming de video con defectos\r
+\r
+```\r
+POST /video/iniciar\r
+  ↓\r
+tracker_service.iniciar()\r
+  ├─ camara_service.iniciar() → captura frames\r
+  ├─ CoffeeRenTracker.procesar_frame() → YOLO + ByteTrack\r
+  └─ Loop: /lote/conteo → tracker.obtener_conteo()\r
+\r
+GET /video/stream → MJPEG con defectos en rojo\r
+\r
+POST /lote/generar-reporte\r
+  ↓\r
+tracker_service.generar_reporte_lote()\r
+  ↓\r
+classifier.generar_reporte(conteo_actual)\r
+  → {total_granos_analizados: 28, total_defectos: 8.0, detalle_por_clase, resumen}\r
+```"""

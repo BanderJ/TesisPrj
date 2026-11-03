@@ -1,6 +1,10 @@
 # Registro de Avances - Tesis CoffeeRen 2026
 
-**Última actualización:** 25 de mayo de 2026
+**Última actualización:** 30 de septiembre de 2026
+
+> Referencias a los manuales retirados y a su conversor depuradas el 2026-11-01.
+> El único manual de entrega vigente es `docs/manuales/Manual_Usuario_CoffeeRen.docx`,
+> mantenido directamente en Word.
 
 ---
 
@@ -283,6 +287,8 @@ No avanzar a Fase 3 sin completar Fase 2. Dataset_1 (3,480 imágenes) es el fund
 
 ## 2026-09-04 - Inventario inicial de archivos potencialmente redundantes
 
+> Referencias de la plantilla y la ruta de prueba actualizadas a `prueba.html` y `/prueba` el 2026-11-01.
+
 ### Contexto
 Se inicio una auditoria minuciosa para identificar archivos sin uso, duplicados,
 legado o generados. El objetivo de esta etapa es documentar evidencia y riesgos;
@@ -300,15 +306,15 @@ no se autoriza ni se realiza ninguna eliminacion en este bloque.
   utilidades, templates y recursos enlazados por las vistas forman parte del
   sistema activo y no deben marcarse como innecesarios por ausencia de referencias
   textuales simples.
-- Se confirmo que `/test` esta conectado a `src/main.py`, `test.html`, `test.js`
+- Se confirmo que `/prueba` esta conectado a `src/main.py`, `prueba.html`, `test.js`
   y `test.css`; es una vista de diagnostico autenticada y no un archivo huerfano.
 - Se verificaron referencias del sketch `arduino/test_motor/test_motor.ino` en
-  `readme.md` y `Manual_Instalacion_CoffeeRen.md`; es soporte de banco valido.
+  `readme.md`; es soporte de banco valido.
 
 ### Archivos impactados
 - `docs/registro-avances.md`
 - `src/main.py`
-- `src/templates/test.html`
+- `src/templates/prueba.html`
 - `src/static/js/test.js`
 - `src/static/css/test.css`
 - `arduino/test_motor/test_motor.ino`
@@ -317,7 +323,6 @@ no se autoriza ni se realiza ninguna eliminacion en este bloque.
 - `check_model.py`
 - `generar_manual.py`
 - `generar_manual_completo.py`
-- `convert_md_to_docx.py`
 - `scripts/generar_doc_video.py`
 - `src/config-example.py`
 - `src/database/inserts_valor_cafe.txt`
@@ -333,12 +338,11 @@ no se autoriza ni se realiza ninguna eliminacion en este bloque.
 | `detectar_camaras.py` en la raiz | No aparece citado por la documentacion; existe una segunda version en `scripts/detectar_camaras.py` y esta ultima es la citada por `docs/hardware-camara.md`. | Posible duplicado o legado | Medio: comparar comportamiento y confirmar cual se conserva. |
 | `check_model.py` | No tiene referencias; apunta a `src/ml/models/yolov8n/best.pt`, peso que no aparece en el inventario actual. | Herramienta diagnostica posiblemente obsoleta | Medio: podria conservarse para diagnostico historico o actualizarse. |
 | `generar_manual.py` y `generar_manual_completo.py` | Ambos generan manuales Word y no son llamados por la aplicacion. El segundo es una version mucho mas extensa. | Herramientas de generacion; posible solapamiento | Medio: revisar cual es fuente vigente antes de consolidar. |
-| `convert_md_to_docx.py` | Convierte `Manual_Instalacion_CoffeeRen.md` a `.docx`; no participa en runtime. | Soporte valido de publicacion | Bajo: conservar si se mantiene el flujo Markdown a Word. |
 | `scripts/generar_doc_video.py` | Genera documentacion Word del subsistema de video/Arduino y no participa en runtime. | Soporte documental no automatico | Bajo/medio: verificar si el documento de salida existe y si se requiere regenerarlo. |
-| `src/config-example.py` | Es referenciado por el manual de instalacion, pero contiene valores historicos distintos a `src/config.py`. | Plantilla de configuracion desactualizada | Medio: actualizar o retirar despues de confirmar el procedimiento de instalacion. |
+| `src/config-example.py` | Contiene valores historicos distintos a `src/config.py`. | Plantilla de configuracion desactualizada | Medio: actualizar o retirar despues de confirmar el procedimiento de instalacion. |
 | `docs/API_VIDEO_STREAMING.md` | Conserva referencias a `yolov8n`, `best.pt` y resolucion 1280x720/60, mientras el estado actual documenta `yolov26n_2cls`, ONNX y 1920x1080/90. | Documentacion relevante pero desactualizada | Medio: no eliminar; corregir en una tarea documental separada. |
-| `src/templates/test.html` y sus recursos | Ruta `/test` y referencias desde `main.html`; la vista reutiliza endpoints `/video/*`. | Activo de diagnostico | Alto: no eliminar sin decidir retirar la vista de pruebas. |
-| `arduino/test_motor/test_motor.ino` | Referenciado por README y manual de instalacion; prueba aislada de hardware. | Soporte valido | Bajo: no eliminar. |
+| `src/templates/prueba.html` y sus recursos | Ruta `/prueba` y referencias desde `main.html`; la vista reutiliza endpoints `/video/*`. | Activo de diagnostico | Alto: no eliminar sin decidir retirar la vista de pruebas. |
+| `arduino/test_motor/test_motor.ino` | Referenciado por README; prueba aislada de hardware. | Soporte valido | Bajo: no eliminar. |
 | `src/database/inserts_valor_cafe.txt` | Archivo de 314 lineas para datos SQL; no se encontro referencia automatica. | Soporte de carga manual, uso no confirmado | Medio: revisar contenido y relacion con `src/database/script.sql`. |
 | `.pyc`, `.env`, `best.pt`, ejecutable Tailwind | Archivos ignorados o locales, generados/operativos y fuera del conjunto versionado. | Artefactos locales | Bajo para el codigo; no deben mezclarse con candidatos funcionales. |
 
@@ -396,9 +400,6 @@ runtime, hardware ni ML.
   90 fps, tabla SCA de 3 grados, cuerpos de respuesta reales, endpoints
   `GET /video/frame` y `POST /video/liberar-camara` documentados, patron de
   consumo vanilla JS y sin emojis.
-- Manuales `.docx` (Instalacion, Mantenimiento, Usuario): se confirma la
-  eliminacion ya presente en el worktree. Se conservan los `.md` como fuente;
-  los `.docx` se regeneran cuando se necesiten para entrega.
 - `INSTALACION.md`: corregidas referencias obsoletas del mismo tipo (no estaba en
   el inventario original pero comparte el defecto). Nombre de BD `cofferen` ->
   `tesis_prj` (el correcto segun `src/config.py` y el manual completo); bloque
@@ -409,8 +410,7 @@ runtime, hardware ni ML.
 
 ### Archivos impactados
 - eliminados: `detectar_camaras.py`, `generar_manual.py`
-- eliminados (confirmacion): `Manual_Instalacion_CoffeeRen.docx`,
-  `Manual_Mantenimiento_CoffeeRen.docx`, `Manual_Usuario_CoffeeRen_Completo.docx`
+- eliminado (confirmacion): `Manual_Usuario_CoffeeRen_Completo.docx`
 - reescritos: `check_model.py`, `src/config-example.py`,
   `docs/API_VIDEO_STREAMING.md`
 - corregido: `INSTALACION.md`
@@ -429,23 +429,15 @@ runtime, hardware ni ML.
   hilos ni parametros de exportacion ONNX.
 
 ### Pendientes
-- `generar_manual_completo.py` (1748 lineas de python-docx hardcodeado): evaluar
-  migrar el Manual de Usuario a un `Manual_Usuario_CoffeeRen.md` y generar el
-  `.docx` con `convert_md_to_docx.py`, para tener un unico flujo md -> docx.
-- `convert_md_to_docx.py`: hoy fija `Manual_Instalacion_CoffeeRen.md`; podria
-  aceptar el nombre del archivo o recorrer todos los `Manual_*.md`.
-- `INSTALACION.md` vs `Manual_Instalacion_CoffeeRen.md`: son dos guias de
-  instalacion. La corta quedo saneada, pero decidir si se mantiene como
-  quick-start o se elimina dejando solo el manual completo (readme apunta a
-  ambas).
+- Manual de Usuario: el pendiente sobre su generacion quedo superado; desde el
+  2026-10-31 se mantiene directamente en Word, sin fuente Markdown ni conversion.
 - `src/database/inserts_valor_cafe.txt`: datos semilla de prueba para
   `valor_cafe`; decidir si se referencia desde `script.sql` o se documenta.
 - `.claude/settings.local.json` tiene mas entradas de permiso muertas
   (`crear_preinforme_actualizado.py`, `src/ml/constants.py`, `src/ml/inference.py`).
 
 ### Proximo paso
-Cerrar la decision sobre los generadores de manual y consolidar el flujo
-md -> docx.
+Mantener el Manual de Usuario directamente en Word.
 
 ## 2026-09-06 - Separacion config.py / config-example.py
 
@@ -467,13 +459,11 @@ como plantilla; al instalar se copia a `src/config.py`.
 - Hook `PostToolUse` (Write/Edit) en `.claude/settings.json` +
   `.claude/hooks/config_example_reminder.py`: al editar `src/config.py` recuerda
   espejar el cambio en la plantilla. Probado (pipe-test + disparo real).
-- `Manual_Instalacion_CoffeeRen.md` e `INSTALACION.md`: el Paso 1 ahora indica
-  copiar `config-example.py` a `config.py` antes de editar credenciales.
 
 ### Archivos impactados
 - `.gitignore`, `src/config.py` (untrack), `src/config-example.py`, `CLAUDE.md`
 - `.claude/settings.json`, `.claude/hooks/config_example_reminder.py` (nuevo)
-- `Manual_Instalacion_CoffeeRen.md`, `INSTALACION.md`, este registro
+- este registro
 
 ### Validacion
 - Estado: hecho.
@@ -484,7 +474,7 @@ como plantilla; al instalar se copia a `src/config.py`.
 
 ### Limpieza aplicada (2026-09-06, continuacion)
 - `.claude/settings.json`: eliminada la regla de permiso que contenia
-  `$env:PGPASSWORD = 'And1150'` (query psql puntual de introspeccion, sin valor
+  la contraseña de PostgreSQL en `$env:PGPASSWORD` (query psql puntual de introspeccion, sin valor
   para conservar). El working tree ya no tiene la contrasena en `.claude/`.
 - `.claude/settings.local.json`: agregado a `.gitignore` y `git rm --cached`
   (ajustes personales de permisos; no debe compartirse). El archivo sigue local.
@@ -494,7 +484,7 @@ como plantilla; al instalar se copia a `src/config.py`.
   que el hook viaje en el commit.
 
 ### Pendientes
-- La contrasena `And1150` sigue en el HISTORIAL de Git (`src/config.py` y
+- La contrasena de PostgreSQL sigue en el HISTORIAL de Git (`src/config.py` y
   `.claude/settings.json` en commits anteriores). Retirarla requiere reescribir
   historia (git filter-repo / BFG) y force-push; disruptivo con ramas y remoto
   compartido — decidir por separado.
@@ -707,3 +697,58 @@ operando hasta que el token expiraba.
 
 ### Proximo paso
 Ninguno. Confirmar los cambios de la rama `temporal`.
+
+## 2026-09-16 al 2026-09-30 - GPU, robustez del ML, reglas de pesos y reorganizacion de la documentacion
+
+### Contexto
+Entre el 16 y el 30 de septiembre se integraron varios cambios grandes (commits
+`93cd39a` y `4f38d55`) que no tenian entrada en este registro, y la documentacion
+seguia describiendo el modelo cascada de 14 clases, ONNX como formato unico y la
+camara a 1280x720. Se consolido todo en una guia de contexto.
+
+### Trabajo realizado
+- **Domain gap (2026-09-16):** se investigo por que granos sanos salian como
+  defecto (~40 %). Causa principal: dataset tomado con celular y produccion con
+  la ELP, sin augmentation de tono. Bloque 1 aplicado (`CAM_WB_TEMP`); notebook
+  de fine-tuning v7 preparado. Incidencia INC-65.
+- **Migracion a GPU (2026-09-22, `93cd39a`):** torch `+cu130`, `best.pt` en GPU
+  con FP16 condicional, tiles 3x3 en un batch, fusion consciente de costura,
+  clase por confianza acumulada, objeto desconocido con evidencia fotografica,
+  gate de movimiento, tabla `EVENTO_MONITOREO`, medidor de latencia (p95 110 ms).
+  CPU ~96 % -> ~25 %. Incidencias INC-66 e INC-67.
+- **Tara minima (2026-09-30, `4f38d55`):** el peso bruto debe superar
+  `round(num_sacos x 0.25)`. Incidencia INC-68.
+- **Documentacion (2026-09-30):** nueva carpeta `docs/guia/` (contexto, modulo
+  ML, reentrenamiento con la ELP, pendientes, historial); manuales movidos a
+  `docs/manuales/`; `CLAUDE.md`, `AGENTS.md`, `readme.md`,
+  `DOCUMENTACION_SISTEMA.md`, `API_VIDEO_STREAMING.md`, `hardware-camara.md`,
+  `LIBRERIAS.md`, `arquitectura.md` y los manuales corregidos al estado real;
+  `docs/documentacion/README.md` marca esa carpeta como historica; incidencias
+  INC-53 a INC-61 cerradas con su commit.
+- **Limpieza (2026-09-30):** eliminados por redundantes `docs/manuales/INSTALACION.md`
+  (duplicaba las instrucciones del readme) y en `docs/documentacion/`
+  `avance-tecnico-completo-2026.md`, `arquitectura-sistema-clasificacion.md` y
+  `registro-avances.md` (superados por `docs/guia/`; la arquitectura de hilos paso a
+  `docs/guia/02-modulo-ml.md`). `BACA CHUQUIMANCO_PROY.md` regenerado desde el `.docx`
+  (382 lineas tenian caracteres danados).
+
+### Archivos impactados
+- `docs/guia/*` (nuevo), `docs/manuales/*` (movidos desde la raiz),
+  `docs/documentacion/README.md` (nuevo), `docs/incidencias/incidencia_proyecto.md`,
+  `CLAUDE.md`, `AGENTS.md`, `readme.md`
+  y los documentos tecnicos de `docs/`.
+
+### Validacion
+- Estado: hecho (solo documentacion; no se modifico codigo de `src/`).
+- Cada dato tecnico se contrasto con el codigo actual (`tracker.py`,
+  `tracker_service.py`, `constants.py`, `config-example.py`, `main.py`, rutas).
+
+### Pendientes
+- Lista unica y priorizada en `docs/guia/04-pendientes.md`. Lo principal:
+  reentrenamiento v7 con fotos de la ELP, evaluacion formal (INC-63), validacion
+  de equivalencias con la cooperativa (INC-17), analisis de los CSV de latencia
+  del 2026-09-29. El unico manual de entrega vigente es el Manual de Usuario en Word.
+
+### Proximo paso
+Preparar las condiciones de captura (iluminacion, lente bloqueado, `CAM_WB_TEMP`)
+y capturar las fotos con la ELP segun `docs/guia/03-reentrenamiento-camara-elp.md`.

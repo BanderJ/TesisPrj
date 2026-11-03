@@ -1,5 +1,11 @@
 # Tabla de Defectos SCA — Referencia Rápida
 
+> **Vigencia (30-sep-2026):** esta tabla se escribió para el modelo de 17 clases, que no llegó a
+> producción. El modelo actual es binario y aplica las equivalencias de
+> `src/ml/models/yolov26n_2cls/constants.py`: `defecto` = 1, `verde` = 0, `desconocido`
+> (materia extraña) = 1.0. La validación de ambas tablas con Line Coffee Marañón sigue pendiente
+> (INC-17). Ver [guia/02-modulo-ml.md](guia/02-modulo-ml.md).
+
 ## Solo 3 Grados en la Norma SCA
 
 | Grado | Defectos Máximo | Specialty |

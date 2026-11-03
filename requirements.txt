@@ -68,3 +68,14 @@ pyyaml>=6.0              # tracker.py lee bytetrack.yaml directo (BYTETracker ma
 # ARDUINO & SERIAL
 # ============================================================
 pyserial>=3.5             # Comunicación serial con Arduino (servo + sensor ultrasónico)
+
+# ============================================================
+# PRUEBAS DE CAJA NEGRA (tests/caja_negra) — no las usa la app
+# Navegador: python -m playwright install chromium
+# ============================================================
+pytest>=9.0               # Ejecución de los casos PCN-XX
+playwright>=1.60.0        # Casos de interfaz en Chromium
+pdfplumber>=0.11.9        # Verificar el contenido del PDF exportado (PCN-22)
+openpyxl>=3.1.5           # Leer Casos_Prueba_Caja_Negra.xlsx y el Excel exportado (PCN-23)
+python-docx>=1.2.0        # Generar las fichas Word desde el template
+pytest-cov>=7.1.0         # Cobertura de ramas de las pruebas de caja blanca (tests/caja_blanca)

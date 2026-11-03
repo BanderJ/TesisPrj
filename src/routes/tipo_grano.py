@@ -3,24 +3,24 @@ from fastapi import APIRouter, HTTPException, Depends, status
 
 from src.schemas.tipo_grano import TipoGranoResponse, TipoGranoCreate, TipoGranoUpdate
 from src.services.tipo_grano_service import TipoGranoService
-from src.utilities.jwt_required import require_admin_o_gerente
+from src.utilities.jwt_required import obtener_usuario_actual, require_gerente
 
 tipo_grano_router = APIRouter()
 tipo_grano_service = TipoGranoService()
 
 
-@tipo_grano_router.get("/listar", response_model=list[TipoGranoResponse])
-async def listar_tipo_grano() -> list[TipoGranoResponse]:
+@tipo_grano_router.get("/listar", response_model=list[TipoGranoResponse], dependencies=[Depends(obtener_usuario_actual)])
+def listar_tipo_grano() -> list[TipoGranoResponse]:
     try:
         return tipo_grano_service.listar_tipos_grano()
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo obtener los tipos de grano.") from exc
+        raise HTTPException(status_code=500, detail="No se pudieron obtener los tipos de grano.") from exc
 
 
 @tipo_grano_router.post("/crear", response_model=TipoGranoResponse, status_code=status.HTTP_201_CREATED)
-async def crear_tipo_grano(
+def crear_tipo_grano(
     payload: TipoGranoCreate,
-    _: dict[str, Any] = Depends(require_admin_o_gerente)
+    _: dict[str, Any] = Depends(require_gerente)
 ) -> TipoGranoResponse:
     try:
         return tipo_grano_service.crear_tipo_grano(payload)
@@ -31,10 +31,10 @@ async def crear_tipo_grano(
 
 
 @tipo_grano_router.patch("/{tipo_grano_id}", response_model=TipoGranoResponse)
-async def actualizar_tipo_grano(
+def actualizar_tipo_grano(
     tipo_grano_id: int,
     payload: TipoGranoUpdate,
-    _: dict[str, Any] = Depends(require_admin_o_gerente)
+    _: dict[str, Any] = Depends(require_gerente)
 ) -> TipoGranoResponse:
     try:
         return tipo_grano_service.actualizar_tipo_grano(tipo_grano_id, payload)
@@ -45,9 +45,9 @@ async def actualizar_tipo_grano(
 
 
 @tipo_grano_router.delete("/{tipo_grano_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def eliminar_tipo_grano(
+def eliminar_tipo_grano(
     tipo_grano_id: int,
-    _: dict[str, Any] = Depends(require_admin_o_gerente)
+    _: dict[str, Any] = Depends(require_gerente)
 ) -> None:
     try:
         tipo_grano_service.eliminar_tipo_grano(tipo_grano_id)

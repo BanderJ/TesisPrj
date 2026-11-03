@@ -24,6 +24,7 @@ from src.routes.persona import persona_router
 from src.routes.reporte import reporte_router
 from src.routes.tipo_caficultor import tipo_caficultor_router
 from src.routes.tipo_documento import tipo_documento_router
+from src.routes.bono_socio import bono_socio_router
 from src.routes.tipo_grano import tipo_grano_router
 from src.routes.tipo_personal import tipo_personal_router
 from src.routes.ubigeo import ubigeo_router
@@ -34,11 +35,14 @@ from src.services.tracker_service import tracker_service
 from src.utilities.arduino_serial import arduino_serial
 from src.utilities.servo_controller import servo_controller
 from src.services.evaluacion_service import EvaluacionService
+from src.schemas.evaluacion import RegistrarEvaluacionRequest
 from src.utilities.jwt_required import (
     RequerirLoginException,
     obtener_usuario_actual,
     require_admin_o_gerente,
+    require_evaluador
 )
+from src.utilities.jwt_utils import validar_clave_secreta
 
 _UUID_RE = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
@@ -51,6 +55,7 @@ _evaluacion_service = EvaluacionService()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
     del app  # required by the lifespan protocol; unused at runtime
+    validar_clave_secreta()  # sin SECRET_KEY real la app no arranca
     camara_service.iniciar()  # pre-conectar cámara al arrancar
     print("Application has started successfully!")
     yield
@@ -77,18 +82,21 @@ class _NoCacheStaticFiles(StaticFiles):
 
 app = FastAPI(lifespan=lifespan)
 
-app.mount("/static", _NoCacheStaticFiles(directory="src/static"), name="static")
-app.mount("/resources", _NoCacheStaticFiles(directory="src/resources"), name="resources")
+# Rutas desde este archivo, no desde el directorio de trabajo: la app arranca
+# igual aunque uvicorn se lance desde otra carpeta.
+_SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+app.mount("/static", _NoCacheStaticFiles(directory=os.path.join(_SRC_DIR, "static")), name="static")
+app.mount("/resources", _NoCacheStaticFiles(directory=os.path.join(_SRC_DIR, "resources")), name="resources")
 
-templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+templates_dir = os.path.join(_SRC_DIR, "templates")
 templates = Jinja2Templates(directory=templates_dir)
 
 
 # ==================== MANEJO DE EXCEPCIONES ====================
 
 @app.get('/favicon.ico', include_in_schema=False)
-async def favicon():
-    return FileResponse('src/static/icon/coffee-bean_icon.png')
+def favicon() -> FileResponse:
+    return FileResponse(os.path.join(_SRC_DIR, "static", "icon", "coffee-bean_icon.png"))
 
 @app.exception_handler(RequerirLoginException)
 async def auth_exception_handler(request: Request, exc: RequerirLoginException) -> RedirectResponse:
@@ -186,7 +194,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 @app.get("/health", tags=["infra"])
-async def health() -> dict[str, str]:
+def health() -> dict[str, str]:
     """Health-check de liveness: confirma que el servidor FastAPI arrancó.
     Público a propósito (no depende de obtener_usuario_actual) y sin acceso a
     base de datos, para servir como sonda de arranque del primer incremento."""
@@ -196,6 +204,7 @@ async def health() -> dict[str, str]:
 app.include_router(arduino_router)
 app.include_router(auditoria_router)
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(bono_socio_router, prefix="/bono-socio", tags=["bono-socio"])
 app.include_router(caficultor_router, prefix="/caficultor", tags=["caficultor"])
 app.include_router(cooperativa_router)
 app.include_router(evaluacion_router, prefix="/evaluacion", tags=["evaluacion"])
@@ -213,7 +222,7 @@ app.include_router(video_router)  # Video streaming y análisis ML
 
 
 @app.get("/")
-async def inicio(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
+def inicio(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
     """Página de inicio del sistema. URL canónica: `/`."""
     return templates.TemplateResponse(
         request=request,
@@ -223,7 +232,7 @@ async def inicio(request: Request, user: dict[str, Any] = Depends(obtener_usuari
 
 
 @app.get("/inicio", include_in_schema=False)
-async def inicio_alias(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> RedirectResponse:
+def inicio_alias(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> RedirectResponse:
     """Alias histórico → redirige a la URL canónica `/` (marcadores viejos).
     307 (temporal): no se cachea de forma permanente en el browser. Mantiene el
     guard de sesión como toda ruta de página (un no autenticado va a login)."""
@@ -231,17 +240,17 @@ async def inicio_alias(_: dict[str, Any] = Depends(obtener_usuario_actual)) -> R
 
 
 @app.get("/registro")
-async def registro(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
+def registro(request: Request, user: dict[str, Any] = Depends(require_evaluador)) -> Any:
     """Página de registro de muestras."""
     return templates.TemplateResponse(
         request=request,
         name="registro.html",
-        context={"request": request, "user": user},
+        context={"request": request, "user": user, "limites_pesos": RegistrarEvaluacionRequest},
     )
 
 
 @app.get("/analisis/{evaluacion_id}")
-async def analisis(
+def analisis(
     evaluacion_id: str,
     request: Request,
     user: dict[str, Any] = Depends(obtener_usuario_actual),
@@ -268,10 +277,10 @@ async def analisis(
 
 
 @app.get("/monitoreo/{evaluacion_id}")
-async def monitoreo(
+def monitoreo(
     evaluacion_id: str,
     request: Request,
-    user: dict[str, Any] = Depends(obtener_usuario_actual),
+    user: dict[str, Any] = Depends(require_evaluador),
 ) -> Any:
     """Página de monitoreo en tiempo real de clasificación.
     Guard: si la evaluacion ya fue finalizada (tiene codigo), redirige a analisis.
@@ -295,19 +304,19 @@ async def monitoreo(
     return response
 
 
-@app.get("/test")
-async def test_deteccion(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
+@app.get("/prueba")
+def test_deteccion(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
     """Vista de prueba: verificar la cámara y observar la detección del modelo en vivo,
     sin registrar una muestra ni una evaluación. Reutiliza los endpoints /video/*."""
     return templates.TemplateResponse(
         request=request,
-        name="test.html",
+        name="prueba.html",
         context={"request": request, "user": user},
     )
 
 
 @app.get("/nuevo-caficultor")
-async def nuevo_caficultor(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
+def nuevo_caficultor(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
     """Pantalla de registro y conversion de caficultores."""
     return templates.TemplateResponse(
         request=request,
@@ -317,7 +326,7 @@ async def nuevo_caficultor(request: Request, user: dict[str, Any] = Depends(obte
 
 
 @app.get("/reporte")
-async def reporte(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
+def reporte(request: Request, user: dict[str, Any] = Depends(obtener_usuario_actual)) -> Any:
     """Página de búsqueda de muestras por código de evaluación."""
     return templates.TemplateResponse(
         request=request,
@@ -327,7 +336,7 @@ async def reporte(request: Request, user: dict[str, Any] = Depends(obtener_usuar
 
 
 @app.get("/valor-cafe")
-async def valor_cafe(request: Request, user: dict[str, Any] = Depends(require_admin_o_gerente)) -> Any:
+def valor_cafe(request: Request, user: dict[str, Any] = Depends(require_admin_o_gerente)) -> Any:
     """Pantalla de registro de precios de café. Solo Gerente y Administrador —
     un Evaluador que escriba la URL a mano recibe 403 → redirect a `/`."""
     return templates.TemplateResponse(
@@ -338,7 +347,7 @@ async def valor_cafe(request: Request, user: dict[str, Any] = Depends(require_ad
 
 
 @app.get("/configuracion-cooperativa")
-async def configuracion_cooperativa(request: Request, user: dict[str, Any] = Depends(require_admin_o_gerente)) -> Any:
+def configuracion_cooperativa(request: Request, user: dict[str, Any] = Depends(require_admin_o_gerente)) -> Any:
     """Pantalla de configuración de cooperativa. Solo Gerente y Administrador."""
     return templates.TemplateResponse(
         request=request,

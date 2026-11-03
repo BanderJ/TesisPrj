@@ -25,7 +25,7 @@ Antes de implementar cualquier funcionalidad:
 
 4. **Revisar el módulo ML** en `/src/ml/` — YOLO, tracking y clasificación SCA. No hay módulo de inferencia separado: la detección ocurre dentro del loop de tracking.
    - `tracker.py`: clase `CoffeeRenTracker` — carga el modelo YOLO, ejecuta ByteTrack, cuenta granos únicos por ID global y dibuja los bounding boxes.
-   - `classifier.py`: `generar_reporte()` — cálculo de grados SCA (3 grados: Specialty/2/3) a partir del conteo del tracker.
+   - `classifier.py`: `generar_reporte()` — total de defectos equivalentes a partir del conteo del tracker (sin grado SCA: el modelo no distingue tipos de defecto).
    - **Integración**: los services (p. ej. `tracker_service.py`) orquestan estos módulos.
    - **Nunca** llamar `CoffeeRenTracker` o `classifier` directamente desde una route — siempre a través de un service.
 
@@ -42,7 +42,7 @@ Servicios (orquestación, transacciones)
    ├─ Llaman Modelos (SQL)
    └─ Llaman módulo ML (/src/ml/)
         ├─ CoffeeRenTracker.procesar_frame() → YOLO + ByteTrack + conteo
-        └─ classifier.generar_reporte() → grado SCA
+        └─ classifier.generar_reporte() → defectos equivalentes
    ↓
 Schemas (Pydantic, validación)
 ```
@@ -64,5 +64,5 @@ POST /lote/generar-reporte
 tracker_service.generar_reporte_lote()
   ↓
 classifier.generar_reporte(conteo_actual)
-  → {grado: "Specialty", defectos: 8.4, apto: true}
+  → {total_granos_analizados: 28, total_defectos: 8.0, detalle_por_clase, resumen}
 ```
