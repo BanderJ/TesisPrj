@@ -237,16 +237,7 @@ class CoffeeRenTracker:
         return rects
 
     def _detectar(self, frame: np.ndarray) -> np.ndarray:
-        """Corre YOLO sobre el frame y devuelve las cajas en coordenadas del
-        frame completo: array (N, 6) con filas [x1, y1, x2, y2, conf, cls].
 
-        El modelo se entrenó con 1 grano por imagen a ~640px. En la faja/mesa el
-        grano ocupa una fracción chica de un frame 1920x1080, así que al reescalar
-        todo el frame a imgsz=640 el grano queda demasiado pequeño y el modelo no
-        lo detecta. Partir el frame en tiles acerca cada grano a la escala de
-        entrenamiento; cada tile se infiere a imgsz=640 (ese parámetro no cambia).
-        Con TILES_X = TILES_Y = 1 se infiere el frame completo (comportamiento
-        previo al tiling)."""
         h, w = frame.shape[:2]
         tiles = self._grilla_tiles(w, h)
         subs = [frame[y0:y1, x0:x1] for (x0, y0, x1, y1) in tiles]

@@ -60,7 +60,7 @@ COLORES = {
 }
 
 # Tabla de equivalencias SCA (350g) — adaptada para yolo26n_2cls (2 clases)
-# ⚠️ VERIFICAR contra la tabla oficial de Line Coffee Marañón / INCAL antes de desplegar.
+# VERIFICAR contra la tabla oficial de Line Coffee Marañón / INCAL antes de desplegar.
 EQUIVALENCIAS_DEFECTO = {
     # Defecto genérico — promedio ponderado de todos los defectos SCA
     # Basado en: (agrio_severo=1.0 + cereza_seca=1.0 + broca_severo=1.0 + agrio_ligero=0.333) / 4 ≈ 0.83

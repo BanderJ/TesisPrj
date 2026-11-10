@@ -42,7 +42,7 @@ class CamaraService:
 
     def _capture_loop(self) -> None:
         errores_consecutivos = 0
-        MAX_ERRORES = 10  # ~10 lecturas fallidas → cámara desconectada
+        MAX_ERRORES = 10
         while self._running:
             cap = self._cap
             if cap is None or not cap.isOpened():
